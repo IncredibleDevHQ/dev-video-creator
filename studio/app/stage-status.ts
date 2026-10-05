@@ -29,7 +29,8 @@ const caption = (
     if (!video) return snapshot.status === 'ready' ? 'next' : ''
     const views = snapshot.views || projectViews(project, snapshot.events)
     if (views.video.action === 'export') return 'ready'
-    return `${views.video.producedScenes}/${video.scenes.length}`
+    const made = views.video.madeScenes ?? video.scenes.length
+    return made ? `${views.video.producedScenes}/${made}` : 'no scenes'
   }
   return label.toLowerCase()
 }

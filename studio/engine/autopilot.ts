@@ -2,6 +2,8 @@ import { addEvent, type ActivityLedger } from './activity'
 import type { Scene, SceneStage } from '../shared/model'
 
 export type SceneSignal =
+  | 'make'
+  | 'leave-out'
   | 'start'
   | 'plan-ready'
   | 'change'
@@ -23,25 +25,37 @@ const editable = {
   replan: 'replanning' as const,
   'recording-saved': 'waiting' as const
 }
+// The creator can leave any scene out of the video except one being rendered;
+// an agent writing it is stopped, and its late result is discarded.
+const leaveOut = { 'leave-out': 'idle' as const }
 const transitions: Record<
   Scene['phase'],
   Partial<Record<SceneSignal, Scene['phase']>>
 > = {
+  idle: { invalidate: 'idle', fail: 'failed', make: 'queued' },
   queued: {
     ...invalidate,
+    ...leaveOut,
     change: 'changing',
     replan: 'replanning',
     start: 'writing'
   },
-  writing: { ...invalidate, 'plan-ready': 'waiting', 'recover-plan': 'queued' },
-  waiting: { ...invalidate, ...editable, produce: 'producing' },
+  writing: {
+    ...invalidate,
+    ...leaveOut,
+    'plan-ready': 'waiting',
+    'recover-plan': 'queued'
+  },
+  waiting: { ...invalidate, ...editable, ...leaveOut, produce: 'producing' },
   changing: {
     ...invalidate,
+    ...leaveOut,
     'plan-ready': 'waiting',
     'recover-plan': 'queued'
   },
   replanning: {
     ...invalidate,
+    ...leaveOut,
     'plan-ready': 'waiting',
     'recover-plan': 'queued'
   },
@@ -51,8 +65,14 @@ const transitions: Record<
     'animation-ready': 'waiting',
     'recover-production': 'waiting'
   },
-  produced: { ...invalidate, ...editable, produce: 'producing' },
-  failed: { ...invalidate, ...editable, retry: 'queued', produce: 'producing' }
+  produced: { ...invalidate, ...editable, ...leaveOut, produce: 'producing' },
+  failed: {
+    ...invalidate,
+    ...editable,
+    ...leaveOut,
+    retry: 'queued',
+    produce: 'producing'
+  }
 }
 export const advanceScene = (scene: Scene, signal: SceneSignal): Scene => {
   if (
@@ -72,6 +92,8 @@ export const advanceScene = (scene: Scene, signal: SceneSignal): Scene => {
   return next
 }
 const messages: Record<SceneSignal, string> = {
+  make: 'Making this scene',
+  'leave-out': 'Left out of the video',
   start: 'Writing the scene',
   'plan-ready': 'Scene written',
   change: 'Updating this scene',
@@ -87,6 +109,7 @@ const messages: Record<SceneSignal, string> = {
   'recover-production': 'Resuming production'
 }
 const stages: Partial<Record<SceneSignal, SceneStage>> = {
+  make: 'artwork',
   start: 'artwork',
   change: 'artwork',
   replan: 'artwork',
@@ -138,7 +161,8 @@ export const transitionScene = (
                 'plan-ready',
                 'produced',
                 'animation-ready',
-                'recording-saved'
+                'recording-saved',
+                'leave-out'
               ].includes(signal)
             ? 'complete'
             : 'processing'

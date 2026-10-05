@@ -5,6 +5,7 @@ import { agentNames } from './agent-setup'
 import { escape, button } from './ui'
 import { presentationProgress } from './progress'
 import { wireframeStatus } from './wireframe-copy'
+import { sceneBadge, sceneLink } from './scene-link'
 
 /** A rail entry: a drawn wireframe, or an outline scene not drawn yet. */
 export type WireframeTile =
@@ -94,7 +95,12 @@ export const presentationScreen = (
   selected: number,
   pendingChat = false,
   liveConnected = true,
-  view: { plan?: string | null; pin?: ChangeTarget | null } = {}
+  view: {
+    plan?: string | null
+    pin?: ChangeTarget | null
+    /** Whether the scene's picture-in-picture card is open, not a chip. */
+    pipOpen?: boolean
+  } = {}
 ) => {
   const { project, status } = snapshot
   const tiles = wireframeTiles(snapshot)
@@ -135,6 +141,9 @@ export const presentationScreen = (
   const scriptEditable = status === 'ready' && !snapshot.readOnly && slide
   const script = planTile ? planTile.narration : slide?.narration || ''
   const pin = view.pin && slide && canChange ? view.pin : null
+  const link = slide
+    ? sceneLink(snapshot, selected, view.pipOpen !== false)
+    : { line: '', pip: '' }
   return html`<section class="slides">
     <aside class="rail" aria-label="Wireframes">
       <div class="rail-heading">
@@ -195,7 +204,10 @@ export const presentationScreen = (
           >
             <span class="thumb-number" aria-hidden="true">${number}</span>
             <div>${tile.svg || '<span>Blank wireframe</span>'}</div>
-            ${changeBadge(changeFor(snapshot, tile.id))}
+            ${changeBadge(changeFor(snapshot, tile.id))}${sceneBadge(
+              snapshot,
+              tile.id
+            )}
           </button>`
         })
         .join('')}
@@ -221,24 +233,27 @@ export const presentationScreen = (
             )}
           </div>`
         : ''}${changeChip(snapshot, change)}
-      <div
-        class="stage ${pin ? 'is-pinning' : ''}"
-        ${canChange ? 'data-pinnable' : ''}
-      >
-        ${planTile
-          ? planStage(snapshot, planTile, position + 1, now.has(planTile.id))
-          : slide?.svg ||
-            (slide
-              ? html`<div class="blank">
-                  <h2>What is this wireframe about?</h2>
-                  <p>Tell the studio below.</p>
-                </div>`
-              : presentationProgress(snapshot))}
+      <div class="stage-frame">
+        <div
+          class="stage ${pin ? 'is-pinning' : ''}"
+          ${canChange ? 'data-pinnable' : ''}
+        >
+          ${planTile
+            ? planStage(snapshot, planTile, position + 1, now.has(planTile.id))
+            : slide?.svg ||
+              (slide
+                ? html`<div class="blank">
+                    <h2>What is this wireframe about?</h2>
+                    <p>Tell the studio below.</p>
+                  </div>`
+                : presentationProgress(snapshot))}
+        </div>
+        ${link.pip}
       </div>
       <div class="slide-caption">
         <span
           >${position >= 0 ? `Wireframe ${position + 1} of ${total}` : ''}</span
-        >${slide
+        >${link.line}${slide
           ? html`<button
               type="button"
               class="slide-menu-button"

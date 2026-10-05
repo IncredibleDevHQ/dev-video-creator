@@ -29,6 +29,8 @@ export interface AppContext {
   momentIndex: number
   second: number
   wholeVideo: boolean
+  /** The creator folded the wireframe's scene card into a chip. */
+  pipClosed: boolean
   startRehearsal: (() => Promise<void>) | null
   practiceStopAfter: number | null
   practiceMomentIds: string[]

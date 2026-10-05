@@ -539,7 +539,10 @@ export const clickRecording = async (
   }
   if (action === 'scene-next' || action === 'record-moment') {
     const scene = app.snapshot.project.video!.scenes[app.selected]
-    if (app.snapshot.views?.scenes[scene.id].action === 'retry') {
+    if (app.snapshot.views?.scenes[scene.id].action === 'make') {
+      app.snapshot = await api.makeScene(id, scene.id)
+      app.render()
+    } else if (app.snapshot.views?.scenes[scene.id].action === 'retry') {
       app.snapshot = await api.retryScene(id, scene.id)
       app.render()
     } else if (

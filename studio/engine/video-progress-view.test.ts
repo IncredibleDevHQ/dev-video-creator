@@ -185,7 +185,12 @@ it('keeps presentation ready while video processing appears only in its own stat
   input.events[0].activity = 'processing'
   const html = presentationScreen(input, 0)
   expect(html).toContain('Wireframes ready')
-  expect(html).not.toContain('Creating the scene preview')
+  // The scene's progress shows only as the scene, under its wireframe.
+  const sceneLine = html.match(/<div class="scene-line[\s\S]*?<\/div>/)?.[0]
+  expect(sceneLine).toContain('Creating the scene preview')
+  expect(html.replace(sceneLine!, '')).not.toContain(
+    'Creating the scene preview'
+  )
   expect(stageStatus(input, 'presentation')).toContain('Ready')
   expect(stageStatus(input, 'presentation')).not.toContain('is-processing')
   expect(stageStatus(input, 'video')).toContain('Processing')
@@ -433,6 +438,19 @@ it('puts no playback controls over a scene still being prepared, and gives the r
   // Its change box already gives an off-camera example for an off-camera video.
   input.project.video!.settings.presence = 'off'
   expect(render(input)).toContain('like “say this part more slowly”')
+})
+
+it('offers to make a scene left out of the video, and a way back to its wireframe', () => {
+  const input = fixture(),
+    scene = input.project.video!.scenes[0]
+  scene.phase = 'idle'
+  input.views = projectViews(input.project, input.events)
+  const html = render(input)
+  expect(html).toContain(
+    '<button type="button" data-action="scene-next" class="primary" >Make this scene</button>'
+  )
+  expect(html).toContain('data-action="open-wireframe"')
+  expect(html).toContain('is-left-out')
 })
 
 it('distinguishes scenes ready to assemble from active work and missing recordings', () => {

@@ -124,6 +124,16 @@ export const produceVideo = async (id: string) => {
     addEvent(current, 'video', 'Producing video')
   })
   const video = snapshot.project.video!
+  // Only the scenes the creator made are joined. Between neighbours the chosen
+  // transition plays; across a scene left out, a cut.
+  const made = video.scenes
+    .map((scene, index) => ({ scene, index }))
+    .filter(({ scene }) => scene.phase !== 'idle')
+  const seams = made
+    .slice(0, -1)
+    .map(({ index }, at) =>
+      made[at + 1].index === index + 1 ? video.transitions[index] : 'none'
+    )
   const work = (async () => {
     try {
       let clock: SceneInterval[] = []
@@ -139,12 +149,12 @@ export const produceVideo = async (id: string) => {
         clock = saved.data.clock
       } else {
         const bytes = await joinScenes(
-          video.scenes.map((scene) => scene.produced!.objectKey),
-          video.transitions,
+          made.map(({ scene }) => scene.produced!.objectKey),
+          seams,
           (intervals) => {
             clock = intervals.map((interval, index) => ({
               ...interval,
-              sceneId: video.scenes[index].id
+              sceneId: made[index].scene.id
             }))
           }
         )
@@ -166,8 +176,7 @@ export const produceVideo = async (id: string) => {
         asset,
         Math.min(
           1,
-          (video.scenes[0].moments[0].end - video.scenes[0].moments[0].start) /
-            2
+          (made[0].scene.moments[0].end - made[0].scene.moments[0].start) / 2
         )
       )
       await saveStageCheckpoint(id, undefined, 'join', expected, {

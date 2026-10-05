@@ -5,7 +5,8 @@ import { generationFailure } from './generation-errors'
 import type { Snapshot, ReplanPreview, ChatRequest } from '../shared/api'
 import type { VideoSettings, Presence, Scene } from '../shared/model'
 import { loadProject, changeProject, addEvent } from './projects'
-import { readRow, storeAsset, writeRow } from './persistence'
+import { listNotebookRows, readRow, storeAsset, writeRow } from './persistence'
+import { cancelEngineRun, type EngineRun } from './harness/runtime'
 import { resolveVoice } from './voice-library'
 import { modelFetch } from './model-gateway'
 import { momentPlanSchema, normalizeMoments } from './moment-plan'
@@ -45,6 +46,18 @@ export const validateVideoSettings = (value: unknown): VideoSettings => {
         : { kind: raw.voice.kind, id: raw.voice.id }
   }
 }
+/** The wireframes whose scenes to make, when the creator chose only some. */
+const chosenScenes = (body: unknown, slideIds: string[]) => {
+  const raw = (body as { scenes?: unknown } | null)?.scenes
+  if (raw === undefined || raw === null) return undefined
+  if (
+    !Array.isArray(raw) ||
+    !raw.length ||
+    raw.some((id) => typeof id !== 'string' || !slideIds.includes(id))
+  )
+    throw new Error('Choose at least one wireframe to make')
+  return new Set(raw as string[])
+}
 export const makeVideo = async (id: string, settings: unknown) => {
   const valid = validateVideoSettings(settings)
   await resolveVoice(valid.voice)
@@ -69,10 +82,60 @@ export const makeVideo = async (id: string, settings: unknown) => {
       inputKey: '',
       produced: null
     }
-    reconcileVideo(current.project, current)
-    addEvent(current, 'video', 'Writing your video scenes')
+    const make = chosenScenes(
+      settings,
+      current.project.slides.map((slide) => slide.id)
+    )
+    reconcileVideo(current.project, current, make)
+    addEvent(
+      current,
+      'video',
+      make && make.size < current.project.slides.length
+        ? `Writing ${make.size} of ${current.project.slides.length} video scenes`
+        : 'Writing your video scenes'
+    )
   })
   schedulePlanning(id)
+  return snapshot
+}
+/** Make a scene the creator left out: it joins the queue to be written. */
+export const makeScene = async (id: string, sceneId: string) => {
+  const snapshot = await changeProject(id, (current) => {
+    const scene = current.project.video?.scenes.find(
+      (scene) => scene.id === sceneId
+    )
+    if (!scene) throw new Error('Scene not found')
+    if (scene.phase !== 'idle') throw new Error('This scene is already made')
+    transitionScene(scene, 'make', current)
+    refreshVideoKeys(current.project)
+  })
+  schedulePlanning(id)
+  return snapshot
+}
+/**
+ * Leave a scene out of the video. An agent writing it is stopped; what the
+ * scene already has is kept for when it is made again.
+ */
+export const leaveOutScene = async (id: string, sceneId: string) => {
+  const snapshot = await changeProject(id, (current) => {
+    const video = current.project.video
+    const scene = video?.scenes.find((scene) => scene.id === sceneId)
+    if (!video || !scene) throw new Error('Scene not found')
+    if (['preparing', 'joining'].includes(video.phase || ''))
+      throw new Error('Wait for the video to finish this step')
+    if (scene.phase === 'producing')
+      throw new Error('Wait for this scene to finish rendering')
+    transitionScene(scene, 'leave-out', current)
+    refreshVideoKeys(current.project)
+  })
+  for (const runId of await listNotebookRows('engine-runs', id)) {
+    const run = await readRow<EngineRun>('engine-runs', runId)
+    if (
+      run?.sceneId === sceneId &&
+      ['preparing', 'running'].includes(run.status)
+    )
+      cancelEngineRun(run.id)
+  }
   return snapshot
 }
 export const schedulePlanning = (id: string) => {

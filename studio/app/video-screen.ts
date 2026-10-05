@@ -23,7 +23,7 @@ import { sceneDisplay, videoDisplay } from '../shared/state'
 import { sceneActivity, sceneActivityRail } from './scene-activity'
 import type { StudioSettings } from '../shared/settings'
 import { momentViewKey } from '../shared/model'
-import type { Scene, VideoSettings } from '../shared/model'
+import type { Scene, Slide, VideoSettings } from '../shared/model'
 import { voiceChoices } from './voice-choice'
 import type { Snapshot } from '../shared/api'
 import type { Recording } from './recording'
@@ -31,6 +31,7 @@ import { cameraAt } from '../shared/camera-window'
 import { escape, button } from './ui'
 import { agentNames } from './agent-setup'
 import { wireframeStatus } from './wireframe-copy'
+import { sceneChoice } from './scene-link'
 const standIn = new URL('./assets/presenter.jpg', import.meta.url).href
 /** A moment's state in plain words, not "auto" (review 5). */
 const momentWords = (state?: string) =>
@@ -185,8 +186,8 @@ export const videoScreen = (
           sceneActivity(snapshot, entry).active
             ? 'scene-processing'
             : ''
-        } ${
-          index === selected ? 'selected' : ''
+        } ${index === selected ? 'selected' : ''} ${
+          sceneDisplay(snapshot, entry).inVideo === false ? 'is-left-out' : ''
         }" data-scene="${index}" aria-label="Scene ${index + 1}: ${escape(
           project.slides[index]?.title || ''
         )}">
@@ -476,7 +477,7 @@ export const videoScreen = (
 </div>`
       : ''
   }<div class="video-actions">
-<div>${
+<div>${button('← Wireframe', 'open-wireframe')}${
     view?.produced
       ? `<a class="download-scene" href="/api/projects/${encodeURIComponent(
           project.id
@@ -550,12 +551,14 @@ export const videoScreen = (
                   // or to finish one of several scenes.
                   view?.action === 'download' ||
                   ((view?.action === 'produce' || view?.action === 'wait') &&
-                    video.scenes.length === 1)
+                    (views?.video.madeScenes ?? video.scenes.length) === 1)
                     ? ''
                     : button(
                         mainLabel,
                         'scene-next',
-                        view?.action === 'record' || view?.action === 'retry',
+                        view?.action === 'record' ||
+                          view?.action === 'retry' ||
+                          view?.action === 'make',
                         !view || view.action === 'wait'
                       )
                 }`
@@ -666,7 +669,9 @@ export const videoScreen = (
 }
 export const makeVideoDialog = (
   settings: StudioSettings,
-  current?: VideoSettings
+  current?: VideoSettings,
+  /** For a new video: its wireframes, the one in view, and whether only it. */
+  choice?: { slides: Slide[]; selected: number | null; only: boolean }
 ) => {
   const presence = current?.presence || 'high'
   const voice = current?.voice || settings.voice.selected
@@ -695,7 +700,9 @@ export const makeVideoDialog = (
   )}</select>
 </label><p class="two-voices" ${
     voice.kind !== 'ai' || presence === 'off' ? 'hidden' : ''
-  }>Your voice on camera and an AI voice elsewhere will sound different.</p>
+  }>Your voice on camera and an AI voice elsewhere will sound different.</p>${
+    choice ? sceneChoice(choice.slides, choice.selected, choice.only) : ''
+  }
 <button type="submit" class="primary">Make the video →</button>
 
 </form>`

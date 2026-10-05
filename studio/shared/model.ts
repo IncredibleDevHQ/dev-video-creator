@@ -59,6 +59,9 @@ export type Moment = {
   audioKey: string
 }
 export type ScenePhase =
+  // Not made yet: the creator left it out, so no agent works on it and
+  // finishing the video leaves it out.
+  | 'idle'
   | 'queued'
   | 'writing'
   | 'waiting'
@@ -169,7 +172,13 @@ export type ChatAnchor =
       second: number
     }
   | { stage: 'notebook' }
-export type SceneAction = 'wait' | 'retry' | 'record' | 'produce' | 'download'
+export type SceneAction =
+  | 'wait'
+  | 'retry'
+  | 'record'
+  | 'produce'
+  | 'download'
+  | 'make'
 export type StatusDisplay = { label: string; active: boolean }
 export type SceneDisplay = StatusDisplay & {
   busy: boolean
@@ -179,6 +188,8 @@ export type SceneDisplay = StatusDisplay & {
   actionLabel: string
   railLabel: string
   needsAnimation: boolean
+  /** False when the creator left the scene out of the video. */
+  inVideo?: boolean
 }
 export type VideoDisplay = StatusDisplay & { actionLabel: string }
 export type SceneView = {
@@ -220,6 +231,8 @@ export type VideoView = {
   action: 'make-video' | 'produce-video' | 'export'
   enabled: boolean
   producedScenes: number
+  /** The scenes in the video: every scene but those left out. */
+  madeScenes?: number
   state?: string
 }
 export type MomentView = {

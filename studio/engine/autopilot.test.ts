@@ -8,7 +8,13 @@ const expected: Record<
   Scene['phase'],
   Partial<Record<SceneSignal, Scene['phase']>>
 > = {
+  idle: {
+    make: 'queued',
+    invalidate: 'idle',
+    fail: 'failed'
+  },
   queued: {
+    'leave-out': 'idle',
     start: 'writing',
     change: 'changing',
     replan: 'replanning',
@@ -16,12 +22,14 @@ const expected: Record<
     fail: 'failed'
   },
   writing: {
+    'leave-out': 'idle',
     'plan-ready': 'waiting',
     'recover-plan': 'queued',
     invalidate: 'queued',
     fail: 'failed'
   },
   waiting: {
+    'leave-out': 'idle',
     change: 'changing',
     replan: 'replanning',
     produce: 'producing',
@@ -30,12 +38,14 @@ const expected: Record<
     fail: 'failed'
   },
   changing: {
+    'leave-out': 'idle',
     'plan-ready': 'waiting',
     'recover-plan': 'queued',
     invalidate: 'queued',
     fail: 'failed'
   },
   replanning: {
+    'leave-out': 'idle',
     'plan-ready': 'waiting',
     'recover-plan': 'queued',
     invalidate: 'queued',
@@ -49,6 +59,7 @@ const expected: Record<
     fail: 'failed'
   },
   produced: {
+    'leave-out': 'idle',
     change: 'changing',
     replan: 'replanning',
     produce: 'producing',
@@ -57,6 +68,7 @@ const expected: Record<
     fail: 'failed'
   },
   failed: {
+    'leave-out': 'idle',
     change: 'changing',
     replan: 'replanning',
     produce: 'producing',
@@ -67,6 +79,8 @@ const expected: Record<
   }
 }
 const signals: SceneSignal[] = [
+  'make',
+  'leave-out',
   'start',
   'plan-ready',
   'change',

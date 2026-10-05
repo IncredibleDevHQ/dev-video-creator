@@ -96,8 +96,17 @@ export const api = {
     request<Snapshot>(`/projects/${id}/slides`, 'PATCH', body),
   chat: (id: string, body: ChatRequest) =>
     request<Snapshot>(`/projects/${id}/chat`, 'POST', body),
-  makeVideo: (id: string, body: VideoSettings) =>
+  // `scenes`: the wireframes whose scenes to make; the rest start left out.
+  makeVideo: (id: string, body: VideoSettings & { scenes?: string[] }) =>
     request<Snapshot>(`/projects/${id}/video`, 'POST', body),
+  makeScene: (id: string, sceneId: string) =>
+    request<Snapshot>(`/projects/${id}/scenes/${sceneId}/make`, 'POST', {}),
+  leaveOutScene: (id: string, sceneId: string) =>
+    request<Snapshot>(
+      `/projects/${id}/scenes/${sceneId}/leave-out`,
+      'POST',
+      {}
+    ),
   produceScene: (id: string, sceneId: string) =>
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/produce`, 'POST', {}),
   produceVideo: (id: string) =>

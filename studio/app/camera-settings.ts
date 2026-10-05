@@ -17,7 +17,9 @@ export const cameraChoices: Record<
 export const sceneSettings = (
   scene: Scene,
   settings: VideoSettings,
-  index: number
+  index: number,
+  /** Whether the scene is in the video, from the engine's scene display. */
+  inVideo = true
 ) =>
   html`<p class="eyebrow">SCENE ${index + 1}</p>
     <h2>On camera</h2>
@@ -43,4 +45,22 @@ export const sceneSettings = (
     </div>
     ${scene.presence
       ? '<button type="button" class="quiet" data-presence="inherit">Use notebook default</button>'
-      : ''}`
+      : ''}
+    <h2 class="scene-membership-title">In the video</h2>
+    ${inVideo
+      ? html`<p class="settings-note">
+            Leave it out, and finishing the video skips it. An agent working on
+            it stops; what the scene already has is kept.
+          </p>
+          <button type="button" class="quiet" data-action="leave-out-scene">
+            Leave scene ${index + 1} out
+          </button>`
+      : html`<p class="settings-note">Not in the video yet.</p>
+          <button
+            type="button"
+            class="primary"
+            data-action="make-scene"
+            data-scene-id="${escape(scene.id)}"
+          >
+            Make this scene
+          </button>`}`

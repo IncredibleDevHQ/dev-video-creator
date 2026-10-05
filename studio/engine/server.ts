@@ -47,6 +47,8 @@ import {
 import {
   makeVideo,
   retryScene,
+  makeScene,
+  leaveOutScene,
   previewPresence,
   replanPresence,
   schedulePlanning,
@@ -265,7 +267,7 @@ export const createStudioServer = (
           )
         )
       const sceneRoute = url.pathname.match(
-        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|produce|download|cover)$/
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|produce|download|cover|make|leave-out)$/
       )
       if (sceneRoute && sceneRoute[3] === 'cover' && request.method === 'GET') {
         const bytes = await sceneCover(
@@ -311,6 +313,10 @@ export const createStudioServer = (
         const [, id, sceneId, action] = sceneRoute
         if (action === 'produce')
           return send(response, 200, await produceScene(id, sceneId))
+        if (action === 'make')
+          return send(response, 200, await makeScene(id, sceneId))
+        if (action === 'leave-out')
+          return send(response, 200, await leaveOutScene(id, sceneId))
         if (action === 'retry') {
           const snapshot = await loadProject(id)
           return send(

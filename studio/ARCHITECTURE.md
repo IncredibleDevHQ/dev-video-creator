@@ -9,7 +9,10 @@ remain independent. Every phase/signal pair is covered by lifecycle tests.
 Input changes invalidate the scene, moment revisions
 enter `changing`, animation readiness returns to the recording boundary, and
 restart recovery uses explicit recovery signals. Input fingerprints still
-prevent a late job from overwriting a newer edit.
+prevent a late job from overwriting a newer edit. A scene the creator left out
+is `idle`: no agent works on it, `make` queues it, `leave-out` returns any
+scene but one rendering (cancelling its agent run), and the video's count,
+key and join cover only the scenes made.
 
 `shared/state.ts` owns scene actions and display status. The engine includes
 these views in each notebook snapshot. App components consume the views rather

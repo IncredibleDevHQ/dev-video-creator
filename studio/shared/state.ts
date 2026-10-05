@@ -65,29 +65,35 @@ export const sceneView = (
       canRecord: ['waiting', 'produced'].includes(scene.phase),
       needsAnimation,
       label,
+      inVideo: scene.phase !== 'idle',
       actionLabel:
-        action === 'record'
-          ? 'Record moment'
-          : action === 'retry'
-            ? 'Try again'
-            : needsAnimation &&
-                !scene.moments.some((moment) => takeFits(moment))
-              ? 'Prepare scene'
-              : 'Finish scene',
+        action === 'make'
+          ? 'Make this scene'
+          : action === 'record'
+            ? 'Record moment'
+            : action === 'retry'
+              ? 'Try again'
+              : needsAnimation &&
+                  !scene.moments.some((moment) => takeFits(moment))
+                ? 'Prepare scene'
+                : 'Finish scene',
       railLabel:
-        scene.phase === 'failed'
-          ? 'Needs attention'
-          : active
-            ? label
-            : produced
-              ? 'Complete'
-              : openMomentIds.length
-                ? `${openMomentIds.length} ${
-                    openMomentIds.length === 1 ? 'moment' : 'moments'
-                  } to record`
-                : state
+        scene.phase === 'idle'
+          ? 'Not made'
+          : scene.phase === 'failed'
+            ? 'Needs attention'
+            : active
+              ? label
+              : produced
+                ? 'Complete'
+                : openMomentIds.length
+                  ? `${openMomentIds.length} ${
+                      openMomentIds.length === 1 ? 'moment' : 'moments'
+                    } to record`
+                  : state
     }
   })
+  if (scene.phase === 'idle') return view('Not in the video yet', 'make')
   if (scene.phase === 'failed')
     return view(scene.error || 'Needs attention', 'retry')
   if (scene.phase === 'queued') return view('Queued', 'wait')
@@ -117,21 +123,25 @@ export const videoView = (project: Project) => {
       enabled: project.slides.length > 0,
       producedScenes: 0
     }
-  const producedScenes = video.scenes.filter(
+  // The video is the scenes the creator made; a scene left out is not in it.
+  const made = video.scenes.filter((scene) => scene.phase !== 'idle')
+  const madeScenes = made.length
+  const producedScenes = made.filter(
     (scene) => sceneView(scene, video.settings.voice).produced
   ).length
   const allProduced =
-    video.scenes.length > 0 &&
+    madeScenes > 0 &&
     video.scenes.length === project.slides.length &&
     video.scenes.every(
       (scene, index) => scene.slideId === project.slides[index]?.id
     ) &&
-    producedScenes === video.scenes.length
+    producedScenes === madeScenes
   if (video.phase === 'preparing')
     return {
       action: 'produce-video' as const,
       enabled: false,
       producedScenes,
+      madeScenes,
       state: 'Preparing scenes'
     }
   if (video.phase === 'joining')
@@ -139,6 +149,7 @@ export const videoView = (project: Project) => {
       action: 'produce-video' as const,
       enabled: false,
       producedScenes,
+      madeScenes,
       state: 'Producing video'
     }
   if (
@@ -158,13 +169,15 @@ export const videoView = (project: Project) => {
       action: 'produce-video' as const,
       enabled: true,
       producedScenes,
+      madeScenes,
       state: 'Prepare scenes'
     }
   const current = allProduced && video.produced?.inputKey === video.inputKey
   return {
     action: current ? ('export' as const) : ('produce-video' as const),
     enabled: allProduced,
-    producedScenes
+    producedScenes,
+    madeScenes
   }
 }
 
@@ -223,9 +236,9 @@ export const videoDisplay = (
     video.phase === 'preparing' ||
     video.phase === 'joining' ||
     video.scenes.some((scene) => sceneDisplay(snapshot, scene).active)
+  const made = video.scenes.filter((scene) => scene.phase !== 'idle')
   const scenesReady =
-    video.scenes.length > 0 &&
-    video.scenes.every((scene) => views.scenes[scene.id]?.produced)
+    made.length > 0 && made.every((scene) => views.scenes[scene.id]?.produced)
   const needsRecording = video.scenes.some(
     (scene) => views.scenes[scene.id]?.openMomentIds.length
   )
@@ -234,18 +247,20 @@ export const videoDisplay = (
     : video.phase === 'failed' ||
         video.scenes.some((scene) => scene.phase === 'failed')
       ? 'Needs attention'
-      : views.video.action === 'export'
-        ? 'Ready'
-        : video.scenes.some((scene) => scene.phase === 'queued')
-          ? 'Waiting'
-          : scenesReady
-            ? 'Ready to assemble'
-            : needsRecording
-              ? 'Needs recording'
-              : 'Ready to prepare'
+      : !made.length
+        ? 'No scenes made'
+        : views.video.action === 'export'
+          ? 'Ready'
+          : video.scenes.some((scene) => scene.phase === 'queued')
+            ? 'Waiting'
+            : scenesReady
+              ? 'Ready to assemble'
+              : needsRecording
+                ? 'Needs recording'
+                : 'Ready to prepare'
   // One name for finishing the video, whatever step is next (review 5: the
   // button read "Prepare scenes", then "Produce video · 0/1").
-  const count = `${views.video.producedScenes}/${video.scenes.length}`
+  const count = `${views.video.producedScenes}/${views.video.madeScenes ?? made.length}`
   const actionLabel =
     views.video.state === 'Preparing scenes'
       ? 'Preparing scenes…'
@@ -253,7 +268,9 @@ export const videoDisplay = (
         ? 'Producing the video…'
         : views.video.action === 'export'
           ? 'Export MP4'
-          : `Finish the video · ${count}`
+          : !made.length
+            ? 'Finish the video'
+            : `Finish the video · ${count}`
   return { label, active, actionLabel }
 }
 export const presentationDisplay = (

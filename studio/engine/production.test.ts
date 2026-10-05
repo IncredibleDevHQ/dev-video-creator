@@ -154,6 +154,32 @@ it('keeps export disabled until every scene is produced', async () => {
   )
   expect(joinVideo).not.toHaveBeenCalled()
 })
+it('joins only the scenes the creator made', async () => {
+  await seed('some-scenes', true)
+  await changeProject('some-scenes', (current) => {
+    current.project.video!.scenes[0].phase = 'idle'
+    refreshVideoKeys(current.project)
+  })
+  joinVideo.mockImplementation(async (_keys, _transitions, onClock) => {
+    onClock?.([{ start: 0, end: 2 }])
+    return Buffer.from('Synthetic one-scene join')
+  })
+  await produceVideo('some-scenes')
+  await vi.waitFor(async () =>
+    expect(
+      (await loadProject('some-scenes'))!.project.video!.produced
+    ).not.toBeNull()
+  )
+  const [keys, transitions] = joinVideo.mock.calls.at(-1)!
+  expect(keys).toEqual([
+    (await loadProject('some-scenes'))!.project.video!.scenes[1].produced!
+      .objectKey
+  ])
+  expect(transitions).toEqual([])
+  expect(
+    (await loadProject('some-scenes'))!.project.video!.produced!.clock
+  ).toEqual([{ start: 0, end: 2, sceneId: 'scene-b' }])
+})
 it('does not publish a join made for old transitions', async () => {
   await seed('join-race', true)
   let release!: (bytes: Buffer) => void

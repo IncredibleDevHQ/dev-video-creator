@@ -72,6 +72,7 @@ app.fitSource = createFitSource(app)
 app.momentIndex = 0
 app.second = 0
 app.wholeVideo = false
+app.pipClosed = false
 app.startRehearsal = null
 app.practiceStopAfter = null
 app.practiceMomentIds = []

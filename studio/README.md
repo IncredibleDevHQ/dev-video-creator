@@ -67,8 +67,13 @@ wireframes queue while the rest are drawn. Rehearse shows the wireframe, the
 next one, its script and a timer. Export the wireframes as a PDF.
 
 Make the video selects its global Off/Low/High camera presence and off-camera
-voice. Creative planning and one Hyperframes composition produce each scene's
-content animation. Preparing all animations does not wait for speaker recordings.
+voice, and which wireframes become scenes: all of them, or just some. A scene
+left out can be made later, from its wireframe or the Video page, and finishing
+the video joins the scenes made. Each wireframe shows its scene's state, plays
+a made scene picture-in-picture, and links to that scene on the Video page,
+which links back. Creative planning and one Hyperframes composition produce each
+scene's content animation. Preparing all animations does not wait for speaker
+recordings.
 The notebook has a permanent `?notebook=<id>` URL. Its source is rendered as a
 readable document. Before creating slides, click into the notes and type: the
 Tiptap editor supports Markdown shortcuts and automatically saves Markdown,

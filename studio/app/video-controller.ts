@@ -2,6 +2,7 @@ import { dialogueBoundary } from '../shared/dialogue'
 import type { Presence, Transition } from '../shared/model'
 import { momentViewKey } from '../shared/model'
 import { animationSecond } from '../shared/scene-time'
+import { sceneDisplay } from '../shared/state'
 import { sceneAt, videoSecond } from '../shared/video-clock'
 import { api } from './api'
 import { activityDialog } from './activity-log'
@@ -295,10 +296,26 @@ export const submitVideo = async (
       app.showDialog(videoSettingsPreview(app.snapshot.project, next))
       return
     }
-    app.snapshot = await api.makeVideo(app.snapshot.project.id, next)
+    // Only some wireframes ticked: the other scenes start left out.
+    const slides = app.snapshot.project.slides
+    const ticked = values.getAll('scene').map(String)
+    if (form.querySelector('.scene-choice') && !ticked.length)
+      throw new Error('Choose at least one wireframe to make')
+    const scenes =
+      form.querySelector('.scene-choice') && ticked.length < slides.length
+        ? ticked
+        : undefined
+    app.snapshot = await api.makeVideo(app.snapshot.project.id, {
+      ...next,
+      ...(scenes ? { scenes } : {})
+    })
     app.dialog.close()
     app.stage = 'video'
-    app.selected = 0
+    // Open on the first scene being made.
+    app.selected = Math.max(
+      0,
+      scenes ? slides.findIndex((slide) => scenes.includes(slide.id)) : 0
+    )
     app.momentIndex = 0
     app.second = 0
     app.render()
@@ -379,11 +396,54 @@ ${button('Try again', 'video-settings', true)}`
     form.prepend(message)
     form.insertAdjacentHTML('afterend', button('App settings', 'settings'))
   }
-  if (action === 'make-video') {
+  if (action === 'make-video' || action === 'make-video-one') {
     if (app.snapshot.project.video) {
       app.stage = 'video'
       app.render()
-    } else app.showDialog(makeVideoDialog(await api.settings()))
+    } else {
+      const onWireframe = app.stage === 'presentation'
+      app.showDialog(
+        makeVideoDialog(await api.settings(), undefined, {
+          slides: app.snapshot.project.slides,
+          selected: onWireframe ? app.selected : null,
+          only: action === 'make-video-one'
+        })
+      )
+    }
+  }
+  // The dialog's quick choices: every wireframe, or the one in view.
+  if (action === 'choose-scenes-all' || action === 'choose-scenes-one')
+    for (const box of app.dialog.querySelectorAll<HTMLInputElement>(
+      '.scene-choice input[name=scene]'
+    ))
+      box.checked =
+        action === 'choose-scenes-all' ||
+        Number(box.dataset.sceneIndex) === app.selected
+  if (action === 'make-scene' && target.dataset.sceneId) {
+    app.snapshot = await api.makeScene(id, target.dataset.sceneId)
+    if (app.dialog.open) app.dialog.close()
+    app.render()
+  }
+  if (action === 'leave-out-scene') {
+    const scene = app.snapshot.project.video?.scenes[app.selected]
+    if (scene) {
+      app.snapshot = await api.leaveOutScene(id, scene.id)
+      if (app.dialog.open) app.dialog.close()
+      app.render()
+    }
+  }
+  // The wireframe and its scene, each a click from the other.
+  if (action === 'open-scene' || action === 'open-wireframe') {
+    app.stopPractice()
+    app.stage = action === 'open-scene' ? 'video' : 'presentation'
+    app.selectedPlan = null
+    app.momentIndex = 0
+    app.second = 0
+    app.render()
+  }
+  if (action === 'pip-toggle') {
+    app.pipClosed = !app.pipClosed
+    app.render()
   }
   if (action === 'produce-video') {
     if (app.snapshot.views?.video.action === 'export')
@@ -492,7 +552,12 @@ ${button('Practice this moment', 'practice')}${
     const scene = app.snapshot.project.video?.scenes[app.selected]
     if (!scene) return
     app.showDialog(
-      sceneSettings(scene, app.snapshot.project.video!.settings, app.selected)
+      sceneSettings(
+        scene,
+        app.snapshot.project.video!.settings,
+        app.selected,
+        sceneDisplay(app.snapshot, scene).inVideo !== false
+      )
     )
   }
   if (target.dataset.presence) {

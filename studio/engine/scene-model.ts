@@ -86,17 +86,31 @@ export const refreshVideoKeys = (project: Project) => {
       }))
     })
   }
+  // The joined video is the scenes the creator made; leaving one out or
+  // making another changes it.
   video.inputKey = fingerprintOf({
-    scenes: video.scenes.map((scene) => ({
-      id: scene.id,
-      input: scene.inputKey
-    })),
+    scenes: video.scenes
+      .filter((scene) => scene.phase !== 'idle')
+      .map((scene) => ({
+        id: scene.id,
+        input: scene.inputKey
+      })),
     transitions: video.transitions
   })
 }
-export const reconcileVideo = (project: Project, ledger: ActivityLedger) => {
+/**
+ * One scene per wireframe, in the wireframes' order. `make` names the
+ * wireframes whose new scenes are made; the rest start left out. Without it, a
+ * new wireframe's scene is made unless the creator has left scenes out.
+ */
+export const reconcileVideo = (
+  project: Project,
+  ledger: ActivityLedger,
+  make?: Set<string>
+) => {
   const video = project.video
   if (!video) return
+  const partial = video.scenes.some((scene) => scene.phase === 'idle')
   const previous = new Map(video.scenes.map((scene) => [scene.slideId, scene]))
   const oldOrder = [...previous.values()]
   const seams = new Map(
@@ -111,7 +125,7 @@ export const reconcileVideo = (project: Project, ledger: ActivityLedger) => {
     const scene: Scene = previous.get(slide.id) || {
       id: `scene-${slide.id}`,
       slideId: slide.id,
-      phase: 'queued',
+      phase: (make ? make.has(slide.id) : !partial) ? 'queued' : 'idle',
       presence: null,
       moments: [],
       inputKey: '',

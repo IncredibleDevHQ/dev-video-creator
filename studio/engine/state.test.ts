@@ -46,6 +46,57 @@ describe('recording boundaries', () => {
     expect(momentState(m, voice)).toBe('to record')
   })
 })
+describe('a video of some scenes', () => {
+  const project = (scenes: Scene[]): Project => ({
+    id: 'n',
+    title: 'Fixture',
+    source: '',
+    slides: scenes.map((entry) => ({
+      id: entry.slideId,
+      title: entry.slideId,
+      svg: '<svg/>'
+    })),
+    video: {
+      settings: { presence: 'off', voice },
+      scenes,
+      transitions: scenes.slice(1).map(() => 'none' as const),
+      inputKey: 'v1',
+      produced: null
+    }
+  })
+  const produced = (id: string): Scene => ({
+    ...scene(),
+    id: `scene-${id}`,
+    slideId: id,
+    phase: 'produced',
+    produced: { inputKey: 'i1', objectKey: `${id}.mp4` }
+  })
+  const left = (id: string): Scene => ({
+    ...scene(),
+    id: `scene-${id}`,
+    slideId: id,
+    phase: 'idle',
+    moments: []
+  })
+  it('finishes with the scenes made, leaving the rest out', () => {
+    const view = videoView(project([left('a'), produced('b'), left('c')]))
+    expect(view).toMatchObject({
+      action: 'produce-video',
+      enabled: true,
+      producedScenes: 1,
+      madeScenes: 1
+    })
+    expect(sceneView(left('a'), voice)).toMatchObject({
+      action: 'make',
+      display: { inVideo: false, actionLabel: 'Make this scene' }
+    })
+  })
+  it('cannot finish a video with no scene made', () =>
+    expect(videoView(project([left('a'), left('b')]))).toMatchObject({
+      enabled: false,
+      madeScenes: 0
+    }))
+})
 describe('scene lifecycle', () => {
   it('does not produce an empty plan', () =>
     expect(sceneView(scene([]), voice).action).toBe('wait'))

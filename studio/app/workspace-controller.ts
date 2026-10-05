@@ -150,7 +150,7 @@ ${escape(project.title)}</h1>
               app.selected,
               app.pendingChats.has(project.id),
               app.liveConnected,
-              { plan: app.selectedPlan, pin: app.pin }
+              { plan: app.selectedPlan, pin: app.pin, pipOpen: !app.pipClosed }
             )
     }</main>`,
     previousPlayer

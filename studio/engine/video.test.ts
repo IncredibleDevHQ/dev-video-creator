@@ -12,8 +12,15 @@ vi.mock('./model-gateway', () => ({ modelFetch: generate }))
 const root = await mkdtemp(join(tmpdir(), 'minimal-video-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { writeRow } = await import('./persistence')
-const { makeVideo, planScene, replanPresence, chatVideo, updateVideoSettings } =
-  await import('./video')
+const {
+  makeVideo,
+  makeScene,
+  leaveOutScene,
+  planScene,
+  replanPresence,
+  chatVideo,
+  updateVideoSettings
+} = await import('./video')
 const { loadProject, changeProject, editSlide } = await import('./projects')
 const { reconcileVideo, refreshVideoKeys } = await import('./scene-model')
 const response = (input: string) => {
@@ -108,6 +115,52 @@ it('plans every scene with no approval and emits derived recording state', async
   expect(
     (await loadProject('auto'))!.views!.scenes['scene-a'].openMomentIds
   ).toEqual([])
+})
+it('makes only the chosen scenes, makes another on request, and leaves one out', async () => {
+  await seed('few')
+  const settings = { presence: 'off', voice: { kind: 'ai', id: 'default' } }
+  await expect(
+    makeVideo('few', { ...settings, scenes: ['missing'] })
+  ).rejects.toThrow('Choose at least one wireframe to make')
+  await makeVideo('few', { ...settings, scenes: ['b'] })
+  await vi.waitFor(async () =>
+    expect(
+      (await loadProject('few'))!.project.video!.scenes.map(
+        (scene) => scene.phase
+      )
+    ).toEqual(['idle', 'waiting'])
+  )
+  // Only the chosen scene was written.
+  expect(generate).toHaveBeenCalledTimes(1)
+  let saved = (await loadProject('few'))!
+  expect(saved.views!.video).toMatchObject({ madeScenes: 1, producedScenes: 0 })
+  expect(saved.views!.scenes['scene-a']).toMatchObject({
+    action: 'make',
+    display: { inVideo: false, railLabel: 'Not made' }
+  })
+  expect(saved.events.map((event) => event.message)).toContain(
+    'Writing 1 of 2 video scenes'
+  )
+  await makeScene('few', 'scene-a')
+  await vi.waitFor(async () =>
+    expect((await loadProject('few'))!.project.video!.scenes[0].phase).toBe(
+      'waiting'
+    )
+  )
+  expect(generate).toHaveBeenCalledTimes(2)
+  await expect(makeScene('few', 'scene-a')).rejects.toThrow('already made')
+  saved = await leaveOutScene('few', 'scene-b')
+  expect(saved.project.video!.scenes[1].phase).toBe('idle')
+  expect(saved.views!.video.madeScenes).toBe(1)
+  // A wireframe added to a video of some scenes starts left out.
+  saved = await changeProject('few', (current) => {
+    current.project.slides.push({ id: 'c', title: 'More', svg: '<svg/>' })
+    reconcileVideo(current.project, current)
+  })
+  expect(saved.project.video!.scenes[2]).toMatchObject({
+    id: 'scene-c',
+    phase: 'idle'
+  })
 })
 it('does not land a response made for a slide that changed during planning', async () => {
   await seed('race')
