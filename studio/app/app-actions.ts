@@ -4,7 +4,7 @@ import { api } from './api'
 import { flushNotebookEdits } from './notebook-editor'
 import type { AppContext } from './app-context'
 import { seekSavedMedia } from './media-seek'
-import { clickRecording, submitRecording } from './recording-controller'
+import { clickRecording } from './recording-controller'
 import { clickSlides, submitSlides } from './slides-controller'
 import {
   clickStart,
@@ -31,7 +31,6 @@ export const installAppActions = (app: AppContext) => {
       await submitStart(app, form, values)
       await submitSlides(app, form, values)
       await submitVideo(app, form, values)
-      await submitRecording(app, form, values)
     } catch (reason) {
       app.error(reason)
     } finally {

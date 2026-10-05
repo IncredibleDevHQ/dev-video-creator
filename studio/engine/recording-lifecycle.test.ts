@@ -415,3 +415,41 @@ it('cancels a permission wait immediately without waiting for the browser respon
     vi.useRealTimers()
   }
 })
+
+it('holds with the devices live until the creator starts', async () => {
+  vi.useFakeTimers()
+  vi.stubGlobal('navigator', {
+    mediaDevices: {
+      getUserMedia: async () => ({
+        getTracks: () => [{ stop: vi.fn() }],
+        getVideoTracks: () => []
+      })
+    }
+  })
+  class Recorder {
+    static isTypeSupported = () => true
+    state = 'inactive'
+    mimeType = 'audio/webm'
+    start = vi.fn()
+    stop = vi.fn()
+  }
+  vi.stubGlobal('MediaRecorder', Recorder)
+  const recording = new Recording(
+    () => {},
+    () => {}
+  )
+  try {
+    await recording.prepare([moment])
+    expect(recording.phase).toBe('ready')
+    expect(recording.stream).not.toBeNull()
+    vi.advanceTimersByTime(5000)
+    expect(recording.phase).toBe('ready')
+    recording.begin()
+    expect(recording.phase).toBe('countdown')
+    vi.advanceTimersByTime(3000)
+    expect(recording.phase).toBe('recording')
+  } finally {
+    recording.dispose()
+    vi.useRealTimers()
+  }
+})

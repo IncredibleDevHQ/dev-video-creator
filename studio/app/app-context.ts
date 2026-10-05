@@ -64,7 +64,6 @@ export interface AppContext {
   paintAnimationProgress: () => void
   syncAnimation: () => void
   pendingVideoSettings: VideoSettings | null
-  pendingRecording: Moment[] | null
   prepareRecording: (
     moment: import('../shared/model').Moment,
     index: number

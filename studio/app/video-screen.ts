@@ -16,10 +16,22 @@ import { standInControls } from './stand-in-playback'
 import { layeredControls } from './layered-playback'
 import { recordingHandoff } from './recording-handoff'
 import { presenterLayoutStyle } from '../shared/presenter-layout'
-import { recordingTarget } from './recording-target'
+import { recordingPlan } from './recording-target'
+import {
+  countdownOverlay,
+  recordActions,
+  recordLabel,
+  recordLight,
+  recordPlace,
+  recordTitle
+} from './record-view'
 import { cameraCue, microphoneCue } from './camera-cue'
 import { gear } from './camera-settings'
-import { sceneDisplay, videoDisplay } from '../shared/state'
+import {
+  momentNeedsRecording,
+  sceneDisplay,
+  videoDisplay
+} from '../shared/state'
 import { sceneActivity, sceneActivityRail } from './scene-activity'
 import type { StudioSettings } from '../shared/settings'
 import { momentViewKey } from '../shared/model'
@@ -119,11 +131,14 @@ export const videoScreen = (
   // the presenter stays on it and fades in and out with the camera, so one
   // moment following another rebuilds nothing.
   const wholeScene = practicing && practiceScene && scene.moments.length > 1
+  // Getting ready to record, the camera shows if any moment to record uses
+  // it, so the creator can check their framing before the countdown.
+  const framing = ['preparing', 'ready', 'countdown'].includes(capture.phase)
+    ? capture.moments.find((entry) => entry.camera !== 'none')
+    : undefined
   const presenter = wholeScene
     ? scene.moments.find((entry) => entry.camera !== 'none')
-    : moment?.camera !== 'none'
-      ? moment
-      : undefined
+    : (framing ?? (moment?.camera !== 'none' ? moment : undefined))
   const showVideo =
     wholeVideo &&
     views?.video.action === 'export' &&
@@ -147,18 +162,19 @@ export const videoScreen = (
     sceneActivity(snapshot, scene).events.length > 0 ||
     display.busy ||
     sceneDisplay(snapshot, scene).failed
-  const recordIndex = recordingTarget(
-    scene.moments,
-    view?.openMomentIds || [],
-    momentIndex
+  const record = recordLabel(
+    scene,
+    recordingPlan(scene.moments, view?.openMomentIds || [], momentIndex, {
+      whole: practiceScene,
+      here: false,
+      needs: (entry) => momentNeedsRecording(entry, video.settings.voice)
+    })
   )
   const mainLabel =
-    display.actionLabel +
-    (view?.action === 'record'
-      ? ` ${recordIndex + 1}`
-      : display.actionLabel === 'Finish scene'
-        ? ` ${selected + 1}`
-        : '')
+    view?.action === 'record'
+      ? record
+      : display.actionLabel +
+        (display.actionLabel === 'Finish scene' ? ` ${selected + 1}` : '')
   const busy = display.busy
   const reply = [...snapshot.events]
     .reverse()
@@ -248,17 +264,19 @@ export const videoScreen = (
             ? 'Review your take'
             : practicing
               ? 'Practice'
-              : 'Recording studio'
+              : recordTitle(capture)
         }</strong>
-<span>Scene ${selected + 1} · Moment ${momentIndex + 1}</span>
+<span>${
+          practicing || reviewing
+            ? `Scene ${selected + 1} · Moment ${momentIndex + 1}`
+            : recordPlace(capture, selected + 1, momentIndex + 1)
+        }</span>${recordLight(capture)}
 </div>${
           practicing
             ? button('Exit practice', 'practice')
-            : capture.phase === 'recording'
-              ? button('Stop recording · Esc', 'record-stop')
-              : ['preparing', 'countdown'].includes(capture.phase)
-                ? button('Cancel', 'discard-take')
-                : ''
+            : ['preparing', 'ready', 'countdown'].includes(capture.phase)
+              ? button('Cancel', 'discard-take')
+              : ''
         }</div>`
       : ''
   }${capture.phase === 'idle' ? recordingHandoff(snapshot, scene) : ''}${
@@ -381,7 +399,7 @@ export const videoScreen = (
           scene.animation
         ? standInControls()
         : ''
-  }</div>${
+  }${countdownOverlay(capture)}</div>${
     focused && !reviewing
       ? `<div class="animation-status" data-animation-status>
 <progress data-animation-progress aria-label="Animation progress" max="1" value="0">
@@ -488,79 +506,47 @@ export const videoScreen = (
       : ''
   }</div>
 <div>${
-    capture.phase === 'recording'
-      ? `<span class="recording-clock">Recording · 0.0s</span>${
-          capture.moments.length > 1
-            ? button(
-                capture.current + 1 < capture.moments.length
-                  ? 'Next moment · Enter'
-                  : 'Finish recording · Enter',
-                'record-next',
-                true
-              )
-            : ''
-        }${button(
-          'Stop recording · Esc',
-          'record-stop',
-          capture.moments.length === 1
-        )}`
-      : capture.phase === 'countdown'
-        ? `<span class="recording-clock">Starting in ${
-            capture.countdown
-          }…</span>${button('Cancel', 'discard-take')}`
-        : capture.phase === 'preparing'
-          ? `<span>Allow ${
-              capture.moments.some((moment) => moment.camera !== 'none')
-                ? 'camera and microphone'
-                : 'microphone'
-            } access in your browser to record.</span>${button(
-              'Waiting for access…',
-              'scene-next',
-              true,
-              true
-            )}${button('Cancel', 'discard-take')}`
-          : capture.phase === 'reviewing'
-            ? `${button('Discard', 'discard-take')}${button(
-                'Retake',
-                'retake-recording'
-              )}${button('Save take', 'save-take', true)}`
-            : capture.phase === 'uploading'
-              ? button('Saving…', 'save-take', true, true)
-              : `${button(
-                  practicing
-                    ? 'Stop practice'
-                    : practiceScene && scene.moments.length > 1
-                      ? 'Practice scene'
-                      : moment
-                        ? `Practice moment ${momentIndex + 1}`
-                        : 'Practice',
-                  'practice',
-                  false,
-                  !scene.moments.length
-                )}${
-                  view?.openMomentIds.length && view.action !== 'record'
-                    ? button(
-                        `Record moment ${recordIndex + 1}`,
-                        'record-moment'
-                      )
-                    : ''
-                }${
-                  // One way to finish (review 5): the header finishes the
-                  // video; a scene's own button shows only for its own step,
-                  // or to finish one of several scenes.
-                  view?.action === 'download' ||
-                  ((view?.action === 'produce' || view?.action === 'wait') &&
-                    (views?.video.madeScenes ?? video.scenes.length) === 1)
-                    ? ''
-                    : button(
-                        mainLabel,
-                        'scene-next',
-                        view?.action === 'record' ||
-                          view?.action === 'retry' ||
-                          view?.action === 'make',
-                        !view || view.action === 'wait'
-                      )
-                }`
+    ['preparing', 'ready', 'countdown', 'recording'].includes(capture.phase)
+      ? recordActions(capture)
+      : capture.phase === 'reviewing'
+        ? `${button('Discard', 'discard-take')}${button(
+            'Retake',
+            'retake-recording'
+          )}${button('Save take', 'save-take', true)}`
+        : capture.phase === 'uploading'
+          ? button('Saving…', 'save-take', true, true)
+          : `${button(
+              practicing
+                ? 'Stop practice'
+                : practiceScene && scene.moments.length > 1
+                  ? 'Practice scene'
+                  : moment
+                    ? `Practice moment ${momentIndex + 1}`
+                    : 'Practice',
+              'practice',
+              false,
+              !scene.moments.length
+            )}${
+              view?.openMomentIds.length && view.action !== 'record'
+                ? button(record, 'record-moment')
+                : ''
+            }${
+              // One way to finish (review 5): the header finishes the
+              // video; a scene's own button shows only for its own step,
+              // or to finish one of several scenes.
+              view?.action === 'download' ||
+              ((view?.action === 'produce' || view?.action === 'wait') &&
+                (views?.video.madeScenes ?? video.scenes.length) === 1)
+                ? ''
+                : button(
+                    mainLabel,
+                    'scene-next',
+                    view?.action === 'record' ||
+                      view?.action === 'retry' ||
+                      view?.action === 'make',
+                    !view || view.action === 'wait'
+                  )
+            }`
   }</div>
 </div>${
     reviewing

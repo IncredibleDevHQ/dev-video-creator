@@ -6,12 +6,10 @@ import { movePlayhead } from './moment-timeline'
 import { PracticePlayback } from './practice'
 import { syncPresenterLayout } from './presenter-motion'
 import { Recording } from './recording'
-import {
-  recordingPassSetup,
-  recordingRecovery,
-  recordingSetup
-} from './recording-setup'
-import { recordingTarget } from './recording-target'
+import { recordingRecovery } from './recording-setup'
+import { recordingPlan } from './recording-target'
+import { momentNeedsRecording } from '../shared/state'
+import { time } from './scene-timeline'
 import { followTranscript, transcriptWords } from './transcript-follow'
 import { practiceControls } from './practice-controls'
 import { sceneOverlay } from './scene-overlay'
@@ -255,8 +253,9 @@ export const createCapture = (app: AppContext) =>
   new Recording(
     () => {
       if (
-        app.capture.phase === 'recording' ||
-        app.capture.phase === 'countdown'
+        ['preparing', 'ready', 'countdown', 'recording'].includes(
+          app.capture.phase
+        )
       ) {
         const scene = app.snapshot?.project.video?.scenes.find(
           (scene) => scene.id === app.recordingSceneId
@@ -278,20 +277,14 @@ export const createCapture = (app: AppContext) =>
         (scene) => scene.id === app.recordingSceneId
       )?.moments[app.momentIndex]
       app.second = Math.min(
-        moment?.end ?? Infinity,
+        (moment?.end ?? Infinity) - 0.01,
         (moment?.start || 0) + elapsed
       )
       app.syncAnimation()
       app.paintAnimationProgress()
       app.dialogue.paint(app.second)
       const clock = app.root.querySelector('.recording-clock')
-      if (clock)
-        clock.textContent = `Recording · ${(app.capture.moments.length > 1
-          ? app.capture.elapsed
-          : elapsed
-        ).toFixed(1)}s${
-          app.capture.stopAfter !== null ? ` / ${app.capture.stopAfter}s` : ''
-        }`
+      if (clock) clock.textContent = time(app.capture.elapsed)
       followTranscript(
         app.root,
         app.snapshot?.project.video?.scenes[app.selected]?.moments || [],
@@ -315,10 +308,13 @@ export const createDialogue = (app: AppContext) =>
     app.root,
     () => {
       const scene = app.snapshot?.project.video?.scenes[app.selected]
-      return scene &&
-        (app.practiceOpen ||
-          app.capture.phase === 'recording' ||
-          app.capture.phase === 'countdown')
+      const recording = [
+        'preparing',
+        'ready',
+        'countdown',
+        'recording'
+      ].includes(app.capture.phase)
+      return scene && (app.practiceOpen || recording)
         ? {
             projectId: app.snapshot!.project.id,
             scene,
@@ -337,14 +333,22 @@ export const createDialogue = (app: AppContext) =>
                   : 'none',
             label: app.practiceCountdown
               ? `Ready in ${app.practiceCountdown}…`
-              : app.capture.phase === 'countdown'
-                ? `Ready in ${app.capture.countdown}…`
-                : app.capture.phase === 'recording'
-                  ? '● Recording'
-                  : app.practice.active
-                    ? '• Practicing'
-                    : '• Read along',
-            scope: app.practiceOpen ? app.practiceScope : undefined
+              : ['preparing', 'ready'].includes(app.capture.phase)
+                ? '• Ready to record'
+                : app.capture.phase === 'countdown'
+                  ? `Ready in ${app.capture.countdown}…`
+                  : app.capture.phase === 'recording'
+                    ? '● Recording'
+                    : app.practice.active
+                      ? '• Practicing'
+                      : '• Read along',
+            scope: app.practiceOpen
+              ? app.practiceScope
+              : recording
+                ? app.capture.moments.length > 1
+                  ? 'scene'
+                  : 'moment'
+                : undefined
           }
         : null
     },
@@ -396,35 +400,33 @@ export const createDialogue = (app: AppContext) =>
     }
   )
 
-export const createPrepareRecording =
-  (app: AppContext) =>
-  (moment: import('../shared/model').Moment, index: number) => {
-    app.stopPractice()
-    app.pendingRecording = [moment]
-    const scene = app.snapshot?.project.video?.scenes[app.selected]
-    app.showDialog(
-      recordingSetup(
-        moment,
-        index,
-        scene ? app.snapshot?.views?.scenes[scene.id]?.openMomentIds.length : 1
-      )
-    )
+/**
+ * Get ready to record, in place. The camera and microphone come on, so the
+ * creator sees their framing and hears their level; Start (or Enter) counts
+ * down. Nothing is asked first: a form stood between Record and the take.
+ */
+const armRecording = async (
+  app: AppContext,
+  moments: import('../shared/model').Moment[]
+) => {
+  app.stopPractice()
+  app.dialog.close()
+  app.recordingAttempt = structuredClone(moments)
+  try {
+    await app.capture.prepare(moments)
+  } catch (reason) {
+    app.recordingFailed(reason)
   }
+}
+
+export const createPrepareRecording =
+  (app: AppContext) => (moment: import('../shared/model').Moment) =>
+    void armRecording(app, [moment])
 
 export const createPrepareRecordingPass =
-  (app: AppContext) => (moments: import('../shared/model').Moment[]) => {
-    app.stopPractice()
-    app.pendingRecording = moments
-    const scene = app.snapshot!.project.video!.scenes[app.selected]
-    app.showDialog(
-      recordingPassSetup(
-        moments,
-        moments.map((moment) =>
-          scene.moments.findIndex((item) => item.id === moment.id)
-        )
-      )
-    )
-  }
+  (app: AppContext) => (moments: import('../shared/model').Moment[]) =>
+    void armRecording(app, moments)
+
 export const installRecordingController = (app: AppContext) => {
   document.addEventListener('keydown', (event) => {
     if (document.querySelector('dialog[open]')) return
@@ -472,6 +474,15 @@ export const installRecordingController = (app: AppContext) => {
     }
     if (
       event.key === 'Enter' &&
+      app.capture.phase === 'ready' &&
+      !/INPUT|TEXTAREA|SELECT|BUTTON/.test((event.target as Element).tagName)
+    ) {
+      event.preventDefault()
+      app.capture.begin()
+      return
+    }
+    if (
+      event.key === 'Enter' &&
       app.capture.phase === 'recording' &&
       app.capture.moments.length > 1 &&
       !/INPUT|TEXTAREA|SELECT/.test((event.target as Element).tagName)
@@ -498,8 +509,7 @@ export const installRecordingController = (app: AppContext) => {
         app.error(reason)
       }
     } else if (
-      app.capture.phase === 'countdown' ||
-      app.capture.phase === 'preparing'
+      ['preparing', 'ready', 'countdown'].includes(app.capture.phase)
     ) {
       event.preventDefault()
       app.capture.dispose()
@@ -515,27 +525,6 @@ export const installRecordingController = (app: AppContext) => {
       event.returnValue = ''
     }
   })
-}
-
-export const submitRecording = async (
-  app: AppContext,
-  form: HTMLFormElement,
-  values: FormData
-) => {
-  if (form.id === 'recording-setup' && app.pendingRecording) {
-    const seconds = String(values.get('seconds') || '').trim()
-    const moments = app.pendingRecording
-    app.pendingRecording = null
-    app.dialog.close()
-    app.recordingAttempt = structuredClone(moments)
-    try {
-      await app.capture.start(moments, {
-        stopAfter: seconds ? Number(seconds) : null
-      })
-    } catch (reason) {
-      app.recordingFailed(reason)
-    }
-  }
 }
 
 export const clickRecording = async (
@@ -631,15 +620,6 @@ export const clickRecording = async (
     app.startRehearsal = app.replayPractice
     app.render()
   }
-  if (action === 'record-open') {
-    const scene = app.snapshot.project.video!.scenes[app.selected],
-      open = app.snapshot.views?.scenes[scene.id].openMomentIds || []
-    const moments = scene.moments.filter((moment) => open.includes(moment.id))
-    if (!moments.length) throw new Error('No moments need recording')
-    app.recordingSceneId = scene.id
-    app.recordingProjectId = id
-    app.prepareRecordingPass(moments)
-  }
   if (action === 'recording-retry') {
     const scene = app.snapshot.project.video?.scenes.find(
       (entry) => entry.id === app.recordingSceneId
@@ -682,16 +662,27 @@ export const clickRecording = async (
       app.snapshot.views?.scenes[scene.id].action === 'record' ||
       action === 'record-moment'
     ) {
-      app.stopPractice()
-      app.recordingSceneId = scene.id
-      app.recordingProjectId = id
-      const open = app.snapshot.views?.scenes[scene.id].openMomentIds || []
-      const index = recordingTarget(scene.moments, open, app.momentIndex)
-      if (index < 0)
+      // What Play plays, Record records: the whole scene, or one moment
+      // (in practice, the one on show).
+      const voice = app.snapshot.project.video!.settings.voice,
+        plan = recordingPlan(
+          scene.moments,
+          app.snapshot.views?.scenes[scene.id].openMomentIds || [],
+          app.momentIndex,
+          {
+            whole: app.practiceScope === 'scene',
+            here: app.practiceOpen,
+            needs: (moment) => momentNeedsRecording(moment, voice)
+          }
+        )
+      if (!plan.length)
         throw new Error(
           'No moments need recording. Select a saved moment to retake it.'
         )
-      app.prepareRecording(scene.moments[index], index)
+      app.recordingSceneId = scene.id
+      app.recordingProjectId = id
+      if (plan.length > 1) app.prepareRecordingPass(plan)
+      else app.prepareRecording(plan[0], scene.moments.indexOf(plan[0]))
     } else if (app.snapshot.views?.scenes[scene.id].action === 'produce') {
       app.stopPractice()
       app.snapshot = await api.produceScene(id, scene.id)
@@ -708,6 +699,7 @@ export const clickRecording = async (
       Number(target.dataset.retake)
     )
   }
+  if (action === 'record-begin') app.capture.begin()
   if (action === 'record-next') app.capture.next()
   if (action === 'record-stop') app.capture.stop()
   if (action === 'retake-recording') {

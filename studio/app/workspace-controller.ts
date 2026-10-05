@@ -21,6 +21,7 @@ import { videoScreen } from './video-screen'
 import { workspaceHeader } from './workspace-header'
 import { workspaceUrl } from './workspace-position'
 import { syncLookPreview } from './look-panel'
+import { meterStream } from './mic-meter'
 import { markPin } from './wireframe-pin'
 import { syncPlayerBar } from './player-bar'
 
@@ -390,6 +391,13 @@ ${escape(project.title)}</h1>
       editSelection.end
     )
   }
+  // The microphone's level shows while getting ready and recording.
+  meterStream(
+    app.root,
+    ['ready', 'countdown', 'recording'].includes(app.capture.phase)
+      ? app.capture.stream
+      : null
+  )
   syncLookPreview(app.root)
   markPin(app.root, app.pin)
   syncPlayerBar(app.root)

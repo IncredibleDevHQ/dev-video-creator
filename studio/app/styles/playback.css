@@ -12,32 +12,6 @@
   line-height: 1.5;
   margin-top: 5px;
 }
-.recording-pass-list {
-  list-style: none;
-  margin: 18px 0;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  overflow: hidden;
-}
-.recording-pass-list li {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 14px;
-}
-.recording-pass-list li + li {
-  border-top: 1px solid var(--line);
-}
-.recording-pass-list span {
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.recording-pass-list strong {
-  font-size: 13px;
-  font-weight: 500;
-}
 .moment-item {
   position: relative;
   display: flex;

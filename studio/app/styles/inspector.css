@@ -341,17 +341,6 @@
   font-size: 18px;
   line-height: 1.65;
 }
-.record-stop-field {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 13px;
-}
-.record-stop-field input {
-  max-width: 170px;
-}
 .recording-help {
   font-size: 12px;
   line-height: 1.6;

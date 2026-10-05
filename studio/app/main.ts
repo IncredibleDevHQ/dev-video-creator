@@ -100,7 +100,6 @@ app.syncLayeredPlayback = createSyncLayeredPlayback(app)
 app.paintAnimationProgress = createPaintAnimationProgress(app)
 app.syncAnimation = createSyncAnimation(app)
 app.pendingVideoSettings = null
-app.pendingRecording = null
 app.prepareRecording = createPrepareRecording(app)
 app.prepareRecordingPass = createPrepareRecordingPass(app)
 app.dialogRevision = 0

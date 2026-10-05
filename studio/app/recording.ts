@@ -4,6 +4,7 @@ export class Recording {
   phase:
     | 'idle'
     | 'preparing'
+    | 'ready'
     | 'countdown'
     | 'recording'
     | 'reviewing'
@@ -30,7 +31,19 @@ export class Recording {
   get elapsed() {
     return Math.max(0, (performance.now() - this.started) / 1000)
   }
+  /** Ask for the devices, then count down and record straight away. */
   async start(moments: Moment[], options: { stopAfter?: number | null } = {}) {
+    await this.prepare(moments, options)
+    if (this.phase === 'ready') this.begin()
+  }
+  /**
+   * Ask for the devices and hold, camera and microphone live, so the creator
+   * sees their framing and hears their level before begin() counts down.
+   */
+  async prepare(
+    moments: Moment[],
+    options: { stopAfter?: number | null } = {}
+  ) {
     if (this.phase !== 'idle') throw new Error('Finish this recording first')
     if (!moments.length) throw new Error('Choose a moment to record')
     if (
@@ -90,33 +103,8 @@ export class Recording {
         this.phase = 'reviewing'
         this.change()
       }
-      this.phase = 'countdown'
+      this.phase = 'ready'
       this.change()
-      this.tick = setInterval(() => {
-        if (generation !== this.generation) return
-        if (--this.countdown > 0) {
-          this.change()
-          return
-        }
-        if (this.tick) clearInterval(this.tick)
-        try {
-          this.recorder!.start(250)
-        } catch {
-          this.fail()
-          return
-        }
-        this.started = performance.now()
-        this.phase = 'recording'
-        this.tick = setInterval(() => {
-          this.clock(this.elapsed - (this.parts.at(-1)?.to || 0))
-          if (this.stopAfter !== null && this.elapsed >= this.stopAfter) {
-            const from = this.parts.at(-1)?.to || 0
-            if (this.parts.length && this.elapsed - from < 0.4) this.finish()
-            else this.stop()
-          }
-        }, 100)
-        this.change()
-      }, 1000)
     } catch (error) {
       if (generation !== this.generation) return
       this.stopTracks()
@@ -139,6 +127,39 @@ export class Recording {
         )
       throw error
     }
+  }
+  /** Count down from three, then record. */
+  begin() {
+    if (this.phase !== 'ready') return
+    const generation = this.generation
+    this.countdown = 3
+    this.phase = 'countdown'
+    this.change()
+    this.tick = setInterval(() => {
+      if (generation !== this.generation) return
+      if (--this.countdown > 0) {
+        this.change()
+        return
+      }
+      if (this.tick) clearInterval(this.tick)
+      try {
+        this.recorder!.start(250)
+      } catch {
+        this.fail()
+        return
+      }
+      this.started = performance.now()
+      this.phase = 'recording'
+      this.tick = setInterval(() => {
+        this.clock(this.elapsed - (this.parts.at(-1)?.to || 0))
+        if (this.stopAfter !== null && this.elapsed >= this.stopAfter) {
+          const from = this.parts.at(-1)?.to || 0
+          if (this.parts.length && this.elapsed - from < 0.4) this.finish()
+          else this.stop()
+        }
+      }, 100)
+      this.change()
+    }, 1000)
   }
   next() {
     if (this.phase !== 'recording' || this.finishing) return
