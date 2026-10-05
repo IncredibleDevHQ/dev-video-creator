@@ -1,3 +1,4 @@
+import { themeControl } from './appearance'
 import { animationSecond } from '../shared/scene-time'
 import { videoSecond } from '../shared/video-clock'
 import { api } from './api'
@@ -66,7 +67,7 @@ export const createRender = (app: AppContext) => () => {
       `<header>
 <a class="brand" href="/" aria-label="Incredible Studio">
 <img src="${incredibleLogo}" alt="">Incredible</a>
-</header>
+<div class="header-actions">${themeControl()}</div></header>
 ${notebookOpeningView(app.opening.state)}`,
       null
     )
@@ -84,25 +85,12 @@ ${notebookOpeningView(app.opening.state)}`,
         app.pendingSource
       app.fitSource(sourceField)
     }
-    if (!app.aiChoices && !app.aiLoading) {
-      app.aiLoading = true
-      void api
-        .harnesses()
-        .then((choices) => {
-          app.aiChoices = choices
-          if (!app.snapshot && !app.settingsScreen.isOpen && !app.dialog.open)
-            app.render()
-        })
-        .catch(() => null)
-        .finally(() => {
-          app.aiLoading = false
-        })
-    }
     if (focusedId && !app.dialog.open)
       document.getElementById(focusedId)?.focus()
     return
   }
   const { project, status } = app.snapshot
+  if (app.snapshot.sourceOnly && !project.slides.length) app.stage = 'notebook'
   app.selected = Math.max(0, Math.min(app.selected, project.slides.length - 1))
   const viewUrl = workspaceUrl(
     new URL(location.href),
@@ -126,7 +114,7 @@ ${
 ${escape(project.title)}</h1>
 ${
   app.stage === 'presentation'
-    ? '<p>Each slide is one scene of your video.</p>'
+    ? '<p>Each wireframe is one scene of your video.</p>'
     : ''
 }</div>`
     : ''
@@ -148,7 +136,8 @@ ${
           : presentationScreen(
               app.snapshot,
               app.selected,
-              app.pendingChats.has(project.id)
+              app.pendingChats.has(project.id),
+              app.liveConnected
             )
     }</main>`,
     previousPlayer

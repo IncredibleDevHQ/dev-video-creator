@@ -1,12 +1,12 @@
 import { animationSecond } from '../shared/scene-time'
 import { videoSecond } from '../shared/video-clock'
 import { api } from './api'
+import { flushNotebookEdits } from './notebook-editor'
 import type { AppContext } from './app-context'
-import { chooseAiDialog, modelOptions } from './choose-ai'
 import { seekSavedMedia } from './media-seek'
 import { clickRecording, submitRecording } from './recording-controller'
 import { clickSlides, submitSlides } from './slides-controller'
-import { clickStart, submitStart } from './start-controller'
+import { clickStart, submitStart, createPresentation } from './start-controller'
 import { clickVideo, submitVideo } from './video-controller'
 
 export const installAppActions = (app: AppContext) => {
@@ -14,6 +14,7 @@ export const installAppActions = (app: AppContext) => {
     const form = event.target as HTMLFormElement
     if (form.closest('[data-confirm]')) return
     event.preventDefault()
+    if (app.settingsScreen.isOpen) return
     const values = new FormData(form)
     try {
       await submitStart(app, form, values)
@@ -30,6 +31,12 @@ export const installAppActions = (app: AppContext) => {
     if ((event.target as Element).closest('.brand')) {
       if (app.capture.phase !== 'idle') return
       event.preventDefault()
+      try {
+        await flushNotebookEdits(app)
+      } catch (reason) {
+        app.error(reason)
+        return
+      }
       app.stopPractice()
       app.closeStream?.()
       app.closeStream = null
@@ -53,6 +60,20 @@ export const installAppActions = (app: AppContext) => {
         target.dataset.stage)
     )
       return
+    if (
+      target.dataset.stage ||
+      target.dataset.notebook ||
+      ['settings', 'clone-settings', 'agent-settings'].includes(
+        target.dataset.action || ''
+      )
+    ) {
+      try {
+        await flushNotebookEdits(app)
+      } catch (reason) {
+        app.error(reason)
+        return
+      }
+    }
     if (target.dataset.slide) {
       app.selected = Number(target.dataset.slide)
       app.render()
@@ -96,6 +117,17 @@ export const installAppActions = (app: AppContext) => {
       app.render()
       return
     }
+    if (
+      target.dataset.stage === 'presentation' &&
+      app.snapshot?.status === 'draft'
+    ) {
+      try {
+        await createPresentation(app)
+      } catch (reason) {
+        app.error(reason)
+      }
+      return
+    }
     if (target.dataset.stage) {
       app.wholeVideo = false
       app.stopPractice()
@@ -114,12 +146,18 @@ export const installAppActions = (app: AppContext) => {
         await app.openNotebook(target.dataset.notebook, true)
         return
       }
-      if (action === 'settings' || action === 'clone-settings') {
+      if (
+        action === 'settings' ||
+        action === 'clone-settings' ||
+        action === 'agent-settings'
+      ) {
         if (app.capture.phase !== 'idle')
           throw new Error('Finish or discard this take before opening Settings')
         app.stopPractice()
         app.dialog.close()
-        await app.settingsScreen.open()
+        await app.settingsScreen.open(
+          action === 'agent-settings' ? 'agent' : undefined
+        )
         return
       }
       if (action === 'close') {
@@ -133,11 +171,6 @@ export const installAppActions = (app: AppContext) => {
       }
       if (action === 'slides-only')
         document.querySelector<HTMLTextAreaElement>('#source-input')?.focus()
-      if (action === 'choose-ai') {
-        app.aiChoices = await api.harnesses()
-        app.showDialog(chooseAiDialog(app.aiChoices, true))
-        return
-      }
       if (action === 'all-recent') {
         app.showAllRecent = true
         app.render()
@@ -168,17 +201,11 @@ export const installAppActions = (app: AppContext) => {
   })
   app.dialog.addEventListener('change', (event) => {
     const target = event.target as HTMLSelectElement
-    if (target.form?.id === 'choose-ai' && target.name === 'harness') {
-      const model = target.form.elements.namedItem('model') as HTMLSelectElement
-      model.innerHTML = modelOptions(
-        app.aiChoices?.available.find((choice) => choice.id === target.value)
-      )
-      return
-    }
     const form = app.dialog.querySelector<HTMLFormElement>(
       '#video-form, #video-settings-form'
     )
     if (!form) return
+    if (app.settingsScreen.isOpen) return
     const values = new FormData(form)
     const warning = form.querySelector<HTMLElement>('.two-voices')!
     warning.hidden =

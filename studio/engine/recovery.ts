@@ -1,3 +1,4 @@
+import { scheduleSource } from './notebook-intake'
 import { transitionScene } from './autopilot'
 import { generationStops } from './generation-errors'
 import { listRows, initializePersistence } from './persistence'
@@ -17,6 +18,10 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
   for (const id of await listRows('projects')) {
     const saved = await loadProject(id)
     if (!saved) continue
+    if (saved.status === 'reading') {
+      scheduleSource(id)
+      continue
+    }
     if (saved.stopping && saved.status === 'building') {
       await changeProject(id, (current) => {
         current.status = 'failed'

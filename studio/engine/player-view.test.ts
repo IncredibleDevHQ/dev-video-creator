@@ -117,3 +117,45 @@ it('retains the stand-in animation decoder across activity updates', () => {
     vi.restoreAllMocks()
   }
 })
+
+it('preserves in-place edits across autosave renders and replaces refreshed source', () => {
+  const { document, Element } = parseHTML(
+    '<html><body><div id="app"><main><span>Saving</span><div data-notebook-editor="fixture" data-source-revision="old" data-dirty="true"><p>My current edit</p></div></main></div></body></html>'
+  )
+  vi.stubGlobal('document', document)
+  vi.stubGlobal('Element', Element)
+  try {
+    const root = document.querySelector('#app') as unknown as HTMLElement
+    const editor = root.querySelector<HTMLElement>('[data-notebook-editor]')!
+    expect(
+      replacePlayerView(
+        root,
+        '<main><span>Saved</span><div data-notebook-editor="fixture" data-source-revision="old"><p>Stale server text</p></div></main>',
+        null
+      )
+    ).toBe(true)
+    expect(root.querySelector('[data-notebook-editor]')).toBe(editor)
+    expect(editor.innerHTML).toBe('<p>My current edit</p>')
+    editor.dataset.dirty = 'false'
+    editor.dataset.sourceRevision = 'saved'
+    expect(
+      replacePlayerView(
+        root,
+        '<main><span>Saved</span><div data-notebook-editor="fixture" data-source-revision="saved"><p>My current edit</p></div></main>',
+        null
+      )
+    ).toBe(true)
+    expect(root.querySelector('[data-notebook-editor]')).toBe(editor)
+    expect(
+      replacePlayerView(
+        root,
+        '<main><div data-notebook-editor="fixture" data-source-revision="refreshed"><p>Fresh article</p></div></main>',
+        null
+      )
+    ).toBe(false)
+    expect(root.textContent).toBe('Fresh article')
+  } finally {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  }
+})

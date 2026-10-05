@@ -63,7 +63,8 @@ it('awaits the source brief, gives it to the story and page skills, and publishe
     return ['<svg id="designed-by-page-skill"/>']
   })
   const created = await createProject(
-    'Retained source text with an explanation to turn into a presentation.'
+    'Retained source text with an explanation to turn into a presentation.',
+    { adapter: 'kimi', model: 'kimi-code/k3' }
   )
   expect(created.project.harness).toEqual({
     adapter: 'kimi',

@@ -4,6 +4,8 @@ export type Branding = {
   tagline: string
   accent: string
   useAccent: boolean
+  palette?: { ground: string; text: string; secondary: string }
+  fonts?: { display: string; body: string; mono: string }
   logoKey: string | null
 }
 export type VoiceClone = {
@@ -38,7 +40,14 @@ export type PublicModels = {
   models: { writing: string; vision: string; coding: string }
   reasoningEffort: 'none' | 'low' | 'medium' | 'high'
 }
+export type SavedBrand = {
+  id: string
+  domain: string | null
+  brand: Branding
+  updatedAt: string
+}
 export type StudioSettings = {
+  brandLibrary?: SavedBrand[]
   harness: import('./model').HarnessSelection | null
   models: PublicModels
   providers: Array<{

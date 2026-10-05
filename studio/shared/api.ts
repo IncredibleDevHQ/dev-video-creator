@@ -25,7 +25,8 @@ export type Snapshot = {
   plannedSlides?: number
   progress?: { label: string; startedAt: string }
   project: Project
-  status: 'building' | 'ready' | 'failed'
+  status: 'reading' | 'draft' | 'building' | 'ready' | 'failed'
+  sourceOnly?: boolean
   sourceFailure?: 'blocked'
   error: string | null
   events: ProjectEvent[]
@@ -43,6 +44,7 @@ export type Snapshot = {
   }
 }
 export type CreateProject = {
+  sourceOnly?: boolean
   source: string
   harness?: import('./model').HarnessSelection
 }
@@ -86,6 +88,7 @@ export type HarnessChoice = {
   version?: string
   reason?: string
   models?: {
+    source?: string
     default: string | null
     options: Array<{ id: string; label: string; unavailable?: string }>
   }

@@ -255,12 +255,14 @@ export const presentationDisplay = (
 ): import('./model').StatusDisplay =>
   snapshot.views?.presentation || {
     label:
-      snapshot.status === 'ready'
-        ? 'Ready'
-        : snapshot.status === 'failed'
-          ? 'Needs attention'
-          : snapshot.stopping
-            ? 'Stopping'
-            : 'Processing',
+      snapshot.status === 'draft' || snapshot.status === 'reading'
+        ? 'Not started'
+        : snapshot.status === 'ready'
+          ? 'Ready'
+          : snapshot.status === 'failed'
+            ? 'Needs attention'
+            : snapshot.stopping
+              ? 'Stopping'
+              : 'Processing',
     active: snapshot.status === 'building' && !snapshot.stopping
   }

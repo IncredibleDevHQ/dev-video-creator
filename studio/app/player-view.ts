@@ -1,4 +1,4 @@
-/** Update the surrounding view without disconnecting a loaded video decoder. */
+/** Update the surrounding view without disconnecting media or the active notebook editor. */
 function replaceView(
   root: HTMLElement,
   html: string,
@@ -6,22 +6,35 @@ function replaceView(
 ) {
   const template = document.createElement('template')
   template.innerHTML = html
-  const next =
+  const media =
     template.content.querySelector<HTMLMediaElement>(
       '[data-scene-player],[data-take-player],[data-saved-presenter]'
     ) ||
     template.content.querySelector<HTMLMediaElement>(
       '[data-rehearsal-animation]'
     )
+  const editor = root.querySelector<HTMLElement>('[data-notebook-editor]')
+  const incomingEditor = template.content.querySelector<HTMLElement>(
+    '[data-notebook-editor]'
+  )
+  const retained = player || editor
+  const next = player ? media : incomingEditor
   if (
-    !player ||
+    !retained ||
     !next ||
-    player.getAttribute('src') !== next.getAttribute('src')
+    (player
+      ? player.getAttribute('src') !== next.getAttribute('src')
+      : editor?.dataset.notebookEditor !==
+          incomingEditor?.dataset.notebookEditor ||
+        (editor?.dataset.dirty !== 'true' &&
+          editor?.dataset.sourceRevision !==
+            incomingEditor?.dataset.sourceRevision))
   ) {
     root.replaceChildren(template.content)
     return false
   }
   const patch = (current: Element, replacement: Element | DocumentFragment) => {
+    if (current === retained && !player) return
     if (replacement instanceof Element) {
       for (const attribute of [...current.attributes])
         if (!replacement.hasAttribute(attribute.name))
@@ -30,9 +43,9 @@ function replaceView(
         if (current.getAttribute(attribute.name) !== attribute.value)
           current.setAttribute(attribute.name, attribute.value)
     }
-    if (current === player) return
+    if (current === retained) return
     const kept = [...current.children].find(
-      (child) => child === player || child.contains(player)
+      (child) => child === retained || child.contains(retained)
     )!
     const incoming = [...replacement.children].find(
       (child) => child === next || child.contains(next)

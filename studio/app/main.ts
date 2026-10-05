@@ -1,3 +1,4 @@
+import { installAppearance } from './appearance'
 import { showError } from './error-surface'
 import type { Snapshot } from '../shared/api'
 import { api } from './api'
@@ -43,6 +44,7 @@ import {
 } from './video-controller'
 import { createRender } from './workspace-controller'
 import { workspacePosition } from './workspace-position'
+installAppearance()
 const app = {} as AppContext
 app.root = document.querySelector<HTMLDivElement>('#app')!
 app.syncMediaRecovery = savedMediaRecovery(app.root)
@@ -52,14 +54,14 @@ app.refreshNotebooks = createRefreshNotebooks(app)
 app.selected = 0
 app.requestedStage = new URL(location.href).searchParams.get('view')
 app.stage =
-  app.requestedStage === 'notebook' || app.requestedStage === 'video'
+  app.requestedStage === 'notebook' ||
+  app.requestedStage === 'video' ||
+  app.requestedStage === 'presentation'
     ? app.requestedStage
-    : 'presentation'
+    : 'notebook'
 app.closeStream = null
 app.pending = false
 app.pendingSource = ''
-app.aiChoices = null
-app.aiLoading = false
 app.showAllRecent = false
 app.ago = createAgo(app)
 app.sourceHint = createSourceHint(app)
@@ -118,7 +120,13 @@ app.opening = new NotebookOpening(
   api.load,
   (value) => {
     if (app.openingAutoStage)
-      app.stage = value.project.video ? 'video' : 'presentation'
+      app.stage = value.project.video
+        ? 'video'
+        : value.sourceOnly ||
+            value.status === 'draft' ||
+            value.status === 'reading'
+          ? 'notebook'
+          : 'presentation'
     app.attach(value)
   },
   () => app.render()

@@ -4,10 +4,11 @@ import {
   videoDisplay
 } from '../shared/state'
 import type { Snapshot } from '../shared/api'
+import { wireframeProgress } from './wireframe-progress'
 
 /**
  * The short caption after a stage's name in the header: a count while the
- * stage works ("3/9"), its size once done ("9 slides"), "next" before it
+ * stage works ("3/9"), "next" before it
  * starts, and "needs you" when something failed. The full status stays in the
  * title and for screen readers.
  */
@@ -20,13 +21,14 @@ const caption = (
   const { project } = snapshot
   if (label === 'Needs attention') return 'needs you'
   if (stage === 'presentation') {
-    const total = project.slides.length
     if (active) {
-      const drawn = project.slides.filter((slide) => slide.svg).length
-      return total ? `${drawn}/${total}` : 'writing'
+      const progress = wireframeProgress(snapshot)
+      return progress.checking
+        ? 'checking'
+        : progress.total
+          ? `${progress.saved}/${progress.total}`
+          : 'working'
     }
-    if (label === 'Ready' && total)
-      return `${total} ${total === 1 ? 'slide' : 'slides'}`
   }
   if (stage === 'video') {
     const video = project.video
@@ -61,6 +63,9 @@ export const stageStatus = (
     overridden = true
   }
   if (!label) return ''
+  // The sidebar already shows the count; a completed tab needs only its name.
+  if (stage === 'presentation' && label === 'Ready')
+    return '<span class="sr"> · Ready</span>'
   const state = active
     ? 'is-processing'
     : label === 'Ready'

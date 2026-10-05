@@ -20,6 +20,9 @@ const request = <T>(path: string, method = 'GET', body?: unknown): Promise<T> =>
     body: body ? JSON.stringify(body) : undefined
   })
 export const api = {
+  saveLibraryBrand: (body: unknown) => request<import('../shared/settings').SavedBrand>('/settings/brands', 'POST', body),
+  redetectBrand: (id: string) => request<import('../engine/source-document').SourceRead>(`/projects/${id}/brand-detection`, 'POST', {}),
+  detectedBrand: (id: string) => request<import("../engine/source-document").SourceRead>(`/projects/${id}/source`),
   extension: (
     id: string,
     scene: string,
@@ -45,12 +48,28 @@ export const api = {
       'POST',
       { text, seconds, recordingKey }
     ),
-  harnesses: () =>
-    request<import('../shared/api').HarnessChoices>('/harnesses'),
+  harnesses: (
+    adapter?: import('../shared/model').HarnessSelection['adapter']
+  ) =>
+    request<import('../shared/api').HarnessChoices>(
+      `/harnesses${adapter ? `?adapter=${adapter}` : ''}`
+    ),
+  createPresentation: (
+    id: string,
+    harness?: import('../shared/model').HarnessSelection
+  ) => request<Snapshot>(`/projects/${id}/slides`, 'POST', { harness }),
   notebooks: () => request<NotebookSummary[]>('/projects'),
   create: (body: CreateProject) => request<Snapshot>('/projects', 'POST', body),
   replaceSource: (id: string, text: string) =>
     request<Snapshot>(`/projects/${id}/source`, 'PATCH', { text }),
+  refreshSource: (id: string) =>
+    request<Snapshot>(`/projects/${id}/source`, 'POST', {}),
+  editSource: (id: string, text: string, title: string) =>
+    request<Snapshot>(`/projects/${id}/source`, 'PATCH', {
+      action: 'edit',
+      text,
+      title
+    }),
   stopSlides: (id: string) =>
     request<Snapshot>(`/projects/${id}/stop`, 'POST', {}),
   retrySlides: (id: string) =>

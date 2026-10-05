@@ -81,3 +81,276 @@
   text-underline-offset: 3px;
   overflow-wrap: anywhere;
 }
+
+.note-edit-status {
+  text-align: right;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.source-document[data-notebook-editor] {
+  min-height: 200px;
+  cursor: text;
+  outline: none;
+  border-radius: 8px;
+}
+.source-document[data-notebook-editor]:focus-within {
+  box-shadow: 0 0 0 2px var(--line);
+}
+
+.source-document .tiptap {
+  outline: none;
+  min-height: 200px;
+}
+
+/* A quiet document surface with editing controls within reach. */
+.notebook {
+  width: min(960px, calc(100% - 48px));
+  max-width: 960px;
+  margin: 32px auto 80px;
+  padding: 0;
+  border-radius: 18px;
+  box-shadow: 0 12px 48px #00000006;
+  overflow: clip;
+}
+.notebook-heading {
+  padding: 36px 48px 24px;
+}
+.notebook-eyebrow {
+  display: flex;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+}
+.notebook-heading h1 {
+  margin: 16px 0 24px;
+  font-size: clamp(25px, 3vw, 36px);
+  line-height: 1.22;
+  letter-spacing: -0.035em;
+  font-weight: 650;
+  max-width: 760px;
+}
+.notebook-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.notebook-source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.notebook-source a {
+  color: var(--muted);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+.notebook-source a:hover {
+  color: var(--accent);
+}
+.notebook-source button {
+  font-size: 11px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+}
+.notebook-model {
+  border: 1px solid var(--line);
+  background: var(--rail);
+  padding: 8px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+.notebook-model > span:first-child {
+  color: var(--muted);
+}
+.notebook-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  padding: 10px 24px;
+  border-block: 1px solid var(--line);
+  background: var(--rail);
+}
+.notebook-toolbar button {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  border-radius: 6px;
+}
+.notebook-toolbar button[aria-pressed='true'] {
+  background: var(--selected);
+  color: var(--accent);
+}
+.notebook-toolbar select {
+  width: auto;
+  margin: 0;
+  padding: 6px 22px 6px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+}
+.toolbar-divider {
+  height: 20px;
+  width: 1px;
+  background: var(--line);
+  margin: 0 8px;
+}
+.notebook-toolbar .note-edit-status {
+  margin: 0 0 0 auto;
+  padding-left: 10px;
+  font-size: 11px;
+}
+.notebook-body {
+  padding: 32px 48px 24px;
+}
+.source-document {
+  font-size: 16px;
+  line-height: 1.85;
+}
+.source-document[data-notebook-editor]:focus-within {
+  box-shadow: none;
+}
+.source-document .tiptap > :first-child {
+  margin-top: 0;
+}
+.source-document .tiptap li > p {
+  margin: 0.3em 0;
+}
+.notebook .source-document pre {
+  font-family: ui-monospace, monospace;
+  white-space: pre;
+  line-height: 1.6;
+  background: var(--rail);
+}
+.workspace-header .notebook-identity {
+  display: none;
+}
+.workspace-header {
+  gap: 16px;
+}
+@media (max-width: 1100px) {
+  .workspace-header {
+    height: auto;
+    min-height: 64px;
+    flex-wrap: wrap;
+    padding: 12px 20px;
+  }
+  .workspace-header .header-actions {
+    margin-left: auto;
+  }
+  .workspace-header nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    margin: 0;
+  }
+  .workspace-header nav button {
+    flex: 1;
+  }
+}
+@media (max-width: 600px) {
+  .notebook {
+    width: calc(100% - 24px);
+    margin-top: 16px;
+    border-radius: 12px;
+  }
+  .notebook-heading {
+    padding: 24px;
+  }
+  .notebook-body {
+    padding: 24px;
+  }
+  .notebook-toolbar {
+    padding: 8px 12px;
+  }
+  .notebook-toolbar .note-edit-status {
+    width: 100%;
+    padding-top: 4px;
+  }
+  .workspace-header .header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+.notebook-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 24px;
+  padding: 20px 22px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line));
+  border-radius: 12px;
+  background: var(--selected);
+}
+.next-step-label {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.notebook-next-step h2 {
+  margin: 7px 0 6px;
+  font-size: 17px;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+.notebook-next-step p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.next-step-actions {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 4px;
+}
+.next-step-actions .primary {
+  white-space: nowrap;
+}
+.next-step-actions > button:not(.primary) {
+  font-size: 12px;
+  color: var(--muted);
+}
+.next-step-error {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.next-step-error summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.next-step-error p {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  max-width: 48ch;
+}
+@media (max-width: 700px) {
+  .notebook-next-step {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+  }
+}

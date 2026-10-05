@@ -1,3 +1,5 @@
+import { loadBrandLibrary } from './brand-library'
+import { availableHarness, setNotebookHarness } from './notebook-intake'
 import {
   loadHarnessPreference,
   saveHarnessPreference
@@ -46,6 +48,7 @@ export const getStudioSettings = async (
       models: preset.models
     })),
     branding,
+    brandLibrary: await loadBrandLibrary(),
     voice: {
       hasKey: Boolean(key),
       selected,
@@ -65,8 +68,13 @@ export const saveStudioSettings = async (body: unknown) => {
     projectId?: string
   }
   if (!patch || typeof patch !== 'object') throw new Error('Invalid settings')
-  if (Object.hasOwn(patch, 'harness'))
-    await saveHarnessPreference(patch.harness)
+  if (Object.hasOwn(patch, 'harness')) {
+    const harness =
+      patch.harness === null ? null : await availableHarness(patch.harness)
+    if (patch.projectId && harness)
+      await setNotebookHarness(patch.projectId, harness)
+    await saveHarnessPreference(harness)
+  }
   if (patch.models) {
     const models = patch.models
     if (!models.provider || !Object.hasOwn(MODEL_PRESETS, models.provider))

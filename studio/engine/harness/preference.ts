@@ -19,9 +19,7 @@ export const validateHarnessSelection = (raw: unknown): HarnessSelection => {
 export const loadHarnessPreference =
   async (): Promise<HarnessSelection | null> => {
     const stored = await loadSetting('harness')
-    return stored
-      ? validateHarnessSelection(stored)
-      : { adapter: 'kimi', model: 'kimi-code/k3' }
+    return stored ? validateHarnessSelection(stored) : null
   }
 export const saveHarnessPreference = (raw: unknown) =>
   saveSetting('harness', raw === null ? null : validateHarnessSelection(raw))

@@ -1,10 +1,16 @@
+import { reviewBrand } from './brand-review'
+import { brandStory, installBrandStory } from './brand-story'
+import { themeControl } from './appearance'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import type { NotebookSummary } from '../shared/api'
 import incredibleLogo from './assets/incredible-logo.svg'
-import { aiLabel, chooseAiDialog } from './choose-ai'
+import { AgentSetup } from './agent-setup'
+import { sourceComposer, updateSourceComposer } from './source-composer'
+import { rollingHeadline } from './rolling-headline'
 import { replacePlayerView } from './player-view'
 import { button, escape } from './ui'
+import { installNotebookEditor, flushNotebookEdits } from './notebook-editor'
 
 export const createRefreshNotebooks = (app: AppContext) => async () => {
   app.notebooks = await api.notebooks()
@@ -43,18 +49,23 @@ export const createFitSource =
   (app: AppContext) => (field: HTMLTextAreaElement) => {
     field.style.height = 'auto'
     field.style.height = `${Math.min(field.scrollHeight + 2, 220)}px`
-    const hint = document.querySelector('#source-hint')
+    updateSourceComposer(field, app.pending)
+    const hint = field.form?.querySelector('#source-hint')
     if (hint) hint.textContent = app.sourceHint(field.value)
   }
 
 const notebookState = (item: NotebookSummary) =>
-  item.status === 'failed'
-    ? 'Needs another try'
-    : item.status === 'building'
-      ? 'Slides in progress'
-      : item.hasVideo
-        ? 'Video in progress'
-        : 'Slides ready'
+  item.status === 'reading'
+    ? 'Reading source'
+    : item.status === 'draft'
+      ? 'Ready to create wireframes'
+      : item.status === 'failed'
+        ? 'Needs another try'
+        : item.status === 'building'
+          ? 'Wireframes in progress'
+          : item.hasVideo
+            ? 'Video in progress'
+            : 'Wireframes ready'
 
 /** One tile: the first slide as its picture, then the title and where it came from. */
 const notebookTile = (
@@ -62,7 +73,7 @@ const notebookTile = (
   item: NotebookSummary
 ) => `<button class="notebook-tile" data-notebook="${escape(item.id)}">
 <span class="tile-picture ${item.status === 'building' ? 'is-building' : ''}" aria-hidden="true">
-${item.preview || `<span class="tile-empty">${item.status === 'building' ? 'Designing…' : 'No slides yet'}</span>`}
+${item.preview || `<span class="tile-empty">${item.status === 'building' ? 'Designing…' : 'No wireframes yet'}</span>`}
 </span>
 <span class="tile-title">${escape(item.title)}</span>
 <span class="tile-meta">${escape(item.site || 'Your text')}${
@@ -81,30 +92,17 @@ export const createRenderStartScreen = (app: AppContext) => () => {
     `<header class="home">
 <a class="brand" href="/" aria-label="Incredible Studio">
 <img src="${incredibleLogo}" alt="">Incredible</a>
-${button('Settings', 'settings')}</header>
-<main class="start${app.notebooks.length ? ' has-recent' : ''}">
-<h1>Turn a blog into slides and a video.</h1>
+<div class="header-actions">${themeControl()}${button('Settings', 'settings')}</div></header>
+<main class="start has-story${app.notebooks.length ? ' has-recent' : ''}">
+${rollingHeadline()}
 <form id="source">
-<label class="sr" for="source-input">Link or text</label>
-<div class="source-row">
-<textarea id="source-input" name="source" rows="1" placeholder="Paste a blog link or your text…" required>
-</textarea>
-<button class="primary" ${app.pending ? 'disabled' : ''}>${
-      app.pending ? 'Starting…' : 'Make the video →'
-    }</button>
-</div>
+<label class="sr" for="source-input">Blog link or Markdown</label>
+${sourceComposer(app.pending)}
 <div class="source-meta">
-${
-  app.aiChoices?.selected
-    ? `<span class="start-ai">Create with ${escape({ kimi: 'Kimi', codex: 'Codex', 'claude-code': 'Claude Code' }[app.aiChoices.selected.adapter])} · <button type="button" class="quiet" data-action="choose-ai">Change</button>
-</span>`
-    : ''
-}
-<button type="button" data-action="slides-only" class="quiet slides-only">Only want slides?</button>
-<small id="source-hint" class="source-hint" aria-live="polite">
-</small>
+<small id="source-hint" class="source-hint" aria-live="polite"></small>
 </div>
 </form>
+${brandStory()}
 
 ${
   app.notebooks.length
@@ -126,9 +124,9 @@ ${recent.map((item) => notebookTile(app, item)).join('')}
 export const createShowExplainer = (app: AppContext) => () => {
   app.showDialog(
     `<p class="eyebrow">THE FIRST STEP</p>
-<h2>Your video starts as slides.</h2>
+<h2>Your video starts with wireframes.</h2>
 <div class="explain-picture">
-<span>▤<small>A slide</small>
+<span>▤<small>A wireframe</small>
 </span>
 <b>→</b>
 <span>▷<small>A scene</small>
@@ -137,12 +135,14 @@ export const createShowExplainer = (app: AppContext) => () => {
 <span>▶<small>Your video</small>
 </span>
 </div>
-<p>Fixing a slide takes seconds.<br>A finished video takes minutes.</p>
-${button('Show me the slides', 'understood', true)}`
+<p>Refine your wireframes before bringing them to life.<br>A finished video takes minutes.</p>
+${button('Show me the wireframes', 'understood', true)}`
   )
   app.dialog.dataset.explainer = 'yes'
 }
 export const installStartController = (app: AppContext) => {
+  installNotebookEditor(app)
+  installBrandStory(app.root)
   app.root.addEventListener('input', (event) => {
     const field = event.target as HTMLTextAreaElement
     if (field.id === 'source-input') app.fitSource(field)
@@ -173,56 +173,16 @@ export const submitStart = async (
     app.pending = true
     app.render()
     try {
-      app.aiChoices = await api.harnesses()
-      if (aiLabel(app.aiChoices) && app.aiChoices.selected) {
-        const created = await api.create({
-          source: app.pendingSource,
-          harness: app.aiChoices.selected
-        })
-        app.pendingSource = ''
-        app.stage = 'presentation'
-        app.attach(created)
-      } else app.showDialog(chooseAiDialog(app.aiChoices))
-    } finally {
-      app.pending = false
-      app.render()
-    }
-  }
-  if (form.id === 'choose-ai') {
-    if (app.pending) return
-    const adapter = String(
-      values.get('harness')
-    ) as import('../shared/model').HarnessSelection['adapter']
-    if (
-      !app.aiChoices?.available.some(
-        (choice) => choice.id === adapter && choice.ok
-      )
-    )
-      throw new Error('Choose an available AI harness')
-    const model = String(values.get('model') || ''),
-      harness = { adapter, ...(model ? { model } : {}) }
-    if (!app.pendingSource) {
-      await api.saveSettings({ harness })
-      app.aiChoices = { ...app.aiChoices, selected: harness }
-      app.dialog.close()
-      app.render()
-      return
-    }
-    app.pending = true
-    const submit = form.querySelector<HTMLButtonElement>(
-      'button[type=submit],button.primary'
-    )
-    if (submit) submit.disabled = true
-    try {
-      await api.saveSettings({ harness })
-      const created = await api.create({ source: app.pendingSource, harness })
+      const created = await api.create({
+        source: app.pendingSource,
+        sourceOnly: true
+      })
       app.pendingSource = ''
-      app.dialog.close()
-      app.stage = 'presentation'
+      app.stage = 'notebook'
       app.attach(created)
     } finally {
       app.pending = false
-      if (submit) submit.disabled = false
+      app.render()
     }
   }
   if (form.id === 'source-recovery' && app.snapshot) {
@@ -231,7 +191,7 @@ export const submitStart = async (
       String(values.get('text') || '')
     )
     app.dialog.close()
-    app.stage = 'presentation'
+    app.stage = app.snapshot.sourceOnly ? 'notebook' : 'presentation'
     app.render()
   }
 }
@@ -244,6 +204,29 @@ export const clickStart = async (
   if (!app.snapshot) return
   const id = app.snapshot.project.id
   const slideId = app.snapshot.project.slides[app.selected]?.id
+  if (action === 'review-brand') {
+    await reviewBrand(app, id)
+    app.render()
+    return
+  }
+  if (action === 'create-presentation') {
+    await createPresentation(app)
+    return
+  }
+  if (action === 'refresh-source') {
+    target.disabled = true
+    try {
+      await flushNotebookEdits(app)
+      const snapshot = await api.refreshSource(id)
+      if (app.snapshot?.project.id === id) {
+        app.stage = 'notebook'
+        app.attach(snapshot)
+      }
+    } finally {
+      target.disabled = false
+    }
+    return
+  }
   if (action === 'paste-source')
     app.showDialog(
       `<h2>Paste the article text</h2>
@@ -256,4 +239,56 @@ export const clickStart = async (
 
 </form>`
     )
+}
+
+export const createPresentation = async (app: AppContext) => {
+  if (!app.snapshot || app.pending || app.snapshot.status !== 'draft') return
+  await flushNotebookEdits(app)
+  const id = app.snapshot.project.id
+  if (!await reviewBrand(app, id)) return
+  const begin = async () => {
+    const snapshot = await api.createPresentation(id)
+    if (app.snapshot?.project.id !== id) return
+    app.stage = 'presentation'
+    app.attach(snapshot)
+  }
+  if (app.snapshot.project.harness) {
+    app.pending = true
+    try {
+      await begin()
+      return
+    } catch (error) {
+      app.error(error)
+    } finally {
+      app.pending = false
+    }
+  }
+  if (app.snapshot?.project.id !== id) return
+  app.showDialog('<h2>Choose your local agent</h2><div data-agent-setup></div>')
+  const revision = app.dialogRevision
+  const setup = new AgentSetup(
+    app.dialog.querySelector<HTMLElement>('[data-agent-setup]')!,
+    app.snapshot.project.harness || null,
+    async (harness) => {
+      await api.saveSettings({ harness, projectId: id })
+      if (
+        !app.dialog.open ||
+        revision !== app.dialogRevision ||
+        app.snapshot?.project.id !== id
+      )
+        return
+      const saved = await api.load(id)
+      if (
+        !app.dialog.open ||
+        revision !== app.dialogRevision ||
+        app.snapshot?.project.id !== id
+      )
+        return
+      app.snapshot = saved
+      await begin()
+      app.dialog.close()
+    },
+    'Save and create wireframes →'
+  )
+  app.dialog.addEventListener('close', () => setup.dispose(), { once: true })
 }

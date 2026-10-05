@@ -19,7 +19,7 @@ export const loadBranding = async (): Promise<Branding> => ({
   ...DEFAULT_BRANDING,
   ...((await loadSetting('branding')) as Partial<Branding>)
 })
-export const saveBranding = async (value: unknown) => {
+export const validateBranding = async (value: unknown): Promise<Branding> => {
   const raw = value as Branding
   if (
     !raw ||
@@ -36,13 +36,35 @@ export const saveBranding = async (value: unknown) => {
       throw new Error('Invalid logo')
     await readAsset(raw.logoKey)
   }
+  if (
+    raw.palette &&
+    !['ground', 'text', 'secondary'].every((key) =>
+      /^#[a-f0-9]{6}$/i.test(raw.palette![key as keyof typeof raw.palette])
+    )
+  )
+    throw new Error('Check your brand colours')
+  if (
+    raw.fonts &&
+    !['display', 'body', 'mono'].every(
+      (key) =>
+        typeof raw.fonts![key as keyof typeof raw.fonts] === 'string' &&
+        raw.fonts![key as keyof typeof raw.fonts].length <= 100
+    )
+  )
+    throw new Error('Check your brand fonts')
   const brand = {
+    ...(raw.palette ? { palette: raw.palette } : {}),
+    ...(raw.fonts ? { fonts: raw.fonts } : {}),
     name: raw.name.trim(),
     tagline: raw.tagline.trim(),
     accent: raw.accent,
     useAccent: raw.useAccent,
     logoKey: raw.logoKey
   }
+  return brand
+}
+export const saveBranding = async (value: unknown) => {
+  const brand = await validateBranding(value)
   await saveSetting('branding', brand)
   return brand
 }

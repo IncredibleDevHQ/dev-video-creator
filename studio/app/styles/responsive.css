@@ -6,8 +6,8 @@
 .settings-layout {
   min-height: calc(100vh - 56px);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme='dark'] {
+  & {
     background: #191b1b;
     color: #e8ece9;
     --bg: #191b1b;
@@ -148,12 +148,6 @@
     white-space: normal;
     font-size: 33px;
     line-height: 1.2;
-  }
-  .source-row {
-    flex-direction: column;
-  }
-  .source-row .primary {
-    min-height: 50px;
   }
   .slides,
   .video-workspace {

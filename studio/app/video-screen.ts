@@ -92,7 +92,7 @@ export const videoScreen = (
     )}</section>`
   const scene = video.scenes[selected]
   const slide = project.slides[selected]
-  if (!scene) return '<section class="empty">Add a slide to begin.</section>'
+  if (!scene) return '<section class="empty">Add a wireframe to begin.</section>'
   const view = views?.scenes[scene.id]
   const moment = scene.moments[momentIndex] || scene.moments[0]
   const showVideo =
@@ -175,7 +175,7 @@ export const videoScreen = (
           project.slides[index]?.title || ''
         )}">
 <span class="thumb-number">${index + 1}</span>
-<div>${project.slides[index]?.svg || '<span>Blank slide</span>'}</div>
+<div>${project.slides[index]?.svg || '<span>Blank wireframe</span>'}</div>
 <span class="scene-meta">${
           entry.moments.length
             ? `${Math.round(entry.moments.at(-1)!.end)}s`
@@ -612,7 +612,7 @@ export const videoScreen = (
             : entry.layout === 'full-screen'
               ? 'You full screen'
               : entry.layout === 'beside-slide'
-                ? 'You beside the slide'
+                ? 'You beside the wireframe'
                 : 'You in the corner'
         }</small>
 <p>${transcriptWords(entry.lines)}</p>${

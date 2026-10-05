@@ -35,11 +35,12 @@ const harnesses = ['kimi', 'claude', 'codex'].filter(
     spawnSync(command, ['--version'], { stdio: 'ignore', timeout: 10000 })
       .status === 0
 )
-report(
-  harnesses.length > 0,
-  `AI harness${harnesses.length ? `: ${harnesses.join(', ')}` : ''}`,
-  'Install and sign in to Kimi, Claude Code, or Codex. No model calls are made by this check.'
+console.log(
+  harnesses.length
+    ? `PASS AI harness: ${harnesses.join(', ')}`
+    : 'INFO No local AI agent detected. You can open notebooks now; install and sign in to Claude Code, Codex, or Kimi before creating a presentation.'
 )
+
 try {
   const { default: puppeteer } = await import('puppeteer')
   await access(await puppeteer.executablePath())

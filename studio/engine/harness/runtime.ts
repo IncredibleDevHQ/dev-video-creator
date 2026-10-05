@@ -48,13 +48,18 @@ export const createAdapters = (context: HarnessContext): HarnessAdapter[] => [
   createCodexAdapter(context),
   createKimiAdapter(context)
 ]
-export const inspectHarnesses = async (context: HarnessContext) =>
+export const inspectHarnesses = async (
+  context: HarnessContext,
+  id?: HarnessId
+) =>
   Promise.all(
-    createAdapters(context).map(async (adapter) => ({
-      id: adapter.id,
-      ...(await adapter.available()),
-      models: await adapter.models?.()
-    }))
+    createAdapters(context)
+      .filter((adapter) => !id || adapter.id === id)
+      .map(async (adapter) => ({
+        id: adapter.id,
+        ...(await adapter.available()),
+        models: await adapter.models?.()
+      }))
   )
 const active = new Map<string, AbortController>()
 let shuttingDown = false

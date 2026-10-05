@@ -1,6 +1,5 @@
 import type { NotebookSummary, Snapshot } from '../shared/api'
 import type { Moment, VideoSettings } from '../shared/model'
-import { type HarnessChoices } from '../shared/api'
 import { NotebookOpening } from './notebook-opening'
 import { PracticePlayback } from './practice'
 import { Recording } from './recording'
@@ -19,8 +18,6 @@ export interface AppContext {
   closeStream: (() => void) | null
   pending: boolean
   pendingSource: string
-  aiChoices: HarnessChoices | null
-  aiLoading: boolean
   showAllRecent: boolean
   ago: (iso: string) => string
   sourceHint: (value: string) => string

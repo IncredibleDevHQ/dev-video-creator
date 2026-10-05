@@ -178,40 +178,11 @@ h1 {
 .start h1 {
   white-space: nowrap;
 }
-.source-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.source-row textarea {
-  height: 56px;
-  min-height: 56px;
-  max-height: 220px;
-  padding: 16px;
-  resize: none;
-  overflow-y: auto;
-  flex: 1;
-  min-width: 0;
-  line-height: 22px;
-  transition: border-color 0.15s;
-}
-.source-row textarea:focus-visible {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
-}
-.source-row .primary {
-  flex: 0 0 auto;
-  height: 56px;
-  font-size: 16px;
-  padding: 0 22px;
-  border-radius: 12px;
-}
 .source-meta {
   display: flex;
   align-items: baseline;
   gap: 16px;
-  margin-top: 14px;
+  margin-top: 18px;
   min-height: 22px;
 }
 .slides-only {

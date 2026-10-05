@@ -1,3 +1,9 @@
+import { saveLibraryBrand, redetectBrand } from './brand-library'
+import {
+  startPresentation,
+  refreshNotebookSource,
+  editNotebookSource
+} from './notebook-intake'
 import { watchSnapshots } from './live-snapshots'
 import {
   saveDialogueExtension,
@@ -206,8 +212,17 @@ export const createStudioServer = (
       if (url.pathname === '/api/harnesses' && request.method === 'GET')
         return send(response, 200, {
           selected: await loadHarnessPreference(),
-          available: await inspectHarnesses(creativeContext('http://127.0.0.1'))
+          available: await inspectHarnesses(
+            creativeContext('http://127.0.0.1'),
+            url.searchParams.has('adapter')
+              ? validateHarnessSelection({
+                  adapter: url.searchParams.get('adapter')
+                }).adapter
+              : undefined
+          )
         })
+      if (url.pathname === '/api/settings/brands' && request.method === 'POST')
+        return send(response, 200, await saveLibraryBrand(body))
       if (url.pathname === '/api/settings') {
         return send(
           response,
@@ -243,7 +258,8 @@ export const createStudioServer = (
             String(body?.source || ''),
             body.harness === undefined
               ? undefined
-              : validateHarnessSelection(body.harness)
+              : validateHarnessSelection(body.harness),
+            body.sourceOnly !== false
           )
         )
       const sceneRoute = url.pathname.match(
@@ -318,7 +334,7 @@ export const createStudioServer = (
         )
       }
       const match = url.pathname.match(
-        /^\/api\/projects\/([a-zA-Z0-9_-]+)(?:\/(events|slides|export|chat|video|produce|download|transitions|retry|stop|artifacts|source))?$/
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)(?:\/(events|slides|export|chat|video|produce|download|transitions|retry|stop|artifacts|source|brand-detection))?$/
       )
       if (match) {
         const [, id, action] = match
@@ -396,8 +412,20 @@ export const createStudioServer = (
         }
         if (action === 'video' && request.method === 'PATCH')
           return send(response, 200, await updateVideoSettings(id, body))
+        if (action === 'brand-detection' && request.method === 'POST')
+          return send(response, 200, await redetectBrand(id))
+        if (action === 'source' && request.method === 'GET')
+          return send(response, 200, await readRow('sources', id))
         if (action === 'source' && request.method === 'PATCH')
-          return send(response, 200, await replaceBlockedSource(id, body?.text))
+          return send(
+            response,
+            200,
+            body.action === 'edit'
+              ? await editNotebookSource(id, body.text, body.title)
+              : await replaceBlockedSource(id, body?.text)
+          )
+        if (action === 'source' && request.method === 'POST')
+          return send(response, 200, await refreshNotebookSource(id))
         if (action === 'video' && request.method === 'POST')
           return send(response, 200, await makeVideo(id, body))
         if (action === 'chat' && request.method === 'POST') {
@@ -411,6 +439,8 @@ export const createStudioServer = (
           schedulePlanning(id)
           return send(response, 200, changed)
         }
+        if (action === 'slides' && request.method === 'POST')
+          return send(response, 200, await startPresentation(id, body.harness))
         if (action === 'slides' && request.method === 'PATCH') {
           const changed = await editSlide(id, slideRequest(body))
           schedulePlanning(id)

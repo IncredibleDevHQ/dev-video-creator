@@ -3,7 +3,8 @@
 // Claude Code has no command that lists models, so its list is the current
 // Claude family; a model newer than the resolved CLI is marked unavailable
 // with the version it needs. Kimi and Codex name their models in their own
-// config files; only model names are read from them, nothing else.
+// config files; Codex also exposes its local model catalog. Only model picker
+// metadata is returned, never account identity or credentials.
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -82,12 +83,60 @@ export const codexModelsFrom = (config: string): HarnessModels => {
   }
 }
 
-export const codexModels = async (): Promise<HarnessModels> => {
-  try {
-    return codexModelsFrom(
-      await readFile(join(homedir(), '.codex', 'config.toml'), 'utf8')
+/** Only expose picker metadata from the CLI cache, never account identity or config secrets. */
+export const codexCatalogFrom = (
+  config: string,
+  cache: unknown
+): HarnessModels => {
+  const configured = codexModelsFrom(config)
+  const rows =
+    cache &&
+    typeof cache === 'object' &&
+    'models' in cache &&
+    Array.isArray(cache.models)
+      ? cache.models
+      : []
+  const options = rows.flatMap((model) => {
+    if (
+      !model ||
+      typeof model !== 'object' ||
+      model.visibility !== 'list' ||
+      typeof model.slug !== 'string'
     )
-  } catch {
-    return { default: null, source: 'no Codex config found', options: [] }
+      return []
+    return [
+      {
+        id: model.slug,
+        label:
+          typeof model.display_name === 'string'
+            ? model.display_name
+            : model.slug
+      }
+    ]
+  })
+  for (const option of configured.options)
+    if (!options.some((item) => item.id === option.id)) options.push(option)
+  return {
+    default: null,
+    source: rows.length
+      ? 'Models listed by your local Codex installation. Account access is checked when you run.'
+      : 'Codex configuration. Open Codex to refresh its model catalog.',
+    options: [...new Map(options.map((option) => [option.id, option])).values()]
   }
+}
+export const codexModels = async (): Promise<HarnessModels> => {
+  const directory = process.env.CODEX_HOME || join(homedir(), '.codex')
+  const [config, cache] = await Promise.all([
+    readFile(join(directory, 'config.toml'), 'utf8').catch(() => ''),
+    readFile(join(directory, 'models_cache.json'), 'utf8')
+      .then((text) => {
+        try {
+          return JSON.parse(text)
+        } catch {
+          return null
+        }
+      })
+      .catch(() => null)
+  ])
+  return codexCatalogFrom(config, cache)
 }

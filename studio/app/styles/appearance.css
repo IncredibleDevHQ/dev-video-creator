@@ -1,0 +1,43 @@
+/* A persistent, directly accessible choice in every screen's header. */
+.theme-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #424947;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+header .theme-control button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  color: #bbc5bf;
+}
+:root header .theme-control button:hover {
+  background: #303933;
+  color: #fff;
+}
+:root header .theme-control button[aria-pressed='true'] {
+  background: #f0f5f1;
+  color: #19211d;
+}
+.theme-control svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+/* Reserve space for the appearance control before the stage tabs can overlap. */
+header:has(.theme-control) nav {
+  position: static;
+  transform: none;
+  margin-left: auto;
+}
+header:has(.theme-control) .header-actions {
+  flex-shrink: 0;
+}

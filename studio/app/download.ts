@@ -29,13 +29,13 @@ export const downloadPresentation = async (
       throw new Error(
         typeof result?.error === 'string'
           ? result.error
-          : 'Could not export this presentation. Try again.'
+          : 'Could not export these wireframes. Try again.'
       )
     }
     const url = URL.createObjectURL(await response.blob())
     const link = document.createElement('a')
     link.href = url
-    link.download = 'slides.pdf'
+    link.download = 'wireframes.pdf'
     link.hidden = true
     document.body.append(link)
     link.click()

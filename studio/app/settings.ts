@@ -1,3 +1,4 @@
+import { AgentSetup } from './agent-setup'
 import { showError } from './error-surface'
 import { confirmAction } from './confirm-action'
 import { api } from './api'
@@ -8,6 +9,7 @@ import { CLONE_SCRIPT, type StudioSettings } from '../shared/settings'
 import type { Moment } from '../shared/model'
 export class Settings {
   isOpen = false
+  private agentSetup: AgentSetup | null = null
   private data: StudioSettings | null = null
   private panel: SettingsPanel = 'voice'
   private busy = false
@@ -68,7 +70,12 @@ export class Settings {
     this.panel = panel
     this.draw()
     const epoch = ++this.epoch
-    this.data = await api.settings()
+    const [data, notebook] = await Promise.all([
+      api.settings(),
+      this.projectId() ? api.load(this.projectId()!) : Promise.resolve(null)
+    ])
+    if (epoch !== this.epoch || !this.isOpen) return
+    this.data = { ...data, harness: notebook?.project.harness || data.harness }
     if (epoch !== this.epoch || !this.isOpen) return
     this.draw()
     if (this.poll) clearInterval(this.poll)
@@ -90,9 +97,12 @@ export class Settings {
     if (this.poll) clearInterval(this.poll)
     this.poll = null
     this.capture.dispose()
+    this.agentSetup?.dispose()
     this.back()
   }
   private draw() {
+    this.agentSetup?.dispose()
+    this.agentSetup = null
     if (this.isOpen)
       this.root.innerHTML = settingsScreen(
         this.data,
@@ -101,6 +111,26 @@ export class Settings {
         this.busy,
         this.projectId()
       )
+    const host = this.root.querySelector<HTMLElement>('[data-agent-settings]')
+    if (this.isOpen && host && this.data) {
+      const epoch = this.epoch
+      const id = this.projectId()
+      this.agentSetup = new AgentSetup(
+        host,
+        this.data.harness,
+        async (harness) => {
+          const data = await api.saveSettings({
+            harness,
+            ...(id ? { projectId: id } : {})
+          })
+          if (epoch !== this.epoch || !this.isOpen) return
+          this.data = data
+          await this.projectChanged()
+        },
+        'Save selection',
+        true
+      )
+    }
   }
   private message(text: string) {
     const target = this.root.querySelector('#settings-message')
@@ -225,19 +255,7 @@ export class Settings {
     const submit = form.querySelector<HTMLButtonElement>('button.primary')
     if (submit) submit.disabled = true
     try {
-      if (form.id === 'harness-settings-form')
-        this.data = await api.saveSettings({
-          harness:
-            values.get('harness') === 'direct'
-              ? null
-              : {
-                  adapter: String(values.get('harness')),
-                  ...(String(values.get('harness-model') || '').trim()
-                    ? { model: String(values.get('harness-model')).trim() }
-                    : {})
-                }
-        })
-      else if (form.id === 'default-voice-form')
+      if (form.id === 'default-voice-form')
         this.data = await api.saveSettings({
           voice: parseVoice(String(values.get('voice')))
         })
@@ -265,6 +283,7 @@ export class Settings {
         if (logo?.size) logoKey = (await api.uploadLogo(logo)).objectKey
         this.data = await api.saveSettings({
           branding: {
+            ...this.data.branding,
             name: String(values.get('name')),
             tagline: String(values.get('tagline')),
             accent: String(values.get('accent')),

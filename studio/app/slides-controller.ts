@@ -1,6 +1,8 @@
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { downloadPresentation } from './download'
+import { flushNotebookEdits } from './notebook-editor'
+import { createPresentation } from './start-controller'
 
 export const installSlidesController = (app: AppContext) => {
   app.root.addEventListener('keydown', (event) => {
@@ -97,11 +99,26 @@ export const clickSlides = async (
     app.render()
   }
   if (action === 'retry-slides') {
-    app.snapshot = await api.retrySlides(id)
-    app.render()
+    if (app.pending) return
+    target.disabled = true
+    try {
+      await flushNotebookEdits(app)
+      if (app.snapshot?.status === 'draft') {
+        await createPresentation(app)
+        return
+      }
+      app.pending = true
+      app.snapshot = await api.retrySlides(id)
+      app.stage = 'presentation'
+    } finally {
+      app.pending = false
+      target.disabled = false
+      app.render()
+    }
   }
   if (action === 'export') await downloadPresentation(id, target)
   if (action === 'view-slides') {
+    await flushNotebookEdits(app)
     app.stage = 'presentation'
     app.render()
   }

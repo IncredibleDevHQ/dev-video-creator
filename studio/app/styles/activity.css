@@ -220,7 +220,7 @@
   animation: activity-turn 1.8s linear infinite;
   flex-shrink: 0;
 }
-@media (prefers-color-scheme: dark) {
+:root[data-theme='dark'] {
   .video-run-status.is-active {
     color: #eef3ef;
   }
@@ -350,7 +350,7 @@ header nav .stage-status.is-processing .stage-caption {
   font-weight: 600;
   color: #90621f;
 }
-@media (prefers-color-scheme: dark) {
+:root[data-theme='dark'] {
   .activity-stopped-label {
     color: #e4b974;
   }
@@ -367,4 +367,257 @@ header nav .stage-status.is-processing .stage-caption {
   font-size: 10px;
   line-height: 14px;
   text-align: center;
+}
+
+/* A quiet, persistent run strip separates navigation from live work. */
+.wireframe-run-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 42px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--rail);
+  font-size: 12px;
+}
+.wireframe-run-summary,
+.wireframe-run-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.wireframe-run-summary strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.run-count {
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.wireframe-run-actions small {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.run-state-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.attention .run-state-dot {
+  background: #c49548;
+}
+.wireframe-run-bar progress {
+  appearance: none;
+  width: 100px;
+  height: 3px;
+  border: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--line);
+  accent-color: var(--accent);
+}
+.wireframe-run-bar progress::-webkit-progress-bar {
+  background: var(--line);
+}
+.wireframe-run-bar progress::-webkit-progress-value {
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 400ms ease;
+}
+.wireframe-run-bar progress::-moz-progress-bar {
+  background: var(--accent);
+}
+.wireframe-run-bar .run-details {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 7px 8px;
+  white-space: nowrap;
+}
+.wireframe-canvas-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 2px 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.wireframe-canvas-status > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.wireframe-canvas-status .activity-orbit {
+  width: 11px;
+  height: 11px;
+}
+header nav .stage-status.is-processing::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  align-self: center;
+  margin-right: 6px;
+}
+header nav .stage-status.is-processing .stage-caption {
+  animation: none;
+}
+.workspace-header .header-agent {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+  padding: 7px 9px;
+  border: 1px solid #424947;
+  border-radius: 7px;
+}
+.header-agent .header-model {
+  border-left: 1px solid #424947;
+  padding-left: 7px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #bbc5bf;
+}
+/* Account for both bars without cropping the canvas or its controls. */
+#app:has(> .workspace-header) {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+#app > .workspace-header,
+#app > .wireframe-run-bar {
+  flex-shrink: 0;
+}
+#app > .workspace-presentation {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+#app > .workspace-presentation > .slides {
+  height: 100%;
+  min-height: 0;
+}
+.slides > .stage-area {
+  max-height: 100%;
+  overflow-y: auto;
+}
+@media (max-width: 800px) {
+  .wireframe-run-bar {
+    padding: 8px 16px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .wireframe-run-summary {
+    flex: 1;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .wireframe-run-actions small,
+  .wireframe-run-bar progress {
+    display: none;
+  }
+  #app > .workspace-presentation > .slides {
+    height: auto;
+    min-height: 100%;
+  }
+  .slides > .stage-area {
+    max-height: none;
+    overflow: visible;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wireframe-run-bar progress::-webkit-progress-value {
+    transition: none;
+  }
+}
+
+/* Page numbers stay in their own gutter; only the artwork gets an accent edge. */
+.slides > .rail {
+  padding: 16px 10px 24px;
+  gap: 10px;
+}
+.slides .rail-heading {
+  margin: 0 4px 6px;
+  gap: 8px;
+}
+.slides .rail-heading strong {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.slides .rail-heading small {
+  font-variant-numeric: tabular-nums;
+}
+.slides .rail-heading p {
+  display: none;
+}
+.slides .rail-heading button {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font-size: 19px;
+  padding: 5px;
+}
+.slides .thumbnail[data-slide] {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 8px;
+}
+.slides .thumbnail[data-slide] > div {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.slides .thumbnail.selected {
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+}
+.slides .thumbnail.selected > div {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.slides .thumbnail .thumb-number {
+  position: static;
+  padding-top: 7px;
+  background: transparent;
+  font:
+    11px ui-monospace,
+    'SF Mono',
+    Menlo,
+    monospace;
+  text-align: center;
+  color: var(--muted);
+}
+.slides .thumbnail.selected .thumb-number {
+  color: var(--accent);
+}
+@media (max-width: 800px) {
+  .slides .thumbnail[data-slide] {
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 6px;
+  }
+  .slides .rail-heading {
+    min-width: 85px;
+    align-content: start;
+  }
 }

@@ -2,10 +2,13 @@ import { html } from './ui'
 import type { Snapshot } from '../shared/api'
 import { escape, button } from './ui'
 import { presentationProgress } from './progress'
+import { wireframeStatus } from './wireframe-copy'
+import { wireframeCanvasStatus } from './wireframe-progress'
 export const presentationScreen = (
   snapshot: Snapshot,
   selected: number,
-  pendingChat = false
+  pendingChat = false,
+  liveConnected = true
 ) => {
   const { project, status } = snapshot
   const slide = project.slides[selected]
@@ -23,8 +26,10 @@ export const presentationScreen = (
     status === 'ready'
       ? latestSlideEvent?.kind === 'chat'
         ? latestSlideEvent.message
-        : 'Presentation ready'
+        : 'Wireframes ready'
       : latestSlideEvent?.message
+        ? wireframeStatus(latestSlideEvent.message)
+        : undefined
   const pending = Boolean(
     status === 'building' &&
     !snapshot.stopping &&
@@ -34,17 +39,17 @@ export const presentationScreen = (
   const validating =
     status === 'building' && !snapshot.stopping && !pending && slides.length > 0
   return html`<section class="slides">
-    <aside class="rail" aria-label="Slides">
+    <aside class="rail" aria-label="Wireframes">
       <div class="rail-heading">
-        <strong>Slides <small>${project.slides.length}</small></strong
+        <strong>Wireframes <small>${project.slides.length}</small></strong
         ><button
           data-action="add"
-          aria-label="New slide"
+          aria-label="New wireframe"
           ${status !== 'ready' ? 'disabled' : ''}
         >
           +
         </button>
-        <p>Each slide is one scene of your video.</p>
+        <p>Each wireframe is one scene of your video.</p>
       </div>
       ${project.slides
         .map(
@@ -52,33 +57,37 @@ export const presentationScreen = (
             html`<button
               class="thumbnail ${index === selected ? 'selected' : ''}"
               data-slide="${index}"
+              aria-current="${index === selected ? 'page' : 'false'}"
               draggable="true"
-              aria-label="Slide ${index + 1}: ${escape(
-                item.title || 'Blank slide'
+              aria-label="Wireframe ${index + 1}: ${escape(
+                item.title || 'Blank wireframe'
               )}"
             >
-              <span class="thumb-number">${index + 1}</span>
-              <div>${item.svg || '<span>Blank slide</span>'}</div>
+              <span class="thumb-number" aria-hidden="true"
+                >${String(index + 1).padStart(2, '0')}</span
+              >
+              <div>${item.svg || '<span>Blank wireframe</span>'}</div>
             </button>`
         )
         .join('')}${pending
         ? html`<div class="thumbnail slide-processing" role="status">
             <div class="slide-skeleton"></div>
             <span
-              >Designing slide ${project.slides.length + 1} of
+              >Designing wireframe ${project.slides.length + 1} of
               ${snapshot.plannedSlides}</span
             >
           </div>`
         : validating
-          ? '<p class="deck-validation" role="status"><span class="spinner" aria-hidden="true"></span>Checking your slides</p>'
+          ? '<p class="deck-validation" role="status"><span class="spinner" aria-hidden="true"></span>Checking your wireframes</p>'
           : ''}
     </aside>
     <div class="stage-area">
+      ${wireframeCanvasStatus(snapshot, selected, pendingChat, liveConnected)}
       <div class="stage">
         ${slide?.svg ||
         (slide
           ? html`<div class="blank">
-              <h2>What is this slide about?</h2>
+              <h2>What is this wireframe about?</h2>
               <p>Tell the studio below.</p>
             </div>`
           : presentationProgress(snapshot))}
@@ -86,11 +95,11 @@ export const presentationScreen = (
       <div class="slide-caption">
         <span
           >${project.slides.length
-            ? ` ${status !== 'ready' ? 'Draft · ' : ''}Slide ${selected + 1} of ${snapshot.plannedSlides || project.slides.length}`
+            ? ` ${status !== 'ready' ? 'Draft · ' : ''}Wireframe ${selected + 1} of ${snapshot.plannedSlides || project.slides.length}`
             : ''}</span
         >${slide
           ? html`<details class="slide-menu">
-              <summary aria-label="Slide actions">•••</summary>
+              <summary aria-label="Wireframe actions">•••</summary>
               <div>
                 ${button(
                   'Duplicate',
@@ -113,11 +122,11 @@ export const presentationScreen = (
           : ''}
       </div>
       <form id="chat" class="chat">
-        <label class="sr" for="instruction">Change this slide</label
+        <label class="sr" for="instruction">Change this wireframe</label
         ><input
           id="instruction"
           name="instruction"
-          placeholder="Ask for a change, like “split this slide in two”"
+          placeholder="Ask for a change, like “split this wireframe in two”"
           ${status !== 'ready' ? 'disabled' : ''}
         /><button
           aria-label="Send instruction"
@@ -131,12 +140,12 @@ export const presentationScreen = (
           >${escape(
             snapshot.error ||
               (pending
-                ? `Designing slide ${slides.length + 1} of ${snapshot.plannedSlides} · ${slides.length} ${slides.length === 1 ? 'draft' : 'drafts'} saved`
+                ? `Designing wireframe ${slides.length + 1} of ${snapshot.plannedSlides} · ${slides.length} ${slides.length === 1 ? 'draft' : 'drafts'} saved`
                 : validating
-                  ? 'Checking your slides'
+                  ? 'Checking your wireframes'
                   : slideReply) ||
               (status === 'ready'
-                ? 'Your slides are in. Check them, then Make the video, top right.'
+                ? 'Your wireframes are ready. Check them, then Make the video, top right.'
                 : '')
           )}</span
         >${status === 'building'

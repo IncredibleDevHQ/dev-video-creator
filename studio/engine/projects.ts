@@ -1,3 +1,4 @@
+import { scheduleSource } from './notebook-intake'
 import { addEvent } from './activity'
 export { addEvent } from './activity'
 import { sumUsage } from '../shared/usage'
@@ -79,7 +80,8 @@ export const changeProject = async (
 }
 export const createProject = async (
   input: string,
-  harness?: HarnessSelection
+  harness?: HarnessSelection,
+  sourceOnly = false
 ): Promise<Snapshot> => {
   if (!input.trim()) throw new Error('Add a link or some text')
   harness = harness
@@ -96,18 +98,20 @@ export const createProject = async (
       id,
       branding,
       harness,
-      title: 'Untitled video',
+      title: sourceOnly ? 'Untitled notebook' : 'Untitled video',
       source: input.trim(),
       slides: [],
       video: null
     },
-    status: 'building',
+    status: sourceOnly ? 'reading' : 'building',
+    ...(sourceOnly ? { sourceOnly: true } : {}),
     error: null,
     events: []
   }
   addEvent(snapshot, 'slide', 'Reading your source')
   await writeRow('projects', id, snapshot)
-  scheduleSlides(id)
+  if (sourceOnly) scheduleSource(id)
+  else scheduleSlides(id)
   return snapshot
 }
 const building = new Map<string, Promise<void>>()
@@ -200,12 +204,13 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
     await writeRow('sources', id, source)
     current.project.sourceUrl = sourceUrl
     current.project.source = text.trim()
-    current.status = 'building'
+    current.status = current.sourceOnly ? 'draft' : 'building'
+    current.project.title = source.title || 'Untitled notebook'
     current.error = null
     delete current.sourceFailure
     addEvent(current, 'slide', 'Using your pasted article text')
   })
-  scheduleSlides(id)
+  if (!snapshot.sourceOnly) scheduleSlides(id)
   return snapshot
 }
 type SlideCheckpoint = {
@@ -291,9 +296,12 @@ const buildSlides = async (id: string) => {
   }
   const { source, outline, brand, slideIds } = checkpoint
   const currentBrand = (await loadProject(id))!.project.branding
-  const designBrand = currentBrand?.useAccent
-    ? { ...brand, accent: currentBrand.accent }
-    : brand
+  const designBrand = {
+    ...brand,
+    ...(currentBrand?.palette || {}),
+    ...(currentBrand?.fonts || {}),
+    ...(currentBrand?.useAccent ? { accent: currentBrand.accent } : {})
+  }
   const sourceBrief = await readRow<{
     brief: import('./creative/explanation-brief').ExplanationBriefV1
   }>('source-briefs', id)

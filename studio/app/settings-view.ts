@@ -1,3 +1,4 @@
+import { themeControl } from './appearance'
 import { html } from './ui'
 import incredibleLogo from './assets/incredible-logo.svg'
 import type { StudioSettings } from '../shared/settings'
@@ -5,7 +6,7 @@ import { CLONE_SCRIPT } from '../shared/settings'
 import { voiceValue, voiceChoices } from './voice-choice'
 import { escape, button } from './ui'
 import type { Recording } from './recording'
-export type SettingsPanel = 'voice' | 'branding' | 'keys'
+export type SettingsPanel = 'voice' | 'branding' | 'keys' | 'agent'
 export const settingsScreen = (
   data: StudioSettings | null,
   panel: SettingsPanel,
@@ -23,23 +24,28 @@ export const settingsScreen = (
   return html`<header>
       <a class="brand" href="/" aria-label="Incredible Studio"
         ><img src="${incredibleLogo}" alt="" />Incredible</a
-      ><span>Settings</span>${button('← Back to your video', 'close-settings')}
+      ><span>Settings</span>
+      <div class="header-actions">
+        ${themeControl()}${button('← Back to notebook', 'close-settings')}
+      </div>
     </header>
     <main class="settings-layout">
       <nav aria-label="Settings">
-        ${tab('branding', 'Branding')}${tab('voice', 'Voice')}${tab(
-          'keys',
-          'API keys'
-        )}
+        ${tab('agent', 'Agent & model')}${tab('branding', 'Branding')}${tab(
+          'voice',
+          'Voice'
+        )}${tab('keys', 'API keys')}
       </nav>
       <section class="settings-content">
         ${!data
           ? '<p>Loading settings…</p>'
-          : panel === 'voice'
-            ? voicePanel(data, capture, busy)
-            : panel === 'branding'
-              ? brandingPanel(data, projectId)
-              : keysPanel(data)}
+          : panel === 'agent'
+            ? '<h1>Agent & model</h1><div data-agent-settings></div>'
+            : panel === 'voice'
+              ? voicePanel(data, capture, busy)
+              : panel === 'branding'
+                ? brandingPanel(data, projectId)
+                : keysPanel(data)}
         <p id="settings-message" role="status"></p>
       </section>
     </main>`
@@ -181,7 +187,16 @@ const voicePanel = (
 }
 const brandingPanel = (data: StudioSettings, projectId: string | null) =>
   html`<h1>Branding</h1>
+    ${data.brandLibrary?.length
+      ? `<h2>Saved brands</h2><div class="saved-brand-list">${data.brandLibrary.map((entry) => `<article><strong>${escape(entry.brand.name)}</strong><small>${escape(entry.domain || 'Custom brand')}</small><small>${escape(entry.brand.accent)}</small></article>`).join('')}</div>`
+      : ''}
     <p>Your name and logo carry into your videos.</p>
+    ${data.branding.fonts
+      ? `<p>Fonts: ${escape(data.branding.fonts.display)} · ${escape(data.branding.fonts.body)} · ${escape(data.branding.fonts.mono)}</p>`
+      : ''}
+    ${data.branding.palette
+      ? `<p>Palette: ${escape(data.branding.palette.ground)} · ${escape(data.branding.palette.text)} · ${escape(data.branding.accent)} · ${escape(data.branding.palette.secondary)}</p>`
+      : ''}
     <form id="branding-form" class="settings-card">
       <label
         >Your name<input
@@ -225,42 +240,6 @@ const brandingPanel = (data: StudioSettings, projectId: string | null) =>
 const keysPanel = (data: StudioSettings) =>
   html`<h1>API keys</h1>
     <p>Keys stay with your studio’s server and are never shown again.</p>
-    <form id="harness-settings-form" class="settings-card">
-      <h2>Creative engine</h2>
-      <label
-        >Use for new notebooks<select name="harness">
-          <option
-            value="kimi"
-            ${data.harness?.adapter === 'kimi' ? 'selected' : ''}
-          >
-            Kimi
-          </option>
-          <option
-            value="claude-code"
-            ${data.harness?.adapter === 'claude-code' ? 'selected' : ''}
-          >
-            Claude Code
-          </option>
-          <option
-            value="codex"
-            ${data.harness?.adapter === 'codex' ? 'selected' : ''}
-          >
-            Codex
-          </option>
-        </select></label
-      ><label
-        >Harness model<input
-          name="harness-model"
-          value="${escape(data.harness?.model || '')}"
-          placeholder="kimi-code/k3"
-      /></label>
-      <p class="settings-note">
-        Harnesses use the command-line agent signed in on your studio’s server.
-        Leave the model blank to use its configured default. Existing notebooks
-        keep their engine choice.
-      </p>
-      <button class="primary">Save engine</button>
-    </form>
     <form id="provider-settings-form" class="settings-card">
       <label
         >AI provider<select name="provider">

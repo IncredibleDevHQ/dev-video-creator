@@ -2,6 +2,7 @@ import { storeAsset } from './persistence'
 // Assemble a web source from prose, branding and host documents.
 import { parseHTML } from 'linkedom'
 import { hsl } from './source-colours'
+import { sourceContent } from './source-content'
 import {
   articleText,
   extractionOf,
@@ -70,23 +71,8 @@ export const readSourceUrl = async (
     .trim()
     .slice(0, 80)
 
-  // the main text: the article if there is one, else main, else body
-  const candidates = [
-    ...Array.from(document.querySelectorAll('article')),
-    ...Array.from(document.querySelectorAll('main')),
-    document.body
-  ].filter(Boolean)
-  const container =
-    candidates
-      .map((node) => ({ node, length: (node.textContent || '').trim().length }))
-      .sort((a, b) => b.length - a.length)[0]?.node || document.body
-  const clone = container.cloneNode(true) as Element
-  clone
-    .querySelectorAll(
-      'nav, header, footer, aside, script, style, noscript, form, iframe, svg, button, [role="navigation"], [aria-hidden="true"], .share, .comments, .newsletter, .sidebar'
-    )
-    .forEach((node) => node.remove())
-  const article = articleText(clone)
+  const container = sourceContent(document)
+  const article = articleText(container)
   const headings = article.headings
   let text = article.text
   // What the read cut, said before anything is planned from it.

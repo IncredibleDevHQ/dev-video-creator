@@ -9,7 +9,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for scene state ownership and live update
 ## Run
 
 Install Node 22+, Yarn 1, FFmpeg (including ffprobe), Python 3, uv, and a supported
-AI CLI: Claude Code, Kimi or Codex. Sign in to the CLI you intend to use. Then:
+AI CLI for generation: Claude Code, Kimi or Codex. You can open and read
+notebooks before choosing an agent. Then:
 
 ```sh
 yarn setup
@@ -29,16 +30,37 @@ shell. It is not a packaged installer.
 
 ## Create and finish a video
 
-Enter a blog URL or text, then choose a harness and model before generation. The
-choice is saved as your default and attached to the notebook. Brief, Story Master
-and Page Master produce a rich deck; slides appear as they are accepted. Review
+Paste a blog URL or Markdown, or write your notes, and open the notebook. Your
+source is saved and rendered before any AI generation. Link imports prefer the
+article body over the surrounding page and remove navigation and site controls.
+Before slides exist, Refresh article re-reads the original link in the same
+notebook; a failed refresh preserves its saved text. Choose Create presentation
+when ready. Review the website's suggested brand and preview the title slide in
+different colour combinations before continuing. The chosen colours and fonts
+are saved in Settings → Branding and applied to the notebook. A saved brand for
+the same domain is restored automatically for review; you can choose another
+saved brand or detect the website again. Re-detection leaves your edited notes
+and saved brand unchanged until you explicitly confirm an overwrite.
+On first use, Detect local agents checks Claude Code, Codex and Kimi
+individually. Select an installed agent and model; sign in to that CLI before
+generating. The choice is saved for new notebooks. The notebook header shows
+its agent name; click it to open Settings → Agent and change the current
+notebook and your default. Agent & model settings automatically detect installed
+agents and show selectable model cards. Codex choices come from its local catalog
+and configuration, Claude uses its supported CLI aliases, and Kimi uses its
+configured models. Account access is checked when generation runs. Active
+generation must finish before switching.
+Brief, Story Master and Page Master produce a rich deck; slides appear as they are accepted. Review
 or edit the slides and export their PDF.
 
 Make the video selects its global Off/Low/High camera presence and off-camera
 voice. Creative planning and one Hyperframes composition produce each scene's
 content animation. Preparing all animations does not wait for speaker recordings.
 The notebook has a permanent `?notebook=<id>` URL. Its source is rendered as a
-readable document; model choices remain in settings.
+readable document. Before creating slides, click into the notes and type: the
+Tiptap editor supports Markdown shortcuts and automatically saves Markdown,
+preserving headings, lists, links, tables and code blocks. Edits save before
+leaving the notebook or starting a presentation; model choices remain in settings.
 
 Record the required moments in any order, individually or as an open-moment pass.
 Practice records nothing. Recording includes permission guidance, a countdown,

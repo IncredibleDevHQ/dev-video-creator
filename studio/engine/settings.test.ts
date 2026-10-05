@@ -9,6 +9,10 @@ vi.mock('./voice-library', () => ({
   selectedVoice: async () => ({ kind: 'record' }),
   useVoice: vi.fn()
 }))
+vi.mock('./harness/runtime', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./harness/runtime')>()),
+  inspectHarnesses: vi.fn(async () => [{ id: 'kimi', ok: true }])
+}))
 const root = await mkdtemp(join(tmpdir(), 'minimal-settings-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { getStudioSettings, saveStudioSettings } = await import('./settings')
@@ -135,7 +139,7 @@ it('branding changes invalidate scene and whole-video exports', async () => {
   )
 })
 
-it('persists the creative harness and model for new notebooks and uses Kimi K3 when no engine preference is saved', async () => {
+it('persists the creative harness and model for new notebooks and leaves the first-run choice unset', async () => {
   const settings = await saveStudioSettings({
     harness: { adapter: 'kimi', model: 'kimi-code/k3' }
   })
@@ -144,8 +148,5 @@ it('persists the creative harness and model for new notebooks and uses Kimi K3 w
   await expect(
     saveStudioSettings({ harness: { adapter: 'unknown' } })
   ).rejects.toThrow('supported harness')
-  expect((await saveStudioSettings({ harness: null })).harness).toEqual({
-    adapter: 'kimi',
-    model: 'kimi-code/k3'
-  })
+  expect((await saveStudioSettings({ harness: null })).harness).toBeNull()
 })

@@ -183,7 +183,7 @@ it('keeps presentation ready while video processing appears only in its own stat
   input.events[0].stage = 'composition'
   input.events[0].activity = 'processing'
   const html = presentationScreen(input, 0)
-  expect(html).toContain('Presentation ready')
+  expect(html).toContain('Wireframes ready')
   expect(html).not.toContain('Creating the scene preview')
   expect(stageStatus(input, 'presentation')).toContain('Ready')
   expect(stageStatus(input, 'presentation')).not.toContain('is-processing')
@@ -212,9 +212,9 @@ it('places the active status above the preview, with no duplicate beneath the ch
 
 it('keeps tab status accessible without adding a second line of visible text', () => {
   const input = fixture()
-  expect(stageStatus(input, 'presentation')).toContain('title="Ready"')
-  expect(stageStatus(input, 'presentation')).toContain('class="sr"')
-  expect(stageStatus(input, 'presentation')).toContain('aria-hidden="true"')
+  expect(stageStatus(input, 'presentation')).toBe(
+    '<span class="sr"> · Ready</span>'
+  )
   input.project.video!.scenes[0].phase = 'failed'
   expect(stageStatus(input, 'video')).toContain('needs-attention')
 })
