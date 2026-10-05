@@ -34,24 +34,35 @@ Paste a blog URL or Markdown, or write your notes, and open the notebook. Your
 source is saved and rendered before any AI generation. Link imports prefer the
 article body over the surrounding page and remove navigation and site controls.
 Before slides exist, Refresh article re-reads the original link in the same
-notebook; a failed refresh preserves its saved text. Choose Create presentation
-when ready. Review the website's suggested brand and preview the title slide in
-different colour combinations before continuing. The chosen colours and fonts
-are saved in Settings → Branding and applied to the notebook. A saved brand for
-the same domain is restored automatically for review; you can choose another
-saved brand or detect the website again. Re-detection leaves your edited notes
-and saved brand unchanged until you explicitly confirm an overwrite.
-On first use, Detect local agents checks Claude Code, Codex and Kimi
-individually. Select an installed agent and model; sign in to that CLI before
-generating. The choice is saved for new notebooks. The notebook header shows
-its agent name; click it to open Settings → Agent and change the current
-notebook and your default. Agent & model settings automatically detect installed
-agents and show selectable model cards. Codex choices come from its local catalog
-and configuration, Claude uses its supported CLI aliases, and Kimi uses its
-configured models. Account access is checked when generation runs. Active
-generation must finish before switching.
-Brief, Story Master and Page Master produce a rich deck; slides appear as they are accepted. Review
-or edit the slides and export their PDF.
+notebook; a failed refresh preserves its saved text. Figures arrive as their
+pictures above their captions. The home page lists your notebooks under the
+field; the demo shows until the first notebook exists, then behind How it works.
+
+Create wireframes, top right, starts straight away. Under the notebook's title,
+one line shows the choices it will use: the agent and model, about 6, 10 or 14
+wireframes, and the look. Each opens a small menu. The agent is the notebook's,
+else your saved choice, else the first of Claude Code, Codex and Kimi found on
+this computer; sign in to that CLI before generating. The header pill opens the
+agent menu and shows what the agent is doing ("Kimi · drawing 3 of 10").
+Settings → Agent & model has the full list. Active generation must finish before
+switching.
+
+A notebook starts with a look: one you saved for the site, the site's own
+colours when they could be read, or the neutral Paper look. Look, beside the
+wireframes, offers named looks with a sample, three colours and two font menus;
+drawn wireframes change colour as you choose, and Apply changes all of them.
+A look never changes your name: Settings → You holds your name, lower-third
+description and logo.
+
+Brief, Story Master and Page Master produce a rich deck. The outline's titles
+and script show as titled tiles as soon as the story is planned, and each
+wireframe appears as it is drawn: the first agent call authors the design
+system with page one, then each page gets a call and a time budget of its own,
+two at a time, retried up to three times before the deck stops and says where.
+The script sits under each wireframe and can be edited once the deck is ready.
+Click a part of a wireframe to point a change at it; changes for drawn
+wireframes queue while the rest are drawn. Rehearse shows the wireframe, the
+next one, its script and a timer. Export the wireframes as a PDF.
 
 Make the video selects its global Off/Low/High camera presence and off-camera
 voice. Creative planning and one Hyperframes composition produce each scene's
@@ -81,17 +92,19 @@ the joined video and export MP4. Later edits invalidate the affected exports.
 Activity remains visible with completed steps and the current processing/stalled
 frontier. Token usage shows reported harness usage; unavailable usage is not zero.
 
-Anchored chat discusses the source and edits slides or scene plans. Single-slide
-revision is bounded to two minutes and its style-preserving redraw to four
-minutes, with inactivity/tool-call caps and explicit retry. Source
-questions have a two-minute wall limit, 45-second inactivity limit and a
-20-tool-call cap. The explicit paid `checks/source-chat.live.mjs` check uses an
+Anchored chat discusses the source and edits wireframes or scene plans. Every
+agent call has a time, inactivity and tool budget sized for its operation and
+model (`engine/harness/limits.ts`; Kimi K3 runs at 2.5 times the base) under a
+45-minute ceiling, with explicit retry. Wireframe changes run in the background,
+one at a time per notebook; a change pointed at one part skips the story step.
+Source questions have a two-minute base budget. The explicit paid `checks/source-chat.live.mjs` check uses an
 isolated retained diagnostic; it is never part of ordinary tests. An explicit recording edit such
 as `trim take from 0.3 to 1.3 seconds` keeps that range of the selected moment's
 take, preserves the original and animation, and updates timing without a model
 call. Finish the scene again to use it. Ambiguous trim commands are rejected.
 
-Branding, voice clone/AI voices and server credentials live in Settings. The
+Your name and logo, saved looks, voice clone/AI voices and server credentials
+live in Settings. The
 presenter stand-in is for rehearsal/testing; actual capture and clone quality
 still require the acceptance checks below.
 

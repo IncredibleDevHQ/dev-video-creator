@@ -62,3 +62,18 @@ The HTTP boundary treats JSON as unknown and validates its fields before
 constructing typed chat, slide, extension and recording requests. Failed app
 actions use one dismissible error surface, including inside native modal
 dialogs. Voice deletion uses an app dialog with Cancel as its initial focus.
+
+Wireframes are drawn one page per harness call (`engine/creative/pages.ts`):
+the first call authors the deck's design system with page one, later pages run
+two at a time against it, each with its own budget and up to three attempts,
+and the engine writes the receipt and checks the whole deck once. Budgets come
+from `engine/harness/limits.ts`, by operation and model. Wireframe changes are
+a per-notebook queue on the snapshot (`engine/slide-changes.ts`); a change may
+carry the element it points at, and restart marks a running change failed
+rather than repeating it.
+
+A notebook's look (palette and fonts) is separate from the creator's identity
+(name, description, logo). `engine/looks.ts` chooses the starting look and
+`engine/look-apply.ts` changes it, re-colouring drawn pages and the deck's
+design spec with `shared/looks.ts`, which the app also uses for the live
+preview in the look panel.
