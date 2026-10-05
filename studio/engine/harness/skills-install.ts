@@ -43,9 +43,21 @@ const skillVersion = async (skillDir: string): Promise<string> => {
   }
 }
 
-// sha256 over the sorted relative paths + file contents of a folder.
-const hashFolder = async (dir: string): Promise<string> => {
+// sha256 over the sorted relative paths + file contents of a folder, or of
+// only the named files in it ('' when one is missing).
+const hashFolder = async (dir: string, files?: string[]): Promise<string> => {
   const hash = createHash('sha256')
+  if (files) {
+    for (const file of [...files].sort()) {
+      const body = await readFile(join(dir, file)).catch(() => null)
+      if (!body) return ''
+      hash.update(file)
+      hash.update('\0')
+      hash.update(body)
+      hash.update('\0')
+    }
+    return hash.digest('hex')
+  }
   const walk = async (current: string): Promise<void> => {
     const entries = (await readdir(current, { withFileTypes: true })).sort(
       (a, b) => a.name.localeCompare(b.name)
@@ -108,10 +120,11 @@ const ensureAgentsPointer = async (
 // Installs (or refreshes) the vendored skills in a project directory.
 // `only` narrows the install to the named skills: a planning run is handed
 // the planning skill alone, never the skills that draw, record or build.
+// `files` narrows a skill to the files its route reads.
 export const installSkills = async (
   vendoredSkillsDir: string,
   projectDir: string,
-  options: { only?: string[] } = {}
+  options: { only?: string[]; files?: Record<string, string[]> } = {}
 ): Promise<InstallReport> => {
   const report: InstallReport = {
     projectDir,
@@ -129,11 +142,12 @@ export const installSkills = async (
     skillNames.push(name)
     const vendoredDir = join(vendoredSkillsDir, name)
     const targetDir = join(projectDir, '.claude', 'skills', name)
-    const vendoredHash = await hashFolder(vendoredDir)
+    const subset = options.files?.[name]
+    const vendoredHash = await hashFolder(vendoredDir, subset)
     const version = await skillVersion(vendoredDir)
     const locked = report.lock.skills[name]
     if (existsSync(targetDir)) {
-      const installedHash = await hashFolder(targetDir)
+      const installedHash = await hashFolder(targetDir, subset)
       if (installedHash === vendoredHash) {
         // Already current.
         report.skipped.push(name)
@@ -159,7 +173,12 @@ export const installSkills = async (
     }
     await rm(targetDir, { recursive: true, force: true })
     await mkdir(join(projectDir, '.claude', 'skills'), { recursive: true })
-    await cp(vendoredDir, targetDir, { recursive: true })
+    if (subset)
+      for (const file of subset) {
+        await mkdir(join(targetDir, file, '..'), { recursive: true })
+        await cp(join(vendoredDir, file), join(targetDir, file))
+      }
+    else await cp(vendoredDir, targetDir, { recursive: true })
     report.installed.push(name)
     report.lock.skills[name] = {
       version,

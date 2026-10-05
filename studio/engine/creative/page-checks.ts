@@ -75,7 +75,7 @@ export const validatePageReceipt = (
     pages?: Array<{
       index: number
       file: string
-      program: string
+      program?: string
       title: string
       kind: string
       form: string
@@ -118,11 +118,6 @@ export const validatePageReceipt = (
     }
     expected.add(page.file)
     if (
-      page.program !== page.file.replace(/\.svg$/, '.program.json') ||
-      typeof files[page.program] !== 'string'
-    )
-      problems.push(`Page ${index + 1} needs its retained program`)
-    if (
       typeof page.form !== 'string' ||
       !page.form.trim() ||
       typeof page.topology !== 'string' ||
@@ -139,9 +134,6 @@ export const validatePageReceipt = (
   }
   for (const file of Object.keys(files).filter((name) => name.endsWith('.svg')))
     if (!expected.has(file)) problems.push(`Unexpected page: ${file}`)
-  for (const file of ['contract.md', 'design_spec.md', 'spec_lock.md'])
-    if (typeof files[file] !== 'string' || !files[file].trim())
-      problems.push(`Missing ${file}`)
   return {
     problems,
     pages: pages

@@ -214,6 +214,11 @@ const reviseSlide = async (id: string, change: SlideChange) => {
           origin: origin(),
           pageOffset: index,
           reuseStyle: true,
+          // Another page of the deck, for the redrawn page to match.
+          style:
+            snapshot.project.slides.find(
+              (other, at) => at !== index && other.svg
+            )?.svg || undefined,
           edit: {
             instruction: change.instruction,
             target: change.target,

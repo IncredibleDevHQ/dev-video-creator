@@ -12,7 +12,8 @@ const {
   validatePageReceipt,
   prepareCreativePages,
   PageDrawingError,
-  PAGE_ATTEMPTS
+  PAGE_ATTEMPTS,
+  PAGE_CONCURRENCY
 } = await import('./pages')
 const { readRow, listNotebookRows } = await import('../persistence')
 const { readSourceNarrative } = await import('../source-document')
@@ -38,15 +39,6 @@ const outline: Outline = {
 }
 const files = {
   '01_fixture.svg': svg,
-  '01_fixture.program.json': JSON.stringify({
-    version: 1,
-    page: '01_fixture.svg',
-    cast: [],
-    beats: [
-      { id: 'b1', moment: 'establish', say: 'Fixture speech.', events: [] },
-      { id: 'b2', moment: 'resolve', say: 'Fixture complete.', events: [] }
-    ]
-  }),
   'receipt.json': JSON.stringify({
     pages: [
       {
@@ -54,16 +46,12 @@ const files = {
         title: 'Fixture',
         kind: 'title',
         file: '01_fixture.svg',
-        program: '01_fixture.program.json',
         form: 'definition',
         topology: 'typography',
         checks: 'pass'
       }
     ]
-  }),
-  'contract.md': 'Explicit fixture contract',
-  'design_spec.md': 'Explicit fixture design spec',
-  'spec_lock.md': 'Explicit fixture lock'
+  })
 }
 afterAll(() => rm(root, { recursive: true, force: true }))
 it('accepts passive local SVG shapes and rejects active content or outside references', () => {
@@ -79,7 +67,7 @@ it('accepts passive local SVG shapes and rejects active content or outside refer
       pageSvgProblems(svg.replace('</svg>', value + '</svg>')).length
     ).toBeGreaterThan(0)
 })
-it('requires every outline page and its program to keep the same identity', () => {
+it('requires every outline page to keep its identity in the receipt', () => {
   expect(validatePageReceipt(files, outline).problems).toEqual([])
   const bad = {
     ...files,
@@ -98,23 +86,25 @@ it('requires every outline page and its program to keep the same identity', () =
   expect(validatePageReceipt(bad, outline).problems).toContain(
     'Page 1 must retain its outline identity, title and kind'
   )
-  const missing = { ...files }
-  delete (missing as Partial<typeof files>)['01_fixture.program.json']
+  const missing: Record<string, string> = { ...files }
+  delete missing['01_fixture.svg']
   expect(validatePageReceipt(missing, outline).problems).toContain(
-    'Page 1 needs its retained program'
+    'Missing 01_fixture.svg'
   )
 })
 // A synthetic harness: writes the given files into the run's pages folder and
 // submits the page the call was asked to draw.
 const drawInto =
-  (dir: string, pageFiles: Record<string, string>) => async (input: any) => {
+  (dir: string, pageFiles: Record<string, string>, wait = 0) =>
+  async (input: any) => {
     await mkdir(join(dir, 'pages'), { recursive: true })
     for (const [name, body] of Object.entries(pageFiles))
       await writeFile(join(dir, 'pages', name), body)
+    if (wait) await new Promise((resolve) => setTimeout(resolve, wait))
     const tool = input.tools(dir)[0]
     const result = await tool.call({
       projectDir: dir,
-      index: JSON.parse(input.packet['packet/PROGRESS.json']).draw,
+      index: JSON.parse(input.packet['packet/PAGE.json']).index,
       form: 'definition',
       topology: 'typography'
     })
@@ -122,47 +112,41 @@ const drawInto =
     await input.accept(dir)
     return { status: 'done' }
   }
-const page1 = {
-  '01_fixture.svg': files['01_fixture.svg'],
-  '01_fixture.program.json': files['01_fixture.program.json']
-}
-const design = {
-  'contract.md': files['contract.md'],
-  'design_spec.md': files['design_spec.md'],
-  'spec_lock.md': files['spec_lock.md']
-}
+const pageOf = (number: number, slug: string) => ({
+  [`${String(number).padStart(2, '0')}_${slug}.svg`]: svg
+    .replace(
+      'data-page-index="01"',
+      `data-page-index="${String(number).padStart(2, '0')}"`
+    )
+    .replace(/s01-/g, `s${String(number).padStart(2, '0')}-`)
+})
+const page1 = pageOf(1, 'fixture')
+const page2 = pageOf(2, 'second')
+const svg2 = page2['02_second.svg']
 const two: Outline = {
   ...outline,
   scenes: [outline.scenes[0], { ...outline.scenes[0], title: 'Second' }]
 }
-const svg2 = svg
-  .replace('data-page-index="01"', 'data-page-index="02"')
-  .replace(/s01-/g, 's02-')
-const page2 = {
-  '02_second.svg': svg2,
-  '02_second.program.json': files['01_fixture.program.json'].replace(
-    '01_fixture.svg',
-    '02_second.svg'
-  )
-}
-it('draws the design system with page one, then each later page in a call of its own, and resumes from the accepted deck', async () => {
-  run.mockReset()
-  run
-    .mockImplementationOnce(
-      drawInto(join(root, 'design'), { ...design, ...page1 })
-    )
-    .mockImplementationOnce(drawInto(join(root, 'second'), page2))
+const fixtureInput = (projectId: string, extra: object = {}) => {
   const source = readSourceNarrative('Fixture speech and supporting words.')
-  const onDrawing = vi.fn(async (_indexes: number[]) => {})
-  const input = {
-    projectId: 'fixture',
+  return {
+    projectId,
     source,
     outline: two,
     brand: pageBrandFrom(source.palette, source.fonts),
     selection: { adapter: 'kimi' as const, model: 'fixture-model' },
     origin: 'http://fixture',
-    onDrawing
+    ...extra
   }
+}
+
+it('draws page one alone from a small packet, then each later page against it, and resumes from the accepted deck', async () => {
+  run.mockReset()
+  run
+    .mockImplementationOnce(drawInto(join(root, 'first'), page1))
+    .mockImplementationOnce(drawInto(join(root, 'second'), page2))
+  const onDrawing = vi.fn(async (_indexes: number[]) => {})
+  const input = fixtureInput('fixture', { onDrawing })
   expect(await prepareCreativePages(input)).toEqual([svg, svg2])
   expect(run).toHaveBeenCalledTimes(2)
   // The engine says which pages are in a call, not a guess from the counts.
@@ -173,19 +157,23 @@ it('draws the design system with page one, then each later page in a call of its
     []
   ])
   const [first, second] = run.mock.calls.map((call) => call[0])
-  expect(first).toMatchObject({ operation: 'design', route: 'Draw Pages' })
-  expect(first.task).toContain('design system and its first page only')
-  expect(second).toMatchObject({ operation: 'page', route: 'Draw One Page' })
-  expect(second.packet['packet/retained-pages/design_spec.md']).toBe(
-    design['design_spec.md']
-  )
-  expect(second.packet['packet/retained-pages/01_fixture.svg']).toBe(svg)
-  expect(JSON.parse(second.packet['packet/PROGRESS.json'])).toMatchObject({
-    draw: 2,
-    pages: [
-      { index: 1, status: 'drawn' },
-      { index: 2, status: 'this call' }
-    ]
+  for (const call of [first, second]) {
+    expect(call).toMatchObject({ operation: 'page', route: 'Draw Page' })
+    // The spec, the page and a style page: no article, outline or manuals.
+    expect(Object.keys(call.packet).sort()).toEqual(
+      call === first
+        ? ['packet/PAGE.json', 'packet/SPEC.md']
+        : ['packet/PAGE.json', 'packet/SPEC.md', 'packet/STYLE.svg']
+    )
+    expect(call.packet['packet/SPEC.md']).toContain(input.brand.accent)
+    expect(call.packet['packet/SPEC.md']).toContain('data-icon="NAME"')
+    expect(call.task).toContain('Draw Page route')
+  }
+  expect(second.packet['packet/STYLE.svg']).toBe(svg)
+  expect(JSON.parse(second.packet['packet/PAGE.json'])).toMatchObject({
+    index: 2,
+    title: 'Second',
+    deck: { title: 'Fixture', pages: 2, before: 'Fixture', after: null }
   })
   // The accepted deck is a checkpoint: drawing it again starts nothing.
   expect(await prepareCreativePages(input)).toEqual([svg, svg2])
@@ -194,38 +182,103 @@ it('draws the design system with page one, then each later page in a call of its
   const rows = await Promise.all(
     attempts.map((id) => readRow<any>('creative-page-attempts', id))
   )
-  expect(rows.filter((row) => row.accepted)).toHaveLength(3)
+  // Each page was checked once, when it was submitted; no deck re-check.
+  expect(rows.filter((row) => row.accepted)).toHaveLength(2)
 })
 
-it('retries a page that ran out of time, keeps what was drawn, and names the page when it gives up', async () => {
+it('draws the pages after the first at the same time', async () => {
+  run.mockReset()
+  const scenes = [1, 2, 3, 4].map((n) => ({
+    ...outline.scenes[0],
+    title: `Page ${n}`
+  }))
+  for (const n of [1, 2, 3, 4])
+    run.mockImplementationOnce(
+      drawInto(join(root, `wide-${n}`), pageOf(n, `page-${n}`), 30)
+    )
+  const onDrawing = vi.fn(async (_indexes: number[]) => {})
+  const pages = await prepareCreativePages({
+    ...fixtureInput('wide', { onDrawing }),
+    outline: { ...outline, scenes }
+  })
+  expect(pages).toHaveLength(4)
+  const widest = Math.max(...onDrawing.mock.calls.map((call) => call[0].length))
+  expect(widest).toBe(Math.min(PAGE_CONCURRENCY, 3))
+  expect(onDrawing.mock.calls[0][0]).toEqual([0])
+})
+
+it('draws named icons in on submission and refuses a name it does not know', async () => {
+  run.mockReset()
+  const withIcon = (name: string) =>
+    svg.replace(
+      '</g><g id="s01-node-title"',
+      `<g data-icon="${name}" transform="translate(80 400) scale(1.8333)" fill="none" stroke="#123456" stroke-width="2"/></g><g id="s01-node-title"`
+    )
+  let refusal: string[] = []
+  run.mockImplementationOnce(async (input: any) => {
+    const dir = join(root, 'icons')
+    await mkdir(join(dir, 'pages'), { recursive: true })
+    const tool = input.tools(dir)[0]
+    const args = { index: 1, form: 'definition', topology: 'typography' }
+    await writeFile(
+      join(dir, 'pages', '01_icons.svg'),
+      withIcon('no-such-icon')
+    )
+    refusal = (await tool.call(args)).problems
+    await writeFile(join(dir, 'pages', '01_icons.svg'), withIcon('server'))
+    expect((await tool.call(args)).accepted).toBe(true)
+    await input.accept(dir)
+    return { status: 'done' }
+  })
+  const [page] = await prepareCreativePages({
+    ...fixtureInput('icons'),
+    outline
+  })
+  expect(refusal).toContain(
+    'No icon is named “no-such-icon”; use a name from SPEC.md'
+  )
+  expect(page).toMatch(
+    /<g data-icon="server"[^>]*stroke-linecap="round"[^>]*><path d="M3 7a3/
+  )
+  expect(pageSvgProblems(page)).toEqual([])
+})
+
+it('retries a page that ran out of time from its refused draft, keeps what was drawn, and names the page when it gives up', async () => {
   run.mockReset()
   const onDraft = vi.fn(async () => {})
   const stopped = {
     status: 'error',
     failure: { category: 'interrupted', message: 'The agent ran out of time.' }
   }
+  const misnamed = { '02_Second.svg': svg2 }
   run
-    .mockImplementationOnce(
-      drawInto(join(root, 'p-design'), { ...design, ...page1 })
-    )
+    .mockImplementationOnce(drawInto(join(root, 'p-first'), page1))
+    .mockImplementationOnce(async (input: any) => {
+      // A draft the studio refuses, then the call runs out of time.
+      const dir = join(root, 'p-refused')
+      await mkdir(join(dir, 'pages'), { recursive: true })
+      for (const [name, body] of Object.entries(misnamed))
+        await writeFile(join(dir, 'pages', name), body)
+      const result = await input.tools(dir)[0].call({
+        index: 2,
+        form: 'definition',
+        topology: 'typography'
+      })
+      expect(result.accepted).toBe(false)
+      return stopped
+    })
     .mockResolvedValue(stopped)
-  const source = readSourceNarrative('Partial fixture')
-  const input = {
-    projectId: 'partial',
-    source,
-    outline: two,
-    brand: pageBrandFrom(source.palette, source.fonts),
-    selection: { adapter: 'kimi' as const },
-    origin: 'http://fixture',
-    onDraft
-  }
+  const input = fixtureInput('partial', { onDraft })
   const error = await prepareCreativePages(input).catch((reason) => reason)
   expect(error).toBeInstanceOf(PageDrawingError)
   expect(error).toMatchObject({ page: 2, saved: 1, total: 2 })
-  // One design call, then three calls for page two.
   expect(run).toHaveBeenCalledTimes(1 + PAGE_ATTEMPTS)
-  expect(run.mock.calls[2][0].task).toContain(
-    'An earlier call for this page stopped'
+  const retry = run.mock.calls[2][0]
+  expect(retry.task).toContain('An earlier call for this page stopped')
+  // The next call corrects the refused draft rather than starting over.
+  expect(retry.packet['packet/CURRENT_PAGE.svg']).toBe(svg2)
+  expect(JSON.parse(retry.packet['packet/FIX.json']).problems[0]).toContain(
+    'Name the file pages/02_<slug>.svg'
   )
   expect(onDraft).toHaveBeenCalledWith(0, svg)
   // Try again restores page one without drawing it, and draws only page two.
@@ -233,7 +286,7 @@ it('retries a page that ran out of time, keeps what was drawn, and names the pag
   run.mockImplementationOnce(drawInto(join(root, 'p-second'), page2))
   expect(await prepareCreativePages(input)).toEqual([svg, svg2])
   expect(run).toHaveBeenCalledOnce()
-  expect(run.mock.calls[0][0].route).toBe('Draw One Page')
+  expect(run.mock.calls[0][0].packet['packet/STYLE.svg']).toBe(svg)
 })
 
 it('refuses a page that draws more than it was asked, and does not retry a stop the creator asked for', async () => {
@@ -241,11 +294,7 @@ it('refuses a page that draws more than it was asked, and does not retry a stop 
   run.mockImplementationOnce(async (input: any) => {
     const dir = join(root, 'greedy')
     await mkdir(join(dir, 'pages'), { recursive: true })
-    for (const [name, body] of Object.entries({
-      ...design,
-      ...page1,
-      ...page2
-    }))
+    for (const [name, body] of Object.entries({ ...page1, ...page2 }))
       await writeFile(join(dir, 'pages', name), body)
     const result = await input.tools(dir)[0].call({
       projectDir: dir,
@@ -260,33 +309,21 @@ it('refuses a page that draws more than it was asked, and does not retry a stop 
       failure: { category: 'interrupted', message: 'Stopped' }
     }
   })
-  const source = readSourceNarrative('Greedy fixture')
   await expect(
-    prepareCreativePages({
-      projectId: 'greedy',
-      source,
-      outline: two,
-      brand: pageBrandFrom(source.palette, source.fonts),
-      selection: { adapter: 'kimi' },
-      origin: 'http://fixture'
-    })
+    prepareCreativePages(fixtureInput('greedy'))
   ).rejects.toBeInstanceOf(PageDrawingError)
   expect(run).toHaveBeenCalledOnce()
 })
 
-it('sizes a style-preserving wireframe change for its model and passes the change with its target', async () => {
+it('sizes a wireframe change for its model and passes the change, its target and a page to match', async () => {
   run.mockReset()
-  const source = readSourceNarrative('Fixture speech and supporting words.')
   run.mockRejectedValueOnce(new Error('Bounded slide edit stopped'))
   await expect(
     prepareCreativePages({
-      projectId: 'bounded-edit',
-      source,
+      ...fixtureInput('bounded-edit'),
       outline,
-      brand: pageBrandFrom(source.palette, source.fonts),
-      selection: { adapter: 'kimi' },
-      origin: 'http://fixture',
       reuseStyle: true,
+      style: svg2,
       edit: {
         instruction: 'Move the label off the box',
         target: { id: 's01-edge-1', label: 'sends to', kind: 'connector' },
@@ -298,6 +335,7 @@ it('sizes a style-preserving wireframe change for its model and passes the chang
   const call = run.mock.calls[0][0]
   expect(call.operation).toBe('revise-page')
   expect(call.packet['packet/CURRENT_PAGE.svg']).toBe(svg)
+  expect(call.packet['packet/STYLE.svg']).toBe(svg2)
   expect(JSON.parse(call.packet['packet/EDIT.json']).target.id).toBe(
     's01-edge-1'
   )
@@ -317,15 +355,8 @@ it('refuses page furniture, a connector label on a box and a line through a box'
 <text x="290" y="350" font-family="monospace" font-size="20">sends to</text>
 <g id="s01-actor-req" data-actor="request" opacity="0"><circle cx="300" cy="360" r="14" fill="#000"/></g>
 </svg>`
-  const problems = await checkPinnedPages({
-    '01_fixture.svg': page,
-    '01_fixture.program.json': files['01_fixture.program.json'].replace(
-      '01_fixture.svg',
-      '01_fixture.svg'
-    ),
-    'design_spec.md': 'spec',
-    'spec_lock.md': 'lock'
-  })
+  // One page, on its own, the way it is checked when it is submitted.
+  const problems = await checkPinnedPages({ '01_fixture.svg': page })
   expect(problems.some((p) => p.includes('page furniture'))).toBe(true)
   expect(
     problems.some((p) =>

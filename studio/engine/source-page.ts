@@ -27,7 +27,7 @@ const slug = (value: string) =>
     .replace(/^-|-$/g, '')
     .slice(0, 24) || 'part'
 
-const mix = (hex: string, towards: string, amount: number) => {
+export const mix = (hex: string, towards: string, amount: number) => {
   const a = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
   const b = [1, 3, 5].map((i) => parseInt(towards.slice(i, i + 2), 16))
   return `#${a

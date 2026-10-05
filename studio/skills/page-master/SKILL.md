@@ -18,23 +18,18 @@ A routed page workflow. This entry owns execution discipline and route selection
 
 ## Mandatory load order
 
-1. Read this file. Retain the host-provided absolute directory of this file as `SKILL_DIR`; expand it in every command; never `cd`.
-2. Read the route the task names: `${SKILL_DIR}/workflows/draw-pages.md` for the deck's design system and its first page, or `${SKILL_DIR}/workflows/draw-one-page.md` for one more page against an authored design system.
-3. Read `${SKILL_DIR}/references/page-contract.md` before drawing anything.
-4. The route runs ppt-master's own pipeline (communication contract → design spec → spec lock → executor → checker cadence → review) and names the vendored manuals to read at each stage. Read them when the route says so, and nothing else from the vendored skill.
+1. Read this file.
+2. Read `${SKILL_DIR}/workflows/draw-page.md` — the only route. It names the packet files to read; read nothing else.
 
 | Route | Runtime authority |
 |---|---|
-| Draw Pages | `workflows/draw-pages.md` |
-| Draw One Page | `workflows/draw-one-page.md` |
+| Draw Page | `workflows/draw-page.md` |
 
-**Hard rule — the contract is the output.** A page that fails `scripts/check_pages.py` is not done. Fix it, run the check again.
+**Hard rule — one page per call.** Draw only the page in `packet/PAGE.json`, submit it with `pages_submit_page`, and stop. The studio writes the deck's spec, draws the named icons in, checks the page on submission, and writes the receipt.
 
-**Hard rule — the spec governs.** Pages are drawn against `pages/design_spec.md` and `pages/spec_lock.md`, authored before the first page. Nine pages invented independently look like nine decks.
+**Hard rule — the spec governs.** Every page is drawn against `packet/SPEC.md`, so the pages read as one deck.
 
-**Hard rule — one page per call.** The studio draws a deck one page per call: the first call authors the design system and page one, and every later page gets a call, and a time budget, of its own. Draw only the page `motion/inputs.json` names as `draw`, submit it with `pages_submit_page`, and stop. The studio writes the deck's receipt from the accepted pages.
-
-**Hard rule — no questions in the first round.** The inputs carry everything a first draft needs. Decide, draw, check, submit, stop.
+**Hard rule — no questions.** The packet carries everything the page needs. Decide, draw, submit, stop.
 
 ## Vocabulary
 
@@ -43,5 +38,5 @@ A routed page workflow. This entry owns execution discipline and route selection
 | **Scene** | one page of the video with a title, a kind, an idea, a first-draft narration line, parts and relations |
 | **Part** | a thing on the page: a box (a node), a label, a number, a quote, a row |
 | **Relation** | an arrow between two parts carrying a verb (`sends to`, `waits for`, `splits into`, …) |
-| **Contract** | the ids, roles and attributes the studio reads (references/page-contract.md) |
-| **Chrome** | background, header, footer, decoration — drawn, never animated |
+| **Contract** | the ids, roles and attributes the studio reads (workflows/draw-page.md) |
+| **Chrome** | the background and the header — drawn, never animated |

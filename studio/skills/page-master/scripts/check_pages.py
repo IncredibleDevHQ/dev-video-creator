@@ -2,6 +2,7 @@
 """Check drawn pages against the studio's page contract.
 
 usage: check_pages.py <pages-dir>   → prints a JSON report; exit 1 on any failure.
+The studio runs it on each page when the page is submitted.
 """
 import json, os, re, sys
 import xml.etree.ElementTree as ET
@@ -588,23 +589,18 @@ def main():
     report = {'pages': [], 'ok': True}
     for name in files:
         problems = check(os.path.join(folder, name))
+        # Scene programs are no longer written (nothing downstream read them);
+        # an older deck's program is still checked if it is there.
         program_path = os.path.join(folder, re.sub(r'\.svg$', '.program.json', name, flags=re.I))
         if os.path.exists(program_path):
             problems += [f'program: {p}' for p in check_program(program_path, os.path.join(folder, name))]
-        else:
-            problems.append('no program — write NN_<slug>.program.json beside the page (Stage 4b)')
         report['pages'].append({'file': name, 'ok': not problems, 'problems': problems})
         if problems:
             report['ok'] = False
     if not files:
         report['ok'] = False
         report['error'] = f'no .svg files in {folder}'
-    # The spec and the lock are authored before the pages; without them the
-    # pages were invented independently.
-    for name, why in (('design_spec.md', 'author it from the vendored design_spec_reference before drawing'), ('spec_lock.md', 'fill the vendored scaffold from the spec')):
-        if not os.path.exists(os.path.join(folder, name)):
-            report['ok'] = False
-            report.setdefault('missing', []).append(f'{name} — {why}')
+    # The studio writes the deck's spec now; pages no longer carry their own.
     print(json.dumps(report, indent=2))
     sys.exit(0 if report['ok'] else 1)
 
