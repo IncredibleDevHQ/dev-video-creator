@@ -77,9 +77,10 @@ export const sceneView = (
                   !scene.moments.some((moment) => takeFits(moment))
                 ? 'Prepare scene'
                 : 'Finish scene',
+      // A scene left out says nothing: its dimmed picture says it.
       railLabel:
         scene.phase === 'idle'
-          ? 'Not made'
+          ? ''
           : scene.phase === 'failed'
             ? 'Needs attention'
             : active

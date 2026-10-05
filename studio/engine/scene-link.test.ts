@@ -68,8 +68,8 @@ const snapshot = (video: boolean): Snapshot => {
 
 it('marks each wireframe with where its scene stands', () => {
   const made = snapshot(true)
-  expect(sceneBadge(made, 'a')).toContain('No scene')
-  expect(sceneBadge(made, 'a')).toContain('is-none')
+  // A wireframe whose scene is left out has no badge: no tile repeats it.
+  expect(sceneBadge(made, 'a')).toBe('')
   expect(sceneBadge(made, 'b')).toContain('Scene ready')
   expect(sceneBadge(made, 'c')).toContain('Making scene')
   // Before there is a video, a wireframe has no scene to mark.
@@ -156,7 +156,7 @@ it('lets All scenes tick or clear every scene, and follows the scenes', () => {
 
 it('puts the scene badge on the tiles and the scene under the wireframe', () => {
   const html = presentationScreen(snapshot(true), 1)
-  expect(html.match(/class="scene-badge/g)).toHaveLength(3)
+  expect(html.match(/class="scene-badge/g)).toHaveLength(2)
   expect(html).toContain('class="scene-pip"')
   expect(html).toContain('class="scene-line is-ready"')
 })

@@ -31,11 +31,15 @@ export const sceneStatus = (snapshot: Snapshot, scene: Scene): SceneStatus => {
 
 const orbit = '<i class="activity-orbit" aria-hidden="true"></i>'
 
-/** The scene's state on a wireframe tile, once there is a video. */
+/**
+ * The scene's state on a wireframe tile, for a scene in the video: a tile
+ * without a badge has no scene, so no tile repeats "No scene".
+ */
 export const sceneBadge = (snapshot: Snapshot, slideId: string) => {
   const scene = sceneOfSlide(snapshot, slideId)
   if (!scene) return ''
   const status = sceneStatus(snapshot, scene)
+  if (status.kind === 'none') return ''
   return `<span class="scene-badge is-${status.kind}">${
     status.kind === 'working' ? orbit : status.kind === 'ready' ? '▶ ' : ''
   }${escape(status.words)}</span>`

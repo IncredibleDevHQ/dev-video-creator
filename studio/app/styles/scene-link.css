@@ -192,12 +192,10 @@
 
 /* Video page: a scene left out of the video reads as optional. */
 .scene-rail .thumbnail.is-left-out > div {
-  opacity: 0.55;
+  opacity: 0.4;
+  filter: grayscale(1);
 }
 .scene-membership-title {
   margin-top: 22px;
   font-size: 16px;
-}
-.scene-rail .thumbnail.is-left-out .scene-state {
-  color: var(--muted);
 }

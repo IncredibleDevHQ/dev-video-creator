@@ -451,6 +451,10 @@ it('offers to make a scene left out of the video, and a way back to its wirefram
   )
   expect(html).toContain('data-action="open-wireframe"')
   expect(html).toContain('is-left-out')
+  // Its picture says it is left out; no label, and no transition to it.
+  expect(html).toContain('Scene 1: ')
+  expect(html).toContain(', not in the video"')
+  expect(html).not.toContain('Not made')
 })
 
 it('distinguishes scenes ready to assemble from active work and missing recordings', () => {

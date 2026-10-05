@@ -66,7 +66,7 @@ const sceneRailStatus = (snapshot: Snapshot, scene: Scene) => {
     )}</span>
 </span>`
   }
-  return `<span class="scene-state">${escape(label)}</span>`
+  return label ? `<span class="scene-state">${escape(label)}</span>` : ''
 }
 export const videoHeader = (snapshot: Snapshot) => {
   const video = snapshot.project.video
@@ -177,50 +177,51 @@ export const videoScreen = (
       : ''
   }</small>
 </div>${video.scenes
-    .map(
-      (entry, index) =>
-        `<div class="scene-card">
+    .map((entry, index) => {
+      // A scene left out reads from its dimmed picture, not a label on each.
+      const left = sceneDisplay(snapshot, entry).inVideo === false
+      const nextLeft =
+        index < video.scenes.length - 1 &&
+        sceneDisplay(snapshot, video.scenes[index + 1]).inVideo === false
+      return `<div class="scene-card">
 <button class="thumbnail ${
-          connected &&
-          !snapshot.readOnly &&
-          sceneActivity(snapshot, entry).active
-            ? 'scene-processing'
-            : ''
-        } ${index === selected ? 'selected' : ''} ${
-          sceneDisplay(snapshot, entry).inVideo === false ? 'is-left-out' : ''
-        }" data-scene="${index}" aria-label="Scene ${index + 1}: ${escape(
-          project.slides[index]?.title || ''
-        )}">
+        connected && !snapshot.readOnly && sceneActivity(snapshot, entry).active
+          ? 'scene-processing'
+          : ''
+      } ${index === selected ? 'selected' : ''} ${
+        left ? 'is-left-out' : ''
+      }" data-scene="${index}" aria-label="Scene ${index + 1}: ${escape(
+        project.slides[index]?.title || ''
+      )}${left ? ', not in the video' : ''}">
 <span class="thumb-number">${index + 1}</span>
 <div>${project.slides[index]?.svg || '<span>Blank wireframe</span>'}</div>
 <span class="scene-meta">${
-          entry.moments.length
-            ? `${Math.round(entry.moments.at(-1)!.end)}s`
+        entry.moments.length ? `${Math.round(entry.moments.at(-1)!.end)}s` : ''
+      } ${
+        index === 0
+          ? '<b>TITLE</b>'
+          : index === video.scenes.length - 1
+            ? '<b>END</b>'
             : ''
-        } ${
-          index === 0
-            ? '<b>TITLE</b>'
-            : index === video.scenes.length - 1
-              ? '<b>END</b>'
-              : ''
-        }</span>${sceneRailStatus(snapshot, entry)}</button>
+      }</span>${sceneRailStatus(snapshot, entry)}</button>
 <button type="button" class="scene-card-settings icon-button" data-action="scene-settings" data-settings-scene="${index}" aria-label="Settings for scene ${
-          index + 1
-        }" title="Scene settings" ${
-          sceneDisplay(snapshot, entry).active ? 'disabled' : ''
-        }>${gear}</button>
+        index + 1
+      }" title="Scene settings" ${
+        sceneDisplay(snapshot, entry).active ? 'disabled' : ''
+      }>${gear}</button>
 </div>${
-          index < video.scenes.length - 1
-            ? `<button class="transition-control" data-transition="${index}" aria-label="Transition after scene ${
-                index + 1
-              }">${
-                video.transitions[index] === 'none'
-                  ? '+'
-                  : escape(video.transitions[index])
-              }</button>`
-            : ''
-        }`
-    )
+        // A transition plays only between two scenes in the video.
+        index < video.scenes.length - 1 && !left && !nextLeft
+          ? `<button class="transition-control" data-transition="${index}" aria-label="Transition after scene ${
+              index + 1
+            }">${
+              video.transitions[index] === 'none'
+                ? '+'
+                : escape(video.transitions[index])
+            }</button>`
+          : ''
+      }`
+    })
     .join('')}</aside>
 <div class="stage-area" ${
     focused

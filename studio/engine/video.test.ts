@@ -136,7 +136,7 @@ it('makes only the chosen scenes, makes another on request, and leaves one out',
   expect(saved.views!.video).toMatchObject({ madeScenes: 1, producedScenes: 0 })
   expect(saved.views!.scenes['scene-a']).toMatchObject({
     action: 'make',
-    display: { inVideo: false, railLabel: 'Not made' }
+    display: { inVideo: false, railLabel: '' }
   })
   expect(saved.events.map((event) => event.message)).toContain(
     'Writing 1 of 2 video scenes'
