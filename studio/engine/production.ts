@@ -161,7 +161,9 @@ export const produceScene = async (id: string, sceneId: string) => {
                 frozen.project,
                 scene,
                 process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
-                  `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`
+                  `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`,
+                false,
+                (message) => progress(message, 'composition')
               )
             : await buildSceneBundle(frozen.project, scene)
       if (!savedBundle && files)

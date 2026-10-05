@@ -190,11 +190,15 @@ export const normalizeTreatment = (raw: unknown): SceneTreatmentV1 => {
     }),
     objects: records(value.objects).map((entry) => {
       const asset = isRecord(entry.asset) ? entry.asset : {}
+      const parts = records(entry.parts)
+        .map((part) => ({ id: text(part.id, 40), what: text(part.what, 300) }))
+        .filter((part) => part.id && part.what)
       return {
         entity: text(entry.entity, 80),
         role: text(entry.role, 600),
         appearance: text(entry.appearance, 1000),
         performance: text(entry.performance, 1000),
+        ...(parts.length ? { parts } : {}),
         asset: {
           status: oneOf(asset.status, ASSET_DECISIONS, 'undecided'),
           ...(text(asset.ref, 120) ? { ref: text(asset.ref, 120) } : {}),

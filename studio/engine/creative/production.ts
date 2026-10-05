@@ -1,5 +1,11 @@
 import { HarnessStageError } from '../generation-errors'
 import { prepareCastPacket } from './cast-packet'
+import {
+  artworkPacket,
+  drawSceneArtwork,
+  drawnKey,
+  inlineArtwork
+} from './artwork'
 import { collectCreativeFiles } from './files'
 import type { Project, Scene } from '../../shared/model'
 import type { SketchFiles } from '../../render/types'
@@ -41,7 +47,8 @@ export const buildCreativeProduction = async (
   project: Project,
   scene: Scene,
   origin: string,
-  contentOnly = false
+  contentOnly = false,
+  onProgress?: (message: string) => unknown
 ): Promise<SketchFiles> => {
   const checkpoint = await loadStageCheckpoint<null>(
     project.id,
@@ -133,10 +140,16 @@ export const buildCreativeProduction = async (
     productionSeed[`production/${name}`] = bytes
   let accepted: SketchFiles | null = null,
     attempt = 0
+  // The plan's drawings by object, for the page's placeholders.
+  const drawings: Record<string, string> = {}
   const submit = async (directory: string) => {
     if (++attempt > 6)
       throw new Error('Production reached its submission budget')
     const files = await collectProduction(directory, supplied, false)
+    // Each drawing goes into its placeholder exactly as drawn; the harness's
+    // own page keeps the placeholder, so a correction never retypes path data.
+    if (typeof files['index.html'] === 'string')
+      files['index.html'] = inlineArtwork(files['index.html'], drawings).html
     const artifacts = await archiveFiles(
       project.id,
       scene.id,
@@ -199,6 +212,25 @@ export const buildCreativeProduction = async (
       unmet: report.manifest?.unmet || []
     }
   }
+  // The plan's main actors, drawn as layered artwork before the build.
+  const sources: Record<string, Buffer> = {}
+  for (const entry of cast.visualCast.entries)
+    if (entry.libraryKey && cast.media[`packet/${entry.files.svg}`])
+      sources[entry.libraryKey] = cast.media[`packet/${entry.files.svg}`]
+  const drawn = await drawSceneArtwork({
+    projectId: project.id,
+    sceneId: scene.id,
+    treatment: record.treatment,
+    sources,
+    onProgress
+  })
+  const artwork = await artworkPacket(drawn)
+  for (const item of drawn)
+    if (item.objectKey) {
+      drawings[item.entity] = artwork[`packet/${item.file}`].toString()
+      // A layer may name the drawing, as it names cast artwork.
+      context.assetKeys = [...context.assetKeys, drawnKey(item.entity)]
+    }
   const contentOnlyInstructions = contentOnly
     ? 'Create content-only animation. The app adds the presenter and final sound separately. Do not draw a presenter, avatar, camera box, or reserved blank region. Use the full content canvas, with body text at least 42px so it remains legible when placed beside the speaker. The supplied silent audio establishes estimated timing only. '
     : ''
@@ -240,11 +272,16 @@ export const buildCreativeProduction = async (
       'packet/PRODUCTION.md': `${contentOnlyInstructions}Produce the accepted treatment. Composition ID: ${context.compositionId}. Plan record: ${record.id}, revision 1.
 Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106.
 The app has placed supplied media in production/media/. Reference these files unchanged; do not copy, generate, or edit them. Sound plays once from scene start.
-${mediaBindingInstructions(contentOnly)} Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.`,
+${mediaBindingInstructions(contentOnly)} Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.${
+        drawn.length
+          ? `\nThe app drew ${drawn.filter((item) => item.objectKey).length} of the plan's objects as layered artwork: packet/ARTWORK.json says which files and parts, and how to use them.`
+          : ''
+      }`,
       'packet/SCENE.md': `# ${slide?.title || project.title}\n${slide?.idea || ''}\nSource evidence:\n${(slide?.evidence || []).join('\n')}`,
       'packet/THEME.json': JSON.stringify(project.branding || {}),
       ...(slide?.svg ? { 'packet/references/page.svg': slide.svg } : {}),
       ...previewPacket,
+      ...artwork,
       ...supplied
     },
     task: [

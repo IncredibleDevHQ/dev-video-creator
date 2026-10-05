@@ -187,6 +187,9 @@ export type SceneTreatmentV1 = {
     // shapes, charts, counts, code), generate something new, or omit it —
     // with the reason the viewer needs it.
     asset: { status: AssetDecision; ref?: string; reason?: string }
+    // For artwork the product draws (generate, enrich): the parts the scene
+    // moves, each drawn as its own group with this id.
+    parts?: Array<{ id: string; what: string }>
   }>
   treatments: { presenter: string; text: string; camera: string }
   skills: Array<{ skill: string; references: string[]; why: string }>
@@ -234,6 +237,9 @@ export type TreatmentContext = {
   // The video's opening scene, with the title it shows (R09).
   intro?: { title: string } | null
   assetKeys: string[]
+  // Set when an artwork provider draws the plan's generate and enrich
+  // objects; the plan then names the parts each drawing separates.
+  drawsArtwork?: true
   // The verified objects of the scene's own page, by library key, and what
   // that page is. Each object is decided (used, adapted, replaced or
   // omitted); on a designed slide a plan that leaves one undecided is refused.

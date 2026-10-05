@@ -128,6 +128,12 @@ Use only the channels a moment needs; `null` means the channel is unused.
   - `omit` — left out (then no moment may move it);
   - `undecided`.
   Planning never generates, adapts or enriches anything itself; it decides.
+  When `CONTEXT.json` has `drawsArtwork: true`, the product draws
+  `generate` and `enrich` objects as rich, layered SVG artwork before the
+  scene is built. Give each one `parts`: the pieces its
+  moments move, as `[{ "id": "needle", "what": "the gauge needle, pivoting
+  at the dial centre" }]`, with lowercase ids no other object in the scene
+  uses, so the drawing separates them and the animation moves them.
   A cast ingredient whose verification is `mismatch` is a reference only.
   An affordance (a part the page animates) says what can move, never what
   the scene must do with it.

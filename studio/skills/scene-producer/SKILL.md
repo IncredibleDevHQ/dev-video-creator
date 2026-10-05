@@ -50,6 +50,12 @@ recipe is proven only by the product's checks on your submission.
 Never veil, dim or blur the whole frame to place text on it, and add no
 closing card the plan does not ask for.
 
+When `packet/ARTWORK.json` exists, the app drew those plan objects as
+layered artwork: place each one as its rule says and animate its named
+parts by their `data-part` attribute (a needle turns, a light blinks, a
+gate closes). Never redraw a drawn object from plain shapes or retype its
+path data, and keep it clear of text and other layers.
+
 ## Work within the run budget
 
 Read the required packet once. Use bounded file reads rather than dumping the

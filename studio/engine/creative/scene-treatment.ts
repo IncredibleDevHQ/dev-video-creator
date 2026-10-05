@@ -431,6 +431,7 @@ export const validateTreatment = (
   const moveActors = new Set(
     treatment.moments.flatMap((moment) => moment.objects?.actors || [])
   )
+  const partOwners = new Map<string, string>()
   for (const object of treatment.objects) {
     if (!object.entity || !object.role)
       problems.push('each object needs the entity it plays and its role')
@@ -453,6 +454,34 @@ export const validateTreatment = (
       )
     if (decision === 'omit' && moveActors.has(object.entity))
       problems.push(`object ${object.entity} is omitted, but a moment moves it`)
+    // Drawn artwork separates the parts the scene moves, by these ids.
+    if (
+      context.drawsArtwork &&
+      (decision === 'generate' || decision === 'enrich')
+    ) {
+      const ids = (object.parts || []).map((part) => part.id)
+      if (!ids.length)
+        problems.push(
+          `object ${object.entity} is drawn for the scene: name the parts its moments move in parts, so the drawing separates them`
+        )
+      for (const id of ids.filter(
+        (value, index) => ids.indexOf(value) !== index
+      ))
+        problems.push(`object ${object.entity} names part "${id}" twice`)
+      for (const id of ids.filter((value) => !/^[a-z][a-z0-9-]*$/.test(value)))
+        problems.push(
+          `object ${object.entity} part "${id}" must be a lowercase id (letters, digits, hyphens)`
+        )
+      // The drawings share one page, so a part id names one part in it.
+      for (const id of new Set(ids)) {
+        const owner = partOwners.get(id)
+        if (owner)
+          problems.push(
+            `part "${id}" is named by both ${owner} and ${object.entity}: give each drawn part its own id`
+          )
+        else partOwners.set(id, object.entity)
+      }
+    }
   }
   // Every object on the scene's page gets a decision, so a designed slide's
   // artwork is never dropped without one.

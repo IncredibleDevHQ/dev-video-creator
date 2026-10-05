@@ -9,6 +9,7 @@ import {
   type ScenePacketInput
 } from './brief-adapter'
 import { validateTreatment, type TreatmentContext } from './scene-treatment'
+import { artworkConfigured } from './artwork'
 import {
   runValidatedJsonStage,
   readPinnedCapabilities,
@@ -101,7 +102,9 @@ export const prepareCreativeTreatment = async (input: {
     ...input.context,
     catalog,
     bundleSkills: bundle.skills,
-    bundleReferences: bundle.references
+    bundleReferences: bundle.references,
+    // Absent without a provider, so those plans keep their fingerprint.
+    ...(artworkConfigured() ? { drawsArtwork: true as const } : {})
   }
   const inputKey = fingerprintOf({
     editMomentId: input.editMomentId,

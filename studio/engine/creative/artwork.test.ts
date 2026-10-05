@@ -1,0 +1,351 @@
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
+import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest'
+import type { SceneTreatmentV1 } from './scene-treatment'
+
+// Storage in memory; the provider is a local server answering from a queue.
+// Nothing leaves the machine, and the key is a placeholder.
+const rows = new Map<string, unknown>()
+const assets = new Map<string, Buffer>()
+vi.mock('../persistence', () => ({
+  readRow: async (table: string, id: string) => rows.get(`${table}/${id}`),
+  writeRow: async (table: string, id: string, row: unknown) => {
+    rows.set(`${table}/${id}`, row)
+  },
+  storeAsset: async (input: { body: Buffer }) => {
+    const objectKey = `art-${assets.size + 1}.svg`
+    assets.set(objectKey, input.body)
+    return { objectKey }
+  },
+  readAsset: async (key: string) => assets.get(key)!
+}))
+const {
+  artworkPacket,
+  artworkPrompt,
+  drawSceneArtwork,
+  inlineArtwork,
+  objectsToDraw,
+  safeSvg,
+  scopeIds
+} = await import('./artwork')
+const { normalizeTreatment } = await import('./treatment-normalize')
+const { validateTreatment } = await import('./scene-treatment')
+
+const gauge = {
+  entity: 'rate-limiter',
+  role: 'A per-user rate limiter',
+  appearance: 'A gauge on a short pipe with a valve gate',
+  performance: 'closes its gate when a user goes over the limit',
+  asset: { status: 'generate' as const, reason: 'The viewer watches it act' },
+  parts: [
+    { id: 'needle', what: 'the gauge needle' },
+    { id: 'gate', what: 'the valve gate' }
+  ]
+}
+const treatment = {
+  objects: [
+    gauge,
+    { ...gauge, entity: 'dots', asset: { status: 'native' as const } }
+  ],
+  treatments: {
+    presenter: '',
+    text: 'Paper ground, ink #1f2328, accent #3a5fcd',
+    camera: ''
+  }
+} as unknown as SceneTreatmentV1
+const plain = '<svg viewBox="0 0 480 360"><path d="M0 0h10"/></svg>'
+const grouped =
+  '<svg viewBox="0 0 480 360"><g id="needle"><path d="M0 0h10"/></g><g id="gate"><path d="M1 1h2"/></g></svg>'
+
+const answers: Array<{ status: number; body: unknown }> = []
+const received: Array<{ path: string; authorization?: string; body: string }> =
+  []
+const answer = (status: number, body: unknown) => answers.push({ status, body })
+const drawing = (svg: string) => answer(200, { data: [{ svg }] })
+const provider = createServer((request, response) => {
+  let body = ''
+  request.on('data', (chunk) => (body += chunk))
+  request.on('end', () => {
+    received.push({
+      path: request.url || '',
+      authorization: request.headers.authorization,
+      body
+    })
+    const next = answers.shift() || { status: 500, body: { code: 'none' } }
+    response.writeHead(next.status, { 'content-type': 'application/json' })
+    response.end(JSON.stringify(next.body))
+  })
+})
+beforeAll(async () => {
+  await new Promise<void>((resolve) => provider.listen(0, '127.0.0.1', resolve))
+  const { port } = provider.address() as AddressInfo
+  process.env.QUIVER_BASE_URL = `http://127.0.0.1:${port}`
+})
+afterAll(() => {
+  provider.close()
+  delete process.env.QUIVER_BASE_URL
+  delete process.env.QUIVER_API_KEY
+})
+beforeEach(() => {
+  rows.clear()
+  assets.clear()
+  answers.length = 0
+  received.length = 0
+  process.env.QUIVER_API_KEY = 'test-key'
+})
+
+it('draws the main actors the plan names, by their parts, in the scene’s look', () => {
+  expect(objectsToDraw(treatment).map((object) => object.entity)).toEqual([
+    'rate-limiter'
+  ])
+  const prompt = artworkPrompt(gauge, treatment.treatments.text)
+  expect(prompt).toContain('A gauge on a short pipe with a valve gate')
+  expect(prompt).toContain('accent #3a5fcd')
+  expect(prompt).toContain(
+    'id "needle": the gauge needle; id "gate": the valve gate.'
+  )
+  expect(prompt).toContain('No text, numbers or letters')
+  // Alone and at rest: the scene draws what it acts on, and animates it.
+  expect(prompt).toContain('Draw this one object alone')
+  expect(prompt).not.toContain('closes its gate')
+})
+
+it('keeps only drawing: no scripts, foreign content, images, handlers or outside links', () => {
+  const svg = safeSvg(
+    '<?xml version="1.0"?><svg onload="x()"><script>alert(1)</script><foreignObject><div/></foreignObject><image href="http://x/y.png"/><use href="#a"/><a href="https://x">k</a><g id="a"/></svg>'
+  )
+  expect(svg).toBe('<svg><use href="#a"/><a>k</a><g id="a"/></svg>')
+  expect(() => safeSvg('<div>not a drawing</div>')).toThrow('not an SVG')
+  // A credit comment or metadata would be an outside link in the production.
+  expect(
+    safeSvg(
+      '<svg><!-- SVG created by a tool (https://x.example) --><metadata><rdf>https://x.example</rdf></metadata><path d="M0 0"/></svg>'
+    )
+  ).toBe('<svg><path d="M0 0"/></svg>')
+  // Motion is the scene's, on its seekable timeline.
+  expect(
+    safeSvg(
+      '<svg><g id="n"><animateTransform attributeName="transform" dur="2s"/><path d="M0 0"/><animate attributeName="opacity">x</animate><set to="1"/></g></svg>'
+    )
+  ).toBe('<svg><g id="n"><path d="M0 0"/></g></svg>')
+})
+
+it('drops the motion a drawing brings, so only the scene’s timeline moves it', () => {
+  expect(
+    safeSvg(
+      '<svg><style>@keyframes qv-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.01); } } .qv-breathe { transform-origin: 2px 3px; animation: qv-breathe 8s infinite; } .lit{fill:#3a5fcd;transition:fill 1s}</style><g class="qv-breathe" style="animation-delay: 1s; opacity: .9"/></svg>'
+    )
+  ).toBe(
+    '<svg><style> .qv-breathe { transform-origin: 2px 3px; } .lit{fill:#3a5fcd;}</style><g class="qv-breathe" style="opacity: .9"/></svg>'
+  )
+})
+
+it('names a drawing’s own ids after its object, so two drawings in one page never share a gradient', () => {
+  const svg =
+    '<svg><defs><linearGradient id="paint0"/><filter id="f"/></defs><g id="needle" filter="url(#f)"><path fill="url(#paint0)" data-id="x"/><use xlink:href="#paint0"/></g></svg>'
+  expect(scopeIds(svg, 'rate-limiter', ['needle'])).toBe(
+    '<svg><defs><linearGradient id="rate-limiter-paint0"/><filter id="rate-limiter-f"/></defs><g id="needle" filter="url(#rate-limiter-f)"><path fill="url(#rate-limiter-paint0)" data-id="x"/><use xlink:href="#rate-limiter-paint0"/></g></svg>'
+  )
+  // So do the classes its styles define; other class names are left alone.
+  expect(
+    scopeIds(
+      '<svg><style>.lit{fill:#3a5fcd;opacity:0.5}</style><g class="lit glow"/></svg>',
+      'api',
+      []
+    )
+  ).toBe(
+    '<svg><style>.api-lit{fill:#3a5fcd;opacity:0.5}</style><g class="api-lit glow"/></svg>'
+  )
+})
+
+it('asks once to group the parts that came back unnamed, then keeps the drawing', async () => {
+  drawing(plain)
+  drawing(grouped)
+  const progress: string[] = []
+  const drawn = await drawSceneArtwork({
+    projectId: 'p',
+    sceneId: 's',
+    treatment,
+    onProgress: (message) => progress.push(message)
+  })
+  expect(received.map((call) => call.path)).toEqual([
+    '/v1/svgs/generations',
+    '/v1/svgs/edits'
+  ])
+  // The key travels in the header only.
+  expect(received[0].authorization).toBe('Bearer test-key')
+  expect(received[0].body).not.toContain('test-key')
+  expect(drawn).toEqual([
+    {
+      entity: 'rate-limiter',
+      file: 'assets/generated-rate-limiter/asset.svg',
+      parts: ['needle', 'gate'],
+      missing: [],
+      objectKey: 'art-1.svg'
+    }
+  ])
+  expect(progress).toEqual([
+    "Drawing the scene's objects (0 of 1)",
+    "Drawing the scene's objects (1 of 1)"
+  ])
+  // The same plan draws nothing new.
+  received.length = 0
+  expect(
+    await drawSceneArtwork({ projectId: 'p', sceneId: 's', treatment })
+  ).toEqual(drawn)
+  expect(received).toEqual([])
+  const packet = await artworkPacket(drawn)
+  expect(
+    packet['packet/assets/generated-rate-limiter/asset.svg'].toString()
+  ).toBe(
+    '<svg viewBox="0 0 480 360"><g id="needle" data-part="needle"><path d="M0 0h10"/></g><g id="gate" data-part="gate"><path d="M1 1h2"/></g></svg>'
+  )
+  const manifest = JSON.parse(packet['packet/ARTWORK.json'].toString())
+  expect(manifest.objects).toEqual([
+    {
+      entity: 'rate-limiter',
+      file: 'assets/generated-rate-limiter/asset.svg',
+      libraryKey: 'generated-rate-limiter',
+      place: '<div data-artwork="rate-limiter"></div>',
+      viewBox: '0 0 480 360',
+      parts: ['needle', 'gate'],
+      missing: []
+    }
+  ])
+  expect(manifest.rule).toContain('[data-part="PART"]')
+})
+
+it('puts each drawing into its empty placeholder, sized to fill it, and leaves the rest', () => {
+  const drawings = {
+    gauge: '<svg width="74" height="58"><g data-part="needle"/></svg>',
+    queue: '<svg viewBox="0 0 480 360" width="480"><path d="M0 0"/></svg>'
+  }
+  const page =
+    '<div id="a" class="art" data-artwork="gauge"> </div><div data-artwork="queue"></div><div data-artwork="queue"><svg>kept</svg></div><div data-artwork="other"></div>'
+  const once = inlineArtwork(page, drawings)
+  expect(once.placed).toEqual(['gauge', 'queue'])
+  expect(once.html).toBe(
+    '<div id="a" class="art" data-artwork="gauge"><svg viewBox="0 0 74 58" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"><g data-part="needle"/></svg></div>' +
+      '<div data-artwork="queue"><svg width="100%" height="100%" preserveAspectRatio="xMidYMid meet" viewBox="0 0 480 360"><path d="M0 0"/></svg></div>' +
+      '<div data-artwork="queue"><svg>kept</svg></div><div data-artwork="other"></div>'
+  )
+  // A page already holding its drawings is left as it is.
+  expect(inlineArtwork(once.html, drawings)).toEqual({
+    html: once.html,
+    placed: []
+  })
+})
+
+it('finds parts under the ids a drawing gave them, and draws each object alone', async () => {
+  drawing(
+    '<svg><defs><linearGradient id="paint0"/></defs><g id="Needle_1"><path fill="url(#paint0)"/></g><g id="rate-limiter-gate--part-1"/><g id="rate-limiter-gate--part-2"/><g id="gauge-shadow"/></svg>'
+  )
+  const [drawn] = await drawSceneArtwork({
+    projectId: 'p',
+    sceneId: 's',
+    treatment
+  })
+  // Both parts were found, so no second request regrouped them.
+  expect(received.map((call) => call.path)).toEqual(['/v1/svgs/generations'])
+  expect(drawn).toMatchObject({ parts: ['needle', 'gate'], missing: [] })
+  expect(JSON.parse(received[0].body).prompt).toContain(
+    'Draw this one object alone'
+  )
+  expect(
+    (await artworkPacket([drawn]))[
+      'packet/assets/generated-rate-limiter/asset.svg'
+    ].toString()
+  ).toBe(
+    '<svg><defs><linearGradient id="rate-limiter-paint0"/></defs><g id="rate-limiter-Needle_1" data-part="needle"><path fill="url(#rate-limiter-paint0)"/></g><g id="rate-limiter-gate--part-1" data-part="gate"/><g id="rate-limiter-gate--part-2" data-part="gate"/><g id="rate-limiter-gauge-shadow"/></svg>'
+  )
+})
+
+it('cleans a kept drawing again when it goes into a packet', async () => {
+  assets.set(
+    'kept.svg',
+    Buffer.from(
+      '<svg><style>@keyframes a { to { opacity: 0 } } .b { animation: a 1s }</style><g id="gate" class="b"/></svg>'
+    )
+  )
+  const packet = await artworkPacket([
+    {
+      entity: 'gate',
+      file: 'assets/generated-gate/asset.svg',
+      parts: ['gate'],
+      missing: [],
+      objectKey: 'kept.svg'
+    }
+  ])
+  expect(packet['packet/assets/generated-gate/asset.svg'].toString()).toBe(
+    '<svg><style> .gate-b { }</style><g id="gate" class="gate-b"/></svg>'
+  )
+})
+
+it('reports an object it could not draw, and draws nothing without a key', async () => {
+  answer(402, { code: 'quota', message: 'No credits' })
+  const [failed] = await drawSceneArtwork({
+    projectId: 'p',
+    sceneId: 's',
+    treatment
+  })
+  expect(failed.error).toBe('Quiver answered 402: quota · No credits')
+  expect(
+    JSON.parse(
+      (await artworkPacket([failed]))['packet/ARTWORK.json'].toString()
+    ).objects[0]
+  ).toMatchObject({
+    entity: 'rate-limiter',
+    error: 'Quiver answered 402: quota · No credits'
+  })
+  delete process.env.QUIVER_API_KEY
+  received.length = 0
+  expect(
+    await drawSceneArtwork({ projectId: 'p', sceneId: 's', treatment })
+  ).toEqual([])
+  expect(received).toEqual([])
+})
+
+it('keeps the parts a plan names for a drawn object', () => {
+  const plan = normalizeTreatment({
+    objects: [
+      { ...gauge, parts: [...gauge.parts, { id: '', what: 'dropped' }] }
+    ]
+  })
+  expect(plan.objects[0].parts).toEqual(gauge.parts)
+})
+
+it('asks a plan for its drawn parts only when a provider draws them', () => {
+  const drawn = (entity: string, ids: string[]) => ({
+    ...gauge,
+    entity,
+    parts: ids.map((id) => ({ id, what: `the ${id}` }))
+  })
+  const context = {
+    brief: { purpose: {}, units: [], evidence: [], coverage: [], entities: [] },
+    scene: 's',
+    originScenes: [],
+    videoScenes: [],
+    catalog: { entries: [] },
+    bundleSkills: [],
+    bundleReferences: [],
+    delivery: null,
+    assetKeys: []
+  }
+  const objects = [
+    drawn('rate-limiter', ['gate', 'needle']),
+    drawn('load-shedder', ['gate']),
+    drawn('queue', [])
+  ]
+  const partProblems = (drawsArtwork: boolean) =>
+    validateTreatment({ objects }, {
+      ...context,
+      ...(drawsArtwork ? { drawsArtwork: true } : {})
+    } as never).problems.filter((problem) => problem.includes('part'))
+  // The drawings share one page, so a part id names one part in it.
+  expect(partProblems(true)).toEqual([
+    'part "gate" is named by both rate-limiter and load-shedder: give each drawn part its own id',
+    'object queue is drawn for the scene: name the parts its moments move in parts, so the drawing separates them'
+  ])
+  // Without a provider nothing is drawn, so nothing more is asked.
+  expect(partProblems(false)).toEqual([])
+})

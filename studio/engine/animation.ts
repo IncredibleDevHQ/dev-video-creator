@@ -98,7 +98,8 @@ export const prepareSceneAnimation = async (
       source,
       process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
         `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`,
-      true
+      true,
+      (message) => progress(message, 'composition')
     )
     await progress('Rendering the animation', 'animation-render')
     const bytes = await renderProductionBundle(files, { fps: 30 })
