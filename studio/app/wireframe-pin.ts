@@ -19,7 +19,13 @@ export const pinTargetOf = (
   const kind =
     part.getAttribute('data-role') ||
     (part.hasAttribute('data-actor') ? 'actor' : 'label')
-  const words = (part.textContent || '').replace(/\s+/g, ' ').trim()
+  // Each <text> is a line of its own; join them with spaces, not glued.
+  const lines = [...part.querySelectorAll('text')].map((text) =>
+    (text.textContent || '').trim()
+  )
+  const words = (lines.length ? lines.join(' ') : part.textContent || '')
+    .replace(/\s+/g, ' ')
+    .trim()
   const label =
     kind === 'connector'
       ? `the “${part.getAttribute('data-verb') || 'arrow'}” arrow`
