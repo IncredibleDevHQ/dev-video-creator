@@ -41,6 +41,10 @@ export function dialogueStudio(
   let playing = false,
     position = 0,
     extraEpoch = 0,
+    // The words run on a clock past the animation's end, and before the
+    // scene has an animation: when it started, and from where.
+    clocked = false,
+    clockFrom = 0,
     frame = 0,
     playRequest = 0,
     debounce: ReturnType<typeof setTimeout> | undefined
@@ -99,6 +103,7 @@ export function dialogueStudio(
   }
   function stop() {
     playing = false
+    clocked = false
     extraEpoch = 0
     playRequest++
     video()?.pause()
@@ -109,14 +114,16 @@ export function dialogueStudio(
     const c = ctx(),
       v = video(),
       base = c?.scene.animation?.moments[c.index]
-    if (!c || !v || !base) return
+    if (!c) return
     const resume = playing
     stop()
     position = Math.max(0, Math.min(total(), at))
-    v.currentTime = Math.min(
-      base.end - 0.08,
-      base.start + Math.min(1, position / boundary()) * (base.end - base.start)
-    )
+    if (v && base)
+      v.currentTime = Math.min(
+        base.end - 0.08,
+        base.start +
+          Math.min(1, position / boundary()) * (base.end - base.start)
+      )
     update(c.moment.start + position)
     paint()
     if (resume) void play()
@@ -125,12 +132,17 @@ export function dialogueStudio(
     const c = ctx(),
       v = video(),
       base = c?.scene.animation?.moments[c.index]
-    if (!c || !v || !base || editing || c.busy) return
+    if (!c || editing || c.busy) return
     if (position >= total() - 0.03) seek(0)
     const token = ++playRequest
-    if (position >= boundary()) {
-      extraEpoch = performance.now() - (position - boundary()) * 1000
+    // Past the animation, or before the scene has one, the words run on a
+    // clock: over the animation's last frame, or over the wireframe.
+    if (!v || !base || position >= boundary()) {
+      clocked = true
+      clockFrom = position
+      extraEpoch = performance.now()
       playing = true
+      status('')
       tick()
       return
     }
@@ -161,16 +173,16 @@ export function dialogueStudio(
     const c = ctx(),
       v = video(),
       base = c?.scene.animation?.moments[c.index]
-    if (!c || !v || !base) {
+    if (!c || (!clocked && (!v || !base))) {
       stop()
       return
     }
-    if (extraEpoch)
+    if (clocked)
       position = Math.min(
         total(),
-        boundary() + (performance.now() - extraEpoch) / 1000
+        clockFrom + (performance.now() - extraEpoch) / 1000
       )
-    else if (!v.seeking) {
+    else if (v && base && !v.seeking) {
       position = Math.max(
         0,
         Math.min(
@@ -182,7 +194,11 @@ export function dialogueStudio(
         v.pause()
         v.currentTime = base.end - 0.08
         position = boundary()
-        if (total() > boundary()) extraEpoch = performance.now()
+        if (total() > boundary()) {
+          clocked = true
+          clockFrom = boundary()
+          extraEpoch = performance.now()
+        }
       }
     }
     update(c.moment.start + position)
@@ -190,7 +206,7 @@ export function dialogueStudio(
     if (position >= total() - 0.01) {
       position = total()
       playing = false
-      v.pause()
+      v?.pause()
       paint()
       return
     }
@@ -213,7 +229,7 @@ export function dialogueStudio(
     ).join('')
     $('boundary').textContent = 'Animation ends'
     $('animation').innerHTML =
-      `${icon('video')}<span>Animation <small>${b.toFixed(1)}s</small></span><span>↔</span>`
+      `${icon('video')}<span>${video() ? 'Animation' : 'Wireframe · animation not made yet'} <small>${b.toFixed(1)}s</small></span><span>↔</span>`
     $('hold').hidden = !text()
     const phrases = base.match(/[^,.;!?]+[,.;!?]*/g) || [base]
     let word = 0
@@ -261,10 +277,12 @@ export function dialogueStudio(
         '[data-action=practice-start],[data-action=practice-replay],[data-action=record-moment]'
       )
       .forEach((button) => (button.disabled = editing))
-    $('animation').toggleAttribute('disabled', editing || c.busy || !video())
-    $('play').toggleAttribute('disabled', editing || c.busy || !video())
-    $('replay').toggleAttribute('disabled', editing || c.busy || !video())
-    $('seek').toggleAttribute('disabled', editing || c.busy || !video())
+    // Before the scene has an animation, Play still plays: the words read
+    // along over the wireframe (a disabled Play said nothing about why).
+    $('animation').toggleAttribute('disabled', editing || c.busy)
+    $('play').toggleAttribute('disabled', editing || c.busy)
+    $('replay').toggleAttribute('disabled', editing || c.busy)
+    $('seek').toggleAttribute('disabled', editing || c.busy)
     panel
       .querySelectorAll<HTMLButtonElement>('[data-jump],.ds-add')
       .forEach((el) => (el.disabled = editing || c.busy))
@@ -287,8 +305,9 @@ export function dialogueStudio(
       `${(Math.min(position, total()) / axis()) * 100}%`
     ;($('seek') as HTMLInputElement).value = String(Math.min(position, total()))
     $('mode').textContent = c.label
-    $('remaining').textContent =
-      position >= boundary() - 0.08
+    $('remaining').textContent = !video()
+      ? 'No animation yet · the words play over the wireframe'
+      : position >= boundary() - 0.08
         ? 'Animation holds · keep speaking'
         : `${Math.max(0, boundary() - position).toFixed(1)}s of animation left`
     if (editing) return
