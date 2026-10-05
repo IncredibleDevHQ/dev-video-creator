@@ -10,7 +10,9 @@ export function syncRehearsalAnimation(
   scene: Scene,
   index: number,
   second: number,
-  playing: boolean
+  playing: boolean,
+  /** The whole scene: play on into the next moment rather than stop short. */
+  through = false
 ) {
   const player = root.querySelector<HTMLVideoElement>(
     '[data-rehearsal-animation]'
@@ -18,14 +20,20 @@ export function syncRehearsalAnimation(
   const moment = scene.moments[index],
     base = scene.animation?.moments[index]
   if (!player || !moment || !base) return
+  // One moment stops just short of its end; the whole scene plays each
+  // moment's animation to its end, holding its last frame only while the
+  // words run on past it.
   const holdAt = Math.max(
     moment.start,
-    moment.start + dialogueBoundary(moment) - 0.3
+    moment.start + dialogueBoundary(moment) - (through ? 0 : 0.3)
   )
   const holding = second >= holdAt
   const at = animationSecond(
     scene,
-    Math.max(moment.start, Math.min(holdAt, second)),
+    Math.max(
+      moment.start,
+      Math.min(holdAt - (through && holding ? 0.04 : 0), second)
+    ),
     true
   )
   const sync = () => {

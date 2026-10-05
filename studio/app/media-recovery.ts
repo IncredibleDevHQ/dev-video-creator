@@ -5,6 +5,7 @@ export class MediaRecovery {
   state: MediaState = 'ready'
   private player: HTMLMediaElement | null = null
   private timer: ReturnType<typeof setTimeout> | null = null
+  private shown: ReturnType<typeof setTimeout> | null = null
   private restore: (() => void) | null = null
   private listeners: Array<[string, EventListener]> = []
   constructor(private changed: () => void) {}
@@ -14,12 +15,19 @@ export class MediaRecovery {
   }
   private clear() {
     if (this.timer) clearTimeout(this.timer)
+    if (this.shown) clearTimeout(this.shown)
     this.timer = null
+    this.shown = null
   }
   private waiting = () => {
     if (this.timer || this.state === 'stalled') return
     this.clear()
-    this.set('loading')
+    // A short wait (a seek, a moment of buffering) says nothing: a notice
+    // that came and went made the page jump.
+    this.shown = setTimeout(() => {
+      this.shown = null
+      this.set('loading')
+    }, 700)
     this.timer = setTimeout(() => {
       this.timer = null
       this.set('stalled')

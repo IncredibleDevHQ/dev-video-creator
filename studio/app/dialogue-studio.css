@@ -92,10 +92,171 @@
   min-width: 82px;
   font-weight: 600;
 }
+/* The dark appearance's button hover would turn Play dark on dark. */
+.dialogue-studio .ds-transport [data-ds='play']:hover:not(:disabled) {
+  background: #e6f6eb;
+}
 .ds-transport [data-ds='replay'] {
   border: 0;
   background: transparent;
   font-size: 19px;
+}
+/* What Play plays, in practice: this moment, or the whole scene. */
+.ds-scope {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #3b5a47;
+  border-radius: 8px;
+  background: #13261c;
+}
+.dialogue-studio .ds-scope button {
+  min-height: 24px;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #a9bdb0;
+  font-size: 11px;
+}
+.dialogue-studio .ds-scope button:hover:not(:disabled) {
+  background: #1f3529;
+  color: #e3eee7;
+}
+.dialogue-studio .ds-scope button[aria-pressed='true'],
+.dialogue-studio .ds-scope button[aria-pressed='true']:hover {
+  background: #2c4c3a;
+  color: #eef7f1;
+  font-weight: 600;
+}
+/* Zooming the whole scene's timeline. */
+.ds-zoom {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #3b5a47;
+  border-radius: 8px;
+  background: #13261c;
+}
+.dialogue-studio .ds-zoom button {
+  min-width: 26px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #cfe0d5;
+  font-size: 12px;
+}
+.dialogue-studio .ds-zoom button:hover:not(:disabled) {
+  background: #1f3529;
+}
+/* The whole scene as one long timeline: a filmstrip of the animation on the
+   Visual track, moments as parts of it, cut apart by a line. */
+.dialogue-studio.is-scene .ds-labels {
+  grid-template-rows: 21px 46px 32px;
+}
+.dialogue-studio.is-scene .ds-timeline {
+  height: 111px;
+}
+.dialogue-studio.is-scene .ds-visual {
+  height: 46px;
+}
+.ds-strip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 6px;
+  background: #13241b;
+}
+.ds-strip img {
+  position: absolute;
+  top: 0;
+  width: 80px;
+  height: 100%;
+  object-fit: cover;
+  border-right: 1px solid #0c1611;
+}
+.ds-moments {
+  position: absolute;
+  inset: 0;
+}
+.dialogue-studio .ds-moment {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #456c5299;
+  border-radius: 6px;
+  background: #09140e5c;
+  color: #e3eee7;
+  text-align: left;
+}
+.dialogue-studio .ds-moment:hover:not(:disabled) {
+  border-color: #8fd0a6;
+  background: #09140e2e;
+}
+.dialogue-studio .ds-moment.is-current {
+  border: 2px solid #8fd0a6;
+  background: transparent;
+}
+.ds-moment > b {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #0f1d16e6;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+}
+.ds-moment > span:not(.ds-moment-hold) {
+  position: absolute;
+  top: 50%;
+  left: 28px;
+  transform: translateY(-50%);
+  color: #cee2d5;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ds-moment-hold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    #80704e66,
+    #80704e66 5px,
+    transparent 5px,
+    transparent 10px
+  );
+}
+.ds-cuts {
+  position: absolute;
+  inset: 21px 0 4px;
+  pointer-events: none;
+}
+.ds-cuts > i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed #a9dcbacc;
+}
+.ds-read .ds-mark {
+  display: inline-block;
+  margin: 0 6px 0 2px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: #213a2c;
+  color: #9fd2b0;
+  font-size: 0.55em;
+  font-weight: 700;
+  line-height: 1.6;
+  vertical-align: 0.3em;
 }
 .ds-tracks {
   display: grid;
@@ -445,6 +606,10 @@
     grid-template-columns: 36px minmax(0, 1fr);
     gap: 5px;
   }
+  .ds-transport {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
   .ds-transport > span {
     max-width: 140px;
     text-align: right;
@@ -485,4 +650,24 @@
   min-height: 0;
   max-width: 100%;
   align-self: center;
+}
+
+/* In practice, a loading notice sits over the stage: it never moves the
+   timeline or the read-along. */
+.video-workspace.is-focused
+  > .stage-area.has-dialogue-studio
+  > .media-recovery {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  padding: 4px 12px;
+  transform: translateX(-50%);
+  border-radius: 8px;
+  background: #101a14e6;
+  color: #cfe0d5;
+}
+.ds-strip img[data-drawing] {
+  filter: blur(1px) saturate(0.7);
 }

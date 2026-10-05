@@ -76,6 +76,7 @@ app.pipClosed = false
 app.startRehearsal = null
 app.practiceStopAfter = null
 app.practiceMomentIds = []
+app.practiceScope = 'moment'
 app.practiceCountdown = 0
 app.practiceStarted = 0
 app.practiceOpen = false

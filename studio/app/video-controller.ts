@@ -86,7 +86,8 @@ export const createPaintAnimationProgress = (app: AppContext) => () => {
 
 export const createSyncAnimation = (app: AppContext) => () => {
   const scene = app.snapshot?.project.video?.scenes[app.selected]
-  if (scene)
+  // The practice view's own Play drives the animation while it plays.
+  if (scene && !app.dialogue.isPlaying())
     syncRehearsalAnimation(
       app.root,
       scene,
@@ -94,10 +95,10 @@ export const createSyncAnimation = (app: AppContext) => () => {
       app.second,
       (app.practice.active && !app.practice.paused) ||
         app.capture.phase === 'recording' ||
-        app.dialogue.isPlaying() ||
         (!!app.root.querySelector('[data-stand-in-play]') &&
           app.root.querySelector<HTMLVideoElement>('[data-rehearsal-animation]')
-            ?.paused === false)
+            ?.paused === false),
+      app.practice.active && app.practiceMomentIds.length > 1
     )
 }
 

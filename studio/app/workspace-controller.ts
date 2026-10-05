@@ -9,7 +9,10 @@ import { movePlayhead } from './moment-timeline'
 import { notebookOpeningView } from './notebook-opening'
 import { notebookScreen } from './notebook-screen'
 import { replacePlayerView } from './player-view'
-import { practiceControls, recordControl } from './practice-controls'
+import { recordControl } from './practice-controls'
+import { paintPracticeActions } from './recording-controller'
+import { syncPresenterLayout } from './presenter-motion'
+import { reviewLayoutSecond } from './take-review-clock'
 import { presentationScreen } from './presentation-screen'
 import { standInControls } from './stand-in-playback'
 import { followTranscript, transcriptWords } from './transcript-follow'
@@ -143,7 +146,8 @@ ${escape(project.title)}</h1>
               app.capture,
               app.practiceStream,
               app.wholeVideo,
-              app.liveConnected
+              app.liveConnected,
+              app.practiceScope === 'scene'
             )
           : presentationScreen(
               app.snapshot,
@@ -309,19 +313,7 @@ ${escape(project.title)}</h1>
       ?.querySelectorAll('.practice-panel-heading>button')
       .forEach((control) => toolbar.append(control))
     if (toolbar.childElementCount) panel?.before(toolbar)
-    const actions = app.root.querySelector('.video-actions>div:last-child')
-    if (actions)
-      actions.innerHTML = practiceControls(
-        phase,
-        app.practiceMomentIds.length > 1
-          ? app.practiceMomentIds.at(-1) ===
-            app.snapshot.project.video?.scenes[app.selected]?.moments[
-              app.momentIndex
-            ]?.id
-            ? 'Finish practice'
-            : 'Next moment'
-          : undefined
-      )
+    paintPracticeActions(app)
     const label = app.root.querySelector('[data-practice-clock]')
     if (label)
       label.textContent =
@@ -364,6 +356,22 @@ ${escape(project.title)}</h1>
   }
   if (focusedId) document.getElementById(focusedId)?.focus()
   app.dialogue.mount()
+  // Practising the whole scene, put the presenter where the moment has it
+  // before the page is shown, not a frame later.
+  if (app.practiceOpen && app.practiceScope === 'scene') {
+    const scene = project.video?.scenes[app.selected],
+      moment = scene?.moments[app.momentIndex]
+    if (scene && moment)
+      syncPresenterLayout(
+        app.root,
+        scene.moments,
+        reviewLayoutSecond(
+          moment,
+          app.second,
+          app.practice.active || app.dialogue.isPlaying()
+        )
+      )
+  }
   if (editSelection?.anchor.isConnected && editSelection.focus?.isConnected) {
     app.root
       .querySelector<HTMLElement>('[data-ds=input]')

@@ -254,8 +254,9 @@ body:has(.is-focused) > #app > header {
 .is-focused .video-actions .practice-action-hint {
   position: absolute;
   top: calc(100% - 12px);
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
   text-align: center;
   font-size: 11px;
 }

@@ -35,7 +35,7 @@ Object.assign(globalThis, {
 afterAll(() => vi.useRealTimers())
 const { dialogueStudio } = await import('../app/dialogue-studio')
 
-const scene: Scene = {
+let scene: Scene = {
   id: 'scene',
   slideId: 'slide',
   phase: 'waiting',
@@ -61,26 +61,43 @@ const scene: Scene = {
 }
 
 let animation: 'none' | 'making' | 'ready' = 'none'
+let index = 0,
+  second = 0,
+  scope: 'moment' | 'scene' | undefined
+// The page around the studio: it renders again whenever it changes.
 const studio = dialogueStudio(
   document.querySelector('main') as unknown as HTMLElement,
   () => ({
     projectId: 'p',
     scene,
-    index: 0,
-    second: 0,
+    index,
+    second,
     busy: false,
     recording: false,
     label: '• Read along',
-    animation
+    animation,
+    scope
   }),
+  (at) => (second = at),
   () => {},
-  () => {}
+  {
+    scope: (next) => {
+      scope = next
+      studio.mount()
+    },
+    // The page shows the moment's number without drawing again.
+    moment: (next) => {
+      index = next
+    }
+  }
 )
+const $ = (name: string) =>
+  document.querySelector(`[data-ds="${name}"]`) as HTMLElement
+const click = (element: Element) =>
+  element.dispatchEvent(new window.Event('click', { bubbles: true }))
 
 it('plays a moment before its scene has an animation, reading the words over the wireframe', () => {
   studio.mount()
-  const $ = (name: string) =>
-    document.querySelector(`[data-ds="${name}"]`) as HTMLElement
   // A disabled Play, with nothing to say why, was the bug.
   expect($('play').hasAttribute('disabled')).toBe(false)
   expect($('remaining').textContent).toBe(
@@ -114,4 +131,91 @@ it('says the animation is being made, and stops offering to make it', () => {
   expect(document.querySelector('[data-ds-make]')!.hasAttribute('hidden')).toBe(
     true
   )
+})
+
+it('plays the whole scene as one timeline, one moment into the next', () => {
+  animation = 'none'
+  const moment = scene.moments[0]
+  scene = {
+    ...scene,
+    id: 'whole',
+    moments: [
+      { ...moment, id: 'w1', lines: 'One two.', start: 0, end: 2 },
+      { ...moment, id: 'w2', lines: 'Three four five.', start: 2, end: 5 },
+      { ...moment, id: 'w3', lines: 'Six.', start: 5, end: 6 }
+    ]
+  }
+  // Recording has no choice to make; practice does.
+  studio.mount()
+  expect($('scope').hidden).toBe(true)
+  scope = 'moment'
+  studio.mount()
+  expect($('scope').hidden).toBe(false)
+  const choice = (name: string) =>
+    document.querySelector(`[data-ds-scope="${name}"]`)!
+  expect(choice('moment').getAttribute('aria-pressed')).toBe('true')
+  expect($('zoom').hidden).toBe(true)
+  // One moment at a time stops at the moment's end, as before.
+  click($('play'))
+  vi.advanceTimersByTime(2500)
+  expect([index, studio.isPlaying(), $('play').textContent]).toEqual([
+    0,
+    false,
+    '▶ Replay'
+  ])
+  click(choice('scene'))
+  expect(scope).toBe('scene')
+  expect(choice('scene').getAttribute('aria-pressed')).toBe('true')
+  // The whole scene on one timeline: its moments are parts of it, cut
+  // apart by a line, and the read-along holds every moment's words.
+  const panel = document.querySelector('.dialogue-studio')
+  const blocks = () => [...document.querySelectorAll('[data-ds-moment]')]
+  expect(blocks().map((block) => block.getAttribute('style'))).toEqual([
+    'left:0%;width:33.33333333333333%',
+    'left:33.33333333333333%;width:50%',
+    'left:83.33333333333334%;width:16.666666666666664%'
+  ])
+  expect(document.querySelectorAll('[data-ds="cuts"] > i').length).toBe(2)
+  expect($('words').textContent).toBe('1One two. 2Three four five. 3Six.')
+  expect($('time').textContent).toBe('0:02.0 / 0:06.0')
+  expect($('zoom').hidden).toBe(false)
+  // Play goes on from where it is, through every moment, without a new panel.
+  click($('play'))
+  vi.advanceTimersByTime(500)
+  expect([index, studio.isPlaying()]).toEqual([1, true])
+  expect($('time').textContent).toBe('0:02.5 / 0:06.0')
+  expect(blocks()[1].classList.contains('is-current')).toBe(true)
+  expect($('remaining').textContent).toBe(
+    'No animation yet · the words play over the wireframe'
+  )
+  vi.advanceTimersByTime(2600)
+  expect([index, studio.isPlaying()]).toEqual([2, true])
+  expect(document.querySelector('.dialogue-studio')).toBe(panel)
+  expect(document.querySelector('[data-ds-word].current')!.textContent).toBe(
+    'Six.'
+  )
+  vi.advanceTimersByTime(1200)
+  expect([index, studio.isPlaying()]).toEqual([2, false])
+  expect($('time').textContent).toBe('0:06.0 / 0:06.0')
+  expect($('play').textContent).toBe('▶ Replay scene')
+  // Replay starts the scene again from its first moment.
+  click($('replay'))
+  expect([index, studio.isPlaying()]).toEqual([0, true])
+  vi.advanceTimersByTime(1000)
+  expect($('time').textContent).toBe('0:01.0 / 0:06.0')
+  click($('play'))
+  expect(studio.isPlaying()).toBe(false)
+  // Any moment is one click away on the timeline.
+  click(blocks()[2])
+  expect([index, studio.isPlaying()]).toEqual([2, false])
+  expect($('time').textContent).toBe('0:05.0 / 0:06.0')
+  // Zoom in for detail, and fit the whole scene again.
+  const zoom = (name: string) =>
+    document.querySelector(`[data-ds-zoom="${name}"]`) as HTMLButtonElement
+  expect([zoom('out').disabled, zoom('in').disabled]).toEqual([true, false])
+  click(zoom('in'))
+  expect($('timeline').style.width).toBe('960px')
+  expect(zoom('out').disabled).toBe(false)
+  click(zoom('fit'))
+  expect($('timeline').style.width).toBe('600px')
 })

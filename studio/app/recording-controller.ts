@@ -13,6 +13,73 @@ import {
 } from './recording-setup'
 import { recordingTarget } from './recording-target'
 import { followTranscript, transcriptWords } from './transcript-follow'
+import { practiceControls } from './practice-controls'
+import { sceneOverlay } from './scene-overlay'
+import { workspaceUrl } from './workspace-position'
+import { reviewLayoutSecond } from './take-review-clock'
+
+/** Where practice stands: ready, counting down, running or finished. */
+export const practicePhase = (app: AppContext) =>
+  app.startRehearsal
+    ? 'ready'
+    : app.practiceCountdown
+      ? 'countdown'
+      : app.practice.active
+        ? 'running'
+        : 'finished'
+
+/** The practice actions under the stage, for where practice stands now. */
+export const paintPracticeActions = (app: AppContext) => {
+  const actions = app.root.querySelector('.video-actions>div:last-child')
+  if (!actions || !app.practiceOpen) return
+  actions.innerHTML = practiceControls(
+    practicePhase(app),
+    app.practiceMomentIds.length > 1
+      ? app.practiceMomentIds.at(-1) ===
+        app.snapshot?.project.video?.scenes[app.selected]?.moments[
+          app.momentIndex
+        ]?.id
+        ? 'Finish practice'
+        : 'Next moment'
+      : undefined,
+    app.practiceMomentIds.length
+  )
+}
+
+/**
+ * Show another moment of the scene without drawing the page again. Playing
+ * the whole scene, a new draw at every moment rebuilt the stage and the
+ * timeline, which flickered; now only what names the moment changes.
+ */
+export const showMoment = (app: AppContext, index: number) => {
+  const project = app.snapshot?.project,
+    scene = project?.video?.scenes[app.selected],
+    moment = scene?.moments[index]
+  if (!project || !scene || !moment) return
+  app.momentIndex = index
+  const heading = app.root.querySelector('.focus-heading span')
+  if (heading)
+    heading.textContent = `Scene ${app.selected + 1} · Moment ${index + 1}`
+  const stage = app.root.querySelector('.video-stage')
+  if (stage) {
+    stage
+      .querySelectorAll(':scope > .scene-overlay, :scope > .preview-name')
+      .forEach((overlay) => overlay.remove())
+    stage.insertAdjacentHTML('beforeend', sceneOverlay(project, moment))
+  }
+  if (app.practice.active) paintPracticeActions(app)
+  history.replaceState(
+    null,
+    '',
+    workspaceUrl(
+      new URL(location.href),
+      project,
+      app.stage,
+      app.selected,
+      index
+    )
+  )
+}
 
 export const createPractice = (app: AppContext) =>
   new PracticePlayback(
@@ -29,14 +96,23 @@ export const createPractice = (app: AppContext) =>
       app.practiceLines = clip.lines
       app.second = at
       const scene = app.snapshot?.project.video?.scenes[app.selected]
-      app.momentIndex = Math.max(
+      const index = Math.max(
         0,
         scene?.moments.findIndex((moment) => moment.id === clip.momentId) ?? 0
       )
-      if (changed) app.render()
-      const presenter =
-        app.root.querySelector<HTMLElement>('.presenter-preview')
-      if (presenter) presenter.hidden = !clip.camera
+      // Practising the whole scene, the next moment shows in place and the
+      // presenter moves with it; a new draw would rebuild the stage.
+      const whole = app.practiceMomentIds.length > 1
+      if (whole) {
+        if (index !== app.momentIndex) showMoment(app, index)
+        if (scene) syncPresenterLayout(app.root, scene.moments, app.second)
+      } else {
+        app.momentIndex = index
+        if (changed) app.render()
+        const presenter =
+          app.root.querySelector<HTMLElement>('.presenter-preview')
+        if (presenter) presenter.hidden = !clip.camera
+      }
       app.syncAnimation()
       app.paintAnimationProgress()
       app.dialogue.paint(app.second)
@@ -107,6 +183,18 @@ export const createStopPractice = (app: AppContext) => () => {
   app.practiceStream = null
 }
 
+/** The moments practice plays: the one on show, or every moment of the scene. */
+export const practiceMoments = (
+  scene: import('../shared/model').Scene,
+  index: number,
+  scope: AppContext['practiceScope']
+) =>
+  scope === 'scene' && scene.moments.length > 1
+    ? scene.moments.map((moment) => moment.id)
+    : scene.moments[index]
+      ? [scene.moments[index].id]
+      : []
+
 export const createReplayPractice = (app: AppContext) => async () => {
   const scene = app.snapshot?.project.video?.scenes[app.selected]
   if (!scene || !app.practiceOpen) return
@@ -145,7 +233,12 @@ export const createReplayPractice = (app: AppContext) => async () => {
   })
   app.practiceCountdown = 0
   app.practiceStarted = performance.now()
-  app.practice.start({ inputKey: scene.inputKey, clips, duration: at }, true)
+  // One moment holds at its end until finished; the whole scene moves on by
+  // itself from moment to moment (Enter skips ahead).
+  app.practice.start(
+    { inputKey: scene.inputKey, clips, duration: at },
+    clips.length === 1
+  )
   app.render()
 }
 
@@ -250,7 +343,8 @@ export const createDialogue = (app: AppContext) =>
                   ? '● Recording'
                   : app.practice.active
                     ? '• Practicing'
-                    : '• Read along'
+                    : '• Read along',
+            scope: app.practiceOpen ? app.practiceScope : undefined
           }
         : null
     },
@@ -259,10 +353,15 @@ export const createDialogue = (app: AppContext) =>
       const scene = app.snapshot?.project.video?.scenes[app.selected]
       if (scene) {
         followTranscript(app.root, scene.moments, at, app.momentIndex)
+        // Paused, the presenter shows where its moment settles, not mid-fade.
         syncPresenterLayout(
           app.root,
           scene.moments,
-          Math.min(at, scene.moments[app.momentIndex].end - 0.08)
+          reviewLayoutSecond(
+            scene.moments[app.momentIndex],
+            at,
+            app.dialogue.isPlaying()
+          )
         )
       }
     },
@@ -270,6 +369,16 @@ export const createDialogue = (app: AppContext) =>
       app.snapshot = value
       app.startRehearsal = app.replayPractice
       app.render()
+    },
+    {
+      scope: (next) => {
+        app.practiceScope = next
+        const scene = app.snapshot?.project.video?.scenes[app.selected]
+        if (scene && !app.practice.active && !app.practiceCountdown)
+          app.practiceMomentIds = practiceMoments(scene, app.momentIndex, next)
+        app.render()
+      },
+      moment: (index) => showMoment(app, index)
     }
   )
 
@@ -498,7 +607,11 @@ export const clickRecording = async (
     if (!moment) return
     app.practiceRequest++
     app.practiceStopAfter = null
-    app.practiceMomentIds = [moment.id]
+    app.practiceMomentIds = practiceMoments(
+      scene,
+      app.momentIndex,
+      app.practiceScope
+    )
     app.practiceOpen = true
     app.second = moment.start
     app.startRehearsal = app.replayPractice

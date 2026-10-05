@@ -34,6 +34,8 @@ export interface AppContext {
   startRehearsal: (() => Promise<void>) | null
   practiceStopAfter: number | null
   practiceMomentIds: string[]
+  /** What practice plays: the moment on show, or the whole scene. */
+  practiceScope: 'moment' | 'scene'
   practiceCountdown: number
   practiceStarted: number
   practiceOpen: boolean

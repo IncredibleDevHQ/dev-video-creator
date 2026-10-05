@@ -28,6 +28,7 @@ import { voiceChoices } from './voice-choice'
 import type { Snapshot } from '../shared/api'
 import type { Recording } from './recording'
 import { cameraAt } from '../shared/camera-window'
+import { sceneOverlay } from './scene-overlay'
 import { escape, button } from './ui'
 import { agentNames } from './agent-setup'
 import { wireframeStatus } from './wireframe-copy'
@@ -94,7 +95,9 @@ export const videoScreen = (
   capture: Recording,
   practiceStream: MediaStream | null = null,
   wholeVideo = false,
-  connected = true
+  connected = true,
+  /** Practising the whole scene rather than one moment. */
+  practiceScene = false
 ) => {
   const { project, views } = snapshot
   const video = project.video
@@ -112,6 +115,15 @@ export const videoScreen = (
     return '<section class="empty">Add a wireframe to begin.</section>'
   const view = views?.scenes[scene.id]
   const moment = scene.moments[momentIndex] || scene.moments[0]
+  // Practising the whole scene, the stage is drawn once for every moment:
+  // the presenter stays on it and fades in and out with the camera, so one
+  // moment following another rebuilds nothing.
+  const wholeScene = practicing && practiceScene && scene.moments.length > 1
+  const presenter = wholeScene
+    ? scene.moments.find((entry) => entry.camera !== 'none')
+    : moment?.camera !== 'none'
+      ? moment
+      : undefined
   const showVideo =
     wholeVideo &&
     views?.video.action === 'export' &&
@@ -268,12 +280,10 @@ export const videoScreen = (
         }</div>`
       : ''
   }<div style="${
-    moment ? presenterLayoutStyle(moment.layout) : ''
+    moment ? presenterLayoutStyle((presenter ?? moment).layout) : ''
   }" class="stage video-stage ${
-    (!view?.produced || practicing || capture.phase !== 'idle') &&
-    moment &&
-    moment.camera !== 'none'
-      ? `presenter-layout-${moment.layout}`
+    (!view?.produced || practicing || capture.phase !== 'idle') && presenter
+      ? `presenter-layout-${presenter.layout}`
       : ''
   }">${
     cameraTake
@@ -332,13 +342,16 @@ export const videoScreen = (
 </video>`
                   : slide?.svg || ''
               }${
-                moment && moment.camera !== 'none'
-                  ? `<div class="presenter-preview ${moment.layout}" ${
-                      practicing && !cameraAt(moment, second) ? 'hidden' : ''
+                presenter
+                  ? `<div class="presenter-preview ${presenter.layout}" ${
+                      practicing && !wholeScene && !cameraAt(moment, second)
+                        ? 'hidden'
+                        : ''
                     }>${
                       capture.stream || practiceStream
                         ? '<video data-camera autoplay muted playsinline></video>'
-                        : moment.take &&
+                        : !wholeScene &&
+                            moment.take &&
                             moment.take.recordingKey === moment.recordingKey
                           ? `<video data-saved-presenter src="/objects/${escape(
                               moment.take.objectKey
@@ -348,24 +361,7 @@ export const videoScreen = (
 <small>Presenter stand-in</small>`
                     }</div>`
                   : ''
-              }${
-                moment?.overlay &&
-                !(moment.overlay === 'title-card' && moment.camera === 'none')
-                  ? `<div class="scene-overlay ${moment.overlay}">${
-                      moment.overlay === 'title-card'
-                        ? escape(project.title)
-                        : moment.overlay === 'end-card'
-                          ? 'Thanks for watching'
-                          : escape(project.branding?.name || 'Your name')
-                    }</div>${
-                      moment.overlay === 'title-card' && project.branding?.name
-                        ? `<div class="preview-name">${escape(
-                            project.branding.name
-                          )}</div>`
-                        : ''
-                    }`
-                  : ''
-              }`
+              }${sceneOverlay(project, moment)}`
   }${
     (!practicing && cameraTake) ||
     // Only a recorded take has anything to play: a scene still being
