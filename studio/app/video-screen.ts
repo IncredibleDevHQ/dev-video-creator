@@ -585,7 +585,10 @@ export const videoScreen = (
       : ''
   }<label class="sr" for="video-instruction">Change this moment</label>
 <input id="video-instruction" name="instruction" placeholder="Ask about this moment, like ${
-    moment?.camera === 'none' ? '“say this part more slowly”' : '“move me left”'
+    // Before the scene has moments, the video's own camera setting decides.
+    (moment ? moment.camera === 'none' : video.settings.presence === 'off')
+      ? '“say this part more slowly”'
+      : '“move me left”'
   }" ${moment && !busy ? '' : 'disabled'}>
 <button aria-label="Send instruction" ${
     moment && !busy ? '' : 'disabled'

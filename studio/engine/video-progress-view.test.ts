@@ -424,12 +424,15 @@ it('shows a retained matching recording in its presenter space instead of the st
   expect(render(input)).not.toContain('data-saved-presenter')
 })
 
-it('puts no playback controls over a scene that is still being prepared', () => {
+it('puts no playback controls over a scene still being prepared, and gives the right example', () => {
   const input = fixture(),
     scene = input.project.video!.scenes[0]
   scene.phase = 'writing'
   scene.moments = []
   expect(render(input)).not.toContain('layered-controls')
+  // Its change box already gives an off-camera example for an off-camera video.
+  input.project.video!.settings.presence = 'off'
+  expect(render(input)).toContain('like “say this part more slowly”')
 })
 
 it('distinguishes scenes ready to assemble from active work and missing recordings', () => {
