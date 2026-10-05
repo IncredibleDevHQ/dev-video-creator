@@ -185,6 +185,14 @@ export function dialogueStudio(
         clockFrom + (performance.now() - extraEpoch) / 1000
       )
     else if (v && base && !v.seeking) {
+      // Paused from outside before its end (a browser pauses a muted clip
+      // in a hidden page): show Play again, not Pause over a still frame.
+      if (v.paused && v.currentTime < base.end - 0.08) {
+        playing = false
+        status('Playback paused. Press Play to continue.')
+        paint()
+        return
+      }
       position = Math.max(
         0,
         Math.min(
