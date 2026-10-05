@@ -43,8 +43,8 @@ export const activitySteps = (snapshot: Snapshot) => {
 export const activityDialog = (snapshot: Snapshot) => {
   const steps = activitySteps(snapshot)
   return `<h2>Activity</h2>
-<p class="activity-intro">What happened in this notebook, oldest first.</p>
-<ol class="activity-log">${steps
+<p class="activity-steps-intro">What happened in this notebook, oldest first.</p>
+<ol class="activity-steps">${steps
     .map(
       (step) =>
         `<li class="${step.failed ? 'is-failed' : ''}"><time datetime="${escape(step.time)}">${escape(clock(step.time))}</time><span>${escape(step.message)}</span></li>`

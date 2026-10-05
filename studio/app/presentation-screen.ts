@@ -195,7 +195,14 @@ export const presentationScreen = (
       ${status === 'failed' && !snapshot.sourceFailure
         ? html`<div class="run-notice is-stopped" role="status">
             <p>
-              ${escape(wireframeStatus(snapshot.error || 'Drawing stopped.'))}
+              ${escape(
+                wireframeStatus(snapshot.error || 'Drawing stopped.').replace(
+                  /^The agent\b/,
+                  project.harness
+                    ? agentNames[project.harness.adapter]
+                    : 'The agent'
+                )
+              )}
             </p>
             ${button(
               'Try again',

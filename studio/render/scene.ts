@@ -57,7 +57,12 @@ export const buildSceneBundle = async (
       const video = await localMedia(clip.videoKey)
       content += `<video id="camera-${index}-${clipIndex}" class="presenter ${moment.layout}" src="${video}" muted playsinline data-start="${moment.start + clip.start}" data-duration="${clip.end - clip.start}" data-media-start="${clip.videoFrom || 0}" data-track-index="${100 + index * 12 + clipIndex}"></video>`
     }
-    if (moment.overlay)
+    // Off camera the scene's own page carries its title; a title card would
+    // sit on top of it (review 5).
+    if (
+      moment.overlay &&
+      !(moment.overlay === 'title-card' && moment.camera === 'none')
+    )
       content += `<div class="overlay ${moment.overlay}">${moment.overlay === 'title-card' ? escape(project.title) : moment.overlay === 'end-card' ? 'Thanks for watching' : escape(project.branding?.name || '')}</div>`
     if (moment.overlay === 'title-card' && project.branding?.name)
       content += `<div class="presenter-name">${escape(project.branding.name)}${project.branding.tagline ? `<small>${escape(project.branding.tagline)}</small>` : ''}</div>`

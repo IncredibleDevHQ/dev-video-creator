@@ -165,12 +165,13 @@ it('does not promise processing when the live connection is lost', () => {
   expect(html).not.toContain('no action needed')
 })
 
-it('uses the same specific stage in the scene rail, canvas and activity log', () => {
+it('says a scene’s stage in its tile and its activity, without a third copy over the preview', () => {
   const input = fixture()
   input.project.video!.scenes[0].phase = 'writing'
   input.events[0].message = 'Planning the scene'
   const html = render(input)
-  expect(html.match(/Planning the scene/g)!.length).toBeGreaterThanOrEqual(2)
+  expect(html.match(/Planning the scene/g)!.length).toBeGreaterThanOrEqual(1)
+  expect(html).not.toContain('video-run-status')
   expect(html).toMatch(/<summary>\s*<span>Scene activity<\/span>/)
   expect(html).toContain('aria-label="Scene activity"')
   expect(html).toContain('activity-orbit')
@@ -642,7 +643,7 @@ it('shows the saved take number only while the recording matches the moment', ()
     duration: 4
   }
   input.views = projectViews(input.project)
-  expect(render(input)).toContain('recorded · take 3')
+  expect(render(input)).toContain('Recorded · take 3')
   moment.recordingKey = 'changed-script'
   input.views = projectViews(input.project)
   expect(render(input)).not.toContain('take 3')
@@ -651,5 +652,5 @@ it('shows the saved take number only while the recording matches the moment', ()
   delete moment.take.number
   input.views = projectViews(input.project)
   expect(render(input)).not.toContain('take 1')
-  expect(render(input)).toContain('recorded')
+  expect(render(input)).toContain('Recorded')
 })

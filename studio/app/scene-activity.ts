@@ -35,7 +35,11 @@ export const sceneActivityRail = (
             )}</time>`
           : ''
       return `<li class="${state}"><span class="activity-marker" aria-hidden="true">${
-        state === 'completed' ? '✓' : ''
+        state === 'completed'
+          ? '✓'
+          : state === 'current' && connected && progress?.active !== false
+            ? '<i class="activity-orbit"></i>'
+            : ''
       }</span><div><p>${step.label}</p>${
         state === 'stopped'
           ? '<span class="activity-stopped-label">Stalled</span>'

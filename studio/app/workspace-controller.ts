@@ -19,6 +19,7 @@ import { workspaceHeader } from './workspace-header'
 import { workspaceUrl } from './workspace-position'
 import { syncLookPreview } from './look-panel'
 import { markPin } from './wireframe-pin'
+import { syncPlayerBar } from './player-bar'
 
 export const createRender = (app: AppContext) => () => {
   if (app.settingsScreen.isOpen) return
@@ -376,4 +377,5 @@ ${escape(project.title)}</h1>
   }
   syncLookPreview(app.root)
   markPin(app.root, app.pin)
+  syncPlayerBar(app.root)
 }

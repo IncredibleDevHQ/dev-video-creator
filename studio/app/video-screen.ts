@@ -29,7 +29,22 @@ import type { Snapshot } from '../shared/api'
 import type { Recording } from './recording'
 import { cameraAt } from '../shared/camera-window'
 import { escape, button } from './ui'
+import { agentNames } from './agent-setup'
+import { wireframeStatus } from './wireframe-copy'
 const standIn = new URL('./assets/presenter.jpg', import.meta.url).href
+/** A moment's state in plain words, not "auto" (review 5). */
+const momentWords = (state?: string) =>
+  state === 'to record' ? 'Record' : state === 'recorded' ? 'Recorded' : 'Voice'
+/** A stop names the agent that stopped: "Kimi ran out of time…". */
+const agentWords = (snapshot: Snapshot, message?: string | null) => {
+  const words = wireframeStatus(message || '')
+  return snapshot.project.harness
+    ? words.replace(
+        /^The agent\b/,
+        agentNames[snapshot.project.harness.adapter]
+      )
+    : words
+}
 const sceneRailStatus = (snapshot: Snapshot, scene: Scene) => {
   const view = snapshot.views?.scenes[scene.id],
     activity = sceneActivity(snapshot, scene)
@@ -150,7 +165,7 @@ export const videoScreen = (
 <aside class="rail scene-rail" ${focused ? 'inert' : ''} aria-label="Scenes">
 <div class="rail-heading">
 <strong>Scenes</strong>
-<small>${video.scenes.length} scenes${
+<small>${video.scenes.length} ${video.scenes.length === 1 ? 'scene' : 'scenes'}${
     video.scenes.every((entry) => entry.moments.length)
       ? ` · ${Math.round(
           video.scenes.reduce(
@@ -233,7 +248,10 @@ export const videoScreen = (
         }</div>`
       : ''
   }${capture.phase === 'idle' ? recordingHandoff(snapshot, scene) : ''}${
-    activity
+    // Scene activity is the one place a scene's progress shows (review 5);
+    // notices about the connection, a saved copy or an idle queue stay.
+    activity &&
+    !(showActivity && connected && selectedActive && !snapshot.readOnly)
       ? `<div class="video-run-status ${
           connected && selectedActive && !snapshot.readOnly ? 'is-active' : ''
         }" role="status">${
@@ -277,7 +295,7 @@ export const videoScreen = (
               : video.scenes[0].produced?.posterKey
                 ? `/objects/${video.scenes[0].produced.posterKey}`
                 : `/api/projects/${project.id}/scenes/${video.scenes[0].id}/cover?v=${video.scenes[0].produced?.objectKey}`
-          }" controls playsinline>
+          }" playsinline>
 </video>`
         : !view?.produced &&
             moment?.camera === 'none' &&
@@ -291,7 +309,7 @@ export const videoScreen = (
               scene.animation.posterKey
                 ? `/objects/${scene.animation.posterKey}`
                 : `/api/projects/${project.id}/scenes/${scene.id}/cover?v=${scene.animation.objectKey}`
-            }" controls playsinline>
+            }" playsinline>
 </video>`
           : view?.produced &&
               scene.produced &&
@@ -303,7 +321,7 @@ export const videoScreen = (
                 scene.produced.posterKey
                   ? `/objects/${scene.produced.posterKey}`
                   : `/api/projects/${project.id}/scenes/${scene.id}/cover?v=${scene.produced.objectKey}`
-              }" controls playsinline>
+              }" playsinline>
 </video>`
             : `${
                 scene.animation &&
@@ -329,7 +347,8 @@ export const videoScreen = (
                     }</div>`
                   : ''
               }${
-                moment?.overlay
+                moment?.overlay &&
+                !(moment.overlay === 'title-card' && moment.camera === 'none')
                   ? `<div class="scene-overlay ${moment.overlay}">${
                       moment.overlay === 'title-card'
                         ? escape(project.title)
@@ -417,12 +436,10 @@ export const videoScreen = (
         } data-moment="${index}" class="moment ${
           entry.id === moment?.id ? 'current' : ''
         }">
-<span class="moment-title">${cameraCue(entry.camera)}<span title="${escape(
-          entry.title || ''
-        )}">${index + 1} · ${escape(entry.title || 'Moment')}</span>
-</span>
+<span class="moment-head"><b class="moment-number">${index + 1}</b>${cameraCue(entry.camera)}</span>
+<span class="moment-name" title="${escape(entry.title || `Moment ${index + 1}`)}">${escape(entry.title || `Moment ${index + 1}`)}</span>
 <small>${escape(
-          views?.moments[momentViewKey(scene.id, entry.id)]?.state || 'auto'
+          momentWords(views?.moments[momentViewKey(scene.id, entry.id)]?.state)
         )}${
           views?.moments[momentViewKey(scene.id, entry.id)]?.state ===
             'recorded' && entry.take?.number
@@ -525,12 +542,17 @@ export const videoScreen = (
                       )
                     : ''
                 }${
-                  view?.action === 'download'
+                  // One way to finish (review 5): the header finishes the
+                  // video; a scene's own button shows only for its own step,
+                  // or to finish one of several scenes.
+                  view?.action === 'download' ||
+                  ((view?.action === 'produce' || view?.action === 'wait') &&
+                    video.scenes.length === 1)
                     ? ''
                     : button(
                         mainLabel,
                         'scene-next',
-                        true,
+                        view?.action === 'record' || view?.action === 'retry',
                         !view || view.action === 'wait'
                       )
                 }`
@@ -559,24 +581,24 @@ export const videoScreen = (
         }</span>`
       : ''
   }<label class="sr" for="video-instruction">Change this moment</label>
-<input id="video-instruction" name="instruction" placeholder="Ask about this moment, like “move me left”" ${
-    moment && !busy ? '' : 'disabled'
-  }>
+<input id="video-instruction" name="instruction" placeholder="Ask about this moment, like ${
+    moment?.camera === 'none' ? '“say this part more slowly”' : '“move me left”'
+  }" ${moment && !busy ? '' : 'disabled'}>
 <button aria-label="Send instruction" ${
     moment && !busy ? '' : 'disabled'
   }>↑</button>
 </form>
 <div class="reply" role="status" aria-live="polite">
-<span>${escape(
-    scene.error ||
+<span class="${scene.error || video.error ? 'is-failed' : ''}">${escape(
+    agentWords(snapshot, scene.error) ||
       (!busy
         ? reply?.message
         : sceneDisplay(snapshot, scene).queued
           ? 'Waiting for the next available slot'
           : '') ||
-      video.error ||
+      agentWords(snapshot, video.error) ||
       ''
-  )}</span>${button('History', 'history')}</div>
+  )}</span>${button('Activity', 'history')}</div>
 
 </div>
 <aside class="transcript" ${focused ? 'inert' : ''}>
@@ -585,7 +607,7 @@ export const videoScreen = (
 </div>${
     showActivity
       ? `<details class="activity-disclosure" data-activity-key="${scene.id}" ${
-          selectedActive ? 'open' : ''
+          selectedActive || display.failed ? 'open' : ''
         }>
 <summary>
 <span>Scene activity</span>
@@ -665,11 +687,7 @@ export const makeVideoDialog = (
     settings,
     voice
   )}</select>
-</label>${
-    settings.voice.clones.some((clone) => clone.state === 'ready')
-      ? ''
-      : button('Clone your voice · 30s', 'clone-settings')
-  }<p class="two-voices" ${
+</label><p class="two-voices" ${
     voice.kind !== 'ai' || presence === 'off' ? 'hidden' : ''
   }>Your voice on camera and an AI voice elsewhere will sound different.</p>
 <button type="submit" class="primary">Make the video →</button>

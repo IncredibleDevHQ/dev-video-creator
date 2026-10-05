@@ -243,11 +243,17 @@ export const videoDisplay = (
             : needsRecording
               ? 'Needs recording'
               : 'Ready to prepare'
+  // One name for finishing the video, whatever step is next (review 5: the
+  // button read "Prepare scenes", then "Produce video · 0/1").
+  const count = `${views.video.producedScenes}/${video.scenes.length}`
   const actionLabel =
-    views.video.state ||
-    (views.video.action === 'export'
-      ? 'Export MP4'
-      : `Produce video · ${views.video.producedScenes}/${video.scenes.length}`)
+    views.video.state === 'Preparing scenes'
+      ? 'Preparing scenes…'
+      : views.video.state === 'Producing video'
+        ? 'Producing the video…'
+        : views.video.action === 'export'
+          ? 'Export MP4'
+          : `Finish the video · ${count}`
   return { label, active, actionLabel }
 }
 export const presentationDisplay = (

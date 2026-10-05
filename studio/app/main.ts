@@ -24,6 +24,7 @@ import {
 import { Settings } from './settings'
 import { installSlidesController } from './slides-controller'
 import { installWireframePin } from './wireframe-pin'
+import { installPlayerBar } from './player-bar'
 import {
   createAgo,
   createFitSource,
@@ -205,6 +206,7 @@ installVideoController(app)
 installAppActions(app)
 installSlidesController(app)
 installWireframePin(app)
+installPlayerBar(app)
 app.render()
 app.parameters = new URLSearchParams(location.search)
 app.saved =
