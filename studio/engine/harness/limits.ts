@@ -30,19 +30,20 @@ const BASE: Record<HarnessOperation, StageLimits> = {
   story: { timeoutMs: minutes(8), idleTimeoutMs: minutes(3), maxToolCalls: 80 },
   // The deck's design system and its first page, in one call.
   design: {
-    timeoutMs: minutes(10),
+    timeoutMs: minutes(12),
     idleTimeoutMs: minutes(4),
     maxToolCalls: 60
   },
-  // One more page against the authored design system.
-  page: { timeoutMs: minutes(6), idleTimeoutMs: minutes(3), maxToolCalls: 40 },
+  // One more page against the authored design system. A live K3 run took
+  // 8½ to 14½ minutes a page, so its 2.5× pace gets 20.
+  page: { timeoutMs: minutes(8), idleTimeoutMs: minutes(3), maxToolCalls: 40 },
   'revise-story': {
     timeoutMs: minutes(3),
     idleTimeoutMs: minutes(1.5),
     maxToolCalls: 20
   },
   'revise-page': {
-    timeoutMs: minutes(6),
+    timeoutMs: minutes(8),
     idleTimeoutMs: minutes(3),
     maxToolCalls: 40
   },
