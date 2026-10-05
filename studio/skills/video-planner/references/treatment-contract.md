@@ -88,6 +88,9 @@ Use only the channels a moment needs; `null` means the channel is unused.
   say what the line does, and quote only approved words in `guide`.
 - `objects.change` — the before → after change; `actors` are brief entity ids
   (or `objects[].entity` ids this plan introduces).
+- `takeaway` — the one sentence the viewer should leave with, for the
+  creator's review. It is not on-screen text by default: the closing moment
+  may say it, and needs no card for it.
 - `text.role` — `term`, `label`, `exact` (a source quotation that must be
   read), `code`, `takeaway`. Narration does not become paragraphs on screen.
 - `presenter.visibility` — `full`, `shared`, `hidden` or `undecided`, with a

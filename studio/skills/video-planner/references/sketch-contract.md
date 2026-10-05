@@ -155,9 +155,8 @@ quality.
   Hide the number and its label until their evidence beat. Prefer revealing
   the final value directly while animating its bar; an intermediate counter
   value must never look like a separate factual claim.
-- Reserve separate space for the closing takeaway, statistics, source notes,
-  and presenter. A closing card must not cover an already visible statistic
-  or its label. Reflow or retire earlier layers before adding the card.
+- Reserve separate space for statistics, source notes and the presenter. A
+  later layer never covers an already visible statistic or its label.
 - Check text at the final rendered size. Camera pushes may crop surrounding
   scenery, but must keep the currently explained labels and evidence readable.
   Move unneeded text out of view completely instead of leaving half a sentence

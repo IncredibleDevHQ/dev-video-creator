@@ -180,6 +180,8 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   what the earlier one left.
 - Mark every invented number or example as illustrative.
 - Durations are estimates until audio or a take exists.
+- Never veil, dim or blur the whole frame to put text on it; give text its
+  own space. A scene does not close on a takeaway card.
 - A presenter suggestion never decides the scene's delivery. On-camera
   presence is the creator's, apart from who speaks: when SCENE.md states it,
   the plan puts the presenter exactly where it says.

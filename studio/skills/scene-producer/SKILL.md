@@ -47,6 +47,9 @@ reference when its condition applies — camera, typography, SVG, motion —
 and do not read the whole library. The product runs Hyperframes 0.7.106; a
 recipe is proven only by the product's checks on your submission.
 
+Never veil, dim or blur the whole frame to place text on it, and add no
+closing card the plan does not ask for.
+
 ## Work within the run budget
 
 Read the required packet once. Use bounded file reads rather than dumping the
