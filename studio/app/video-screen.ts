@@ -366,11 +366,14 @@ export const videoScreen = (
               }`
   }${
     (!practicing && cameraTake) ||
+    // Only a recorded take has anything to play: a scene still being
+    // prepared has no moments, and its controls sat over the slide (review 5).
     (!practicing &&
       capture.phase === 'idle' &&
       !view?.produced &&
-      moment?.camera !== 'none' &&
-      moment?.take?.recordingKey === moment?.recordingKey)
+      !!moment?.take &&
+      moment.camera !== 'none' &&
+      moment.take.recordingKey === moment.recordingKey)
       ? layeredControls()
       : capture.phase === 'idle' &&
           !practicing &&

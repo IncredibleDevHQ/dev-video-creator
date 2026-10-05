@@ -424,6 +424,14 @@ it('shows a retained matching recording in its presenter space instead of the st
   expect(render(input)).not.toContain('data-saved-presenter')
 })
 
+it('puts no playback controls over a scene that is still being prepared', () => {
+  const input = fixture(),
+    scene = input.project.video!.scenes[0]
+  scene.phase = 'writing'
+  scene.moments = []
+  expect(render(input)).not.toContain('layered-controls')
+})
+
 it('distinguishes scenes ready to assemble from active work and missing recordings', () => {
   const input = fixture(),
     scene = input.project.video!.scenes[0]
