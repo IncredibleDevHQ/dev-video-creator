@@ -1,43 +1,31 @@
-import type { Moment, Scene } from '../shared/model'
 import {
   dialogueBoundary,
   dialogueWordAt,
-  wordsOf,
   estimateSpeech
 } from '../shared/dialogue'
 import { escape } from './ui'
 import { api } from './api'
-import { drawFrame, drawnFrame, nearestFrame } from './filmstrip'
-import { animationSecond } from '../shared/scene-time'
+import {
+  fillFilmstrip,
+  sceneParts,
+  sceneWords,
+  steerAnimation,
+  time,
+  wordSpans
+} from './scene-timeline'
+import {
+  animationNote,
+  enableControls,
+  fitStage,
+  followPlayhead,
+  keepPoint,
+  markMoment,
+  markWord,
+  momentTimeline,
+  studioMarkup
+} from './dialogue-studio-view'
 import type { Snapshot } from '../shared/api'
-type Context = {
-  projectId: string
-  scene: Scene
-  index: number
-  second: number
-  busy: boolean
-  recording: boolean
-  label: string
-  /** The scene's animation: not made yet, being made, or ready to play. */
-  animation?: 'none' | 'making' | 'ready'
-  /** In practice, what Play plays: this moment, or the whole scene. */
-  scope?: Scope
-}
-type Scope = 'moment' | 'scene'
-/** What the studio asks of the page around it. */
-type Host = {
-  /** Choose what Play plays. */
-  scope: (next: Scope) => void
-  /**
-   * Playing the whole scene, the moment on show changed: the page shows its
-   * number and overlay without drawing everything again.
-   */
-  moment: (index: number) => void
-}
-const icon = (name: string) =>
-  `<svg viewBox="0 0 24 24" aria-hidden="true">${name === 'video' ? '<rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 10 6-3v10l-6-3"/>' : name === 'text' ? '<path d="M5 6h14M5 12h10M5 18h14"/>' : '<path d="M12 5v14M5 12h14"/>'}</svg>`
-const time = (n: number) =>
-  `${Math.floor(Math.max(0, n) / 60)}:${(Math.max(0, n) % 60).toFixed(1).padStart(4, '0')}`
+import type { Context, Host } from './dialogue-studio-types'
 /** One controller owns preview media, timeline, and inline dialogue edits. */
 export function dialogueStudio(
   root: HTMLElement,
@@ -165,50 +153,17 @@ export function dialogueStudio(
     cancelAnimationFrame(frame)
     paint()
   }
-  /**
-   * Playing the whole scene, keep the animation on the scene's clock: it plays
-   * straight on from one moment into the next, and holds its last frame only
-   * while a moment's words run past its animation. False when something
-   * outside paused it (a browser pauses a muted clip in a hidden page).
-   */
+  /** Keep the animation on the scene's clock; false if paused from outside. */
   function follow(v: HTMLVideoElement, live: boolean) {
-    const c = ctx()!,
-      at = sceneStart() + position,
-      index = momentAt(at),
-      moment = c.scene.moments[index],
-      base = c.scene.animation!.moments[index],
-      length = dialogueBoundary(moment),
-      local = at - moment.start,
-      holding =
-        local >= length - 0.02 &&
-        (moment.end - moment.start > length + 0.05 ||
-          index === c.scene.moments.length - 1),
-      target = holding
-        ? base.end - 0.04
-        : base.start +
-          Math.max(0, Math.min(1, local / length)) * (base.end - base.start),
-      rate = Math.max(0.25, Math.min(4, (base.end - base.start) / length))
-    if (!live || holding) {
-      rolling = false
-      if (!v.paused) v.pause()
-      if (Math.abs(v.playbackRate - rate) > 0.001) v.playbackRate = rate
-      if (!v.seeking && Math.abs(v.currentTime - target) > 0.04)
-        v.currentTime = target
-      return true
-    }
-    if (rolling && v.paused) return false
-    // A little behind or ahead, the animation catches up by playing a touch
-    // faster or slower; only when far off does it jump.
-    const drift = v.seeking ? 0 : target - v.currentTime
-    if (Math.abs(drift) > 1) v.currentTime = target
-    const nudged = Math.max(
-      0.25,
-      Math.min(4, rate * (1 + Math.max(-0.15, Math.min(0.15, drift * 0.6))))
+    const next = steerAnimation(
+      v,
+      ctx()!.scene,
+      sceneStart() + position,
+      live,
+      rolling
     )
-    if (Math.abs(v.playbackRate - nudged) > 0.01) v.playbackRate = nudged
-    if (v.paused) void v.play().catch(() => {})
-    rolling = true
-    return true
+    rolling = next.rolling
+    return !next.stopped
   }
   /** Tell the page which moment is on show, once it changes. */
   function showAt(second: number) {
@@ -384,142 +339,27 @@ export function dialogueStudio(
     }
     frame = requestAnimationFrame(tick)
   }
-  /** One moment's phrases on the Voice track, from where it starts there. */
-  function phraseButtons(
-    m: Moment,
-    from: number,
-    a: number,
-    b: number,
-    length: number,
-    extra: string
-  ) {
-    const base = m.extension?.baseLines ?? m.lines,
-      phrases = base.match(/[^,.;!?]+[,.;!?]*/g) || [base],
-      count = wordsOf(base).length
-    let word = 0
-    return (
-      phrases
-        .map((phrase) => {
-          const at = (word / count) * b
-          word += wordsOf(phrase).length
-          return `<button type="button" data-jump="${from + at}" style="left:${((from + at) / a) * 100}%;width:calc(${(((word / count) * b - at) / a) * 100}% - 4px)" title="${escape(phrase.trim())}">${escape(phrase.trim())}</button>`
-        })
-        .join('') +
-      (extra
-        ? `<button type="button" class="ds-extra" data-jump="${from + b}" style="left:${((from + b) / a) * 100}%;width:calc(${((length - b) / a) * 100}% - 4px)">${escape(extra)}</button>`
-        : '')
-    )
-  }
-  /** One moment's words for the read-along, with any extra dialogue. */
-  const wordSpans = (m: Moment) =>
-    wordsOf(m.extension?.baseLines ?? m.lines)
-      .map((w) => `<span data-ds-word>${escape(w)}</span>`)
-      .join(' ') +
-    (m.extension
-      ? `<span class="ds-divider">Animation holds · keep talking</span>${wordsOf(
-          m.extension.text
-        )
-          .map(
-            (w) =>
-              `<span data-ds-word class="ds-extra-word">${escape(w)}</span>`
-          )
-          .join(' ')}`
-      : '')
   /**
    * The whole scene on one timeline: each moment's animation on the Visual
    * track, every phrase on the Voice track, and one playhead across them all.
    */
   function sceneTimeline(c: NonNullable<ReturnType<typeof ctx>>) {
-    const moments = c.scene.moments,
-      start = sceneStart(),
-      a = axis(),
-      view = $('scroll').clientWidth || 600,
-      width = Math.round(view * zoom),
-      perSecond = width / a,
-      step =
-        [0.5, 1, 2, 5, 10, 15, 30, 60, 120].find((n) => n * perSecond >= 52) ??
-        120
-    $('timeline').style.width = `${width}px`
-    $('ruler').innerHTML = Array.from(
-      { length: Math.ceil(a / step) },
-      (_, i) => i * step
-    )
-      .filter((at) => at === 0 || at <= a - step / 2)
-      .map(
-        (at) =>
-          `<span style="left:${(at / a) * 100}%">${time(start + at).replace('.0', '')}</span>`
-      )
-      .join('')
-    // The Visual track is a filmstrip of the animation across the scene.
-    const src = animated()?.getAttribute('src') || '',
-      tile = 80,
+    const a = axis(),
+      width = Math.round(($('scroll').clientWidth || 600) * zoom),
+      // The Visual track is a filmstrip of the animation across the scene.
+      src = animated()?.getAttribute('src') || '',
+      parts = sceneParts(c.scene.moments, a, width / a, Boolean(src)),
       strip = src ? `${src}|${width}|${key}` : ''
+    $('timeline').style.width = `${width}px`
+    $('ruler').innerHTML = parts.ruler
     if (strip !== stripKey) {
       stripKey = strip
-      $('strip').innerHTML = src
-        ? Array.from({ length: Math.ceil(width / tile) }, (_, i) => {
-            let at = 0
-            try {
-              at = animationSecond(
-                c.scene,
-                start + Math.min(a, ((i + 0.5) * tile) / perSecond),
-                true
-              )
-            } catch {
-              // An animation for other moments draws no frames.
-            }
-            const frame = Math.round(at * 4) / 4,
-              url = drawnFrame(src, frame),
-              near = url ? undefined : nearestFrame(src, frame)
-            return `<img alt="" data-frame="${frame}" style="left:${i * tile}px"${
-              url || near ? ` src="${url || near}"` : ''
-            }${url ? '' : ' data-drawing'}>`
-          }).join('')
-        : ''
-      for (const img of $('strip').querySelectorAll<HTMLImageElement>(
-        'img[data-drawing]'
-      ))
-        void drawFrame(
-          src,
-          Number(img.dataset.frame),
-          () => img.isConnected
-        ).then((url) => {
-          if (!img.isConnected) return
-          img.src = url
-          img.removeAttribute('data-drawing')
-        })
+      fillFilmstrip($('strip'), c.scene, src, a, width)
     }
     $('strip').hidden = !src
-    // Moments are parts of the one timeline, cut apart by a line.
-    $('moments').innerHTML = moments
-      .map((m, i) => {
-        const length = m.end - m.start,
-          b = dialogueBoundary(m)
-        return `<button type="button" class="ds-moment" data-ds-moment="${i}" style="left:${((m.start - start) / a) * 100}%;width:${(length / a) * 100}%" aria-label="Moment ${i + 1}, from ${time(m.start)}" title="Moment ${i + 1} · ${escape(m.lines)}"><b>${i + 1}</b>${
-          src ? '' : '<span>Wireframe</span>'
-        }${
-          length - b > 0.05
-            ? `<span class="ds-moment-hold" style="left:${(b / length) * 100}%"></span>`
-            : ''
-        }</button>`
-      })
-      .join('')
-    $('cuts').innerHTML = moments
-      .slice(1)
-      .map((m) => `<i style="left:${((m.start - start) / a) * 100}%"></i>`)
-      .join('')
-    $('phrases').innerHTML = moments
-      .map((m) =>
-        phraseButtons(
-          m,
-          m.start - start,
-          a,
-          dialogueBoundary(m),
-          m.end - m.start,
-          m.extension?.text || ''
-        )
-      )
-      .join('')
+    $('moments').innerHTML = parts.moments
+    $('cuts').innerHTML = parts.cuts
+    $('phrases').innerHTML = parts.phrases
     const most = zoomMost()
     $('zoom')
       .querySelectorAll<HTMLButtonElement>('[data-ds-zoom]')
@@ -528,18 +368,10 @@ export function dialogueStudio(
           button.dataset.dsZoom === 'in' ? zoom >= most - 0.001 : zoom <= 1
       })
     if (editing) return
-    wordStarts = []
+    const words = sceneWords(c.scene.moments)
+    $('words').innerHTML = words.html
+    wordStarts = words.starts
     shownWord = -1
-    let count = 0
-    $('words').innerHTML = moments
-      .map((m, i) => {
-        wordStarts[i] = count
-        count +=
-          wordsOf(m.extension?.baseLines ?? m.lines).length +
-          (m.extension ? wordsOf(m.extension.text).length : 0)
-        return `<span class="ds-moment-words"><span class="ds-mark" aria-hidden="true">${i + 1}</span>${wordSpans(m)}</span>`
-      })
-      .join(' ')
   }
   /** The closest zoom: about a quarter of a second to every 65 pixels. */
   const zoomMost = () =>
@@ -549,16 +381,18 @@ export function dialogueStudio(
     if (!panel || !through()) return
     const value = Math.max(1, Math.min(zoomMost(), next))
     if (Math.abs(value - zoom) < 0.001) return
-    const scroll = $('scroll'),
-      before = $('timeline').clientWidth,
-      at =
-        anchor ??
-        (Math.min(position, total()) / Math.max(axis(), 0.01)) * before -
-          scroll.scrollLeft,
-      fraction = before ? (scroll.scrollLeft + at) / before : 0
-    zoom = value
-    timeline()
-    scroll.scrollLeft = Math.max(0, fraction * $('timeline').clientWidth - at)
+    keepPoint(
+      $('scroll'),
+      $('timeline'),
+      anchor ??
+        (Math.min(position, total()) / Math.max(axis(), 0.01)) *
+          $('timeline').clientWidth -
+          $('scroll').scrollLeft,
+      () => {
+        zoom = value
+        timeline()
+      }
+    )
   }
   function timeline() {
     if (!panel) return
@@ -576,62 +410,37 @@ export function dialogueStudio(
     if (scene) sceneTimeline(c)
     else {
       const b = boundary(),
-        a = axis()
+        a = axis(),
+        parts = momentTimeline(m, b, a, total(), text(), Boolean(video()))
       $('timeline').style.setProperty('--boundary', `${(b / a) * 100}%`)
       $('timeline').style.width =
         `${Math.max($('scroll').clientWidth, a * 65)}px`
-      $('ruler').innerHTML = Array.from({ length: Math.ceil(a / 2) }, (_, i) =>
-        i * 2 >= b - 0.5 && i * 2 < b + 1.5
-          ? ''
-          : `<span style="left:${((i * 2) / a) * 100}%">${time(i * 2).replace('.0', '')}</span>`
-      ).join('')
+      $('ruler').innerHTML = parts.ruler
       $('boundary').textContent = 'Animation ends'
-      $('animation').innerHTML =
-        `${icon('video')}<span>${video() ? 'Animation' : 'Wireframe · animation not made yet'} <small>${b.toFixed(1)}s</small></span><span>↔</span>`
-      $('phrases').innerHTML =
-        phraseButtons(m, 0, a, b, total(), text()) +
-        (!text() && m.camera !== 'none'
-          ? `<button type="button" class="ds-add" data-ds="add" style="left:calc(${(b / a) * 100}% + 6px);right:0">${icon('plus')} Keep talking</button>`
-          : '')
+      $('animation').innerHTML = parts.animation
+      $('phrases').innerHTML = parts.phrases
       if (!editing) {
         $('words').innerHTML = wordSpans(m)
         shownWord = -1
       }
     }
     $('seek').setAttribute('max', String(total()))
-    const choosing = Boolean(host && c.scope && c.scene.moments.length > 1)
-    $('scope').hidden = !choosing
+    $('scope').hidden = !(host && c.scope && c.scene.moments.length > 1)
     panel
       .querySelectorAll<HTMLButtonElement>('[data-ds-scope]')
-      .forEach((button) => {
+      .forEach((button) =>
         button.setAttribute(
           'aria-pressed',
           String(button.dataset.dsScope === (c.scope || 'moment'))
         )
-        button.disabled = editing || c.busy
-      })
+      )
     $('save').toggleAttribute('disabled', saving || (!text() && !m.extension))
     $('edit').hidden = scene || !m.extension || editing || c.busy
     panel.classList.toggle('is-editing', editing)
     panel.classList.toggle('is-scene', scene)
     $('read').hidden = editing
     $('editor').hidden = !editing
-    root
-      .querySelectorAll<HTMLButtonElement>(
-        '[data-action=practice-start],[data-action=practice-replay],[data-action=record-moment]'
-      )
-      .forEach((button) => (button.disabled = editing))
-    // Before the scene has an animation, Play still plays: the words read
-    // along over the wireframe (a disabled Play said nothing about why).
-    $('animation').toggleAttribute('disabled', editing || c.busy)
-    $('play').toggleAttribute('disabled', editing || c.busy)
-    $('replay').toggleAttribute('disabled', editing || c.busy)
-    $('seek').toggleAttribute('disabled', editing || c.busy)
-    panel
-      .querySelectorAll<HTMLButtonElement>(
-        '[data-jump],.ds-add,[data-ds-moment]'
-      )
-      .forEach((el) => (el.disabled = editing || c.busy))
+    enableControls(root, panel, editing || c.busy, editing)
     paint()
     layout()
   }
@@ -672,66 +481,35 @@ export function dialogueStudio(
     ;($('seek') as HTMLInputElement).value = String(Math.min(position, total()))
     $('mode').textContent = c.label
     if (scene) {
-      panel
-        .querySelectorAll<HTMLElement>('[data-ds-moment]')
-        .forEach((block, i) => {
-          block.classList.toggle('is-current', i === index)
-          block.classList.toggle('is-played', i < index)
-          if (i === index) block.setAttribute('aria-current', 'step')
-          else block.removeAttribute('aria-current')
-        })
-      // A scene too long to fit scrolls along, a view at a time.
-      const scroll = $('scroll'),
-        width = $('timeline').clientWidth,
-        view = scroll.clientWidth
-      if (playing && width > view + 1) {
-        const x = (Math.min(position, total()) / axis()) * width
-        if (x > scroll.scrollLeft + view * 0.8 || x < scroll.scrollLeft)
-          scroll.scrollTo?.({
-            left: Math.max(0, x - view * 0.2),
-            behavior: 'smooth'
-          })
-      }
+      markMoment(panel, index)
+      if (playing)
+        followPlayhead(
+          $('scroll'),
+          $('timeline').clientWidth,
+          (Math.min(position, total()) / axis()) * $('timeline').clientWidth
+        )
     }
     // Until the scene has its animation, say so, and offer to make it here.
     const making = c.animation === 'making',
-      held = second - moment.start >= dialogueBoundary(moment) - 0.08
-    $('remaining').textContent = video()
-      ? scene
-        ? held && moment.end - moment.start > dialogueBoundary(moment) + 0.05
-          ? 'Animation holds · keep speaking'
-          : `Moment ${index + 1} of ${c.scene.moments.length}`
-        : held
-          ? 'Animation holds · keep speaking'
-          : `${Math.max(0, boundary() - position).toFixed(1)}s of animation left`
-      : making
-        ? 'Making the animation… it plays here when ready'
-        : 'No animation yet · the words play over the wireframe'
+      length = dialogueBoundary(moment)
+    $('remaining').textContent = animationNote({
+      animated: Boolean(video()),
+      making,
+      scene,
+      held: second - moment.start >= length - 0.08,
+      holds: moment.end - moment.start > length + 0.05,
+      index,
+      count: c.scene.moments.length,
+      left: boundary() - position
+    })
     const make = panel.querySelector<HTMLButtonElement>('[data-ds-make]')
     if (make) make.hidden = Boolean(video()) || making || editing
     if (editing) return
     const active = scene
       ? (wordStarts[index] ?? 0) + dialogueWordAt(moment, second)
       : dialogueWordAt(c.moment, second)
-    panel.querySelectorAll<HTMLElement>('[data-ds-word]').forEach((el, i) => {
-      el.classList.toggle('current', i === active)
-      el.classList.toggle('read', i < active)
-      el.toggleAttribute('aria-current', i === active)
-      // Scroll once per word: gently while playing, so the eye can follow
-      // the lines, and straight there after a jump.
-      if (i === active && active !== shownWord) {
-        shownWord = active
-        const read = $('read'),
-          r = el.getBoundingClientRect(),
-          v = read.getBoundingClientRect()
-        if (r.bottom > v.bottom - 12 || r.top < v.top + 5) {
-          const top = read.scrollTop + r.top - v.top - 20
-          if (read.scrollTo)
-            read.scrollTo({ top, behavior: playing ? 'smooth' : 'auto' })
-          else read.scrollTop = top
-        }
-      }
-    })
+    markWord(panel, $('read'), active, active !== shownWord, playing)
+    shownWord = active
   }
   function open() {
     const c = ctx()
@@ -807,45 +585,7 @@ export function dialogueStudio(
       }
     }
   }
-  function layout() {
-    const area = root.querySelector<HTMLElement>('.has-dialogue-studio'),
-      stage = area?.querySelector<HTMLElement>('.video-stage')
-    if (!area || !stage) return
-    const style = getComputedStyle(area),
-      children = [...area.children].filter(
-        (el) =>
-          el !== stage &&
-          getComputedStyle(el).display !== 'none' &&
-          getComputedStyle(el).position !== 'absolute'
-      )
-    const available =
-      area.clientHeight -
-      parseFloat(style.paddingTop) -
-      parseFloat(style.paddingBottom) -
-      children.reduce((n, el) => {
-        const s = getComputedStyle(el)
-        return (
-          n +
-          el.getBoundingClientRect().height +
-          parseFloat(s.marginTop) +
-          parseFloat(s.marginBottom)
-        )
-      }, 0) -
-      parseFloat(style.gap) * children.length
-    const height = Math.max(
-      80,
-      Math.min(
-        available,
-        ((area.clientWidth -
-          parseFloat(style.paddingLeft) -
-          parseFloat(style.paddingRight)) /
-          16) *
-          9
-      )
-    )
-    stage.style.width = `${(height * 16) / 9}px`
-    stage.style.height = `${height}px`
-  }
+  const layout = () => fitStage(root)
   const resize = new ResizeObserver(() => {
     if (panel?.isConnected) layout()
   })
@@ -883,67 +623,7 @@ export function dialogueStudio(
       panel = document.createElement('section')
       panel.className = 'dialogue-studio'
       panel.setAttribute('aria-label', 'Synchronized animation and dialogue')
-      panel.innerHTML = `
-   <div class="ds-transport"><div><button type="button" data-ds="play">▶ Play</button><button type="button" data-ds="replay" aria-label="Replay animation">↻</button><time data-ds="time"></time><div class="ds-scope" data-ds="scope" role="group" aria-label="Play" hidden><button type="button" data-ds-scope="moment" aria-pressed="true">This moment</button><button type="button" data-ds-scope="scene" aria-pressed="false">Whole scene</button></div></div><div class="ds-animation-state"><span data-ds="remaining"></span><button type="button" class="primary" data-action="make-animation" data-ds-make hidden>Make the animation</button><div class="ds-zoom" data-ds="zoom" role="group" aria-label="Timeline zoom" hidden><button type="button" data-ds-zoom="out" aria-label="Zoom out" title="Zoom out">−</button><button type="button" data-ds-zoom="fit" title="Fit the whole scene">Fit</button><button type="button" data-ds-zoom="in" aria-label="Zoom in" title="Zoom in">+</button></div></div></div>
-   <div class="ds-tracks"><div class="ds-labels"><span></span><span>${icon('video')} Visual</span><span>${icon('text')} Voice</span>\
-</div>\
-<div data-ds="scroll" class="ds-scroll">\
-<div data-ds="timeline" class="ds-timeline">\
-<div data-ds="ruler" class="ds-ruler">\
-</div>\
-<div class="ds-visual">\
-<button type="button" data-ds="animation">\
-</button>\
-<div data-ds="hold" class="ds-hold">Last frame holds</div>\
-<div data-ds="strip" class="ds-strip" aria-hidden="true" hidden>\
-</div>\
-<div data-ds="moments" class="ds-moments" hidden>\
-</div>\
-</div>\
-<div data-ds="phrases" class="ds-phrases">\
-</div>\
-<div class="ds-boundary">\
-<span data-ds="boundary">\
-</span>\
-</div>\
-<div data-ds="cuts" class="ds-cuts" aria-hidden="true" hidden>\
-</div>\
-<div data-ds="playhead" class="ds-playhead">\
-</div>\
-<input type="range" data-ds="seek" aria-label="Dialogue preview position" min="0" step="0.05" value="0">\
-</div>\
-</div>\
-</div>
-   <div class="ds-prompter">\
-<div class="ds-heading">\
-<strong data-ds="mode">• Read along</strong>\
-<small>Estimated pacing</small>\
-<button type="button" data-ds="edit">Edit extra dialogue</button>\
-</div>\
-<div data-ds="read" class="ds-read">\
-<span class="ds-caret">›</span>\
-<p data-ds="words">\
-</p>\
-</div>\
-<div data-ds="editor" hidden>\
-<div class="ds-writing">\
-<span data-ds="context">\
-</span> <span data-ds="input" contenteditable="plaintext-only" role="textbox" aria-label="Extra dialogue" aria-multiline="true">\
-</span>\
-</div>\
-<div class="ds-tools">\
-<label>Extra time <input data-ds="length" type="range" aria-label="Extra time" min="5" max="30" step="5" value="10">\
-<output data-ds="target">~10s</output>\
-</label>\
-<button type="button" data-ds="suggest">✧ Suggest continuation</button>\
-<button type="button" data-ds="cancel">Cancel</button>\
-<button type="button" data-ds="save" class="primary">Save extension</button>\
-</div>\
-<p class="ds-save-note">Animation stays unchanged. This moment will need a new recording.</p>\
-</div>\
-</div>\
-<div data-ds="status" role="status" class="ds-status">\
-</div>`
+      panel.innerHTML = studioMarkup()
       panel.addEventListener('click', (event) => {
         const button = (event.target as Element).closest<HTMLButtonElement>(
           'button'
