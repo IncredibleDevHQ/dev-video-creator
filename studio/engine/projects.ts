@@ -19,7 +19,7 @@ import { prepareCreativeStory } from './creative/story'
 import { prepareCreativePages } from './creative/pages'
 import { prepareCreativeSlideRevision } from './creative/slide-revision'
 import { fingerprintOf } from './planning/fingerprint'
-import type { HarnessSelection } from '../shared/model'
+import { STORY_SCENES, type HarnessSelection } from '../shared/model'
 import { randomUUID } from 'node:crypto'
 import type { Snapshot, SlideEdit, ChatRequest } from '../shared/api'
 import type { ProjectEvent } from '../shared/model'
@@ -42,6 +42,8 @@ import { readSourceNarrative } from './source-document'
 import { readSourceUrl } from './source-reader'
 import { outlineSchema, outlinePrompt, sanitizeOutline } from './source-outline'
 import { pageBrandFrom, renderPage } from './source-page'
+import { identityOf } from './branding'
+import { startingLook, withLook } from './looks'
 const queues = new Map<string, Promise<unknown>>()
 export const loadProject = async (id: string) => {
   const snapshot = await readRow<Snapshot>('projects', id)
@@ -94,11 +96,11 @@ export const createProject = async (
     ? validateHarnessSelection(harness)
     : (await loadHarnessPreference()) || undefined
   const id = randomUUID()
-  const branding =
-    (await readRow<import('../shared/settings').Branding>(
-      'settings',
-      'branding'
-    )) || undefined
+  // Only the creator's identity carries into a new notebook; its look is
+  // chosen when its source is read.
+  const branding = identityOf(
+    await readRow<import('../shared/settings').Branding>('settings', 'branding')
+  )
   const snapshot: Snapshot = {
     project: {
       id,
@@ -165,7 +167,7 @@ const drawingStop = (reason: unknown, snapshot: Snapshot) => {
   const agent = harnessName(snapshot.project.harness?.adapter)
   const total = snapshot.plannedSlides || reason.total
   const drawn = snapshot.project.slides.filter((slide) => slide.svg).length
-  return `${agent} ${why} on wireframe ${reason.page} of ${total}, after three tries. ${drawn} of ${total} are drawn; Try again continues from wireframe ${reason.page}.`
+  return `${agent} ${why} on wireframe ${reason.page} of ${total}, after three tries. ${drawn} ${drawn === 1 ? 'is' : 'are'} drawn; Try again continues from wireframe ${reason.page}.`
 }
 export const stopSlides = async (id: string) => {
   await changeProject(id, (current) => {
@@ -235,6 +237,11 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
       'Article text supplied by the creator after automatic reading was blocked.'
     )
     await writeRow('sources', id, source)
+    if (!current.project.branding?.look)
+      current.project.branding = withLook(
+        current.project.branding,
+        await startingLook(source)
+      )
     current.project.sourceUrl = sourceUrl
     current.project.source = text.trim()
     current.status = current.sourceOnly ? 'draft' : 'building'
@@ -308,7 +315,8 @@ const buildSlides = async (id: string) => {
         source,
         snapshot.project.harness,
         origin,
-        brief
+        brief,
+        STORY_SCENES[snapshot.project.length || 'medium']
       )
     }
     if (!outline.scenes.length) throw new Error('No slides generated')
@@ -421,9 +429,6 @@ const buildSlides = async (id: string) => {
         )
       )
         return
-      const pageBrand = current.project.branding?.useAccent
-        ? { ...brand, accent: current.project.branding.accent }
-        : brand
       const svg = designed[index]
       if (!svg)
         throw new Error('The creative drawing stage did not return this page')
@@ -466,8 +471,23 @@ const buildSlides = async (id: string) => {
 }
 export const editSlide = (id: string, edit: SlideEdit) =>
   changeProject(id, (snapshot) => {
+    if (edit.action === 'script') {
+      // The script under a wireframe (review 5): the narration the video
+      // will speak, edited beside the picture.
+      const slide = snapshot.project.slides.find(
+        (item) => item.id === edit.slideId
+      )
+      if (!slide) throw new Error('Wireframe not found')
+      if (snapshot.status !== 'ready')
+        throw new Error('Edit the script once the wireframes are ready')
+      if (typeof edit.narration !== 'string')
+        throw new Error('Add the script for this wireframe')
+      slide.narration = edit.narration.trim()
+      reconcileVideo(snapshot.project, snapshot)
+      return
+    }
     if (snapshot.status === 'building')
-      throw new Error('Wait for the slides to finish')
+      throw new Error('Wait for the wireframes to finish')
     const slides = snapshot.project.slides
     const index = slides.findIndex((slide) => slide.id === edit.slideId)
     const restored = snapshot.deletedSlide

@@ -3,6 +3,7 @@ import type { AppContext } from './app-context'
 import { downloadPresentation } from './download'
 import { flushNotebookEdits } from './notebook-editor'
 import { createPresentation } from './start-controller'
+import { closePopover, openPopover } from './popover'
 
 export const installSlidesController = (app: AppContext) => {
   app.root.addEventListener('keydown', (event) => {
@@ -25,12 +26,18 @@ export const installSlidesController = (app: AppContext) => {
               : event.key === 'Enter'
                 ? 'add'
                 : null
-    if (action) {
-      event.preventDefault()
-      app.root
-        .querySelector<HTMLButtonElement>(`[data-action="${action}"]`)
-        ?.click()
-    }
+    if (!action) return
+    event.preventDefault()
+    if (action === 'add')
+      app.root.querySelector<HTMLButtonElement>('[data-action="add"]')?.click()
+    // The wireframe menu is a popover, so its shortcuts act directly.
+    else if (
+      app.snapshot.status === 'ready' &&
+      app.snapshot.project.slides[app.selected]
+    )
+      void clickSlides(app, document.createElement('button'), action).catch(
+        app.error
+      )
   })
   app.root.addEventListener('dragstart', (event) => {
     const target = (event.target as Element).closest<HTMLElement>(
@@ -77,9 +84,12 @@ export const submitSlides = async (
     const instruction = String(values.get('instruction') || '').trim()
     const slideId = app.snapshot.project.slides[app.selected]?.id
     if (!instruction || !slideId) return
+    const target = app.pin || undefined
+    app.pin = null
     await app.sendChat({
       anchor: { stage: 'presentation', slideId },
-      instruction
+      instruction,
+      ...(target ? { target } : {})
     })
   }
 }
@@ -117,6 +127,40 @@ export const clickSlides = async (
     }
   }
   if (action === 'export') await downloadPresentation(id, target)
+  if (action === 'slide-menu') {
+    // A popover is never clipped by the scrolling area under the wireframe
+    // (review 5: Delete was cut off at a 900 px window).
+    const ready = app.snapshot.status === 'ready'
+    const last = app.selected === app.snapshot.project.slides.length - 1
+    const item = (label: string, name: string, disabled: boolean) =>
+      `<button type="button" data-action="${name}" ${disabled ? 'disabled' : ''}>${label}</button>`
+    openPopover(
+      target,
+      'slide-menu',
+      `<div class="slide-menu-list" role="menu" aria-label="Wireframe actions">${item('Duplicate', 'duplicate', !ready)}${item('Move up', 'up', app.selected === 0 || !ready)}${item('Move down', 'down', last || !ready)}${item('Delete', 'delete', !ready)}</div>`,
+      'slide-menu-popover'
+    )
+    return
+  }
+  if (action === 'unpin') {
+    app.pin = null
+    app.render()
+    return
+  }
+  if (action?.startsWith('resend-change:')) {
+    const change = app.snapshot.changes?.find(
+      (item) => item.id === action.slice(14)
+    )
+    if (!change) return
+    app.pin = change.target || null
+    app.render()
+    const field = app.root.querySelector<HTMLInputElement>('#instruction')
+    if (field) {
+      field.value = change.instruction
+      field.focus()
+    }
+    return
+  }
   if (action === 'view-slides') {
     await flushNotebookEdits(app)
     app.stage = 'presentation'
@@ -131,6 +175,7 @@ export const clickSlides = async (
       action || ''
     )
   ) {
+    closePopover()
     const restoredIndex = app.snapshot.deletedSlide?.index || 0
     app.snapshot = await api.slide(id, {
       action:

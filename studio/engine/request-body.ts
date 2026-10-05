@@ -49,10 +49,17 @@ export const chatRequest = (body: Record<string, unknown>): ChatRequest => {
 }
 export const slideRequest = (body: Record<string, unknown>): SlideEdit => {
   const action = stringField(body, 'action')
-  if (!['add', 'duplicate', 'delete', 'move', 'undo-delete'].includes(action))
+  if (
+    !['add', 'duplicate', 'delete', 'move', 'undo-delete', 'script'].includes(
+      action
+    )
+  )
     throw new Error('Choose a slide action')
   return {
     action: action as SlideEdit['action'],
+    ...(body.narration === undefined
+      ? {}
+      : { narration: stringField(body, 'narration').slice(0, 4000) }),
     ...(body.slideId === undefined
       ? {}
       : { slideId: stringField(body, 'slideId') }),

@@ -7,10 +7,9 @@ import type { Snapshot } from '../shared/api'
 import { wireframeProgress } from './wireframe-progress'
 
 /**
- * The short caption after a stage's name in the header: a count while the
- * stage works ("3/9"), "next" before it
- * starts, and "needs you" when something failed. The full status stays in the
- * title and for screen readers.
+ * The short caption after a stage's name in the header: one plain word
+ * ("drawing", "stopped", "next") or a count of produced scenes. The agent pill
+ * carries the run's progress, so the tab does not count it again (review 5).
  */
 const caption = (
   snapshot: Snapshot,
@@ -19,20 +18,15 @@ const caption = (
   active: boolean
 ) => {
   const { project } = snapshot
-  if (label === 'Needs attention') return 'needs you'
+  if (label === 'Needs attention') return 'stopped'
   if (stage === 'presentation') {
-    if (active) {
-      const progress = wireframeProgress(snapshot)
-      return progress.checking
-        ? 'checking'
-        : progress.total
-          ? `${progress.saved}/${progress.total}`
-          : 'working'
-    }
+    if (active)
+      return wireframeProgress(snapshot).checking ? 'checking' : 'drawing'
+    if (label === 'Not started') return 'next'
   }
   if (stage === 'video') {
     const video = project.video
-    if (!video) return 'next'
+    if (!video) return snapshot.status === 'ready' ? 'next' : ''
     const views = snapshot.views || projectViews(project, snapshot.events)
     if (views.video.action === 'export') return 'ready'
     return `${views.video.producedScenes}/${video.scenes.length}`
@@ -76,5 +70,6 @@ export const stageStatus = (
   const text = overridden
     ? label.toLowerCase()
     : caption(snapshot, stage, label, active)
+  if (!text) return ''
   return `<span class="stage-status ${state}" title="${label}"><span class="sr"> · ${label}</span><span class="stage-caption" aria-hidden="true">${text}</span></span>`
 }

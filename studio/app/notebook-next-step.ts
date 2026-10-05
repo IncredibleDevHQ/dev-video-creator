@@ -1,4 +1,6 @@
 import type { Snapshot } from '../shared/api'
+import { agentNames } from './agent-setup'
+import { choicesRow } from './notebook-choices'
 import { button, escape } from './ui'
 
 export const notebookNextStep = (snapshot: Snapshot) => {
@@ -23,7 +25,7 @@ export const notebookNextStep = (snapshot: Snapshot) => {
       title: 'Let’s finish your wireframes',
       description:
         'The last attempt stopped. Try again, or change the model before continuing.',
-      label: 'Retry wireframes →',
+      label: 'Try again →',
       action: 'retry-slides',
       disabled: !!snapshot.readOnly
     }
@@ -57,11 +59,32 @@ export const notebookNextAction = (snapshot: Snapshot, pending = false) => {
   const next = notebookNextStep(snapshot)
   return button(next.label, next.action, true, pending || next.disabled)
 }
-export const notebookNextBanner = (snapshot: Snapshot, pending: boolean) => {
-  const next = notebookNextStep(snapshot)
-  return `<section class="notebook-next-step" aria-label="Next step">
-<div><span class="next-step-label">NEXT STEP</span><h2>${escape(next.title)}</h2><p>${escape(next.description)}</p>
-${snapshot.status === 'failed' && snapshot.error ? `<details class="next-step-error"><summary>What happened?</summary><p>${escape(snapshot.error)}</p></details>` : ''}</div>
-<div class="next-step-actions">${notebookNextAction(snapshot, pending)}${snapshot.status === 'failed' && !snapshot.sourceOnly ? button('Change model', 'agent-settings') : ''}</div>
-</section>`
+/**
+ * One line under the notebook's title: what happens next, with the choices
+ * Create will use. The header holds the only Create button (review 5).
+ */
+export const notebookHint = (snapshot: Snapshot, editable: boolean) => {
+  const agent = snapshot.project.harness
+    ? agentNames[snapshot.project.harness.adapter]
+    : 'Your agent'
+  const line = (text: string, tone = '') =>
+    `<section class="notebook-next${tone ? ` is-${tone}` : ''}" aria-label="Next step"><p>${text}</p>${
+      editable ? choicesRow(snapshot, editable) : ''
+    }</section>`
+  if (snapshot.status === 'reading') return line('Reading your article…')
+  if (snapshot.status === 'failed' && snapshot.sourceOnly) return ''
+  if (snapshot.status === 'failed')
+    return line(
+      `<b>Stopped.</b> ${escape(snapshot.error || 'The last attempt stopped.')}`,
+      'stopped'
+    )
+  if (snapshot.status === 'draft')
+    return line('<b>Next:</b> Create wireframes, top right.')
+  if (snapshot.status === 'building')
+    return line(
+      `<b>${escape(agent)} is drawing your wireframes.</b> Watch them arrive in Wireframe.`
+    )
+  return line(
+    '<b>Your wireframes are ready.</b> Review them in Wireframe, then make the video.'
+  )
 }

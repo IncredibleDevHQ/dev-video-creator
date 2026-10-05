@@ -1,0 +1,485 @@
+/* Review 5: a header that follows the theme, one agent pill with its menu,
+   the look panel beside the wireframes, and the choices row beside Create. */
+:root {
+  --header-bg: #ffffff;
+  --header-ink: #19211d;
+  --header-muted: #5f6964;
+  --header-line: #e1e4e1;
+  --header-hover: #eef1ee;
+  --header-track: #eff1ef;
+  --header-current: #ffffff;
+  --header-current-ink: #151c18;
+  --warn: #9a6512;
+  --warn-bg: #fbf1dc;
+  --warn-line: #e6c58c;
+}
+:root[data-theme='dark'] {
+  --header-bg: #111719;
+  --header-ink: #f7f9f8;
+  --header-muted: #bbc5bf;
+  --header-line: #2c3334;
+  --header-hover: #30383a;
+  --header-track: #22282b;
+  --header-current: #ffffff;
+  --header-current-ink: #151c18;
+  --warn: #e8b35a;
+  --warn-bg: #3a2d17;
+  --warn-line: #6b5124;
+}
+header {
+  background: var(--header-bg);
+  color: var(--header-ink);
+  border-bottom-color: var(--header-line);
+}
+header nav,
+.workspace-header:has(.theme-control) nav {
+  background: var(--header-track);
+}
+header nav button {
+  color: var(--header-muted);
+}
+header nav [aria-current='page'],
+header nav [aria-current='page']:hover {
+  background: var(--header-current);
+  color: var(--header-current-ink);
+  box-shadow:
+    0 1px 2px #0000001f,
+    0 0 0 1px #0000000d;
+}
+header button:hover,
+:root[data-theme='dark'] header button:hover {
+  background: var(--header-hover);
+}
+header .theme-control,
+.workspace-header .theme-control {
+  border-color: var(--header-line);
+}
+header .theme-control button,
+.workspace-header .icon-button {
+  color: var(--header-muted);
+}
+:root header .theme-control button:hover {
+  background: var(--header-hover);
+  color: var(--header-ink);
+}
+:root header .theme-control button[aria-pressed='true'] {
+  background: var(--header-ink);
+  color: var(--header-bg);
+}
+.workspace-header .header-utilities {
+  border-left-color: var(--header-line);
+}
+header nav .stage-status,
+header nav [aria-current='page'] .stage-status {
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0;
+  color: var(--header-muted);
+}
+header nav [aria-current='page'] .stage-status {
+  color: #6d7571;
+}
+header nav .stage-status.needs-attention,
+header nav [aria-current='page'] .stage-status.needs-attention {
+  color: var(--warn);
+}
+header nav button:disabled {
+  opacity: 0.5;
+}
+
+/* The notebook's name, after the logo. */
+.workspace-header .notebook-identity {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: min(320px, calc(50vw - 360px));
+}
+.workspace-header .header-sep {
+  color: var(--header-line);
+  font-size: 18px;
+}
+.workspace-header .header-project-title {
+  color: var(--header-ink);
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 100%;
+}
+.workspace-header .brand {
+  margin-right: -6px;
+}
+
+/* The agent: one pill, its activity, and a menu under it. */
+.agent-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--header-line);
+  border-radius: 999px;
+  color: var(--header-ink);
+  font-size: 12px;
+  white-space: nowrap;
+  max-width: 300px;
+}
+.agent-pill .agent-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3fb36b;
+  flex: none;
+}
+.agent-pill.is-offline .agent-dot {
+  background: #9aa49e;
+}
+.agent-pill.is-working .agent-dot {
+  animation: agent-pulse 1.4s ease-in-out infinite;
+}
+@keyframes agent-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-pill.is-working .agent-dot {
+    animation: none;
+  }
+}
+.agent-pill .agent-name {
+  font-weight: 600;
+}
+.agent-pill .agent-activity {
+  color: var(--header-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agent-pill .agent-activity::before {
+  content: '·';
+  margin-right: 6px;
+}
+.agent-chevron {
+  flex: none;
+  opacity: 0.6;
+}
+.header-look {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--header-ink);
+}
+
+.popover {
+  position: fixed;
+  z-index: 60;
+  width: 300px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: inherit;
+  box-shadow: 0 14px 36px #00000033;
+  font-size: 13px;
+}
+.popover-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.agent-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.agent-menu-row:hover {
+  background: var(--selected);
+}
+.agent-menu-row small {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.agent-menu-row.is-missing {
+  cursor: default;
+  opacity: 0.55;
+}
+.agent-menu-model,
+.look-fonts label {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.agent-menu-model select,
+.look-fonts select {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--text, inherit);
+  font-size: 13px;
+}
+.popover-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.popover-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--warn);
+}
+.popover-error:empty {
+  display: none;
+}
+.popover-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+.popover-actions button {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.length-menu button[role='radio'] {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.length-menu button[aria-checked='true'] {
+  background: var(--selected);
+  font-weight: 600;
+}
+.length-menu small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* One line under the notebook's title, with the choices Create will use. */
+.notebook-next {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.notebook-next > p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.notebook-next.is-stopped {
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+}
+.notebook-next.is-stopped > p {
+  color: var(--warn);
+}
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.choice {
+  padding: 3px 8px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 50%, var(--line));
+  border-radius: 6px;
+  font-size: 13px;
+  color: inherit;
+}
+.choice:hover:not(:disabled) {
+  border-style: solid;
+  background: var(--selected);
+}
+
+/* The look panel, beside the wireframes. */
+.look-panel {
+  position: fixed;
+  z-index: 40;
+  top: 64px;
+  right: 16px;
+  bottom: 16px;
+  width: 360px;
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 18px 40px #00000033;
+}
+body.has-look-panel main.workspace {
+  padding-right: 380px;
+}
+.look-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.look-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.look-note {
+  margin: 6px 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.look-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.look-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  padding: 6px 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: left;
+}
+.look-tile[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.look-name {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.look-tile small {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.look-sample {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  aspect-ratio: 16 / 9;
+  padding: 8px 10px;
+  border: 1px solid #0000001a;
+  border-radius: 5px;
+  background: var(--look-ground);
+  color: var(--look-text);
+  overflow: hidden;
+}
+.look-sample b {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font:
+    600 11px/1.15 var(--look-display),
+    Inter,
+    sans-serif;
+}
+.look-sample i {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.look-sample em {
+  width: 20px;
+  height: 11px;
+  border: 1.5px solid var(--look-accent);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--look-accent) 14%, var(--look-ground));
+}
+.look-sample em:nth-child(2) {
+  background: var(--look-accent);
+}
+.look-panel h3 {
+  margin: 18px 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.look-colours {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.look-colours label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.look-colours input[type='color'] {
+  width: 48px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+}
+.look-fonts {
+  display: grid;
+}
+.look-actions {
+  position: sticky;
+  bottom: -16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 16px -16px -16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.look-actions button {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+/* Home: the creator's notebooks under the field; the demo on request. */
+.start.has-recent .saved-notebooks {
+  margin-top: 30px;
+}
+.saved-notebooks-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.saved-notebooks-heading h2 {
+  margin: 0 0 14px;
+}
+.how-it-works {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+dialog[data-story] {
+  width: min(1180px, calc(100vw - 48px));
+  max-width: none;
+}
+dialog[data-story] .brand-story {
+  margin-top: 8px;
+}

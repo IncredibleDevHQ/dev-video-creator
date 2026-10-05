@@ -20,6 +20,10 @@ const request = <T>(path: string, method = 'GET', body?: unknown): Promise<T> =>
     body: body ? JSON.stringify(body) : undefined
   })
 export const api = {
+  applyLook: (id: string, look: import('../shared/looks').Look) =>
+    request<Snapshot>(`/projects/${id}/look`, 'POST', { look }),
+  setLength: (id: string, length: import('../shared/model').StoryLength) =>
+    request<Snapshot>(`/projects/${id}/length`, 'POST', { length }),
   saveLibraryBrand: (body: unknown) =>
     request<import('../shared/settings').SavedBrand>(
       '/settings/brands',

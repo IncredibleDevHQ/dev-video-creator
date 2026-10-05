@@ -48,7 +48,7 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
   const changed = await changeProject(id, (current) => {
     const slide = current.project.slides.find((item) => item.id === slideId)
     if (!slide) throw new Error('Select a wireframe first')
-    if (!['ready', 'building'].includes(current.status) || !slide.svg)
+    if (!['ready', 'building', 'failed'].includes(current.status) || !slide.svg)
       throw new Error('Wait for this wireframe to be drawn')
     const change: SlideChange = {
       id: randomUUID(),
@@ -188,8 +188,15 @@ const reviseSlide = async (id: string, change: SlideChange) => {
     ).scenes[0]
   else revised = await reviseWithoutAgent(id, change, slide.title, retained)
   if (!revised) throw new Error('No revised wireframe')
-  const pageBrand = snapshot.project.branding?.useAccent
-    ? { ...retained.brand, accent: snapshot.project.branding.accent }
+  // The page is redrawn in the notebook's current look.
+  const look = snapshot.project.branding
+  const pageBrand = look?.palette
+    ? {
+        ...retained.brand,
+        ...look.palette,
+        accent: look.accent,
+        ...(look.fonts || {})
+      }
     : retained.brand
   const svg = harness
     ? (

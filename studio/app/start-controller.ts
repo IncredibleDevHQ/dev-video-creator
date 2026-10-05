@@ -1,11 +1,11 @@
-import { reviewBrand } from './brand-review'
-import { brandStory, installBrandStory } from './brand-story'
+import { brandStory, controlIcon, installBrandStory } from './brand-story'
+import { animateBrandStory } from './brand-story-timeline'
+import { openAgentMenu } from './agent-menu'
 import { themeControl } from './appearance'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import type { NotebookSummary } from '../shared/api'
 import incredibleLogo from './assets/incredible-logo.svg'
-import { AgentSetup } from './agent-setup'
 import { sourceComposer, updateSourceComposer } from './source-composer'
 import { rollingHeadline } from './rolling-headline'
 import { replacePlayerView } from './player-view'
@@ -86,14 +86,17 @@ export const createRenderStartScreen = (app: AppContext) => () => {
   const previousPlayer = app.root.querySelector<HTMLMediaElement>(
     '[data-scene-player]'
   )
-  const recent = app.showAllRecent ? app.notebooks : app.notebooks.slice(0, 6)
+  const recent = app.showAllRecent ? app.notebooks : app.notebooks.slice(0, 8)
+  // Your work is the home page: the notebooks sit straight under the field,
+  // and the demo shows only until there is a notebook (review 5).
+  const firstVisit = !app.notebooks.length
   replacePlayerView(
     app.root,
     `<header class="home">
 <a class="brand" href="/" aria-label="Incredible Studio">
 <img src="${incredibleLogo}" alt="">Incredible</a>
 <div class="header-actions">${themeControl()}${button('Settings', 'settings')}</div></header>
-<main class="start has-story${app.notebooks.length ? ' has-recent' : ''}">
+<main class="start has-story${firstVisit ? '' : ' has-recent'}">
 ${rollingHeadline()}
 <form id="source">
 <label class="sr" for="source-input">Blog link or Markdown</label>
@@ -102,12 +105,11 @@ ${sourceComposer(app.pending)}
 <small id="source-hint" class="source-hint" aria-live="polite"></small>
 </div>
 </form>
-${brandStory()}
-
 ${
-  app.notebooks.length
-    ? `<section class="saved-notebooks" aria-labelledby="recent-heading">
-<h2 id="recent-heading">Recent</h2>
+  firstVisit
+    ? brandStory()
+    : `<section class="saved-notebooks" aria-labelledby="recent-heading">
+<div class="saved-notebooks-heading"><h2 id="recent-heading">Your notebooks</h2><button type="button" class="quiet how-it-works" data-action="how-it-works">How it works</button></div>
 <div class="notebook-tiles">
 ${recent.map((item) => notebookTile(app, item)).join('')}
 </div>${
@@ -115,30 +117,25 @@ ${recent.map((item) => notebookTile(app, item)).join('')}
           ? `<button type="button" class="quiet show-all" data-action="all-recent">Show all ${app.notebooks.length}</button>`
           : ''
       }</section>`
-    : ''
 }</main>`,
     previousPlayer
   )
 }
 
-export const createShowExplainer = (app: AppContext) => () => {
-  app.showDialog(
-    `<p class="eyebrow">THE FIRST STEP</p>
-<h2>Your video starts with wireframes.</h2>
-<div class="explain-picture">
-<span>▤<small>A wireframe</small>
-</span>
-<b>→</b>
-<span>▷<small>A scene</small>
-</span>
-<b>→</b>
-<span>▶<small>Your video</small>
-</span>
-</div>
-<p>Refine your wireframes before bringing them to life.<br>A finished video takes minutes.</p>
-${button('Show me the wireframes', 'understood', true)}`
+/** The demo, on request, once the home page shows the creator's notebooks. */
+export const showHowItWorks = (app: AppContext) => {
+  app.showDialog(brandStory())
+  app.dialog.dataset.story = 'yes'
+  const story = app.dialog.querySelector<HTMLElement>('.brand-story')
+  const dispose = story ? animateBrandStory(story, controlIcon) : undefined
+  app.dialog.addEventListener(
+    'close',
+    () => {
+      dispose?.()
+      delete app.dialog.dataset.story
+    },
+    { once: true }
   )
-  app.dialog.dataset.explainer = 'yes'
 }
 export const installStartController = (app: AppContext) => {
   installNotebookEditor(app)
@@ -204,11 +201,6 @@ export const clickStart = async (
   if (!app.snapshot) return
   const id = app.snapshot.project.id
   const slideId = app.snapshot.project.slides[app.selected]?.id
-  if (action === 'review-brand') {
-    await reviewBrand(app, id)
-    app.render()
-    return
-  }
   if (action === 'create-presentation') {
     await createPresentation(app)
     return
@@ -241,54 +233,29 @@ export const clickStart = async (
     )
 }
 
+/**
+ * Create starts straight away: with the notebook's agent, else the one found
+ * on this computer, and the notebook's look. No agent page, brand dialog or
+ * explainer stands before the first wireframe (review 5).
+ */
 export const createPresentation = async (app: AppContext) => {
   if (!app.snapshot || app.pending || app.snapshot.status !== 'draft') return
   await flushNotebookEdits(app)
   const id = app.snapshot.project.id
-  if (!(await reviewBrand(app, id))) return
-  const begin = async () => {
+  app.pending = true
+  app.render()
+  try {
     const snapshot = await api.createPresentation(id)
     if (app.snapshot?.project.id !== id) return
     app.stage = 'presentation'
     app.attach(snapshot)
+  } catch (error) {
+    app.error(error)
+    const pill = app.root.querySelector<HTMLElement>('.agent-pill')
+    if (pill && /No agent was found/.test(String((error as Error)?.message)))
+      openAgentMenu(app, pill)
+  } finally {
+    app.pending = false
+    app.render()
   }
-  if (app.snapshot.project.harness) {
-    app.pending = true
-    try {
-      await begin()
-      return
-    } catch (error) {
-      app.error(error)
-    } finally {
-      app.pending = false
-    }
-  }
-  if (app.snapshot?.project.id !== id) return
-  app.showDialog('<h2>Choose your local agent</h2><div data-agent-setup></div>')
-  const revision = app.dialogRevision
-  const setup = new AgentSetup(
-    app.dialog.querySelector<HTMLElement>('[data-agent-setup]')!,
-    app.snapshot.project.harness || null,
-    async (harness) => {
-      await api.saveSettings({ harness, projectId: id })
-      if (
-        !app.dialog.open ||
-        revision !== app.dialogRevision ||
-        app.snapshot?.project.id !== id
-      )
-        return
-      const saved = await api.load(id)
-      if (
-        !app.dialog.open ||
-        revision !== app.dialogRevision ||
-        app.snapshot?.project.id !== id
-      )
-        return
-      app.snapshot = saved
-      await begin()
-      app.dialog.close()
-    },
-    'Save and create wireframes →'
-  )
-  app.dialog.addEventListener('close', () => setup.dispose(), { once: true })
 }

@@ -1,5 +1,7 @@
 import { saveLibraryBrand, redetectBrand } from './brand-library'
 import { chatSlide, scheduleChanges } from './slide-changes'
+import { applyLook } from './look-apply'
+import { setNotebookLength } from './notebook-intake'
 import {
   startPresentation,
   refreshNotebookSource,
@@ -334,7 +336,7 @@ export const createStudioServer = (
         )
       }
       const match = url.pathname.match(
-        /^\/api\/projects\/([a-zA-Z0-9_-]+)(?:\/(events|slides|export|chat|video|produce|download|transitions|retry|stop|artifacts|source|brand-detection))?$/
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)(?:\/(events|slides|export|chat|video|produce|download|transitions|retry|stop|artifacts|source|brand-detection|look|length))?$/
       )
       if (match) {
         const [, id, action] = match
@@ -412,6 +414,10 @@ export const createStudioServer = (
         }
         if (action === 'video' && request.method === 'PATCH')
           return send(response, 200, await updateVideoSettings(id, body))
+        if (action === 'look' && request.method === 'POST')
+          return send(response, 200, await applyLook(id, body?.look))
+        if (action === 'length' && request.method === 'POST')
+          return send(response, 200, await setNotebookLength(id, body?.length))
         if (action === 'brand-detection' && request.method === 'POST')
           return send(response, 200, await redetectBrand(id))
         if (action === 'source' && request.method === 'GET')

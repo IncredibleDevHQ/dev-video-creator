@@ -55,9 +55,11 @@ export type CreateProject = {
   harness?: import('./model').HarnessSelection
 }
 export type SlideEdit = {
-  action: 'add' | 'duplicate' | 'delete' | 'move' | 'undo-delete'
+  action: 'add' | 'duplicate' | 'delete' | 'move' | 'undo-delete' | 'script'
   slideId?: string
   index?: number
+  /** The wireframe's script, for the 'script' action. */
+  narration?: string
 }
 export type ChatRequest = {
   anchor: ChatAnchor

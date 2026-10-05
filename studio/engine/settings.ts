@@ -13,7 +13,7 @@ import {
   type ModelSettingsV1
 } from './model-gateway'
 import { fishKey, saveFishKey } from './credentials'
-import { loadBranding, saveBranding, applyBranding } from './branding'
+import { loadBranding, saveBranding, applyIdentity } from './branding'
 import {
   listClones,
   voiceCatalogue,
@@ -102,7 +102,7 @@ export const saveStudioSettings = async (body: unknown) => {
   await saveFishKey(patch.fishApiKey)
   if (patch.branding) {
     const brand = await saveBranding(patch.branding)
-    if (patch.projectId) await applyBranding(patch.projectId, brand)
+    if (patch.projectId) await applyIdentity(patch.projectId, brand)
   }
   if (patch.voice) await useVoice(validateVoiceChoice(patch.voice))
   return getStudioSettings()

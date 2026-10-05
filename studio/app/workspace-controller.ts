@@ -17,6 +17,8 @@ import { escape } from './ui'
 import { videoScreen } from './video-screen'
 import { workspaceHeader } from './workspace-header'
 import { workspaceUrl } from './workspace-position'
+import { syncLookPreview } from './look-panel'
+import { markPin } from './wireframe-pin'
 
 export const createRender = (app: AppContext) => () => {
   if (app.settingsScreen.isOpen) return
@@ -89,8 +91,21 @@ ${notebookOpeningView(app.opening.state)}`,
       document.getElementById(focusedId)?.focus()
     return
   }
-  const { project, status } = app.snapshot
+  const { project } = app.snapshot
   if (app.snapshot.sourceOnly && !project.slides.length) app.stage = 'notebook'
+  // An outline scene that has since been drawn opens as its wireframe.
+  if (app.selectedPlan) {
+    const drawn = project.slides.findIndex(
+      (slide) => slide.id === app.selectedPlan
+    )
+    if (
+      drawn >= 0 ||
+      !app.snapshot.plan?.some((p) => p.id === app.selectedPlan)
+    ) {
+      if (drawn >= 0) app.selected = drawn
+      app.selectedPlan = null
+    }
+  }
   app.selected = Math.max(0, Math.min(app.selected, project.slides.length - 1))
   const viewUrl = workspaceUrl(
     new URL(location.href),
@@ -112,11 +127,7 @@ ${
     ? `<div class="project-heading">
 <h1>
 ${escape(project.title)}</h1>
-${
-  app.stage === 'presentation'
-    ? '<p>Each wireframe is one scene of your video.</p>'
-    : ''
-}</div>`
+</div>`
     : ''
 }${
       app.stage === 'notebook'
@@ -137,7 +148,8 @@ ${
               app.snapshot,
               app.selected,
               app.pendingChats.has(project.id),
-              app.liveConnected
+              app.liveConnected,
+              { plan: app.selectedPlan, pin: app.pin }
             )
     }</main>`,
     previousPlayer
@@ -362,10 +374,6 @@ ${
       editSelection.end
     )
   }
-  if (
-    status === 'building' &&
-    !localStorage.getItem('studio-slides-explained') &&
-    !app.dialog.open
-  )
-    app.showExplainer()
+  syncLookPreview(app.root)
+  markPin(app.root, app.pin)
 }

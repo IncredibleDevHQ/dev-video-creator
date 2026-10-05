@@ -1,4 +1,4 @@
-import type { HarnessSelection } from '../shared/model'
+import type { HarnessSelection, StoryLength } from '../shared/model'
 import {
   changeProject,
   loadProject,
@@ -15,6 +15,8 @@ import {
 import { inspectHarnesses, type EngineRun } from './harness/runtime'
 import { creativeContext } from './creative/stage'
 import type { SourceRead } from './source-document'
+import { startingLook, withLook } from './looks'
+import { loadHarnessPreference as savedHarness } from './harness/preference'
 
 export const editNotebookSource = async (
   id: string,
@@ -83,10 +85,15 @@ export const readNotebookSource = async (id: string) => {
       ? await readSourceUrl(input, { projectId: id })
       : readSourceNarrative(input)
     await writeRow('sources', id, source)
+    const look = await startingLook(source)
     await changeProject(id, (current) => {
       current.project.source = source.text
       current.project.title = source.title || 'Untitled notebook'
       if (source.url) current.project.sourceUrl = source.url
+      // A notebook starts with a look; the creator changes it later, beside
+      // the wireframes. No brand dialog stands before the first wireframe.
+      if (!current.project.branding?.look)
+        current.project.branding = withLook(current.project.branding, look)
       current.status = 'draft'
       current.error = null
       delete current.sourceFailure
@@ -172,20 +179,59 @@ export const availableHarness = async (raw: unknown) => {
   return harness
 }
 
+export const setNotebookLength = (id: string, raw: unknown) => {
+  if (!['short', 'medium', 'long'].includes(String(raw)))
+    throw new Error('Choose a short, medium or long story')
+  return changeProject(id, (current) => {
+    if (
+      !['draft', 'failed'].includes(current.status) ||
+      current.project.slides.length
+    )
+      throw new Error('Choose the length before the wireframes are drawn')
+    current.project.length = raw as StoryLength
+  })
+}
+
+/**
+ * The agent a notebook uses when the creator has not chosen one: the saved
+ * choice, else the first agent found on this computer (review 5: ask nothing
+ * before the first wireframe).
+ */
+export const detectedHarness = async (): Promise<HarnessSelection> => {
+  const saved = await savedHarness()
+  if (saved) return saved
+  const found = (await inspectHarnesses(creativeContext('http://127.0.0.1')))
+    .filter((choice) => choice.ok)
+    .map((choice) => choice.id)
+  const adapter = (['claude-code', 'codex', 'kimi'] as const).find((id) =>
+    found.includes(id)
+  )
+  if (!adapter)
+    throw new Error(
+      'No agent was found on this computer. Install Claude Code, Codex or Kimi and sign in, then choose it from the agent menu.'
+    )
+  return { adapter }
+}
+
 export const startPresentation = async (id: string, raw?: unknown) => {
   const saved = await loadProject(id)
   if (!saved) throw new Error('Notebook not found')
   const harness = await availableHarness(
-    raw ?? saved.project.harness ?? (await loadHarnessPreference())
+    raw ?? saved.project.harness ?? (await detectedHarness())
   )
+  const look = saved.project.branding?.look
+    ? null
+    : await startingLook(await readRow<SourceRead>('sources', id))
   const snapshot = await changeProject(id, (current) => {
     if (current.status !== 'draft' || current.project.slides.length)
       throw new Error('This notebook is not ready to start a presentation')
+    if (look && !current.project.branding?.look)
+      current.project.branding = withLook(current.project.branding, look)
     current.project.harness = harness
     current.sourceOnly = false
     current.status = 'building'
     current.error = null
-    addEvent(current, 'slide', 'Creating your presentation')
+    addEvent(current, 'slide', 'Creating your wireframes')
   })
   scheduleSlides(id)
   return snapshot

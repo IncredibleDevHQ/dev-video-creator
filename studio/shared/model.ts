@@ -116,9 +116,17 @@ export type Transition =
   | 'wipe'
   | 'zoom'
 export type SceneInterval = { sceneId: string; start: number; duration: number }
+/** How long the creator wants the story: about 6, 10 or 14 wireframes. */
+export type StoryLength = 'short' | 'medium' | 'long'
+export const STORY_SCENES: Record<StoryLength, number> = {
+  short: 6,
+  medium: 10,
+  long: 14
+}
 export type Project = {
   harness?: HarnessSelection
   branding?: Branding
+  length?: StoryLength
   id: string
   title: string
   source: string

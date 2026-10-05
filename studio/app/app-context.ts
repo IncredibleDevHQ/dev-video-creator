@@ -13,6 +13,10 @@ export interface AppContext {
   notebooks: NotebookSummary[]
   refreshNotebooks: () => Promise<void>
   selected: number
+  /** An outline scene shown on the canvas before it is drawn. */
+  selectedPlan: string | null
+  /** The part of the wireframe the next change points at. */
+  pin: import('../shared/model').ChangeTarget | null
   requestedStage: string | null
   stage: 'video' | 'notebook' | 'presentation'
   closeStream: (() => void) | null
@@ -76,7 +80,6 @@ export interface AppContext {
   attach: (value: Snapshot) => void
   error: (reason: unknown) => void
   showDialog: (content: string) => void
-  showExplainer: () => void
   parameters: URLSearchParams
   saved: string | null
   dragged: number | null

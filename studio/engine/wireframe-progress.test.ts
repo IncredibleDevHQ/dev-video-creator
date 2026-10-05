@@ -1,22 +1,26 @@
 import { expect, it } from 'vitest'
 import type { Snapshot } from '../shared/api'
 import { stageStatus } from '../app/stage-status'
-import {
-  wireframeProgress,
-  wireframeRunBar,
-  wireframeCanvasStatus
-} from '../app/wireframe-progress'
+import { wireframeProgress } from '../app/wireframe-progress'
+import { agentActivity } from '../app/workspace-header'
+import { presentationScreen, wireframeTiles } from '../app/presentation-screen'
 
 const snapshot = (): Snapshot => ({
   status: 'building',
   error: null,
   events: [],
   plannedSlides: 11,
+  plan: Array.from({ length: 11 }, (_, i) => ({
+    id: String(i),
+    title: `Scene ${i + 1}`,
+    narration: `Script ${i + 1}`
+  })),
   project: {
     id: 'fixture',
     title: 'Example',
     source: '',
     video: null,
+    harness: { adapter: 'kimi' },
     slides: Array.from({ length: 5 }, (_, i) => ({
       id: String(i),
       title: 'Page',
@@ -25,52 +29,68 @@ const snapshot = (): Snapshot => ({
     }))
   }
 })
-it('uses the full planned count when a retry restores only some drafts', () => {
+it('counts the run once, in the agent pill, with the full planned count', () => {
   const input = snapshot()
-  expect(stageStatus(input, 'presentation')).toContain('5/11')
-  expect(stageStatus(input, 'presentation')).not.toContain('5/5')
-  expect(wireframeRunBar(input)).toContain('5 of 11 saved')
-  expect(wireframeRunBar(input)).toContain('max="11" value="5"')
-  expect(wireframeCanvasStatus(input, 0, false, true)).toContain('Draft saved')
+  expect(agentActivity(input)).toBe('drawing 6 of 11')
+  // The tab says one word; it does not count again.
+  expect(stageStatus(input, 'presentation')).toContain('drawing')
+  expect(stageStatus(input, 'presentation')).not.toContain('/11')
+  const screen = presentationScreen(input, 0)
+  expect(screen).not.toMatch(/saved|Generation in progress|Building your/)
 })
-it('keeps full draft counts in validation until the engine accepts the deck', () => {
+it('shows every planned scene in the rail, marking the ones being drawn', () => {
+  const input = snapshot()
+  const tiles = wireframeTiles(input)
+  expect(tiles).toHaveLength(11)
+  expect(tiles.filter((tile) => tile.kind === 'plan')).toHaveLength(6)
+  const screen = presentationScreen(input, 0, false, true, { plan: '7' })
+  expect(screen).toContain('Scene 8')
+  expect(screen.match(/Drawing…/g)).toHaveLength(2)
+  expect(screen).toContain('Waiting to be drawn.')
+  expect(screen).toContain('Script 8')
+})
+it('keeps checking counts until the engine accepts the deck', () => {
   const input = snapshot()
   input.plannedSlides = 5
+  input.plan = input.plan!.slice(0, 5)
   expect(wireframeProgress(input).label).toBe('Checking wireframes')
   expect(stageStatus(input, 'presentation')).toContain('checking')
-  expect(wireframeRunBar(input)).not.toContain('Wireframes ready')
-  input.status = 'ready'
-  expect(wireframeRunBar(input)).toContain('Wireframes ready')
-  expect(wireframeRunBar(input)).not.toContain('activity-orbit')
+  expect(agentActivity(input)).toBe('checking the wireframes')
 })
-it('stops activity indicators on failure, stopping, read-only and disconnection', () => {
-  for (const patch of [
-    { status: 'failed' as const },
-    { stopping: true },
-    { readOnly: true }
-  ]) {
-    const input = { ...snapshot(), ...patch }
-    expect(wireframeProgress(input).active).toBe(false)
-    expect(wireframeRunBar(input)).not.toContain('activity-orbit')
+it('says a stop once, in the warning tone, with what Try again does', () => {
+  const input = {
+    ...snapshot(),
+    status: 'failed' as const,
+    error:
+      'Kimi ran out of time on wireframe 6 of 11, after three tries. 5 of 11 are drawn; Try again continues from wireframe 6.'
   }
-  expect(wireframeRunBar(snapshot(), false)).toContain('Reconnecting')
-  expect(wireframeRunBar(snapshot(), false)).not.toContain('activity-orbit')
-  expect(wireframeCanvasStatus(snapshot(), 0, false, false)).not.toContain(
-    'activity-orbit'
+  const screen = presentationScreen(input, 0)
+  expect(screen).toContain('run-notice is-stopped')
+  expect(screen.match(/ran out of time/g)).toHaveLength(1)
+  expect(screen).toContain('data-action="retry-slides"')
+  expect(stageStatus(input, 'presentation')).toContain('stopped')
+  expect(agentActivity(input)).toBe('')
+  expect(screen).toContain(
+    'Not drawn yet. Try again continues from here.'.slice(0, 0)
   )
 })
-it('does not invent counts during planning and distinguishes single-page edits', () => {
+it('shows a queued or running change on its wireframe, and lets a drawn wireframe take changes while the rest are drawn', () => {
   const input = snapshot()
-  input.project.slides = []
-  delete input.plannedSlides
-  input.progress = {
-    label: 'Understanding the source',
-    startedAt: '2026-10-05T01:00:00Z'
-  }
-  expect(wireframeRunBar(input)).toContain('Understanding the source')
-  expect(wireframeRunBar(input)).not.toContain('<progress')
-  const ready = { ...snapshot(), status: 'ready' as const }
-  expect(wireframeCanvasStatus(ready, 0, true, true)).toContain(
-    'Updating this wireframe'
-  )
+  input.changes = [
+    {
+      id: 'c',
+      slideId: '0',
+      instruction: 'Move the label',
+      state: 'queued',
+      at: '2026-10-05T01:00:00Z'
+    }
+  ]
+  const queued = presentationScreen(input, 0)
+  expect(queued).toContain('Waiting: “Move the label”')
+  expect(queued).toContain('once every wireframe is drawn')
+  expect(queued).not.toMatch(/id="instruction"[^>]*disabled/)
+  input.status = 'ready'
+  input.changes[0].state = 'working'
+  expect(presentationScreen(input, 0)).toContain('is changing this wireframe')
+  expect(agentActivity(input)).toBe('changing wireframe 1')
 })

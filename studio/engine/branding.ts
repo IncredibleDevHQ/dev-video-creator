@@ -52,9 +52,18 @@ export const validateBranding = async (value: unknown): Promise<Branding> => {
     )
   )
     throw new Error('Check your brand fonts')
+  if (
+    raw.look !== undefined &&
+    (typeof raw.look?.id !== 'string' ||
+      typeof raw.look?.name !== 'string' ||
+      raw.look.id.length > 100 ||
+      raw.look.name.length > 100)
+  )
+    throw new Error('Check the look')
   const brand = {
     ...(raw.palette ? { palette: raw.palette } : {}),
     ...(raw.fonts ? { fonts: raw.fonts } : {}),
+    ...(raw.look ? { look: { id: raw.look.id, name: raw.look.name } } : {}),
     name: raw.name.trim(),
     tagline: raw.tagline.trim(),
     accent: raw.accent,
@@ -68,22 +77,28 @@ export const saveBranding = async (value: unknown) => {
   await saveSetting('branding', brand)
   return brand
 }
-export const applyBranding = (id: string, branding: Branding) =>
+/**
+ * The creator's name, description and logo on this notebook. Their identity
+ * is kept apart from the notebook's look: saving one never changes the other
+ * (review 5: a brand's name became the lower third's "Your name").
+ */
+export const applyIdentity = (id: string, branding: Branding) =>
   changeProject(id, async (current) => {
-    const source = await readRow<{ brand: { accent: string } }>('outlines', id)
-    if (source?.brand.accent) {
-      const previous = current.project.branding?.useAccent
-        ? current.project.branding.accent
-        : source.brand.accent
-      const next = branding.useAccent ? branding.accent : source.brand.accent
-      if (previous !== next)
-        for (const slide of current.project.slides)
-          if (slide.svg)
-            slide.svg = slide.svg.split(`="${previous}"`).join(`="${next}"`)
+    current.project.branding = {
+      ...(current.project.branding || DEFAULT_BRANDING),
+      name: branding.name,
+      tagline: branding.tagline,
+      logoKey: branding.logoKey
     }
-    current.project.branding = branding
     for (const scene of current.project.video?.scenes || [])
       scene.planKey = scenePlanKey(current.project, scene)
     refreshVideoKeys(current.project)
-    addEvent(current, 'video', 'Branding updated')
+    addEvent(current, 'video', 'Your name and logo updated')
   })
+/** Only the creator's identity carries from Settings into a new notebook. */
+export const identityOf = (branding: Branding | null | undefined) => ({
+  ...DEFAULT_BRANDING,
+  name: branding?.name || '',
+  tagline: branding?.tagline || '',
+  logoKey: branding?.logoKey || null
+})

@@ -1,0 +1,111 @@
+// A notebook starts with a look and changes it beside its wireframes: a look
+// saved for the site, the colours read from the site, or the neutral Paper
+// look when the site showed none (review 5: the built-in orange fallback was
+// presented as "Suggestion from stripe.com").
+import type { Branding } from '../shared/settings'
+import {
+  LOOKS,
+  NEUTRAL_LOOK,
+  type Look,
+  type LookPalette
+} from '../shared/looks'
+
+const NO_IDENTITY: Branding = {
+  name: '',
+  tagline: '',
+  accent: NEUTRAL_LOOK.palette.accent,
+  useAccent: false,
+  logoKey: null
+}
+import { brandDomain, loadBrandLibrary } from './brand-library'
+import type { SourceRead } from './source-document'
+
+/** The look a notebook starts with, before the creator chooses one. */
+export const startingLook = async (
+  source: SourceRead | null
+): Promise<Look> => {
+  const domain = source?.url ? brandDomain(source.url) : null
+  const saved = domain
+    ? (await loadBrandLibrary()).find((entry) => entry.domain === domain)
+    : undefined
+  if (saved?.brand.palette && saved.brand.fonts)
+    return {
+      id: `saved:${saved.id}`,
+      name: saved.brand.look?.name || saved.brand.name || domain!,
+      description: `Your saved look for ${domain}.`,
+      palette: { ...saved.brand.palette, accent: saved.brand.accent },
+      fonts: saved.brand.fonts
+    }
+  if (source?.palette.provenance === 'extracted')
+    return {
+      id: 'site',
+      name: source.site || domain || 'The site',
+      description: `Colours and fonts read from ${source.site || domain}.`,
+      palette: {
+        ground: source.palette.ground,
+        text: source.palette.text,
+        accent: source.palette.accent,
+        secondary: source.palette.secondary
+      },
+      fonts: {
+        display: source.fonts.display,
+        body: source.fonts.body,
+        mono: source.fonts.mono
+      }
+    }
+  return NEUTRAL_LOOK
+}
+
+/** A notebook's branding wearing a look; the creator's identity is kept. */
+export const withLook = (
+  branding: Branding | undefined,
+  look: Look
+): Branding => ({
+  ...(branding || NO_IDENTITY),
+  accent: look.palette.accent,
+  useAccent: true,
+  palette: {
+    ground: look.palette.ground,
+    text: look.palette.text,
+    secondary: look.palette.secondary
+  },
+  fonts: { ...look.fonts },
+  look: { id: look.id, name: look.name }
+})
+
+export const paletteOf = (
+  branding: Branding | undefined
+): LookPalette | null =>
+  branding?.palette ? { ...branding.palette, accent: branding.accent } : null
+
+const hex = /^#[0-9a-f]{6}$/i
+export const validateLook = (raw: unknown): Look => {
+  const look = raw as Look
+  const named = LOOKS.find((item) => item.id === look?.id)
+  if (named) return named
+  if (
+    !look ||
+    typeof look.id !== 'string' ||
+    typeof look.name !== 'string' ||
+    look.id.length > 100 ||
+    !look.name.trim() ||
+    look.name.length > 100 ||
+    !['ground', 'text', 'accent', 'secondary'].every((key) =>
+      hex.test(look.palette?.[key as keyof LookPalette] || '')
+    ) ||
+    !['display', 'body', 'mono'].every(
+      (key) =>
+        typeof look.fonts?.[key as keyof Look['fonts']] === 'string' &&
+        look.fonts[key as keyof Look['fonts']].trim() &&
+        look.fonts[key as keyof Look['fonts']].length <= 100
+    )
+  )
+    throw new Error('Choose a look, or three colours and two fonts')
+  return {
+    id: look.id,
+    name: look.name.trim(),
+    description: '',
+    palette: { ...look.palette },
+    fonts: { ...look.fonts }
+  }
+}

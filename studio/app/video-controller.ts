@@ -4,6 +4,7 @@ import { momentViewKey } from '../shared/model'
 import { animationSecond } from '../shared/scene-time'
 import { sceneAt, videoSecond } from '../shared/video-clock'
 import { api } from './api'
+import { activityDialog } from './activity-log'
 import type { AppContext } from './app-context'
 import { sceneSettings } from './camera-settings'
 import { downloadVideo } from './download'
@@ -443,17 +444,7 @@ ${(
     app.dialog.close()
     app.render()
   }
-  if (action === 'history')
-    app.showDialog(
-      `<h2>Studio history</h2>
-<ol>
-${app.snapshot.events
-  .map(
-    (item) => `<li>
-${escape(item.message)}</li>`
-  )
-  .join('')}</ol>`
-    )
+  if (action === 'history') app.showDialog(activityDialog(app.snapshot))
   if (action === 'moment-actions') {
     app.stopPractice()
     app.momentIndex = Number(target.dataset.menuMoment)

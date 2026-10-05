@@ -53,6 +53,8 @@ Rules:
 
 - 6 to 14 scenes in order; the first is `title`, the last `close`. Seconds sum
   near the target (title 12–18, close 8–14, others 20–70).
+- When `motion/inputs.json` has `targetScenes`, the creator asked for about
+  that many scenes: plan within two of it, still 6 to 14.
 - One idea per scene. Kind follows the content's form: a mechanism or structure
   is `diagram`; a set of parallel points is `list`; figures that carry the point
   are `numbers`; a single statement that is the picture is `quote`.

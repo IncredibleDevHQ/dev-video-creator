@@ -39,12 +39,22 @@ it('reports saved credentials without returning their contents or hints', async 
   expect(response).not.toContain('test-fish-secret')
   expect(response).not.toContain('keyHint')
 })
-it('branding changes invalidate scene and whole-video exports', async () => {
+it('a name change and a look change each invalidate exports, and neither changes the other', async () => {
   const snapshot: Snapshot = {
     project: {
       id: 'brand',
       title: 'Fixture',
       source: 'Fixture',
+      branding: {
+        name: '',
+        tagline: '',
+        accent: '#112233',
+        useAccent: true,
+        logoKey: null,
+        palette: { ground: '#ffffff', text: '#000000', secondary: '#888888' },
+        fonts: { display: 'Inter', body: 'Inter', mono: 'ui-monospace' },
+        look: { id: 'site', name: 'example.com' }
+      },
       slides: [
         {
           id: 'slide',
@@ -100,7 +110,6 @@ it('branding changes invalidate scene and whole-video exports', async () => {
     inputKey: snapshot.project.video!.inputKey,
     objectKey: 'video.mp4'
   }
-  await writeRow('outlines', 'brand', { brand: { accent: '#112233' } })
   await writeRow('projects', 'brand', snapshot)
   const old = (await loadProject('brand'))!
   expect(old.views!.video.action).toBe('export')
@@ -114,28 +123,44 @@ it('branding changes invalidate scene and whole-video exports', async () => {
     },
     projectId: 'brand'
   })
-  const changed = (await loadProject('brand'))!
-  expect(changed.project.branding?.name).toBe('Sam')
-  expect(changed.project.slides[0].svg).toContain('#234567')
-  expect(changed.project.video!.scenes[0].moments[0].take).toEqual(
+  const named = (await loadProject('brand'))!
+  // Your name changes the video, not the notebook's look.
+  expect(named.project.branding).toMatchObject({
+    name: 'Sam',
+    tagline: 'Engineering',
+    accent: '#112233',
+    look: { id: 'site' }
+  })
+  expect(named.project.slides[0].svg).toContain('#112233')
+  expect(named.project.video!.scenes[0].moments[0].take).toEqual(
     scene.moments[0].take
   )
-  expect(changed.project.video!.scenes[0].inputKey).not.toBe(scene.inputKey)
-  expect(changed.views!.scenes.scene.produced).toBe(false)
-  expect(changed.views!.video.action).toBe('produce-video')
-  expect(changed.views!.video.enabled).toBe(false)
-  await saveStudioSettings({
-    branding: {
-      name: 'Sam',
-      tagline: 'Engineering',
+  expect(named.project.video!.scenes[0].inputKey).not.toBe(scene.inputKey)
+  expect(named.views!.scenes.scene.produced).toBe(false)
+  expect(named.views!.video.action).toBe('produce-video')
+  expect(named.views!.video.enabled).toBe(false)
+  const { applyLook } = await import('./look-apply')
+  const restyled = await applyLook('brand', {
+    id: 'custom',
+    name: 'Custom',
+    palette: {
+      ground: '#ffffff',
+      text: '#000000',
       accent: '#234567',
-      useAccent: false,
-      logoKey: null
+      secondary: '#888888'
     },
-    projectId: 'brand'
+    fonts: { display: 'Georgia', body: 'Inter', mono: 'ui-monospace' }
   })
-  expect((await loadProject('brand'))!.project.slides[0].svg).toContain(
-    '#112233'
+  // A look re-colours drawn wireframes and keeps the creator's name.
+  expect(restyled.project.slides[0].svg).toContain('#234567')
+  expect(restyled.project.branding).toMatchObject({
+    name: 'Sam',
+    accent: '#234567',
+    look: { id: 'custom', name: 'Custom' },
+    fonts: { display: 'Georgia' }
+  })
+  expect(restyled.project.video!.scenes[0].inputKey).not.toBe(
+    named.project.video!.scenes[0].inputKey
   )
 })
 

@@ -369,95 +369,6 @@ header nav .stage-status.is-processing .stage-caption {
   text-align: center;
 }
 
-/* A quiet, persistent run strip separates navigation from live work. */
-.wireframe-run-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-height: 42px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--line);
-  background: var(--rail);
-  font-size: 12px;
-}
-.wireframe-run-summary,
-.wireframe-run-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-.wireframe-run-summary strong {
-  font-size: 12px;
-  font-weight: 550;
-}
-.run-count {
-  color: var(--muted);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.wireframe-run-actions small {
-  color: var(--muted);
-  font-size: 11px;
-  white-space: nowrap;
-}
-.run-state-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-.attention .run-state-dot {
-  background: #c49548;
-}
-.wireframe-run-bar progress {
-  appearance: none;
-  width: 100px;
-  height: 3px;
-  border: 0;
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--line);
-  accent-color: var(--accent);
-}
-.wireframe-run-bar progress::-webkit-progress-bar {
-  background: var(--line);
-}
-.wireframe-run-bar progress::-webkit-progress-value {
-  background: var(--accent);
-  border-radius: 4px;
-  transition: width 400ms ease;
-}
-.wireframe-run-bar progress::-moz-progress-bar {
-  background: var(--accent);
-}
-.wireframe-run-bar .run-details {
-  font-size: 12px;
-  color: var(--muted);
-  padding: 7px 8px;
-  white-space: nowrap;
-}
-.wireframe-canvas-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 2px 12px;
-  font-size: 11px;
-  color: var(--muted);
-}
-.wireframe-canvas-status > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.wireframe-canvas-status .activity-orbit {
-  width: 11px;
-  height: 11px;
-}
 header nav .stage-status.is-processing::before {
   content: '';
   width: 6px;
@@ -495,8 +406,7 @@ header nav .stage-status.is-processing .stage-caption {
   display: flex;
   flex-direction: column;
 }
-#app > .workspace-header,
-#app > .wireframe-run-bar {
+#app > .workspace-header {
   flex-shrink: 0;
 }
 #app > .workspace-presentation {
@@ -513,20 +423,6 @@ header nav .stage-status.is-processing .stage-caption {
   overflow-y: auto;
 }
 @media (max-width: 800px) {
-  .wireframe-run-bar {
-    padding: 8px 16px;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .wireframe-run-summary {
-    flex: 1;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .wireframe-run-actions small,
-  .wireframe-run-bar progress {
-    display: none;
-  }
   #app > .workspace-presentation > .slides {
     height: auto;
     min-height: 100%;
@@ -534,11 +430,6 @@ header nav .stage-status.is-processing .stage-caption {
   .slides > .stage-area {
     max-height: none;
     overflow: visible;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .wireframe-run-bar progress::-webkit-progress-value {
-    transition: none;
   }
 }
 

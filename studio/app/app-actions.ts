@@ -6,7 +6,16 @@ import type { AppContext } from './app-context'
 import { seekSavedMedia } from './media-seek'
 import { clickRecording, submitRecording } from './recording-controller'
 import { clickSlides, submitSlides } from './slides-controller'
-import { clickStart, submitStart, createPresentation } from './start-controller'
+import {
+  clickStart,
+  submitStart,
+  createPresentation,
+  showHowItWorks
+} from './start-controller'
+import { openAgentMenu } from './agent-menu'
+import { openLengthMenu } from './notebook-choices'
+import { closeLookPanel, openLookPanel } from './look-panel'
+import { closePopover } from './popover'
 import { clickVideo, submitVideo } from './video-controller'
 
 export const installAppActions = (app: AppContext) => {
@@ -31,6 +40,8 @@ export const installAppActions = (app: AppContext) => {
     if ((event.target as Element).closest('.brand')) {
       if (app.capture.phase !== 'idle') return
       event.preventDefault()
+      closePopover()
+      closeLookPanel(app)
       try {
         await flushNotebookEdits(app)
       } catch (reason) {
@@ -76,6 +87,14 @@ export const installAppActions = (app: AppContext) => {
     }
     if (target.dataset.slide) {
       app.selected = Number(target.dataset.slide)
+      app.selectedPlan = null
+      app.pin = null
+      app.render()
+      return
+    }
+    if (target.dataset.plan) {
+      app.selectedPlan = target.dataset.plan
+      app.pin = null
       app.render()
       return
     }
@@ -137,6 +156,22 @@ export const installAppActions = (app: AppContext) => {
     }
     const action = target.dataset.action
     try {
+      if (action === 'agent-menu') {
+        openAgentMenu(app, target)
+        return
+      }
+      if (action === 'length-menu') {
+        openLengthMenu(app, target)
+        return
+      }
+      if (action === 'look-panel') {
+        openLookPanel(app)
+        return
+      }
+      if (action === 'how-it-works') {
+        showHowItWorks(app)
+        return
+      }
       if (target.dataset.notebook) {
         if (app.capture.phase !== 'idle')
           throw new Error('Finish this take first')
@@ -155,20 +190,14 @@ export const installAppActions = (app: AppContext) => {
           throw new Error('Finish or discard this take before opening Settings')
         app.stopPractice()
         app.dialog.close()
+        closePopover()
+        closeLookPanel(app)
         await app.settingsScreen.open(
           action === 'agent-settings' ? 'agent' : undefined
         )
         return
       }
-      if (action === 'close') {
-        if (app.dialog.dataset.explainer)
-          localStorage.setItem('studio-slides-explained', 'yes')
-        app.dialog.close()
-      }
-      if (action === 'understood') {
-        localStorage.setItem('studio-slides-explained', 'yes')
-        document.querySelector<HTMLDialogElement>('#dialog')?.close()
-      }
+      if (action === 'close') app.dialog.close()
       if (action === 'slides-only')
         document.querySelector<HTMLTextAreaElement>('#source-input')?.focus()
       if (action === 'all-recent') {

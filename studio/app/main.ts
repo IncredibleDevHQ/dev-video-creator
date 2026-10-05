@@ -23,12 +23,12 @@ import {
 } from './recording-controller'
 import { Settings } from './settings'
 import { installSlidesController } from './slides-controller'
+import { installWireframePin } from './wireframe-pin'
 import {
   createAgo,
   createFitSource,
   createRefreshNotebooks,
   createRenderStartScreen,
-  createShowExplainer,
   createSourceHint,
   installStartController
 } from './start-controller'
@@ -52,6 +52,8 @@ app.snapshot = null
 app.notebooks = []
 app.refreshNotebooks = createRefreshNotebooks(app)
 app.selected = 0
+app.selectedPlan = null
+app.pin = null
 app.requestedStage = new URL(location.href).searchParams.get('view')
 app.stage =
   app.requestedStage === 'notebook' ||
@@ -189,12 +191,10 @@ app.attach = (value: Snapshot) => {
 app.error = showError
 app.showDialog = (content: string) => {
   app.dialogRevision++
-  delete app.dialog.dataset.explainer
   app.dialog.innerHTML = `${button('×', 'close')}<div class="dialog-body">
 ${content}</div>`
   if (!app.dialog.open) app.dialog.showModal()
 }
-app.showExplainer = createShowExplainer(app)
 app.playheadFrame = 0
 app.stopPlayhead = createStopPlayhead(app)
 app.animatePlayhead = createAnimatePlayhead(app)
@@ -204,6 +204,7 @@ installRecordingController(app)
 installVideoController(app)
 installAppActions(app)
 installSlidesController(app)
+installWireframePin(app)
 app.render()
 app.parameters = new URLSearchParams(location.search)
 app.saved =

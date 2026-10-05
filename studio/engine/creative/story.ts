@@ -66,15 +66,21 @@ export const prepareCreativeStory = (
   source: ReturnType<typeof readSourceNarrative>,
   selection: CreativeSelection,
   origin: string,
-  brief?: import('./explanation-brief').ExplanationBriefV1
+  brief?: import('./explanation-brief').ExplanationBriefV1,
+  targetScenes?: number
 ) =>
   runValidatedJsonStage({
     projectId,
-    inputKey: fingerprintOf({ source, brief }),
+    inputKey: fingerprintOf({ source, brief, targetScenes }),
     checkpoint: 'creative-story',
     stage: 'story',
     route: 'Plan Story',
-    stageContext: { source, brief, wordingPolicy: 'draft' },
+    stageContext: {
+      source,
+      brief,
+      wordingPolicy: 'draft',
+      ...(targetScenes ? { targetScenes } : {})
+    },
     file: 'story/outline.json',
     tool: 'story_submit_outline',
     packet: {
