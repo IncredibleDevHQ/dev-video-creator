@@ -56,9 +56,11 @@ description and logo.
 
 Brief, Story Master and Page Master produce a rich deck. The outline's titles
 and script show as titled tiles as soon as the story is planned, and each
-wireframe appears as it is drawn: the first agent call authors the design
-system with page one, then each page gets a call and a time budget of its own,
-two at a time, retried up to three times before the deck stops and says where.
+wireframe appears as it is drawn: each page gets an agent call of its own,
+from a short spec the studio writes from the look, the page's scene and one
+finished page for style. Page one goes first, then three at a time; each page
+is checked when it is submitted and retried up to three times before the deck
+stops and says where.
 The script sits under each wireframe and can be edited once the deck is ready.
 Click a part of a wireframe to point a change at it; changes for drawn
 wireframes queue while the rest are drawn. Rehearse shows the wireframe, the
@@ -90,7 +92,10 @@ Finishing combines retained animation, measured narration and speaker footage.
 Retakes reuse the animation. Download finished scenes, select transitions, produce
 the joined video and export MP4. Later edits invalidate the affected exports.
 Activity remains visible with completed steps and the current processing/stalled
-frontier. Token usage shows reported harness usage; unavailable usage is not zero.
+frontier, and token use per step (reading, story, wireframes, video) as the
+agents reported it; unreported usage is shown as not reported, not zero.
+Planning calls think hard; drawing one page and revising think lightly, and
+every call has a limit on one response (`engine/harness/limits.ts`).
 
 Anchored chat discusses the source and edits wireframes or scene plans. Every
 agent call has a time, inactivity and tool budget sized for its operation and

@@ -4,7 +4,9 @@ import type { Snapshot } from '../shared/api'
 vi.mock('../app/api', () => ({ api: {} }))
 const { modelLabel } = await import('../app/agent-menu')
 const { choicesRow } = await import('../app/notebook-choices')
-const { activitySteps } = await import('../app/activity-log')
+const { activitySteps, usageTable, tokens } =
+  await import('../app/activity-log')
+const { sumUsage } = await import('../shared/usage')
 const { pinTargetOf } = await import('../app/wireframe-pin')
 
 const snapshot = (extra: Partial<Snapshot> = {}): Snapshot =>
@@ -102,4 +104,44 @@ it('names the part of a wireframe a click lands on', () => {
     label: 'N / sec'
   })
   expect(pinTargetOf(stage, stage)).toBeNull()
+})
+
+it('shows token use per step, from what each agent call reported', () => {
+  const usage = (input: number, output: number, cacheRead: number) => ({
+    input,
+    output,
+    cacheRead,
+    cacheWrite: 0,
+    final: true
+  })
+  const tokenUsage = sumUsage([
+    { stage: 'story', operation: 'brief', usage: usage(1200, 300, 0) },
+    { stage: 'story', operation: 'story', usage: usage(4000, 900, 20_000) },
+    // A run from before calls named their operation counts as its stage's.
+    { stage: 'drawing', usage: usage(66_580, 9442, 976_385) },
+    { stage: 'drawing', operation: 'page' }
+  ])
+  expect(tokenUsage.stages.page).toMatchObject({
+    totalRuns: 2,
+    reportedRuns: 1,
+    partial: true,
+    output: 9442
+  })
+  const { document } = parseHTML(
+    `<div>${usageTable(snapshot({ tokenUsage }))}</div>`
+  )
+  const rows = [...document.querySelectorAll('tbody tr')].map((row) =>
+    [...row.children].map((cell) => cell.textContent)
+  )
+  expect(rows).toEqual([
+    ['Reading the article', '1', '1.2 k', '0', '300', '1.5 k'],
+    ['Story', '1', '4.0 k', '20 k', '900', '25 k'],
+    ['Wireframes', '2', '67 k', '976 k', '9.4 k', '1.1 M*'],
+    ['All steps', '4', '72 k', '996 k', '11 k', '1.1 M*']
+  ])
+  expect(document.querySelector('div')!.textContent).toContain(
+    'did not report their tokens'
+  )
+  expect(usageTable(snapshot())).toBe('')
+  expect(tokens(999)).toBe('999')
 })

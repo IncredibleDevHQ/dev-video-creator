@@ -77,7 +77,12 @@ export interface HarnessAdapter {
     run: HarnessRun,
     onEvent: (e: HarnessEvent) => void,
     signal: AbortSignal
-  ): Promise<{ resumeId?: string; exitCode: number }>
+  ): Promise<{
+    resumeId?: string
+    exitCode: number
+    // Token use the adapter read after the run, when its stream had none.
+    usage?: import('../../shared/usage').TokenUsage
+  }>
 }
 
 // Everything an adapter needs beyond the run itself, supplied by the desktop

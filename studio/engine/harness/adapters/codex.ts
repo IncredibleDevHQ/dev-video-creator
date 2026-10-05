@@ -106,6 +106,14 @@ export const createCodexAdapter = (
       typeof run.inputs.model === 'string' && run.inputs.model
         ? ['--model', run.inputs.model]
         : []
+    // Codex's own reasoning levels; a resumed thread keeps its setting.
+    const effort =
+      typeof run.inputs.effort === 'string' && run.inputs.effort
+        ? [
+            '-c',
+            `model_reasoning_effort="${['low', 'medium', 'high'].includes(run.inputs.effort) ? run.inputs.effort : 'high'}"`
+          ]
+        : []
     const args = run.resumeId
       ? [
           'exec',
@@ -120,6 +128,7 @@ export const createCodexAdapter = (
           '--sandbox',
           'workspace-write',
           ...model,
+          ...effort,
           String(run.inputs.task || '')
         ]
     const state: { resumeId?: string } = {}

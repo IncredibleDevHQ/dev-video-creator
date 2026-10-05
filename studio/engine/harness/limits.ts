@@ -1,13 +1,15 @@
 // How long each kind of harness call may run, sized for the model that runs
-// it. One fixed ten-minute ceiling stopped slow models part-way (review 5:
-// Kimi K3 thinks for five to eight minutes before its first write), so every
-// call names its operation and the model's pace scales the base budget.
+// it, and how hard it thinks. One fixed ten-minute ceiling stopped slow
+// models part-way (review 5: Kimi K3 thinks for five to eight minutes before
+// its first write), so every call names its operation and the model's pace
+// scales the base budget. Planning thinks hard; drawing one page from a
+// finished spec, or revising, does not need to (the wireframe analysis of the
+// same run: every call ran at high effort with no limit on a response).
 import type { HarnessSelection } from '../../shared/model'
 
 export type HarnessOperation =
   | 'brief'
   | 'story'
-  | 'design'
   | 'page'
   | 'revise-story'
   | 'revise-page'
@@ -16,49 +18,86 @@ export type HarnessOperation =
   | 'chat'
   | 'extension'
 
+export type ThinkingEffort = 'low' | 'medium' | 'high'
+
 export type StageLimits = {
   timeoutMs: number
   idleTimeoutMs: number
   maxToolCalls: number
+  effort: ThinkingEffort
+  /** The most tokens one model response may hold, thinking included. */
+  maxOutputTokens: number
 }
 
 const minutes = (value: number) => Math.round(value * 60_000)
 
 /** Budgets for a model of ordinary pace. */
 const BASE: Record<HarnessOperation, StageLimits> = {
-  brief: { timeoutMs: minutes(8), idleTimeoutMs: minutes(3), maxToolCalls: 80 },
-  story: { timeoutMs: minutes(8), idleTimeoutMs: minutes(3), maxToolCalls: 80 },
-  // The deck's design system and its first page, in one call.
-  design: {
-    timeoutMs: minutes(12),
-    idleTimeoutMs: minutes(4),
-    maxToolCalls: 60
+  brief: {
+    timeoutMs: minutes(8),
+    idleTimeoutMs: minutes(3),
+    maxToolCalls: 80,
+    effort: 'high',
+    maxOutputTokens: 64_000
   },
-  // One more page against the authored design system. A live K3 run took
-  // 8½ to 14½ minutes a page, so its 2.5× pace gets 20.
-  page: { timeoutMs: minutes(8), idleTimeoutMs: minutes(3), maxToolCalls: 40 },
+  story: {
+    timeoutMs: minutes(8),
+    idleTimeoutMs: minutes(3),
+    maxToolCalls: 80,
+    effort: 'high',
+    maxOutputTokens: 64_000
+  },
+  // One page from the engine's spec and a style page. A K3 call at high
+  // effort with the old packet took 8½ to 14½ minutes; its 2.5× pace gets 20.
+  page: {
+    timeoutMs: minutes(8),
+    idleTimeoutMs: minutes(3),
+    maxToolCalls: 30,
+    effort: 'medium',
+    maxOutputTokens: 32_000
+  },
   'revise-story': {
     timeoutMs: minutes(3),
     idleTimeoutMs: minutes(1.5),
-    maxToolCalls: 20
+    maxToolCalls: 20,
+    effort: 'low',
+    maxOutputTokens: 32_000
   },
   'revise-page': {
     timeoutMs: minutes(8),
     idleTimeoutMs: minutes(3),
-    maxToolCalls: 40
+    maxToolCalls: 30,
+    effort: 'medium',
+    maxOutputTokens: 32_000
   },
   planning: {
     timeoutMs: minutes(10),
     idleTimeoutMs: minutes(4),
-    maxToolCalls: 80
+    maxToolCalls: 80,
+    effort: 'high',
+    maxOutputTokens: 64_000
   },
   composition: {
     timeoutMs: minutes(5),
     idleTimeoutMs: minutes(2),
-    maxToolCalls: 30
+    maxToolCalls: 30,
+    effort: 'medium',
+    maxOutputTokens: 48_000
   },
-  chat: { timeoutMs: minutes(2), idleTimeoutMs: 45_000, maxToolCalls: 20 },
-  extension: { timeoutMs: minutes(1), idleTimeoutMs: 30_000, maxToolCalls: 12 }
+  chat: {
+    timeoutMs: minutes(2),
+    idleTimeoutMs: 45_000,
+    maxToolCalls: 20,
+    effort: 'low',
+    maxOutputTokens: 16_000
+  },
+  extension: {
+    timeoutMs: minutes(1),
+    idleTimeoutMs: 30_000,
+    maxToolCalls: 12,
+    effort: 'low',
+    maxOutputTokens: 8_000
+  }
 }
 
 /**
@@ -94,6 +133,8 @@ export const stageLimits = (
       Math.round(base.idleTimeoutMs * pace),
       LIMIT_CEILING_MS
     ),
-    maxToolCalls: base.maxToolCalls
+    maxToolCalls: base.maxToolCalls,
+    effort: base.effort,
+    maxOutputTokens: base.maxOutputTokens
   }
 }

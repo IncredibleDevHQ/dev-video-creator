@@ -64,6 +64,54 @@ it('writes an isolated packet and requires stage acceptance after a successful C
   expect((await readEngineRun(result.id))?.reportedModel).toBe('fixture-model')
   expect(result.resumeId).toBe('fixture-session')
 })
+it('gives a page call light thinking, a response limit and only its route, and keeps usage read after the run', async () => {
+  const skill = join(context.skillsDir, 'page-master')
+  await mkdir(join(skill, 'workflows'), { recursive: true })
+  await mkdir(join(skill, 'vendor'), { recursive: true })
+  await writeFile(
+    join(skill, 'SKILL.md'),
+    '---\nname: page-master\n---\nSynthetic route fixture.\n'
+  )
+  await writeFile(join(skill, 'workflows', 'draw-page.md'), 'Synthetic route')
+  await writeFile(join(skill, 'vendor', 'manual.md'), 'Synthetic manual')
+  const usage = {
+    input: 10,
+    output: 2,
+    cacheRead: 30,
+    cacheWrite: 0,
+    final: true
+  }
+  const result = await runEngineStage({
+    ...base,
+    stage: 'drawing',
+    operation: 'page',
+    stageContext: { draw: 1 },
+    accept: async () => {},
+    adapterOverride: adapter(async (run) => {
+      expect(run.inputs.effort).toBe('medium')
+      expect(run.inputs.maxOutputTokens).toBe(32_000)
+      const installed = join(run.projectDir, '.claude/skills/page-master')
+      expect(
+        await readFile(join(installed, 'workflows/draw-page.md'), 'utf8')
+      ).toBe('Synthetic route')
+      await expect(
+        readFile(join(installed, 'vendor/manual.md'), 'utf8')
+      ).rejects.toThrow()
+      expect(
+        JSON.parse(
+          await readFile(join(run.projectDir, 'motion/inputs.json'), 'utf8')
+        )
+      ).not.toHaveProperty('context')
+      return { exitCode: 0, usage }
+    })
+  })
+  expect(result).toMatchObject({
+    status: 'done',
+    operation: 'page',
+    effort: 'medium',
+    usage
+  })
+})
 it('does not accept an empty successful exit as a valid composition', async () => {
   const result = await runEngineStage({
     ...base,

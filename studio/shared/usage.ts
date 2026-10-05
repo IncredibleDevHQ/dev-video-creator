@@ -18,9 +18,19 @@ export type UsageTotal = {
 export type NotebookUsage = {
   total: UsageTotal
   scenes: Record<string, UsageTotal>
+  /** By what each call was for: brief, story, page, planning, … */
+  stages: Record<string, UsageTotal>
 }
+/** A run's operation, or its stage's usual one for runs that predate it. */
+export const runOperation = (run: { stage?: string; operation?: string }) =>
+  run.operation || (run.stage === 'drawing' ? 'page' : run.stage) || 'other'
 export const sumUsage = (
-  runs: Array<{ sceneId?: string; usage?: TokenUsage }>
+  runs: Array<{
+    sceneId?: string
+    stage?: string
+    operation?: string
+    usage?: TokenUsage
+  }>
 ): NotebookUsage => {
   const sum = (items: typeof runs): UsageTotal =>
     items.reduce<UsageTotal>(
@@ -58,6 +68,12 @@ export const sumUsage = (
       [...new Set(runs.flatMap((r) => (r.sceneId ? [r.sceneId] : [])))].map(
         (id) => [id, sum(runs.filter((r) => r.sceneId === id))]
       )
+    ),
+    stages: Object.fromEntries(
+      [...new Set(runs.map(runOperation))].map((operation) => [
+        operation,
+        sum(runs.filter((r) => runOperation(r) === operation))
+      ])
     )
   }
 }

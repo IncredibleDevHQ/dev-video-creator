@@ -321,7 +321,7 @@
 .activity-steps {
   display: grid;
   gap: 2px;
-  max-height: 60vh;
+  max-height: 44vh;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -341,6 +341,44 @@
 }
 .activity-steps li.is-failed span {
   color: var(--warn);
+}
+.activity-usage-title {
+  margin: 18px 0 8px;
+  font-size: 14px;
+}
+.activity-usage {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.activity-usage th,
+.activity-usage td {
+  padding: 5px 8px 5px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+.activity-usage th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.activity-usage thead th {
+  color: var(--muted);
+  font-weight: 500;
+}
+.activity-usage .is-total th,
+.activity-usage .is-total td {
+  font-weight: 600;
+}
+.activity-usage .is-unknown {
+  color: var(--muted);
+  text-align: left;
+}
+.activity-usage-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 /* Video: play controls under the scene, readable moment tiles, clear

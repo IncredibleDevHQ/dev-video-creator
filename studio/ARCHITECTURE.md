@@ -63,17 +63,25 @@ constructing typed chat, slide, extension and recording requests. Failed app
 actions use one dismissible error surface, including inside native modal
 dialogs. Voice deletion uses an app dialog with Cancel as its initial focus.
 
-Wireframes are drawn one page per harness call (`engine/creative/pages.ts`):
-the first call authors the deck's design system with page one, later pages run
-two at a time against it, each with its own budget and up to three attempts,
-and the engine writes the receipt and checks the whole deck once. Budgets come
-from `engine/harness/limits.ts`, by operation and model. Wireframe changes are
+Wireframes are drawn one page per harness call (`engine/creative/pages.ts`).
+A call's packet is small: `SPEC.md`, which the engine writes from the look
+(`engine/creative/page-spec.ts`: colours, type, layout, icon names, drawable
+objects), `PAGE.json` (the scene with its neighbours' titles and the objects it
+names) and `STYLE.svg` (the first accepted page). Page one goes alone, the rest
+three at a time (`MINIMAL_STUDIO_PAGE_CONCURRENCY`), each with its own budget
+and up to three attempts; a retry corrects the refused draft. The agent names
+icons and the studio draws them in on submission, then checks that one page
+(`page-checks.ts`, including connector labels); the engine writes the receipt.
+Only the route (`SKILL.md`, `workflows/draw-page.md`) is installed in the run.
+Budgets, thinking effort and the limit on one response come from
+`engine/harness/limits.ts`, by operation and model; Kimi's token use is read
+from its session log after each call (`adapters/kimi-home.ts`). Wireframe changes are
 a per-notebook queue on the snapshot (`engine/slide-changes.ts`); a change may
 carry the element it points at, and restart marks a running change failed
 rather than repeating it.
 
 A notebook's look (palette and fonts) is separate from the creator's identity
 (name, description, logo). `engine/looks.ts` chooses the starting look and
-`engine/look-apply.ts` changes it, re-colouring drawn pages and the deck's
-design spec with `shared/looks.ts`, which the app also uses for the live
-preview in the look panel.
+`engine/look-apply.ts` changes it, re-colouring drawn pages with
+`shared/looks.ts`, which the app also uses for the live preview in the look
+panel; later pages are drawn from a spec written from the new look.

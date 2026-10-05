@@ -283,7 +283,17 @@ export const createClaudeCodeAdapter = (
       args,
       cwd: run.projectDir,
       env: {
-        SKILL_DIR: resolveSkillDir(context.skillsDir, run.projectDir, run.skill)
+        SKILL_DIR: resolveSkillDir(
+          context.skillsDir,
+          run.projectDir,
+          run.skill
+        ),
+        // The limit on one response, thinking included (limits.ts).
+        ...(typeof run.inputs.maxOutputTokens === 'number'
+          ? {
+              CLAUDE_CODE_MAX_OUTPUT_TOKENS: String(run.inputs.maxOutputTokens)
+            }
+          : {})
       },
       onLine: (line) =>
         emitLine(

@@ -30,6 +30,8 @@ export type EngineRun = {
   status: 'preparing' | 'running' | 'done' | 'error' | 'cancelled'
   model?: string
   effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+  /** What the call was for (limits.ts); Activity sums token use by it. */
+  operation?: HarnessOperation
   reportedModel?: string
   resumeId?: string
   usage?: import('../../shared/usage').TokenUsage
@@ -49,6 +51,11 @@ const skills: Record<HarnessStage, string> = {
   drawing: 'page-master',
   planning: 'video-planner',
   composition: 'scene-producer'
+}
+// A page call reads its route and the packet; page-master's vendored
+// manuals, icon files and scripts (4.6 MB) stay with the studio.
+const skillFiles: Record<string, string[]> = {
+  'page-master': ['SKILL.md', 'workflows/draw-page.md']
 }
 export const createAdapters = (context: HarnessContext): HarnessAdapter[] => [
   createClaudeCodeAdapter(context),
@@ -155,6 +162,12 @@ export const runEngineStage = async (input: {
     throw new Error('Choose a harness')
   const id = randomUUID()
   const directory = join(dataRoot, 'engine-workspaces', input.projectId, id)
+  const operation = input.operation || operations[input.stage]
+  const limits = stageLimits(operation, {
+    adapter: input.adapter,
+    model: input.model
+  })
+  const effort = input.effort ?? limits.effort
   const record: EngineRun = {
     id,
     projectId: input.projectId,
@@ -162,7 +175,8 @@ export const runEngineStage = async (input: {
     stage: input.stage,
     adapter: input.adapter,
     model: input.model,
-    effort: input.effort,
+    effort,
+    operation,
     status: 'preparing',
     startedAt: new Date().toISOString(),
     events: []
@@ -179,10 +193,6 @@ export const runEngineStage = async (input: {
     limitReason = reason
     controller.abort()
   }
-  const limits = stageLimits(input.operation || operations[input.stage], {
-    adapter: input.adapter,
-    model: input.model
-  })
   const timer = setTimeout(
     () => stopForLimit(generationStops.time),
     Math.min(input.timeoutMs ?? limits.timeoutMs, LIMIT_CEILING_MS)
@@ -312,7 +322,8 @@ export const runEngineStage = async (input: {
       only:
         input.stage === 'composition'
           ? ['scene-producer', 'video-planner']
-          : [skills[input.stage]]
+          : [skills[input.stage]],
+      files: skillFiles
     })
     for (const [name, body] of Object.entries({
       ...input.packet,
@@ -333,8 +344,7 @@ export const runEngineStage = async (input: {
         stage: input.stage,
         runId: id,
         projectId: input.projectId,
-        sceneId: input.sceneId,
-        context: input.stageContext
+        sceneId: input.sceneId
       }),
       { mode: 0o600 }
     )
@@ -387,7 +397,8 @@ export const runEngineStage = async (input: {
         inputs: {
           task: input.task,
           model: input.model,
-          effort: input.effort,
+          effort,
+          maxOutputTokens: limits.maxOutputTokens,
           submissionToken: submissions?.token,
           capabilityScope:
             input.stage === 'composition'
@@ -406,6 +417,7 @@ export const runEngineStage = async (input: {
     await queue
     if (progressFailure) throw progressFailure
     record.resumeId = result.resumeId
+    if (result.usage) record.usage = result.usage
     if (controller.signal.aborted && !acceptedSubmission)
       throw new Error(limitReason || 'The engine run was interrupted')
     if (!acceptedSubmission && (result.exitCode !== 0 || reportedError))
