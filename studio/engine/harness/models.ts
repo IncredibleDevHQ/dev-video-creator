@@ -34,7 +34,7 @@ export const compareVersions = (a: string, b: string) => {
 // A CLI whose version is unknown (an explicit wrapper) is not gated.
 export const claudeModels = (cliVersion: string): HarnessModels => ({
   default: null,
-  source: `Claude models; Claude Code ${cliVersion || 'version unknown'}`,
+  source: `The models Claude Code${cliVersion ? ` ${cliVersion}` : ''} offers.`,
   options: CLAUDE_MODELS.map((model) => ({
     id: model.id,
     label: model.label,
@@ -58,7 +58,7 @@ export const kimiModelsFrom = (config: string): HarnessModels => {
   const options = [...new Set([...(fallback ? [fallback] : []), ...names])]
   return {
     default: fallback,
-    source: 'Kimi config.toml',
+    source: 'From your Kimi settings.',
     options: options.map((id) => ({ id, label: id }))
   }
 }
@@ -68,7 +68,11 @@ export const kimiModels = async (): Promise<HarnessModels> => {
   try {
     return kimiModelsFrom(await readFile(join(home, 'config.toml'), 'utf8'))
   } catch {
-    return { default: null, source: 'no Kimi config found', options: [] }
+    return {
+      default: null,
+      source: 'No Kimi settings were found.',
+      options: []
+    }
   }
 }
 
@@ -78,7 +82,7 @@ export const codexModelsFrom = (config: string): HarnessModels => {
   const model = topLevel.match(/^\s*model\s*=\s*"([^"]+)"/m)?.[1] || null
   return {
     default: null,
-    source: 'Codex config.toml',
+    source: 'From your Codex settings.',
     options: model ? [{ id: model, label: `${model} (your Codex config)` }] : []
   }
 }

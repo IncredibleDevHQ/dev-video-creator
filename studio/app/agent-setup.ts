@@ -9,6 +9,18 @@ export const agentNames = {
   kimi: 'Kimi'
 }
 const ids = Object.keys(agentNames) as HarnessSelection['adapter'][]
+/** "Found Claude Code and Kimi on this computer." */
+const found = (choices: Map<HarnessSelection['adapter'], HarnessChoice>) => {
+  const names = ids
+    .filter((id) => choices.get(id)?.ok)
+    .map((id) => agentNames[id])
+  if (!names.length) return 'No agent was found on this computer.'
+  const list =
+    names.length === 1
+      ? names[0]
+      : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+  return `Found ${list} on this computer.`
+}
 type Detection = 'idle' | 'searching' | 'done'
 
 /** Real checks finish independently; no simulated discovery or model calls. */
@@ -53,10 +65,11 @@ export class AgentSetup {
             .map((id) => {
               const state = this.states.get(id) || 'idle'
               const found = this.choices.get(id)
+              // One mark per card: the radio says which is chosen (review 5).
               return `<label class="agent-option ${state === 'searching' ? 'is-searching' : ''} ${found?.ok ? 'is-available' : 'is-unavailable'}">
               <input type="radio" name="agent" value="${id}" ${this.selected?.adapter === id && found?.ok ? 'checked' : ''} ${!found?.ok ? 'disabled' : ''}>
-              <span><strong>${agentNames[id]}</strong><small>${state === 'idle' ? 'Not checked' : state === 'searching' ? 'Searching…' : found?.ok ? 'Detected' : 'Not detected'}</small></span>
-              ${state === 'searching' ? '<span class="spinner" aria-hidden="true"></span>' : found?.ok ? '<span aria-hidden="true">✓</span>' : ''}
+              <span><strong>${agentNames[id]}</strong><small>${state === 'idle' ? 'Not checked' : state === 'searching' ? 'Looking…' : found?.ok ? 'On this computer' : 'Not on this computer'}</small></span>
+              ${state === 'searching' ? '<span class="spinner" aria-hidden="true"></span>' : ''}
             </label>`
             })
             .join('')}
@@ -65,7 +78,7 @@ export class AgentSetup {
         <p class="ai-default-note">Remembered for new notebooks. Change anytime in Settings.</p>
         <p class="agent-detection-note">Sign in to your agent before generating. Model access depends on your agent’s account.</p>
         ${completed && ![...this.choices.values()].some((item) => item.ok) ? '<p role="alert">No supported agent was found. Install Claude Code, Codex, or Kimi on this computer, then detect again.</p>' : ''}
-        <p class="agent-message" role="status" aria-live="polite">${escape(this.message || (this.detecting ? 'Checking installed agents…' : completed ? `${[...this.choices.values()].filter((item) => item.ok).length} agents detected.` : ''))}</p>
+        <p class="agent-message" role="status" aria-live="polite">${escape(this.message || (this.detecting ? 'Looking for agents on this computer…' : completed ? found(this.choices) : ''))}</p>
         <button class="primary" ${!completed || !choice?.ok || this.saving ? 'disabled' : ''}>${this.saving ? 'Saving…' : this.actionLabel}</button>
       </form>
     </div>`
@@ -84,16 +97,20 @@ export class AgentSetup {
     if (selected && !options.some((item) => item.id === selected))
       items.push({ id: selected, label: selected, unavailable: undefined })
     return `<fieldset class="model-options" ${this.saving ? 'disabled' : ''}>
-      <legend>Models <span>${options.filter((item) => !item.unavailable).length} listed</span></legend>
-      <p class="model-source">${escape(choice.models?.source || 'Models supported by this agent.')}</p>
+      <legend>Model</legend>
+      <p class="model-source">${escape(choice.models?.source || 'The models this agent offers.')}</p>
       <div class="model-list">${items
         .map(
           (
             item
           ) => `<label class="model-option ${item.unavailable ? 'is-unavailable' : ''}">
         <input type="radio" name="agent-model" value="${escape(item.id)}" ${item.id === selected ? 'checked' : ''} ${item.unavailable ? 'disabled' : ''}>
-        <span><strong>${escape(item.label)}</strong><small>${escape(item.unavailable || (item.id ? item.id : 'Use the model configured in your agent'))}</small></span>
-        <span class="model-availability">${item.unavailable ? 'Unavailable' : item.id ? 'Supported' : 'Default'}</span>
+        <span><strong>${escape(item.label)}</strong>${
+          item.unavailable || !item.id || item.label !== item.id
+            ? `<small>${escape(item.unavailable || (item.id ? item.id : 'The model set in the agent itself'))}</small>`
+            : ''
+        }</span>
+        ${item.unavailable ? '<span class="model-availability">Unavailable</span>' : ''}
       </label>`
         )
         .join('')}</div>
@@ -173,7 +190,7 @@ export class AgentSetup {
     try {
       await this.save(selection)
       this.selected = selection
-      this.message = 'Agent saved. You can continue in your notebook.'
+      this.message = `Saved. This notebook and new ones use ${agentNames[selection.adapter]}.`
     } catch (reason) {
       this.message =
         reason instanceof Error

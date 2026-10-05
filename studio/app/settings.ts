@@ -44,6 +44,12 @@ export class Settings {
       }
     })
     root.addEventListener('change', (event) => {
+      const file = event.target as HTMLInputElement
+      if (this.isOpen && file.name === 'logo' && file.type === 'file') {
+        const label = this.root.querySelector('[data-file-name]')
+        if (label) label.textContent = file.files?.[0]?.name || ''
+        return
+      }
       if (
         !this.isOpen ||
         !this.data ||
@@ -282,12 +288,11 @@ export class Settings {
         const logo = values.get('logo') as File | null
         if (logo?.size) logoKey = (await api.uploadLogo(logo)).objectKey
         this.data = await api.saveSettings({
+          // Identity only: a notebook's colours and fonts are its look.
           branding: {
             ...this.data.branding,
             name: String(values.get('name')),
             tagline: String(values.get('tagline')),
-            accent: String(values.get('accent')),
-            useAccent: values.has('useAccent'),
             logoKey
           },
           ...(values.has('apply') && this.projectId()

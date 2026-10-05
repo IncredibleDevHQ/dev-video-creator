@@ -29,7 +29,9 @@ it('waits for an explicit detection click, reports each result, and never select
     selected: null,
     available: [{ id: 'kimi', ok: false }]
   })
-  await vi.waitFor(() => expect(root.textContent).toContain('Not detected'))
+  await vi.waitFor(() =>
+    expect(root.textContent).toContain('Not on this computer')
+  )
   expect(root.querySelectorAll('.is-searching')).toHaveLength(2)
   resolve.get('claude-code')!({
     selected: null,

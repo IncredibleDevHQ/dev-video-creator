@@ -108,6 +108,14 @@ export const openLookPanel = (app: AppContext) => {
   const title = app.snapshot.project.title.replace(/ \| [^|]+$/, '')
   const from = currentLook(app)
   const drawn = app.snapshot.project.slides.some((slide) => slide.svg)
+  let domain = ''
+  try {
+    domain = app.snapshot.project.sourceUrl
+      ? new URL(app.snapshot.project.sourceUrl).hostname
+          .toLowerCase()
+          .replace(/^www\./, '')
+      : ''
+  } catch {}
   const element = document.createElement('aside')
   element.className = 'look-panel'
   element.setAttribute('aria-label', 'Look')
@@ -137,6 +145,7 @@ export const openLookPanel = (app: AppContext) => {
       .join('')}</div>
 <h3>Fonts</h3>
 <div class="look-fonts"><label>Headings${fontMenu('display', draft.fonts.display)}</label><label>Text${fontMenu('body', draft.fonts.body)}</label></div>
+${domain ? `<label class="consent look-remember"><input type="checkbox" data-look-remember> Use this look for ${escape(domain)} next time</label>` : ''}
 <p class="popover-error" role="alert" data-look-error></p>
 <div class="look-actions"><button type="button" data-look-cancel>Cancel</button><button type="button" class="primary" data-look-apply ${draft === from ? 'disabled' : ''}>${drawn ? 'Apply to all wireframes' : 'Use this look'}</button></div>`
     syncLookPreview(app.root)
@@ -164,7 +173,36 @@ export const openLookPanel = (app: AppContext) => {
     apply.disabled = true
     apply.textContent = 'Applying…'
     try {
-      const snapshot = await api.applyLook(id, open.draft)
+      const draft = open.draft
+      const remember = element.querySelector<HTMLInputElement>(
+        '[data-look-remember]'
+      )?.checked
+      const snapshot = await api.applyLook(id, draft)
+      if (remember && domain) {
+        const saved = (await api.settings()).brandLibrary?.find(
+          (entry) => entry.domain === domain
+        )
+        await api.saveLibraryBrand({
+          domain,
+          brand: {
+            name: draft.name,
+            tagline: '',
+            logoKey: null,
+            accent: draft.palette.accent,
+            useAccent: true,
+            palette: {
+              ground: draft.palette.ground,
+              text: draft.palette.text,
+              secondary: draft.palette.secondary
+            },
+            fonts: draft.fonts,
+            look: { id: draft.id, name: draft.name }
+          },
+          ...(saved
+            ? { overwriteId: saved.id, expectedUpdatedAt: saved.updatedAt }
+            : {})
+        })
+      }
       closeLookPanel(app, true)
       if (app.snapshot?.project.id === id) app.snapshot = snapshot
       app.render()

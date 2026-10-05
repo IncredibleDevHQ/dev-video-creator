@@ -31,7 +31,7 @@ export const settingsScreen = (
     </header>
     <main class="settings-layout">
       <nav aria-label="Settings">
-        ${tab('agent', 'Agent & model')}${tab('branding', 'Branding')}${tab(
+        ${tab('agent', 'Agent & model')}${tab('branding', 'You')}${tab(
           'voice',
           'Voice'
         )}${tab('keys', 'API keys')}
@@ -185,120 +185,99 @@ const voicePanel = (
         : ''}${button('Refresh voices', 'refresh-voices', false, busy)}
     </section>`
 }
+const swatch = (colour: string, label: string) =>
+  `<i class="look-swatch" style="background:${escape(colour)}" title="${escape(label)}"></i>`
+/** You in your videos (name, description, logo), then saved looks as swatches. */
 const brandingPanel = (data: StudioSettings, projectId: string | null) =>
-  html`<h1>Branding</h1>
-    ${data.brandLibrary?.length
-      ? `<h2>Saved brands</h2><div class="saved-brand-list">${data.brandLibrary.map((entry) => `<article><strong>${escape(entry.brand.name)}</strong><small>${escape(entry.domain || 'Custom brand')}</small><small>${escape(entry.brand.accent)}</small></article>`).join('')}</div>`
-      : ''}
-    <p>Your name and logo carry into your videos.</p>
-    ${data.branding.fonts
-      ? `<p>Fonts: ${escape(data.branding.fonts.display)} · ${escape(data.branding.fonts.body)} · ${escape(data.branding.fonts.mono)}</p>`
-      : ''}
-    ${data.branding.palette
-      ? `<p>Palette: ${escape(data.branding.palette.ground)} · ${escape(data.branding.palette.text)} · ${escape(data.branding.accent)} · ${escape(data.branding.palette.secondary)}</p>`
-      : ''}
+  html`<h1>You</h1>
+    <p>
+      Your name and logo appear in your videos, on the title card and the lower
+      third. A notebook's colours and fonts are its look, changed beside its
+      wireframes.
+    </p>
     <form id="branding-form" class="settings-card">
       <label
         >Your name<input
           name="name"
           maxlength="100"
-          value="${escape(data.branding.name)}" /></label
+          value="${escape(data.branding.name)}"
+          placeholder="How the video introduces you" /></label
       ><label
         >Lower-third description<input
           name="tagline"
           maxlength="160"
           value="${escape(data.branding.tagline)}"
           placeholder="What you do" /></label
-      ><label class="consent"
-        ><input
-          type="checkbox"
-          name="useAccent"
-          ${data.branding.useAccent ? 'checked' : ''}
-        />
-        Use my accent colour</label
-      ><label
-        >Accent colour<input
-          type="color"
-          name="accent"
-          value="${data.branding.accent}" /></label
-      ><label
-        >Logo<input
-          name="logo"
-          type="file"
-          accept="image/png,image/jpeg,image/webp" /></label
-      >${data.branding.logoKey
-        ? html`<div class="brand-logo-preview">
-            <img
+      ><span class="field-label">Logo</span>
+      <div class="file-control">
+        ${data.branding.logoKey
+          ? html`<img
+              class="brand-logo-preview"
               src="/objects/${data.branding.logoKey}"
-              alt="Current logo"
-            />${button('Remove logo', 'remove-logo')}
+              alt="Your logo"
+            />`
+          : ''}<label class="file-button"
+          ><input
+            name="logo"
+            type="file"
+            class="sr"
+            accept="image/png,image/jpeg,image/webp"
+          />${data.branding.logoKey ? 'Replace logo…' : 'Choose a logo…'}</label
+        ><span class="file-name" data-file-name
+          >${data.branding.logoKey ? '' : 'PNG, JPEG or WebP'}</span
+        >${data.branding.logoKey ? button('Remove', 'remove-logo') : ''}
+      </div>
+      ${projectId
+        ? '<label class="consent"><input type="checkbox" name="apply" checked> Use in this notebook too</label>'
+        : ''}<button class="primary">Save</button>
+    </form>
+    ${data.brandLibrary?.length
+      ? html`<h2>Saved looks</h2>
+          <div class="saved-looks">
+            ${data.brandLibrary
+              .map(
+                (entry) =>
+                  html`<article class="saved-look">
+                    <span class="look-swatches"
+                      >${swatch(
+                        entry.brand.palette?.ground || '#ffffff',
+                        'Background'
+                      )}${swatch(
+                        entry.brand.palette?.text || '#111111',
+                        'Text'
+                      )}${swatch(entry.brand.accent, 'Accent')}</span
+                    ><strong
+                      style="font-family:${escape(
+                        entry.brand.fonts?.display || 'Inter'
+                      )}, Inter, sans-serif"
+                      >${escape(
+                        entry.brand.look?.name || entry.brand.name || 'Look'
+                      )}</strong
+                    ><small
+                      >${escape(
+                        entry.domain ? `Used for ${entry.domain}` : 'Saved look'
+                      )}</small
+                    >
+                  </article>`
+              )
+              .join('')}
           </div>`
-        : ''}${projectId
-        ? '<label class="consent"><input type="checkbox" name="apply" checked> Apply to this project too</label>'
-        : ''}<button class="primary">Save branding</button>
-    </form>`
+      : ''}`
 const keysPanel = (data: StudioSettings) =>
   html`<h1>API keys</h1>
     <p>Keys stay with your studio’s server and are never shown again.</p>
-    <form id="provider-settings-form" class="settings-card">
-      <label
-        >AI provider<select name="provider">
-          ${data.providers
-            .map(
-              (provider) =>
-                html`<option
-                  value="${provider.id}"
-                  ${data.models.provider === provider.id ? 'selected' : ''}
-                >
-                  ${escape(provider.name)}
-                </option>`
-            )
-            .join('')}
-        </select></label
-      ><label
-        >API URL<input
-          name="baseUrl"
-          type="url"
-          required
-          value="${escape(data.models.baseUrl)}" /></label
-      ><label
-        >Provider API key<input
-          type="password"
-          name="apiKey"
-          autocomplete="new-password"
-          placeholder="${data.models.hasKey
-            ? 'Key saved · enter a replacement'
-            : 'Enter your provider key'}" /></label
-      >${(['writing', 'vision', 'coding'] as const)
-        .map(
-          (task) =>
-            html`<label
-              >${task === 'writing'
-                ? 'Writing'
-                : task === 'vision'
-                  ? 'Vision'
-                  : 'Animation coding'}
-              model<input
-                name="${task}"
-                required
-                value="${escape(data.models.models[task])}"
-            /></label>`
-        )
-        .join('')}<label
-        >Reasoning<select name="reasoningEffort">
-          ${['none', 'low', 'medium', 'high']
-            .map(
-              (value) =>
-                html`<option
-                  ${data.models.reasoningEffort === value ? 'selected' : ''}
-                >
-                  ${value}
-                </option>`
-            )
-            .join('')}
-        </select></label
-      ><button class="primary">Save AI settings</button>
-    </form>
+    ${data.harness
+      ? html`<div class="settings-card agent-owns-models">
+          <p>
+            <b>Your agent writes and draws your videos.</b> The provider and
+            models below are used only when no agent is chosen.
+          </p>
+          <details>
+            <summary>Show provider settings</summary>
+            ${providerForm(data)}
+          </details>
+        </div>`
+      : providerForm(data)}
     <form id="voice-key-form" class="settings-card">
       <h2>Voice generation</h2>
       <label
@@ -311,3 +290,64 @@ const keysPanel = (data: StudioSettings) =>
             : 'Enter your Fish Audio key'}" /></label
       ><button class="primary">Save voice key</button>
     </form>`
+
+const providerForm = (data: StudioSettings) =>
+  html`<form id="provider-settings-form" class="settings-card">
+    <label
+      >AI provider<select name="provider">
+        ${data.providers
+          .map(
+            (provider) =>
+              html`<option
+                value="${provider.id}"
+                ${data.models.provider === provider.id ? 'selected' : ''}
+              >
+                ${escape(provider.name)}
+              </option>`
+          )
+          .join('')}
+      </select></label
+    ><label
+      >API URL<input
+        name="baseUrl"
+        type="url"
+        required
+        value="${escape(data.models.baseUrl)}" /></label
+    ><label
+      >Provider API key<input
+        type="password"
+        name="apiKey"
+        autocomplete="new-password"
+        placeholder="${data.models.hasKey
+          ? 'Key saved · enter a replacement'
+          : 'Enter your provider key'}" /></label
+    >${(['writing', 'vision', 'coding'] as const)
+      .map(
+        (task) =>
+          html`<label
+            >${task === 'writing'
+              ? 'Writing'
+              : task === 'vision'
+                ? 'Vision'
+                : 'Animation coding'}
+            model<input
+              name="${task}"
+              required
+              value="${escape(data.models.models[task])}"
+          /></label>`
+      )
+      .join('')}<label
+      >Reasoning<select name="reasoningEffort">
+        ${['none', 'low', 'medium', 'high']
+          .map(
+            (value) =>
+              html`<option
+                ${data.models.reasoningEffort === value ? 'selected' : ''}
+              >
+                ${value}
+              </option>`
+          )
+          .join('')}
+      </select></label
+    ><button class="primary">Save AI settings</button>
+  </form>`

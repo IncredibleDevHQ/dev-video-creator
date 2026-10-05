@@ -483,3 +483,89 @@ dialog[data-story] {
 dialog[data-story] .brand-story {
   margin-top: 8px;
 }
+
+/* Settings: you in your videos, saved looks as swatches, a styled file control. */
+.settings-card .field-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.file-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 14px;
+}
+.file-control .brand-logo-preview {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 13px;
+  cursor: pointer;
+}
+.file-button:hover {
+  border-color: var(--accent);
+}
+.file-button:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.file-name {
+  color: var(--muted);
+  font-size: 12px;
+}
+.saved-looks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.saved-look {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.look-swatches {
+  display: flex;
+  gap: 6px;
+}
+.look-swatch {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #0000001f;
+  border-radius: 50%;
+}
+.saved-look small {
+  color: var(--muted);
+}
+.agent-owns-models > p {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+.agent-owns-models summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+}
+.agent-owns-models details[open] summary {
+  margin-bottom: 12px;
+}
+.look-remember {
+  margin-top: 14px;
+  font-size: 12px;
+}
