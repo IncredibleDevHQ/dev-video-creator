@@ -25,4 +25,9 @@ export type Host = {
    * number and overlay without drawing everything again.
    */
   moment: (index: number) => void
+  /**
+   * Practising one moment, the creator picked another on the scene's map:
+   * the page shows it, drawing the stage again for it.
+   */
+  pick: (index: number) => void
 }

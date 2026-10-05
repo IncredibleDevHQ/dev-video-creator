@@ -170,6 +170,12 @@ export function filmstripTiles(
   }).join('')
 }
 
+/** The moment playing at a second of the scene (the last, once it ends). */
+export const momentIndexAt = (moments: Moment[], second: number) => {
+  const index = moments.findIndex((moment) => second < moment.end)
+  return index < 0 ? Math.max(0, moments.length - 1) : index
+}
+
 /**
  * Where the animation stands at a second of the scene: it plays straight on
  * from one moment into the next, and holds its last frame only while a
@@ -177,8 +183,7 @@ export function filmstripTiles(
  */
 export function animationAt(scene: Scene, second: number) {
   const moments = scene.moments,
-    found = moments.findIndex((moment) => second < moment.end),
-    index = found < 0 ? moments.length - 1 : found,
+    index = momentIndexAt(moments, second),
     moment = moments[index],
     base = scene.animation!.moments[index],
     length = dialogueBoundary(moment),

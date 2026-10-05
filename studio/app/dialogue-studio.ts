@@ -7,6 +7,7 @@ import { escape } from './ui'
 import { api } from './api'
 import {
   fillFilmstrip,
+  momentIndexAt,
   sceneParts,
   sceneWords,
   steerAnimation,
@@ -15,6 +16,7 @@ import {
 } from './scene-timeline'
 import {
   animationNote,
+  caretToEnd,
   enableControls,
   fitStage,
   followPlayhead,
@@ -22,7 +24,12 @@ import {
   markMoment,
   markWord,
   momentTimeline,
-  studioMarkup
+  placePanel,
+  spotlight,
+  studioMarkup,
+  takeSuggestion,
+  transportWords,
+  typedDraft
 } from './dialogue-studio-view'
 import type { Snapshot } from '../shared/api'
 import type { Context, Host } from './dialogue-studio-types'
@@ -74,30 +81,36 @@ export function dialogueStudio(
   const text = () =>
     editing ? (draft + completion).trim() : ctx()?.moment.extension?.text || ''
   const boundary = () => (ctx() ? dialogueBoundary(ctx()!.moment) : 0)
-  // Playing the whole scene, one panel shows every moment on the scene's
-  // clock: nothing is rebuilt as one moment follows another.
-  const through = () => {
+  // In practice the scene's map is on show, whatever Play plays, so the
+  // moment on show keeps its place in the scene; positions count from the
+  // scene's start, and nothing is rebuilt as one moment follows another.
+  const mapped = () => {
     const c = ctx()
-    return Boolean(
-      host && c?.scope === 'scene' && c.scene.moments.length > 1 && !editing
-    )
+    return Boolean(host && c?.scope && c.scene.moments.length > 1 && !editing)
   }
+  const through = () => mapped() && ctx()!.scope === 'scene'
   const sceneStart = () => ctx()?.scene.moments[0]?.start ?? 0
   const total = () =>
-    through()
+    mapped()
       ? (ctx()!.scene.moments.at(-1)?.end ?? 0) - sceneStart()
       : editing
         ? boundary() + estimateSpeech(text())
         : ctx()
           ? ctx()!.moment.end - ctx()!.moment.start
           : 0
-  const axis = () => (through() ? total() : Math.max(boundary() + 2, total()))
-  /** The moment playing at a second of the scene. */
-  const momentAt = (second: number) => {
-    const moments = ctx()?.scene.moments || []
-    const index = moments.findIndex((moment) => second < moment.end)
-    return index < 0 ? Math.max(0, moments.length - 1) : index
+  const axis = () => (mapped() ? total() : Math.max(boundary() + 2, total()))
+  /** What Play plays: the whole scene, or the moment on show. */
+  const span = (): [number, number] => {
+    const c = ctx()!
+    return !mapped()
+      ? [0, total()]
+      : through()
+        ? [0, total()]
+        : [c.moment.start - sceneStart(), c.moment.end - sceneStart()]
   }
+  /** The moment playing at a second of the scene. */
+  const momentAt = (second: number) =>
+    momentIndexAt(ctx()?.scene.moments || [], second)
   /** The animation, when it is ready and matches the scene's moments. */
   const animated = () => {
     const c = ctx(),
@@ -108,38 +121,14 @@ export function dialogueStudio(
       ? v
       : null
   }
-  function readDraft() {
-    const field = $('input')
-    const value = field.innerText
-        .replace(/\u200b/g, '')
-        .replace(/\u00a0/g, ' '),
-      pending = field.querySelector('[data-completion]')?.textContent || ''
-    return pending && value.endsWith(pending)
-      ? value.slice(0, -pending.length)
-      : value
-  }
+  const readDraft = () => typedDraft($('input'))
   function materialize() {
-    const pending = $('input').querySelector('[data-completion]')
-    if (pending) pending.removeAttribute('data-completion')
+    takeSuggestion($('input'))
     completion = ''
     draft = readDraft()
-    const next = document.createElement('span')
-    next.dataset.completion = ''
-    $('input').append(next)
     request++
   }
-  function focusEnd() {
-    const field = $('input')
-    field.focus()
-    const r = document.createRange()
-    r.selectNodeContents(field)
-    const pending = field.querySelector('[data-completion]')
-    if (pending) r.setEndBefore(pending)
-    r.collapse(false)
-    getSelection()?.removeAllRanges()
-    getSelection()?.addRange(r)
-    field.scrollIntoView({ block: 'nearest' })
-  }
+  const focusEnd = () => caretToEnd($('input'))
   function status(message: string) {
     if (panel) $('status').textContent = message
   }
@@ -178,11 +167,11 @@ export function dialogueStudio(
     if (!c) return
     const resume = playing
     stop()
-    if (through()) {
+    if (mapped()) {
       position = Math.max(0, Math.min(total(), at))
       const animation = animated()
       if (animation) follow(animation, false)
-      showAt(sceneStart() + position)
+      if (through()) showAt(sceneStart() + position)
       update(sceneStart() + position)
       paint()
       if (resume) void play()
@@ -199,15 +188,26 @@ export function dialogueStudio(
     paint()
     if (resume) void play()
   }
+  /** A point on the map; practising one moment, a point in another picks it. */
+  function jumpTo(at: number) {
+    const c = ctx(),
+      index = momentAt(sceneStart() + at)
+    if (c && !through() && index !== c.index) {
+      stop()
+      host?.pick(index)
+    }
+    seek(at)
+  }
   async function play() {
     const c = ctx(),
       v = video(),
       base = c?.scene.animation?.moments[c.index]
     if (!c || editing || c.busy) return
-    if (position >= total() - 0.03) seek(0)
+    const [from, to] = span()
+    if (position < from - 0.01 || position >= to - 0.03) seek(from)
     const token = ++playRequest
-    // The whole scene runs on its own clock, and the animation follows it.
-    if (through()) {
+    // On the map, Play runs on the scene's clock and the animation follows.
+    if (mapped()) {
       const animation = animated()
       if (animation) {
         follow(animation, false)
@@ -266,9 +266,10 @@ export function dialogueStudio(
   }
   function tick() {
     if (!playing) return
-    if (through()) {
+    if (mapped()) {
+      const [, to] = span()
       position = Math.min(
-        total(),
+        to,
         clockFrom + (performance.now() - extraEpoch) / 1000
       )
       const animation = animated()
@@ -278,11 +279,11 @@ export function dialogueStudio(
         paint()
         return
       }
-      showAt(sceneStart() + position)
+      if (through()) showAt(sceneStart() + position)
       update(sceneStart() + position)
       paint()
-      if (position >= total() - 0.01) {
-        position = total()
+      if (position >= to - 0.01) {
+        position = to
         stop()
         return
       }
@@ -378,7 +379,7 @@ export function dialogueStudio(
     Math.max(1, (260 * total()) / ($('scroll').clientWidth || 600))
   /** Zoom the scene's timeline, keeping the playhead (or the pointer) still. */
   function setZoom(next: number, anchor?: number) {
-    if (!panel || !through()) return
+    if (!panel || !mapped()) return
     const value = Math.max(1, Math.min(zoomMost(), next))
     if (Math.abs(value - zoom) < 0.001) return
     keepPoint(
@@ -399,7 +400,8 @@ export function dialogueStudio(
     const c = ctx()
     if (!c) return
     const m = c.moment,
-      scene = through()
+      scene = mapped(),
+      one = scene && !through()
     $('animation').hidden = scene
     $('hold').hidden = scene || !text()
     $('moments').hidden = !scene
@@ -434,10 +436,21 @@ export function dialogueStudio(
           String(button.dataset.dsScope === (c.scope || 'moment'))
         )
       )
+    if (scene) spotlight($('spot'), one, ...span(), total())
+    else $('spot').hidden = true
     $('save').toggleAttribute('disabled', saving || (!text() && !m.extension))
-    $('edit').hidden = scene || !m.extension || editing || c.busy
+    // One moment's extra dialogue is edited from its practice, on its own
+    // timeline: carried on, or started for a moment on camera.
+    $('edit').hidden =
+      !(one ? m.extension || m.camera !== 'none' : !scene && m.extension) ||
+      editing ||
+      c.busy
+    $('edit').textContent = m.extension
+      ? 'Edit extra dialogue'
+      : '+ Keep talking'
     panel.classList.toggle('is-editing', editing)
     panel.classList.toggle('is-scene', scene)
+    panel.classList.toggle('is-one-moment', one)
     $('read').hidden = editing
     $('editor').hidden = !editing
     enableControls(root, panel, editing || c.busy, editing)
@@ -448,16 +461,22 @@ export function dialogueStudio(
     if (!panel) return
     const c = ctx()
     if (!c) return
-    const scene = through(),
+    const scene = mapped(),
+      whole = through(),
       from = scene ? sceneStart() : c.moment.start
     if (at !== undefined && !playing && !editing)
       position = Math.max(0, at - from)
     const second = from + Math.min(position, total()),
-      index = scene ? momentAt(second) : c.index,
+      index = whole ? momentAt(second) : c.index,
       moment = c.scene.moments[index] || c.moment,
-      ended = position >= total() - 0.02,
-      // The whole scene reads the scene's clock.
-      shown = scene ? sceneStart() : 0
+      // The map reads the scene's clock.
+      shown = scene ? sceneStart() : 0,
+      words = transportWords({
+        playing,
+        ended: position >= span()[1] - 0.02,
+        map: scene,
+        whole
+      })
     $('time').textContent = `${time(shown + position)} / ${time(
       shown + total()
     )}`
@@ -465,17 +484,8 @@ export function dialogueStudio(
       'aria-valuetext',
       `${(shown + position).toFixed(1)} of ${(shown + total()).toFixed(1)} seconds`
     )
-    $('play').textContent = playing
-      ? 'Ⅱ Pause'
-      : ended
-        ? scene
-          ? '▶ Replay scene'
-          : '▶ Replay'
-        : '▶ Play'
-    $('replay').setAttribute(
-      'aria-label',
-      scene ? 'Play the scene from the start' : 'Replay animation'
-    )
+    $('play').textContent = words.play
+    $('replay').setAttribute('aria-label', words.replay)
     $('playhead').style.left =
       `${(Math.min(position, total()) / axis()) * 100}%`
     ;($('seek') as HTMLInputElement).value = String(Math.min(position, total()))
@@ -495,18 +505,19 @@ export function dialogueStudio(
     $('remaining').textContent = animationNote({
       animated: Boolean(video()),
       making,
-      scene,
+      scene: whole,
       held: second - moment.start >= length - 0.08,
       holds: moment.end - moment.start > length + 0.05,
       index,
       count: c.scene.moments.length,
-      left: boundary() - position
+      left: moment.start + length - second
     })
     const make = panel.querySelector<HTMLButtonElement>('[data-ds-make]')
     if (make) make.hidden = Boolean(video()) || making || editing
     if (editing) return
     const active = scene
-      ? (wordStarts[index] ?? 0) + dialogueWordAt(moment, second)
+      ? (wordStarts[index] ?? 0) +
+        dialogueWordAt(moment, Math.min(second, moment.end - 0.001))
       : dialogueWordAt(c.moment, second)
     markWord(panel, $('read'), active, active !== shownWord, playing)
     shownWord = active
@@ -515,10 +526,10 @@ export function dialogueStudio(
     const c = ctx()
     if (!c || c.busy || editing || through()) return
     stop()
-    seek(boundary())
     editing = true
     draft = c.moment.extension?.text || ''
     completion = ''
+    seek(boundary())
     target = Math.max(10, Math.ceil(estimateSpeech(draft) / 5) * 5)
     ai = false
     $('input').innerHTML =
@@ -602,8 +613,8 @@ export function dialogueStudio(
       request++
       return
     }
-    // The whole scene keeps one panel from moment to moment.
-    const scene = through(),
+    // Practice keeps one panel for the scene, from moment to moment.
+    const scene = Boolean(host && c.scope && c.scene.moments.length > 1),
       next = scene
         ? `${c.projectId}/${c.scene.id}/scene/${c.scene.moments
             .map((m) => `${m.id}:${m.recordingKey}`)
@@ -635,7 +646,7 @@ export function dialogueStudio(
           else void play()
         }
         if (action === 'replay' || action === 'animation') {
-          seek(0)
+          seek(span()[0])
           void play()
         }
         if (button.dataset.dsScope)
@@ -646,17 +657,24 @@ export function dialogueStudio(
               ? 1
               : zoom * (button.dataset.dsZoom === 'in' ? 1.6 : 1 / 1.6)
           )
-        // A moment on the whole scene's timeline: play on from its start.
+        // A moment on the map: on from its start, or practise it alone.
         if (button.dataset.dsMoment) {
           const moment = ctx()?.scene.moments[Number(button.dataset.dsMoment)]
-          if (moment) seek(moment.start - sceneStart())
+          if (moment) jumpTo(moment.start - sceneStart())
         }
-        if (button.dataset.jump) seek(Number(button.dataset.jump))
+        if (button.dataset.jump)
+          (mapped() ? jumpTo : seek)(Number(button.dataset.jump))
         if (action === 'add' || action === 'edit') open()
         if (action === 'suggest') void suggest()
         if (action === 'cancel') {
           editing = false
           request++
+          const c = ctx()
+          if (c)
+            position = Math.max(
+              0,
+              c.second - (mapped() ? sceneStart() : c.moment.start)
+            )
           timeline()
           status('')
         }
@@ -689,13 +707,15 @@ export function dialogueStudio(
         }
       })
       $('seek').addEventListener('input', () =>
-        seek(Number(($('seek') as HTMLInputElement).value))
+        (mapped() ? jumpTo : seek)(
+          Number(($('seek') as HTMLInputElement).value)
+        )
       )
       // Ctrl or ⌘ with the wheel, or a pinch, zooms the scene's timeline.
       $('scroll').addEventListener(
         'wheel',
         (event) => {
-          if (!through() || !(event.ctrlKey || event.metaKey)) return
+          if (!mapped() || !(event.ctrlKey || event.metaKey)) return
           event.preventDefault()
           setZoom(
             zoom * Math.exp(-event.deltaY / 300),
@@ -751,13 +771,7 @@ export function dialogueStudio(
         }
       })
     }
-    const actions = root.querySelector('.video-actions')
-    actions?.before(panel)
-    root.querySelector('.practice-panel')?.remove()
-    root.querySelector('.recording-script')?.setAttribute('hidden', '')
-    root.querySelector('[data-animation-status]')?.setAttribute('hidden', '')
-    root.querySelector('.video-stage .layered-controls')?.remove()
-    root.querySelector('.stage-area')?.classList.add('has-dialogue-studio')
+    placePanel(root, panel)
     if (c.busy && playing) stop()
     timeline()
     paint(c.second)

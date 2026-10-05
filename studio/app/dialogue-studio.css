@@ -703,3 +703,21 @@
 .ds-strip img[data-drawing] {
   filter: blur(1px) saturate(0.7);
 }
+
+/* Practising one moment, the map stays and a spotlight falls on its part:
+   the rest of the scene dims, on the timeline and in the read-along. */
+.ds-spot {
+  position: absolute;
+  inset: 21px 0 4px;
+  pointer-events: none;
+  --shade: #0b1610b3;
+  background: linear-gradient(
+    to right,
+    var(--shade) 0 var(--from),
+    transparent var(--from) var(--to),
+    var(--shade) var(--to) 100%
+  );
+}
+.dialogue-studio.is-one-moment .ds-moment-words:not(.is-current) {
+  opacity: 0.4;
+}

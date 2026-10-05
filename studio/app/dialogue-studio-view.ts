@@ -66,6 +66,8 @@ export const studioMarkup = () =>
     '<span data-ds="boundary">',
     '</span>',
     '</div>',
+    '<div data-ds="spot" class="ds-spot" aria-hidden="true" hidden>',
+    '</div>',
     '<div data-ds="cuts" class="ds-cuts" aria-hidden="true" hidden>',
     '</div>',
     '<div data-ds="playhead" class="ds-playhead">',
@@ -204,13 +206,74 @@ export function animationNote(state: {
     : `${Math.max(0, state.left).toFixed(1)}s of animation left`
 }
 
-/** Mark the moment on show on the whole scene's timeline. */
+/** Mark the moment on show on the scene's map and in the read-along. */
 export function markMoment(panel: HTMLElement, index: number) {
   panel.querySelectorAll<HTMLElement>('[data-ds-moment]').forEach((part, i) => {
     part.classList.toggle('is-current', i === index)
     if (i === index) part.setAttribute('aria-current', 'step')
     else part.removeAttribute('aria-current')
   })
+  panel
+    .querySelectorAll<HTMLElement>('.ds-moment-words')
+    .forEach((words, i) => words.classList.toggle('is-current', i === index))
+}
+
+/** Light the part of the map Play plays, from and to seconds of `of`. */
+export function spotlight(
+  spot: HTMLElement,
+  on: boolean,
+  from: number,
+  to: number,
+  of: number
+) {
+  spot.hidden = !on
+  spot.style.setProperty('--from', `${(from / of) * 100}%`)
+  spot.style.setProperty('--to', `${(to / of) * 100}%`)
+}
+
+/** What the transport says: the clock, Play, and what ↻ does. */
+export function transportWords(state: {
+  playing: boolean
+  ended: boolean
+  map: boolean
+  whole: boolean
+}) {
+  return {
+    play: state.playing
+      ? 'Ⅱ Pause'
+      : !state.ended
+        ? '▶ Play'
+        : state.whole
+          ? '▶ Replay scene'
+          : '▶ Replay',
+    replay: state.whole
+      ? 'Play the scene from the start'
+      : state.map
+        ? 'Play this moment from its start'
+        : 'Replay animation'
+  }
+}
+
+/** The extra dialogue typed so far, without a suggestion not yet taken. */
+export function typedDraft(field: HTMLElement) {
+  const value = field.innerText.replace(/\u200b/g, '').replace(/\u00a0/g, ' '),
+    pending = field.querySelector('[data-completion]')?.textContent || ''
+  return pending && value.endsWith(pending)
+    ? value.slice(0, -pending.length)
+    : value
+}
+
+/** Put the caret at the end of what was typed, before any suggestion. */
+export function caretToEnd(field: HTMLElement) {
+  field.focus()
+  const r = document.createRange()
+  r.selectNodeContents(field)
+  const pending = field.querySelector('[data-completion]')
+  if (pending) r.setEndBefore(pending)
+  r.collapse(false)
+  getSelection()?.removeAllRanges()
+  getSelection()?.addRange(r)
+  field.scrollIntoView({ block: 'nearest' })
 }
 
 /** A timeline too long to fit scrolls along with the playhead, a view at a time. */
@@ -283,4 +346,22 @@ export function keepPoint(
     fraction = before ? (scroll.scrollLeft + at) / before : 0
   redraw()
   scroll.scrollLeft = Math.max(0, fraction * timeline.clientWidth - at)
+}
+
+/** Take the suggestion into what was typed, leaving room for the next one. */
+export function takeSuggestion(field: HTMLElement) {
+  field.querySelector('[data-completion]')?.removeAttribute('data-completion')
+  const next = document.createElement('span')
+  next.dataset.completion = ''
+  field.append(next)
+}
+
+/** Put the practice panel above the stage's actions, in place of the old parts. */
+export function placePanel(root: HTMLElement, panel: HTMLElement) {
+  root.querySelector('.video-actions')?.before(panel)
+  root.querySelector('.practice-panel')?.remove()
+  root.querySelector('.recording-script')?.setAttribute('hidden', '')
+  root.querySelector('[data-animation-status]')?.setAttribute('hidden', '')
+  root.querySelector('.video-stage .layered-controls')?.remove()
+  root.querySelector('.stage-area')?.classList.add('has-dialogue-studio')
 }

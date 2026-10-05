@@ -378,7 +378,21 @@ export const createDialogue = (app: AppContext) =>
           app.practiceMomentIds = practiceMoments(scene, app.momentIndex, next)
         app.render()
       },
-      moment: (index) => showMoment(app, index)
+      moment: (index) => showMoment(app, index),
+      pick: (index) => {
+        const scene = app.snapshot?.project.video?.scenes[app.selected],
+          moment = scene?.moments[index]
+        if (!scene || !moment) return
+        app.momentIndex = index
+        app.second = moment.start
+        if (!app.practice.active && !app.practiceCountdown)
+          app.practiceMomentIds = practiceMoments(
+            scene,
+            index,
+            app.practiceScope
+          )
+        app.render()
+      }
     }
   )
 

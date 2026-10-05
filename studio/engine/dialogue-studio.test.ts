@@ -88,6 +88,12 @@ const studio = dialogueStudio(
     // The page shows the moment's number without drawing again.
     moment: (next) => {
       index = next
+    },
+    // Picking a moment to practise draws the page again.
+    pick: (next) => {
+      index = next
+      second = scene.moments[next].start
+      studio.mount()
     }
   }
 )
@@ -166,8 +172,10 @@ it('plays the whole scene as one timeline, one moment into the next', () => {
     ['Whole scene', true, ''],
     ['This moment', true, '']
   ])
-  expect($('zoom').hidden).toBe(true)
-  // One moment at a time stops at the moment's end, as before.
+  // One moment keeps the scene's map, a spotlight on its part.
+  expect([$('zoom').hidden, $('spot').hidden]).toEqual([false, false])
+  expect(document.querySelectorAll('[data-ds-moment]').length).toBe(3)
+  // Play stops at the moment's end, on the scene's clock.
   click($('play'))
   vi.advanceTimersByTime(2500)
   expect([index, studio.isPlaying(), $('play').textContent]).toEqual([
@@ -175,6 +183,7 @@ it('plays the whole scene as one timeline, one moment into the next', () => {
     false,
     '▶ Replay'
   ])
+  expect($('time').textContent).toBe('0:02.0 / 0:06.0')
   click(choice('scene'))
   expect(scope).toBe('scene')
   expect(choice('scene').getAttribute('aria-pressed')).toBe('true')
@@ -230,4 +239,18 @@ it('plays the whole scene as one timeline, one moment into the next', () => {
   expect(zoom('out').disabled).toBe(false)
   click(zoom('fit'))
   expect($('timeline').style.width).toBe('600px')
+  // Back to one moment: picking another on the map practises it alone.
+  click(choice('moment'))
+  click(blocks()[1])
+  expect([index, $('time').textContent]).toEqual([1, '0:02.0 / 0:06.0'])
+  expect($('spot').style.getPropertyValue('--from')).toBe('33.33333333333333%')
+  expect(document.querySelector('.dialogue-studio')).toBe(panel)
+  click($('play'))
+  vi.advanceTimersByTime(3500)
+  expect([index, studio.isPlaying(), $('time').textContent]).toEqual([
+    1,
+    false,
+    '0:05.0 / 0:06.0'
+  ])
+  expect($('play').textContent).toBe('▶ Replay')
 })
