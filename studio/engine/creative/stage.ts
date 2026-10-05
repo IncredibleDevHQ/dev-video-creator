@@ -1,6 +1,7 @@
 import { HarnessStageError } from '../generation-errors'
 import { fileURLToPath } from 'node:url'
 import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import {
   runEngineStage,
   type HarnessId,
@@ -18,12 +19,20 @@ import {
 } from '../artifacts'
 import { writeRow } from '../persistence'
 import type { HarnessContext, HarnessEvent } from '../harness/types'
+/**
+ * Where creative runs take their skills from: the studio's own, unless
+ * MINIMAL_STUDIO_SKILLS_DIR names another copy of the folder. An experiment
+ * with different instructions runs on an engine of its own with that set.
+ */
+export const skillsRoot = () =>
+  process.env.MINIMAL_STUDIO_SKILLS_DIR ||
+  fileURLToPath(new URL('../../skills', import.meta.url))
 export const creativeContext = (origin: string): HarnessContext => ({
   origin,
   mcpShimPath: fileURLToPath(
     new URL('../../scripts/mcp-stdio.mjs', import.meta.url)
   ),
-  skillsDir: fileURLToPath(new URL('../../skills', import.meta.url))
+  skillsDir: skillsRoot()
 })
 export type CreativeSelection = { adapter: HarnessId; model?: string }
 type StageInput<T> = {
@@ -186,7 +195,7 @@ const performStage = async <T>(input: StageInput<T>): Promise<T> => {
 export const readPinnedCapabilities = async () =>
   JSON.parse(
     await readFile(
-      new URL('../../skills/video-planner/capabilities.json', import.meta.url),
+      join(skillsRoot(), 'video-planner', 'capabilities.json'),
       'utf8'
     )
   ) as import('./capability-catalog').CapabilityCatalog

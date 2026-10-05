@@ -1,6 +1,5 @@
 import { editScopeProblems } from '../moment-edit-scope'
 import { readdir, readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { fingerprintOf } from '../planning/fingerprint'
 import {
@@ -13,14 +12,13 @@ import { validateTreatment, type TreatmentContext } from './scene-treatment'
 import {
   runValidatedJsonStage,
   readPinnedCapabilities,
+  skillsRoot,
   type CreativeSelection
 } from './stage'
 import type { Presence } from '../../shared/model'
 import type { HarnessEvent } from '../harness/types'
 export const pinnedBundle = async () => {
-  const root = fileURLToPath(
-    new URL('../../skills/video-planner', import.meta.url)
-  )
+  const root = join(skillsRoot(), 'video-planner')
   const references: string[] = []
   const walk = async (relative: string) => {
     for (const entry of await readdir(join(root, relative), {
