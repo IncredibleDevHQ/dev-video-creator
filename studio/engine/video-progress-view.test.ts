@@ -687,3 +687,34 @@ it('shows the saved take number only while the recording matches the moment', ()
   expect(render(input)).not.toContain('take 1')
   expect(render(input)).toContain('Recorded')
 })
+
+it('offers to practise the whole scene when that is the choice', () => {
+  const input = fixture(),
+    scene = input.project.video!.scenes[0]
+  scene.phase = 'waiting'
+  scene.moments = normalizeMoments(
+    {
+      moments: ['First words.', 'Second words.'].map((lines) => ({
+        title: lines,
+        lines,
+        seconds: 3,
+        camera: 'none',
+        layout: 'corner',
+        overlay: null,
+        cue: ''
+      }))
+    },
+    scene.id,
+    'off',
+    'body'
+  )
+  input.views = projectViews(input.project)
+  const idle = new Recording(
+    () => {},
+    () => {}
+  )
+  const html = (whole: boolean) =>
+    videoScreen(input, 0, 1, 3, false, idle, null, false, true, whole)
+  expect(html(true)).toContain('>Practice scene<')
+  expect(html(false)).toContain('>Practice moment 2<')
+})

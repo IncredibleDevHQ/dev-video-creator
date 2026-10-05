@@ -111,13 +111,45 @@
   background: #13261c;
 }
 .dialogue-studio .ds-scope button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
   min-height: 24px;
-  padding: 3px 10px;
+  padding: 0;
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #a9bdb0;
+  color: #93a99b;
+}
+.dialogue-studio .ds-scope svg {
+  width: 20px;
+  height: 20px;
+}
+/* An icon says what it does on hover or focus, from its own label. */
+.dialogue-studio .ds-scope button::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  z-index: 4;
+  padding: 3px 8px;
+  transform: translateX(-50%);
+  border: 1px solid #3b5a47;
+  border-radius: 6px;
+  background: #0f1d16;
+  color: #e3eee7;
   font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+.dialogue-studio .ds-scope button:hover::after,
+.dialogue-studio .ds-scope button:focus-visible::after {
+  opacity: 1;
+  transition-delay: 0.25s;
 }
 .dialogue-studio .ds-scope button:hover:not(:disabled) {
   background: #1f3529;

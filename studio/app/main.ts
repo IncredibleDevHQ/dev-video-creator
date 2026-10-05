@@ -76,7 +76,8 @@ app.pipClosed = false
 app.startRehearsal = null
 app.practiceStopAfter = null
 app.practiceMomentIds = []
-app.practiceScope = 'moment'
+// Practice plays the whole scene unless the creator picks one moment.
+app.practiceScope = 'scene'
 app.practiceCountdown = 0
 app.practiceStarted = 0
 app.practiceOpen = false

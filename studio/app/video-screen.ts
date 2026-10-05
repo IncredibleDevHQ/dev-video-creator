@@ -529,9 +529,11 @@ export const videoScreen = (
               : `${button(
                   practicing
                     ? 'Stop practice'
-                    : moment
-                      ? `Practice moment ${momentIndex + 1}`
-                      : 'Practice',
+                    : practiceScene && scene.moments.length > 1
+                      ? 'Practice scene'
+                      : moment
+                        ? `Practice moment ${momentIndex + 1}`
+                        : 'Practice',
                   'practice',
                   false,
                   !scene.moments.length

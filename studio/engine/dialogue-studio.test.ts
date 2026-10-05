@@ -154,6 +154,18 @@ it('plays the whole scene as one timeline, one moment into the next', () => {
   const choice = (name: string) =>
     document.querySelector(`[data-ds-scope="${name}"]`)!
   expect(choice('moment').getAttribute('aria-pressed')).toBe('true')
+  // Icons, named for a screen reader and the hover label: the whole scene
+  // first, as it is the default.
+  expect(
+    [...document.querySelectorAll('[data-ds-scope]')].map((button) => [
+      button.getAttribute('aria-label'),
+      button.querySelector('svg') !== null,
+      button.textContent
+    ])
+  ).toEqual([
+    ['Whole scene', true, ''],
+    ['This moment', true, '']
+  ])
   expect($('zoom').hidden).toBe(true)
   // One moment at a time stops at the moment's end, as before.
   click($('play'))

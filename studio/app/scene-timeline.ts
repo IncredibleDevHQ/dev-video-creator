@@ -7,8 +7,21 @@ import { animationSecond } from '../shared/scene-time'
 import { drawFrame, drawnFrame, nearestFrame } from './filmstrip'
 import { escape } from './ui'
 
+const icons: Record<string, string> = {
+  video:
+    '<rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 10 6-3v10l-6-3"/>',
+  text: '<path d="M5 6h14M5 12h10M5 18h14"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  // The whole scene: one bar, cut into its moments.
+  scene:
+    '<rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><path d="M8.8 5.5v13M15.2 5.5v13"/>',
+  // One moment: the same bar, with only its part filled.
+  moment:
+    '<rect x="2.5" y="5.5" width="19" height="13" rx="2.5" opacity=".45"/><rect x="8.8" y="5.5" width="6.4" height="13" fill="currentColor" stroke="none"/>'
+}
+
 export const icon = (name: string) =>
-  `<svg viewBox="0 0 24 24" aria-hidden="true">${name === 'video' ? '<rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 10 6-3v10l-6-3"/>' : name === 'text' ? '<path d="M5 6h14M5 12h10M5 18h14"/>' : '<path d="M12 5v14M5 12h14"/>'}</svg>`
+  `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name] ?? icons.plus}</svg>`
 
 export const time = (n: number) =>
   `${Math.floor(Math.max(0, n) / 60)}:${(Math.max(0, n) % 60).toFixed(1).padStart(4, '0')}`
