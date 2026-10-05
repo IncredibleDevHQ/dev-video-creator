@@ -16,7 +16,12 @@ export const notebookScreen = (snapshot: Snapshot, pending: boolean) => {
     if (project.sourceUrl)
       sourceLabel = new URL(project.sourceUrl).hostname.replace(/^www\./, '')
   } catch {}
-  const words = project.source.trim().split(/\s+/).filter(Boolean).length
+  // Pictures are not words.
+  const words = project.source
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length
   const title = project.title.replace(/ \| [^|]+$/, '')
   // The article's own first heading is the title: show it once (review 5).
   const firstHeading = project.source

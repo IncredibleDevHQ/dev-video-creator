@@ -287,3 +287,20 @@
     justify-content: flex-end;
   }
 }
+
+/* The article's pictures, above their captions (review 5). */
+.source-document img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 20px auto 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.source-document p:has(> em:only-child) {
+  margin-top: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}

@@ -36,7 +36,7 @@ it('imports only the article even when the site shell is much longer', async () 
   })
   const source = await readSourceUrl('https://example.com/blog/led')
   expect(source.text).toBe(
-    'For my roommate’s birthday, I bought an LED display.\n\n## Moving to a Raspberry Pi\n\nA voice service delegates requests to a renderer.\n\nThe renderer sends frames to the panel.'
+    'For my roommate’s birthday, I bought an LED display.\n\n## Moving to a Raspberry Pi\n\nA voice service delegates requests to a renderer.\n\n![The display pipeline](https://example.com/diagram.png)\n\nThe renderer sends frames to the panel.'
   )
   expect(source.headings).toEqual([
     { level: 2, text: 'Moving to a Raspberry Pi' }

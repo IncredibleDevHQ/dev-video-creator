@@ -72,7 +72,7 @@ export const readSourceUrl = async (
     .slice(0, 80)
 
   const container = sourceContent(document)
-  const article = articleText(container)
+  const article = articleText(container, base)
   const headings = article.headings
   let text = article.text
   // What the read cut, said before anything is planned from it.
@@ -314,6 +314,7 @@ export const readSourceUrl = async (
     words: text.split(/\s+/).filter(Boolean).length,
     headings: headings.slice(0, 60),
     images: images.slice(0, 12),
+    ...(article.byline ? { byline: article.byline } : {}),
     logos: logos.slice(0, 6),
     palette: {
       candidates: candidatesOut,

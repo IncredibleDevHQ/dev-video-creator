@@ -9,6 +9,8 @@ export type SourceRead = {
   words: number
   headings: Array<{ level: number; text: string }>
   images: Array<{ url: string; alt: string }>
+  /** The author line a page sets as a captioned avatar, kept out of the text. */
+  byline?: string
   logos: Array<{ url: string; source: string; localUrl?: string }>
   palette: {
     candidates: Array<{
@@ -107,8 +109,6 @@ const INLINE = new Set([
 ])
 const SKIPPED = new Set([
   'hr',
-  'img',
-  'picture',
   'video',
   'audio',
   'canvas',
@@ -117,8 +117,47 @@ const SKIPPED = new Set([
   'textarea',
   'template'
 ])
-export const articleText = (container: Element) => {
+// A picture the article shows, not its author's avatar or a site icon.
+const SMALL = /(?:^|[?&])(?:w|width|h|height)=(\d{1,3})(?:&|$)/i
+const pictureOf = (img: Element | null, base: string) => {
+  if (!img) return null
+  const raw =
+    img.getAttribute('src') ||
+    img.getAttribute('data-src') ||
+    (img.getAttribute('srcset') || '').split(/[\s,]+/)[0] ||
+    ''
+  if (!raw || raw.startsWith('data:')) return null
+  let url = raw
+  try {
+    url = base ? new URL(raw, base).toString() : raw
+  } catch {
+    return null
+  }
+  if (!/^https?:\/\//i.test(url)) return null
+  const size = Math.min(
+    Number(img.getAttribute('width')) || Infinity,
+    Number(img.getAttribute('height')) || Infinity,
+    ...[...url.matchAll(new RegExp(SMALL.source, 'gi'))].map((m) =>
+      Number(m[1])
+    )
+  )
+  const hint = `${img.getAttribute('class') || ''} ${url}`
+  const small =
+    size <= 128 || /avatar|author|profile|gravatar|icon|logo|spacer/i.test(hint)
+  return { url, alt: (img.getAttribute('alt') || '').trim(), small }
+}
+const markdownAlt = (text: string) =>
+  text
+    .replace(/[[\]\\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 160)
+
+export const articleText = (container: Element, base = '') => {
   const headings: SourceRead['headings'] = []
+  // The author line a site sets as a captioned avatar (review 5: it became
+  // "(figure: Paul Tarjan Engineering)").
+  let byline = ''
   const blocks: string[] = []
   const notes: string[] = []
   let tables = 0
@@ -187,8 +226,28 @@ export const articleText = (container: Element) => {
       if (text) blocks.push(`- ${text}`)
     } else if (tag === 'dd') {
       if (text) blocks.push(`  ${clip(text, ITEM_LIMIT, 'A definition')}`)
+    } else if (tag === 'figure') {
+      // The article's picture above its caption, as the creator and the
+      // agent will both read it (review 5: diagrams arrived as text).
+      const caption = flat(node.querySelector('figcaption') || node)
+      const picture = pictureOf(node.querySelector('img'), base)
+      if (picture?.small) {
+        if (caption && !byline) byline = caption.slice(0, 120)
+      } else if (picture) {
+        blocks.push(
+          `![${markdownAlt(caption || picture.alt || 'Figure')}](${picture.url})`
+        )
+        if (caption) blocks.push(`*${caption.slice(0, 300)}*`)
+      } else if (node.querySelector('pre, table')) walk(node)
+      else if (caption) blocks.push(`*${caption.slice(0, 300)}*`)
+    } else if (tag === 'img') {
+      const picture = pictureOf(node, base)
+      if (picture && !picture.small)
+        blocks.push(
+          `![${markdownAlt(picture.alt || 'Figure')}](${picture.url})`
+        )
     } else if (tag === 'figcaption') {
-      if (text) blocks.push(`(figure: ${text.slice(0, 200)})`)
+      if (text) blocks.push(`*${text.slice(0, 300)}*`)
     } else if (!SKIPPED.has(tag)) walk(node)
   }
   // Text set loose in a container, beside or between its blocks, is a
@@ -232,7 +291,8 @@ export const articleText = (container: Element) => {
     headings,
     tables,
     codeBlocks,
-    notes
+    notes,
+    byline
   }
 }
 
