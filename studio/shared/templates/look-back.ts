@@ -309,7 +309,7 @@ lessons | Lessons | 15 | speaker | beside | checklist | end | Three lessons tick
       cover: 'progress'
     },
     `
-scale | The scale | 10 | data | off | status | cut | The size of the move counts up: services, rows, requests. | counting-dynamic-scale dataviz-countup
+scale | The scale | 10 | data | off | bignumber | cut | The size of the move counts up: services, rows, requests. | counting-dynamic-scale dataviz-countup
 progress | Progress | 35 | data | off | progress | hold | The share moved, week by week, the milestones pinned. | chart-scrub-readout
 cutover | Cutover | 25 | explainer | off | traffic | push | Traffic shifts from old to new. | camera-journey
 results | Results | 25 | data | off | bars | push | Cost and latency, before and after. | bar-chart-race

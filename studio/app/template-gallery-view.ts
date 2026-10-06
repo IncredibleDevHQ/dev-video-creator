@@ -26,6 +26,8 @@ export type GalleryUse = 'make' | 'settings' | null
 export type GalleryState = {
   /** The story the rail shows, or all of them. */
   story: string
+  /** Words to find templates by, on the page of all of them. */
+  query: string
   templateId: string | null
   slot: number
   playing: boolean
@@ -140,7 +142,11 @@ export const templateStage = (
   </div>`
 }
 
-const templateCard = (template: VideoTemplate, current?: string) =>
+const templateCard = (
+  template: VideoTemplate,
+  current?: string,
+  withStory = false
+) =>
   html`<article class="tpl-card">
     <button
       type="button"
@@ -151,6 +157,9 @@ const templateCard = (template: VideoTemplate, current?: string) =>
       ${templateStage(template, coverIndex(template), { cycle: true })}
     </button>
     <div class="tpl-card-body">
+      ${withStory
+        ? `<p class="tpl-card-story">${escape(storyById(template.story).name)}</p>`
+        : ''}
       <h3>${escape(template.name)}</h3>
       ${current === template.id ? '<span class="tpl-badge">In use</span>' : ''}
       <span class="tpl-card-time">${mmss(template.seconds)}</span>
@@ -339,6 +348,38 @@ const detail = (state: GalleryState, template: VideoTemplate) => {
 }
 
 /** The page's heading: all the stories, or the one the rail picked. */
+/** Whether every word of a search is in the template, its story or slots. */
+const matches = (template: VideoTemplate, words: string[]) => {
+  const story = storyById(template.story)
+  const text = [
+    story.name,
+    story.line,
+    story.audience,
+    template.name,
+    template.tagline,
+    template.purpose,
+    ...template.slots.map((slot) => `${slot.role} ${slot.move}`)
+  ]
+    .join(' ')
+    .toLowerCase()
+  return words.every((word) => text.includes(word))
+}
+
+/** Every story with its templates, or the templates a search finds. */
+export const templateResults = (state: GalleryState) => {
+  const words = state.query.toLowerCase().split(/\s+/).filter(Boolean)
+  if (!words.length)
+    return TEMPLATE_STORIES.map((item) =>
+      storySection(item, state.current)
+    ).join('')
+  const found = VIDEO_TEMPLATES.filter((item) => matches(item, words))
+  return found.length
+    ? `<p class="tpl-count">${found.length} ${found.length === 1 ? 'template' : 'templates'}</p><div class="tpl-grid">${found
+        .map((item) => templateCard(item, state.current, true))
+        .join('')}</div>`
+    : `<p class="tpl-count">No template matches “${escape(state.query.trim())}”.</p>`
+}
+
 const listHead = (state: GalleryState) => {
   const story = TEMPLATE_STORIES.find((item) => item.id === state.story)
   return story
@@ -350,15 +391,23 @@ const listHead = (state: GalleryState) => {
         </div>
         ${cards(story, state.current)}`
     : html`<div class="tpl-head">
-          <h1>Templates</h1>
+          <div class="tpl-head-row">
+            <h1>Templates</h1>
+            <input
+              type="search"
+              class="tpl-search"
+              data-tpl-search
+              placeholder="Search ${VIDEO_TEMPLATES.length} templates"
+              aria-label="Search templates"
+              value="${escape(state.query)}"
+            />
+          </div>
           <p>
             Pick the story your blog tells, then a way to tell it. Your scenes
             take the template’s slots in order.
           </p>
         </div>
-        ${TEMPLATE_STORIES.map((item) =>
-          storySection(item, state.current)
-        ).join('')}`
+        <div class="tpl-results">${templateResults(state)}</div>`
 }
 
 export const templateGalleryPage = (state: GalleryState) => {

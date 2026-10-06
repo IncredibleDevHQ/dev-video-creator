@@ -5,6 +5,7 @@ import { replacePlayerView } from './player-view'
 import {
   templateGalleryPage,
   templatePlayer,
+  templateResults,
   templateStage,
   type GalleryState,
   type GalleryUse
@@ -30,6 +31,7 @@ const reducedMotion = () =>
 export class TemplateGallery {
   isOpen = false
   private story = 'all'
+  private query = ''
   private templateId: string | null = null
   private slot = 0
   private playing = true
@@ -50,11 +52,15 @@ export class TemplateGallery {
     root.addEventListener('click', (event) => {
       if (this.isOpen) this.click(event)
     })
+    root.addEventListener('input', (event) => {
+      if (this.isOpen) this.search(event)
+    })
   }
   open(context: GalleryContext, templateId?: string) {
     this.context = context
     this.isOpen = true
     this.story = 'all'
+    this.query = ''
     this.templateId = templateId && templateById(templateId) ? templateId : null
     this.slot = 0
     this.playing = !reducedMotion()
@@ -74,6 +80,7 @@ export class TemplateGallery {
   private state(): GalleryState {
     return {
       story: this.story,
+      query: this.query,
       templateId: this.templateId,
       slot: this.slot,
       playing: this.playing,
@@ -148,6 +155,14 @@ export class TemplateGallery {
       )
     this.schedulePlayer()
   }
+  /** A search redraws the results only, so the field keeps its focus. */
+  private search(event: Event) {
+    const field = event.target as HTMLInputElement
+    if (!field.matches?.('[data-tpl-search]')) return
+    this.query = field.value
+    const results = this.root.querySelector('.tpl-results')
+    if (results) results.innerHTML = templateResults(this.state())
+  }
   private click(event: Event) {
     const target = (event.target as Element).closest<HTMLElement>(
       '[data-tpl-close],[data-tpl-story],[data-tpl-open],[data-tpl-slot],[data-tpl-step],[data-tpl-play],[data-tpl-use]'
@@ -159,6 +174,7 @@ export class TemplateGallery {
     if ('tplClose' in data) return this.close()
     if (data.tplStory) {
       this.story = data.tplStory
+      this.query = ''
       this.templateId = null
       this.draw()
       return window.scrollTo?.(0, 0)

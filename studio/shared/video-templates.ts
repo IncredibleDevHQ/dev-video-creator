@@ -4,10 +4,21 @@
 // video's scenes (its locked wireframe pages) take the slots in order, and
 // the planner shapes each scene's moments on its slot.
 import type { Moment, Presence } from './model'
+import { ANNOUNCE_STORIES, ANNOUNCE_TEMPLATES } from './templates/announce'
 import { DECIDE_STORIES, DECIDE_TEMPLATES } from './templates/decide'
 import { EXPLAIN_STORIES, EXPLAIN_TEMPLATES } from './templates/explain'
+import {
+  PRACTICE_STORIES,
+  PRACTICE_TEMPLATES
+} from './templates/explain-practice'
 import { LOOK_BACK_STORIES, LOOK_BACK_TEMPLATES } from './templates/look-back'
+import {
+  SYSTEMS_STORIES,
+  SYSTEMS_TEMPLATES
+} from './templates/look-back-systems'
+import { SHARE_STORIES, SHARE_TEMPLATES } from './templates/share'
 import { SHOW_STORIES, SHOW_TEMPLATES } from './templates/show'
+import { TEACH_STORIES, TEACH_TEMPLATES } from './templates/teach'
 import {
   SEAM_LABELS,
   SLOT_TYPES,
@@ -24,21 +35,34 @@ export * from './templates/model'
 
 export const STORY_GROUPS: StoryGroup[] = [
   { id: 'explain', name: 'Explain' },
+  { id: 'teach', name: 'Teach' },
   { id: 'decide', name: 'Decide' },
   { id: 'look-back', name: 'Look back' },
-  { id: 'show', name: 'Show' }
+  { id: 'show', name: 'Show' },
+  { id: 'announce', name: 'Announce' },
+  { id: 'share', name: 'Share' }
 ]
 export const TEMPLATE_STORIES: TemplateStory[] = [
   ...EXPLAIN_STORIES,
+  ...PRACTICE_STORIES,
+  ...TEACH_STORIES,
   ...DECIDE_STORIES,
   ...LOOK_BACK_STORIES,
-  ...SHOW_STORIES
+  ...SYSTEMS_STORIES,
+  ...SHOW_STORIES,
+  ...ANNOUNCE_STORIES,
+  ...SHARE_STORIES
 ]
 export const VIDEO_TEMPLATES: VideoTemplate[] = [
   ...EXPLAIN_TEMPLATES,
+  ...PRACTICE_TEMPLATES,
+  ...TEACH_TEMPLATES,
   ...DECIDE_TEMPLATES,
   ...LOOK_BACK_TEMPLATES,
-  ...SHOW_TEMPLATES
+  ...SYSTEMS_TEMPLATES,
+  ...SHOW_TEMPLATES,
+  ...ANNOUNCE_TEMPLATES,
+  ...SHARE_TEMPLATES
 ]
 
 export const templateById = (id?: string | null) =>

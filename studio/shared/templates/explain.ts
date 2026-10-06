@@ -24,6 +24,34 @@ export const EXPLAIN_STORIES: TemplateStory[] = [
     name: 'Paper explainer',
     line: 'A research paper’s one idea, and what it means for your work.',
     audience: 'Engineers who will not read the paper'
+  },
+  {
+    id: 'ai-feature',
+    group: 'explain',
+    name: 'AI feature explained',
+    line: 'How the model behind a feature works, and how you know it is good.',
+    audience: 'Users and engineers curious about the AI'
+  },
+  {
+    id: 'myths',
+    group: 'explain',
+    name: 'Myth busting',
+    line: 'Common beliefs, checked against the facts.',
+    audience: 'Developers who heard it somewhere'
+  },
+  {
+    id: 'observability',
+    group: 'explain',
+    name: 'How we debug',
+    line: 'How you find problems: the signals, the tools and the playbook.',
+    audience: 'Engineers on call'
+  },
+  {
+    id: 'slo',
+    group: 'explain',
+    name: 'SLOs explained',
+    line: 'What you promise, how you measure it, and what happens when you miss.',
+    audience: 'Teams adopting service level objectives'
   }
 ]
 
@@ -233,6 +261,166 @@ before | Before this | 15 | explainer | off | thennow | push | What earlier work
 key-idea | The key idea | 30 | explainer | off | figure | zoom | The one figure, zoomed, the idea labelled in place. | coordinate-target-zoom data-chart
 numbers | The numbers | 20 | data | off | bars | push | Against the baseline, racing. | bar-chart-race
 next | What comes next | 7 | motion | off | kinetic | end | What it unlocks, in a few words. | kinetic-type-beats
+`
+  ),
+  variant(
+    {
+      id: 'ai-pipeline',
+      story: 'ai-feature',
+      name: 'Demo to production',
+      tagline: 'It worked in the demo; here is what it took',
+      purpose:
+        'An AI feature’s honest build story: the demo that worked, the customer case that broke it, the pipeline you ended up with, the hard parts, the guardrails, and what it costs to run.',
+      tone: 'Clear, honest',
+      pacing: 'Demo, failure, design',
+      cover: 'pipeline'
+    },
+    `
+demo | The demo | 8 | capture | off | resultfirst | cut | The feature answering in the demo. | video-text-pivot
+broke | Then it broke | 15 | code | off | errorfix | push | The real input that broke it, and what came back. | typewriter-reveal
+pipeline | The pipeline | 30 | explainer | corner | pipeline | push | Input to answer, stage by stage, with you in the corner. | svg-path-draw pip-pill
+hard-parts | The hard parts | 15 | motion | off | limits | push | Context limits, latency, injection: each card flips to what you did. | split-tilt-cards
+guardrails | Guardrails | 12 | explainer | off | safeguard | push | The guardrail catches a bad answer. | physics-press-reaction
+cost | Result and cost | 10 | data | off | bars | end | Quality up, and what each answer costs. | stat-bars-and-fills
+`
+  ),
+  variant(
+    {
+      id: 'ai-evals',
+      story: 'ai-feature',
+      name: 'How we test it',
+      tagline: 'The eval set, the scores, the failures',
+      purpose:
+        'For engineers: what could go wrong, the eval set, the pass rate release by release, a failure you still see, the guardrail, and what you learned.',
+      tone: 'Rigorous, candid',
+      pacing: 'Evidence-led',
+      cover: 'evals'
+    },
+    `
+risk | The risk | 8 | captions | over | headcaps | cut | What could go wrong, captioned over you. | caption-editorial-emphasis
+evals | The eval set | 25 | data | off | evals | push | The cases, and how each version did. | stat-bars-and-fills
+trend | Over time | 15 | data | off | progress | push | The pass rate, release by release. | chart-scrub-readout
+failures | Still failing | 20 | code | corner | logzoom | zoom | A failure you still see, zoomed. | coordinate-target-zoom pip-pill
+guardrail | The guardrail | 15 | explainer | off | safeguard | push | The guardrail catches a bad answer. | physics-press-reaction
+learned | Learned | 10 | speaker | beside | recap | end | What you learned, beside you. | titlecard-reveal
+`
+  ),
+  variant(
+    {
+      id: 'myths-cards',
+      story: 'myths',
+      name: 'Myth or fact',
+      tagline: 'Each belief flipped, then checked',
+      purpose:
+        'Common beliefs, each flipped to the fact and backed by a number or a line of code, ending on what is actually true.',
+      tone: 'Playful, rigorous',
+      pacing: 'Flip, prove, flip',
+      cover: 'myth-one'
+    },
+    `
+myth-one | First myth | 15 | motion | off | mythfact | cut | The first belief, flipped to the fact. | split-tilt-cards
+proof-one | The proof | 15 | data | off | bars | push | The number that settles it. | bar-chart-race
+myth-two | Second myth | 15 | motion | off | mythfact | cut | The next belief, flipped. | split-tilt-cards
+proof-two | The code | 15 | code | off | diff | push | The code that settles it. | css-marker-patterns
+truth | The truth | 8 | motion | off | kinetic | end | What is actually true, in a few words. | kinetic-beat-slam
+`
+  ),
+  variant(
+    {
+      id: 'myths-host',
+      story: 'myths',
+      name: 'Hosted',
+      tagline: 'You call it out, the evidence backs you',
+      purpose:
+        'You host it: the myth captioned over you, the flip to the fact, the evidence on one chart, and your verdict beside your face.',
+      tone: 'Confident, funny',
+      pacing: 'Punchy',
+      cover: 'myth'
+    },
+    `
+myth | The myth | 8 | captions | over | headcaps | cut | The myth, in captions over you. | caption-kinetic-slam
+flip | The flip | 12 | motion | off | mythfact | cut | It flips to the fact. | split-tilt-cards
+evidence | Evidence | 20 | data | off | spike | push | The evidence, on one chart. | chart-scrub-readout
+verdict | Verdict | 8 | speaker | over | headline | end | Your verdict, set beside your face. | kinetic-beat-slam
+`
+  ),
+  variant(
+    {
+      id: 'obs-trace',
+      story: 'observability',
+      name: 'Follow the trace',
+      tagline: 'One slow request, span by span',
+      purpose:
+        'How you debug with traces: the symptom, one trace opened span by span, the slow span zoomed, the fix, and the objective that watches it now.',
+      tone: 'Methodical',
+      pacing: 'Span by span',
+      cover: 'trace'
+    },
+    `
+symptom | The symptom | 10 | data | off | spike | cut | Every dashboard green, yet one user waited nine seconds. | chart-scrub-readout
+trace | The trace | 25 | explainer | corner | trace | zoom | One slow request, its spans unfolding, with you in the corner. | coordinate-target-zoom pip-pill
+span | The slow span | 15 | code | off | logzoom | zoom | Zoom into the slow span’s details. | coordinate-target-zoom
+fix | The fix | 15 | code | off | diff | push | The fix as a diff. | css-marker-patterns
+watch | Watch it | 10 | data | off | slo | end | The objective that watches it now. | stat-bars-and-fills
+`
+  ),
+  variant(
+    {
+      id: 'obs-oncall',
+      story: 'observability',
+      name: 'On-call playbook',
+      tagline: 'From the page to the hand-off',
+      purpose:
+        'Your team’s on-call playbook: the page, the first triage questions, the dashboards that answer them, the runbook, and the hand-off.',
+      tone: 'Practical',
+      pacing: 'Step by step',
+      cover: 'page'
+    },
+    `
+page | The page | 8 | captions | over | alert | cut | The page arrives over your face. | caption-kinetic-slam lower-third
+triage | Triage | 20 | motion | off | ticklist | push | The first three questions, ticked in. | waterfall-entry
+dashboards | Dashboards | 20 | data | off | slo | push | The dashboards that answer them. | chart-scrub-readout
+runbook | Runbook | 20 | motion | beside | steps | push | The runbook’s steps build beside you. | waterfall-entry
+handoff | Hand-off | 8 | speaker | full | lowerthird | end | The hand-off, full frame. | talking-head-recut lower-third
+`
+  ),
+  variant(
+    {
+      id: 'slo-budget',
+      story: 'slo',
+      name: 'Error budgets',
+      tagline: 'The promise, the budget, the policy',
+      purpose:
+        'Objectives explained with your own: what you promise, how you measure it, the error budget, what happens when it burns, and the team’s policy.',
+      tone: 'Clear',
+      pacing: 'Concept by concept',
+      cover: 'budget'
+    },
+    `
+promise | The promise | 8 | motion | off | kinetic | cut | Why 100% is the wrong target, and what three nines buys you in minutes. | kinetic-beat-slam
+measure | Measuring it | 20 | data | off | spike | push | The indicator, measured over time. | chart-scrub-readout
+budget | The budget | 20 | data | off | slo | hold | The error budget, burning. | stat-bars-and-fills
+burns | When it burns | 15 | captions | over | alert | cut | The burn-rate page, over you. | caption-kinetic-slam
+policy | The policy | 12 | speaker | beside | checklist | end | What the team does then, beside you. | talking-head-recut
+`
+  ),
+  variant(
+    {
+      id: 'slo-choice',
+      story: 'slo',
+      name: 'How we chose ours',
+      tagline: 'Why three nines, not four',
+      purpose:
+        'The decision behind your objectives: what users notice, the options and what each costs, the number you chose, and how it has held since.',
+      tone: 'Thoughtful',
+      pacing: 'Decision-like',
+      cover: 'options'
+    },
+    `
+notice | What users notice | 15 | explainer | off | onerequest | cut | What a user feels when it is slow or down. | svg-path-draw
+options | The options | 20 | data | off | matrix | push | Three, three and a half or four nines, and what each costs. | grid-card-assemble stat-bars-and-fills
+chose | The choice | 10 | speaker | beside | decision | push | The number you chose, stamped beside you. | titlecard-reveal
+since | Since then | 15 | data | off | slo | end | How the budget has held since. | stat-bars-and-fills
 `
   )
 ]

@@ -157,6 +157,27 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
       .dispatchEvent(new window.Event('click', { bubbles: true }))
   const titles = () =>
     [...root.querySelectorAll('.tpl-card h3')].map((title) => title.textContent)
+  // A search finds templates by their story, words and slots.
+  const search = (words: string) => {
+    const field = root.querySelector<HTMLInputElement>('[data-tpl-search]')!
+    field.value = words
+    field.dispatchEvent(new window.Event('input', { bubbles: true }))
+  }
+  search('incident caption')
+  expect(titles()).toEqual(expect.arrayContaining(['Anchor desk', 'Thriller']))
+  expect(
+    [...root.querySelectorAll('.tpl-card-story')].every(
+      (story) => story.textContent === 'Incident walkthrough'
+    )
+  ).toBe(true)
+  search('zebra')
+  expect(root.querySelector('.tpl-count')?.textContent).toBe(
+    'No template matches “zebra”.'
+  )
+  search('')
+  expect(root.querySelectorAll('.tpl-card')).toHaveLength(
+    VIDEO_TEMPLATES.length
+  )
   click('.tpl-rail [data-tpl-story="launch"]')
   expect(root.querySelector('.tpl-head h1')?.textContent).toBe('Launch')
   expect(titles()).toEqual([
@@ -224,6 +245,7 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
 it('says when a template is in use, or cannot be used yet', () => {
   const base = {
     story: 'all',
+    query: '',
     templateId: 'incident',
     slot: 0,
     playing: false,

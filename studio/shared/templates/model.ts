@@ -36,7 +36,14 @@ export type TemplateSlot = {
   seam: Seam
 }
 /** The stories, grouped by what the video does for its viewer. */
-export type StoryGroupId = 'explain' | 'decide' | 'look-back' | 'show'
+export type StoryGroupId =
+  | 'explain'
+  | 'teach'
+  | 'decide'
+  | 'look-back'
+  | 'show'
+  | 'announce'
+  | 'share'
 export type StoryGroup = { id: StoryGroupId; name: string }
 export type TemplateStory = {
   id: string

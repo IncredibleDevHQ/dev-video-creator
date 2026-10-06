@@ -12,13 +12,6 @@ export const SHOW_STORIES: TemplateStory[] = [
     audience: 'Developers deciding whether to try it'
   },
   {
-    id: 'tutorial',
-    group: 'show',
-    name: 'Feature tutorial',
-    line: 'One feature used end to end, with the error everyone hits.',
-    audience: 'Developers trying it for the first time'
-  },
-  {
     id: 'release',
     group: 'show',
     name: 'Release notes',
@@ -31,6 +24,20 @@ export const SHOW_STORIES: TemplateStory[] = [
     name: 'Build log',
     line: 'What you built, what failed on the way, and what surprised you.',
     audience: 'People following your work'
+  },
+  {
+    id: 'code-change',
+    group: 'show',
+    name: 'Code change walkthrough',
+    line: 'What a pull request changes, why, and how to review it.',
+    audience: 'Reviewers and teammates'
+  },
+  {
+    id: 'overview',
+    group: 'show',
+    name: 'Product overview',
+    line: 'What the product is and why it matters, in under two minutes.',
+    audience: 'People hearing about it for the first time'
   }
 ]
 
@@ -92,7 +99,7 @@ try-it | Try it | 10 | code | beside | terminal | end | The install command besi
     `
 punch | Punch | 5 | motion | off | kinetic | cut | Three words, slammed in time. | kinetic-type-beats kinetic-beat-slam
 flash | Flash | 10 | capture | off | resultfirst | cut | Quick cuts of the product doing its thing. | video-text-pivot device-surface-showcase
-number | The number | 6 | data | off | status | cut | One number counts up. | dataviz-countup
+number | The number | 6 | data | off | bignumber | cut | One number counts up. | dataviz-countup
 call | Call to action | 6 | motion | off | cta | end | The button presses itself, then the logo locks up. | cta-morph-press logo-assemble-lockup
 `
   ),
@@ -114,47 +121,6 @@ pain | The pain | 15 | captions | over | headcaps | cut | The problem in your wo
 walk | Walkthrough | 45 | capture | corner | bubble | match | Your screen, one job end to end, your bubble along. | cursor-ui-demo camera-cursor-tracking pip-pill
 proof | Proof | 12 | data | off | bars | push | One number that shows it works. | dataviz-countup stat-bars-and-fills
 try-it | Try it | 10 | code | corner | bubbleterm | end | The install line, with your bubble beside it. | typewriter-reveal pip-pill
-`
-  ),
-  variant(
-    {
-      id: 'feature-deep-dive',
-      story: 'tutorial',
-      name: 'Engineer to engineer',
-      tagline: 'The problem in code, a live run, the limits',
-      purpose:
-        'Engineer to engineer: the problem in today’s code, a live run, how it works inside, the honest limits, and how to start.',
-      tone: 'Peer to peer, honest',
-      pacing: 'Code, run, explain',
-      cover: 'problem-in-code'
-    },
-    `
-problem-in-code | The problem in code | 25 | code | off | codehl | cut | The painful lines light up in the code people write today. | css-marker-patterns
-live-run | Live run | 40 | capture | corner | stream | match | Run it: output streams, and the result pops. | transcript-scroll-artifact-reveal agent-progress-theater
-inside | How it works | 50 | explainer | off | layers | hold | The request lights each layer it passes through. | multi-phase-camera
-limits | Limits | 30 | motion | off | limits | push | Honest limits: cards flip to “works” or “not yet”. | split-tilt-cards grid-card-assemble
-get-started | Get started | 35 | speaker | beside | steps | end | Three steps build beside the speaker. | talking-head-recut waterfall-entry
-`
-  ),
-  variant(
-    {
-      id: 'tutorial-follow',
-      story: 'tutorial',
-      name: 'Follow along',
-      tagline: 'On screen, step by step, your bubble along',
-      purpose:
-        'A tutorial they can follow: the result first, setup in the terminal, the build step by step on screen, the error everyone hits, a check that it works, and where to go next.',
-      tone: 'Patient, practical',
-      pacing: 'Step by step, in chapters',
-      cover: 'build'
-    },
-    `
-goal | The goal | 8 | capture | corner | resultfirst | cut | What they will have at the end, playing. | video-text-pivot pip-pill
-setup | Set up | 20 | code | corner | bubbleterm | match | Install and configure, command by command. | typewriter-reveal pip-pill
-build | Build it | 40 | capture | corner | bubble | match | Step by step on screen; your bubble follows along. | cursor-ui-demo camera-cursor-tracking pip-pill
-error | The usual error | 15 | code | corner | logzoom | zoom | The error everyone hits, zoomed, and its fix. | coordinate-target-zoom pip-pill
-check | Check it | 15 | capture | corner | stream | push | Run it; the output streams and the result pops. | transcript-scroll-artifact-reveal
-next | Next steps | 12 | speaker | beside | steps | end | Three steps to go further, beside you. | waterfall-entry
 `
   ),
   variant(
@@ -236,6 +202,105 @@ insight | The insight | 20 | explainer | off | zoomout | hold | Step back: what 
 better | A better attempt | 25 | explainer | off | calm | push | The next try, running smoothly. | svg-path-draw
 result | The result | 15 | capture | off | resultfirst | cut | The thing itself, working. | video-text-pivot
 next | Next | 10 | speaker | beside | recap | end | What you will try next, beside you. | titlecard-reveal
+`
+  ),
+  variant(
+    {
+      id: 'pr-files',
+      story: 'code-change',
+      name: 'File by file',
+      tagline: 'What changes for users, then the hunk that matters',
+      purpose:
+        'A pull request explained for its reviewers: what changes for users, the old behaviour, the one hunk that matters, the knock-on changes, the proof, and what to look at first.',
+      tone: 'Precise',
+      pacing: 'Hunk by hunk, twelve lines at most',
+      cover: 'hunk'
+    },
+    `
+for-users | What changes | 8 | motion | off | kinetic | cut | What changes for users, in a few words. | kinetic-type-beats
+before | The old behaviour | 12 | code | off | errorfix | push | What people saw before this change. | typewriter-reveal
+hunk | The hunk that matters | 25 | code | corner | diff | zoom | The one hunk that matters, twelve lines at most, with you in the corner. | css-marker-patterns pip-pill
+files | Knock-on changes | 12 | code | off | prfiles | push | The other files it touches, the tree collapsing onto that hunk. | grid-card-assemble
+proof | Proof | 15 | capture | corner | stream | push | The tests run green. | transcript-scroll-artifact-reveal
+review | How to review | 10 | motion | off | ticklist | end | What to look at first, and who helped. | waterfall-entry
+`
+  ),
+  variant(
+    {
+      id: 'pr-short',
+      story: 'code-change',
+      name: 'Sixty-second PR',
+      tagline: 'The change in under a minute',
+      purpose:
+        'A small change in under a minute: the diff stats and what it fixes in captions over you, the files, the lines that matter, and what you need from reviewers.',
+      tone: 'Quick',
+      pacing: 'Length follows the diff',
+      cover: 'diff'
+    },
+    `
+what | What it fixes | 8 | captions | over | headcaps | cut | The diff stats and what they fix, captioned over you. | caption-kinetic-slam
+files | Files | 12 | code | off | prfiles | push | The files it touches. | grid-card-assemble
+diff | The diff | 20 | code | off | diff | push | The lines that matter. | css-marker-patterns
+ask | The ask | 8 | speaker | over | headline | end | What you need from reviewers, set beside your face. | kinetic-beat-slam
+`
+  ),
+  variant(
+    {
+      id: 'release-monthly',
+      story: 'release',
+      name: 'Monthly roundup',
+      tagline: 'The month’s top three, then the quick list',
+      purpose:
+        'The month in one video: how many things shipped, the three that change the way people work shown with your bubble, the quick list, and the link.',
+      tone: 'Quick, friendly',
+      pacing: 'Three demos, then a list',
+      cover: 'top-three'
+    },
+    `
+count | This month | 6 | speaker | over | headline | cut | How many things shipped, beside your face. | kinetic-beat-slam
+top-three | The top three | 35 | capture | corner | bubble | match | The three that change how people work, ten seconds each. | cursor-ui-demo pip-pill
+quick | Quick list | 12 | motion | off | ticklist | push | The rest, each tagged new, preview or generally available. | waterfall-entry
+link | Read more | 5 | motion | off | cta | end | Where the full list lives. | cta-morph-press
+`
+  ),
+  variant(
+    {
+      id: 'overview-fast',
+      story: 'overview',
+      name: 'Under two minutes',
+      tagline: 'Fast, faceless, the whole product',
+      purpose:
+        'The product in under two minutes, voice over moving pictures: the problem, what it is, how it works inside, three things it does, and how to start.',
+      tone: 'Quick, witty',
+      pacing: 'A new picture every few seconds',
+      cover: 'inside'
+    },
+    `
+problem | The problem | 8 | motion | off | pileup | cut | The problem it exists for, piling up. | overwhelm-surround
+what | What it is | 10 | motion | off | kinetic | cut | What it is, in a few words. | kinetic-type-beats
+inside | Inside | 25 | explainer | off | layers | push | How it works, layer by layer. | multi-phase-camera
+does | Three things | 25 | capture | off | resultfirst | push | Three things it does, shown. | video-text-pivot
+start | Start | 6 | motion | off | cta | end | How to start. | cta-morph-press
+`
+  ),
+  variant(
+    {
+      id: 'overview-guided',
+      story: 'overview',
+      name: 'Guided overview',
+      tagline: 'You introduce it, then show it',
+      purpose:
+        'You introduce the product: the problem in your words, what it is beside you, the product on screen, who uses it, and where to start.',
+      tone: 'Friendly',
+      pacing: 'Talk, show, talk',
+      cover: 'show'
+    },
+    `
+problem | The problem | 10 | captions | over | headcaps | cut | The problem in your words, captioned. | caption-editorial-emphasis
+what | What it is | 12 | speaker | beside | decision | push | What it is, stamped beside you. | titlecard-reveal
+show | On screen | 30 | capture | corner | cursorzoom | match | The product on screen, with you in the corner. | cursor-ui-demo pip-pill
+who | Who uses it | 10 | data | off | customer | push | Who uses it, and what changed for them. | dataviz-countup
+start | Start | 6 | speaker | beside | steps | end | Where to start, beside you. | waterfall-entry
 `
   )
 ]

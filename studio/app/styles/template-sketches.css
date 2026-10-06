@@ -179,6 +179,14 @@
   transform-box: fill-box;
   transform-origin: left center;
 }
+.sk-tr {
+  transform-box: fill-box;
+  transform-origin: right center;
+}
+.sk-bl {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
 
 /* Words set over the speaker's camera: captions, headlines and tags. */
 .sk-cap,
@@ -264,4 +272,41 @@
     Menlo,
     monospace;
   text-anchor: middle;
+}
+
+/* Product and systems sketches: diff counts and a progress ring. */
+.sk-ok-text,
+.sk-bad-text {
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.sk-ok-text {
+  fill: #1f9d55;
+}
+.sk-bad-text {
+  fill: #d64545;
+}
+.sk-gauge-track {
+  fill: none;
+  stroke: var(--sk-ink3);
+  stroke-width: 8;
+}
+.sk-sacc.sk-gauge-fill {
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.sk-hero {
+  fill: var(--sk-ink);
+  font:
+    900 54px Inter,
+    Arial,
+    sans-serif;
+  letter-spacing: -2px;
+  text-anchor: middle;
+}
+.sk-dashed {
+  stroke-dasharray: 5 5;
 }

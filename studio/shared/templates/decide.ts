@@ -17,6 +17,13 @@ export const DECIDE_STORIES: TemplateStory[] = [
     name: 'Comparison',
     line: 'One option or the other, judged fairly on what matters to your readers.',
     audience: 'Developers choosing between tools'
+  },
+  {
+    id: 'experiment',
+    group: 'decide',
+    name: 'Experiment readout',
+    line: 'The hypothesis, the result with its uncertainty, and the decision.',
+    audience: 'Product and engineering teams'
   }
 ]
 
@@ -141,6 +148,45 @@ tree | The decision | 35 | explainer | corner | tree | hold | A decision tree: e
 case-one | When the first | 25 | explainer | off | onerequest | push | A case where the first one wins, shown end to end. | svg-path-draw
 case-two | When the second | 25 | explainer | off | overload | push | A case where it breaks, and the second one holds. | reactive-displacement
 rule | Rule of thumb | 15 | speaker | beside | recap | end | The rule in three lines beside you. | titlecard-reveal
+`
+  ),
+  variant(
+    {
+      id: 'experiment-readout',
+      story: 'experiment',
+      name: 'Readout',
+      tagline: 'Hypothesis, result, decision',
+      purpose:
+        'An A/B test readout: the hypothesis, who saw what, the result with its range, the guardrail metrics that must not move, and the decision.',
+      tone: 'Careful',
+      pacing: 'Evidence, then decision',
+      cover: 'result'
+    },
+    `
+hypothesis | Hypothesis | 8 | motion | off | kinetic | cut | What you expected, in a few words. | kinetic-type-beats
+setup | Setup | 15 | motion | off | ticklist | push | Who saw what, and for how long. | waterfall-entry
+result | Result | 20 | data | off | abtest | hold | The two arms, and the uncertainty around them. | stat-bars-and-fills
+guardrails | Guardrail metrics | 15 | motion | off | ticklist | push | The metrics that must not move, each holding steady. | waterfall-entry
+decision | Decision | 10 | speaker | beside | decision | end | Ship it or not, stamped beside you. | titlecard-reveal
+`
+  ),
+  variant(
+    {
+      id: 'experiment-bottom',
+      story: 'experiment',
+      name: 'Bottom line',
+      tagline: 'The result in one line, then the chart',
+      purpose:
+        'For a busy team: the result beside your face, the chart, what surprised you, and the decision.',
+      tone: 'Crisp',
+      pacing: 'Answer first',
+      cover: 'chart'
+    },
+    `
+bottom | Bottom line | 8 | speaker | over | headline | cut | The result, set beside your face. | kinetic-beat-slam
+chart | The chart | 15 | data | off | abtest | push | The two arms, side by side. | stat-bars-and-fills
+surprise | The surprise | 12 | captions | over | headcaps | cut | What surprised you, in captions. | caption-editorial-emphasis
+decision | Decision | 8 | speaker | beside | decision | end | The decision, stamped beside you. | titlecard-reveal
 `
   )
 ]

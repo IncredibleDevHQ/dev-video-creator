@@ -98,6 +98,11 @@ export const motion = {
       name('fl', t),
       `0%,${pct(t)}%{transform:scaleX(1)}${pct(t + 0.2)}%{transform:scaleX(0)}${pct(t + 0.4)}%,100%{transform:scaleX(1)}`
     ),
+  rise: (t: number, d = 1) =>
+    register(
+      name('ri', t, d),
+      `0%,${pct(t)}%{transform:scaleY(0);opacity:1}${pct(t + d)}%,${end}%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}`
+    ),
   along: (a: number, b: number) =>
     register(
       name('al', a, b),
