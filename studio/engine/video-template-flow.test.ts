@@ -14,8 +14,7 @@ const { makeVideo, setSceneSlot, updateVideoSettings, validateVideoSettings } =
 const { loadProject } = await import('./projects')
 const { scenePlanKey } = await import('./scene-model')
 const { renderScenePacket } = await import('./creative/brief-adapter')
-const { seamLine, slotBrief, templateById } =
-  await import('../shared/video-templates')
+const { slotBrief, templateById } = await import('../shared/video-templates')
 
 // The planner's stand-in, as in video.test.ts: two moments that meet each
 // scene's role and presence.
@@ -197,13 +196,20 @@ it('tells the planner which slot the scene plays', () => {
       reviewed: null,
       assets: []
     })
-  expect(packet(brief)).toContain(
-    'The video follows the "One request" template of the story "How it works" (for developers who use it but never looked inside). This scene plays its "Mechanism" slot (3 of 6): Explainer.'
+  const text = packet(brief)
+  expect(text).toContain(
+    'The video follows the "One request" template of the story "How it works" (for developers who use it but never looked inside).'
+  )
+  // The arc, tone and pacing travel with it, though the gallery shows less.
+  expect(text).toContain(templateById('how-it-works')!.purpose)
+  expect(text).toContain(
+    'Its tone: curious, concrete. Its pacing: a reveal on every phrase.'
+  )
+  expect(text).toContain(
+    'This scene plays its "Mechanism" slot (3 of 6): Explainer.'
   )
   expect(packet(brief)).toContain('hand over to the next scene with a hold.')
   // The closing slot ends the video instead of handing over.
   const last = slotBrief(template, template.slots[5], 'low')
   expect(packet(last)).toContain('and close the video there.')
-  expect(seamLine('end')).toBe('Ends the video')
-  expect(seamLine('push')).toBe('Push into the next')
 })

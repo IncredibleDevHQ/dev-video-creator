@@ -212,7 +212,7 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
   )
   click('[data-tpl-open="launch-keynote"]')
   expect(root.querySelector('.tpl-detail h1')?.textContent).toBe('Keynote')
-  expect(root.querySelector('.tpl-now h2')?.textContent).toBe('On stage')
+  expect(root.querySelector('.tpl-caption b')?.textContent).toBe('On stage')
   // The other ways to tell the story are a tab away.
   expect(
     [...root.querySelectorAll('.tpl-variants [role="tab"]')].map((tab) =>
@@ -224,22 +224,27 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
   expect(
     root.querySelector('.tpl-variants [aria-selected="true"]')?.textContent
   ).toContain('Result first')
-  const facts = [...root.querySelectorAll('.tpl-facts dd')].map(
-    (fact) => fact.textContent
-  )
-  expect(facts.at(-1)).toBe('Some of it')
-  expect(root.querySelector('.tpl-player-time')?.textContent).toBe(
-    '0:00–0:06 of 1:30'
-  )
+  // One quiet line: the length, and how much of it puts you on camera.
+  expect(
+    root.querySelector('.tpl-detail-meta')?.textContent?.replace(/\s+/g, ' ')
+  ).toContain('1:30 · On camera: some of it')
+  // The slots sit beside the stage as chapters, by their start.
+  expect(
+    [...root.querySelectorAll('.tpl-chapters small')].map(
+      (time) => time.textContent
+    )
+  ).toEqual(['0:00', '0:06', '0:20', '0:55', '1:10', '1:22'])
   click('[data-tpl-step="1"]')
-  expect(root.querySelector('.tpl-now h2')?.textContent).toBe('The old way')
+  expect(root.querySelector('.tpl-caption b')?.textContent).toBe('The old way')
   click('[data-tpl-slot="5"]')
-  expect(root.querySelector('.tpl-now h2')?.textContent).toBe('Try it')
-  expect(root.querySelector('.tpl-now-meta')?.textContent).toContain(
-    'Ends the video'
-  )
+  expect(root.querySelector('.tpl-caption b')?.textContent).toBe('Try it')
+  expect(
+    root
+      .querySelector('.tpl-chapters [aria-current="true"]')
+      ?.textContent?.trim()
+  ).toContain('Try it')
   click('[data-tpl-step="1"]')
-  expect(root.querySelector('.tpl-now h2')?.textContent).toBe('Result first')
+  expect(root.querySelector('.tpl-caption b')?.textContent).toBe('Result first')
   // Back to the story's other ways, then into this one again to use it.
   click('.tpl-crumb')
   expect(titles()).toEqual([
@@ -276,7 +281,7 @@ it('says when a template is in use, or cannot be used yet', () => {
   }
   expect(
     templateGalleryPage({ ...base, use: 'settings', current: 'incident' })
-  ).toContain('This video uses this template.')
+  ).toContain('This video uses it.')
   expect(
     templateGalleryPage({ ...base, use: 'settings', current: undefined })
   ).toContain('Switch this video to it')

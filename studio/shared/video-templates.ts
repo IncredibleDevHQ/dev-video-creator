@@ -23,7 +23,6 @@ import {
   SEAM_LABELS,
   SLOT_TYPES,
   SPEAKER_LABELS,
-  type Seam,
   type SpeakerPlace,
   type StoryGroup,
   type TemplateSlot,
@@ -118,10 +117,6 @@ export const cameraShare = (template: VideoTemplate) =>
     0
   ) / template.seconds
 
-/** How a slot hands over: into the next scene, or it ends the video. */
-export const seamLine = (seam: Seam) =>
-  seam === 'end' ? 'Ends the video' : `${SEAM_LABELS[seam]} into the next`
-
 /**
  * How the speaker is framed in a slot. Presence still decides when they
  * appear (Low: each scene's close; High: its open and close); the slot says
@@ -211,6 +206,10 @@ export type SlotBrief = {
   story: string
   template: string
   audience: string
+  /** The whole video's arc, its tone and its pacing. */
+  purpose: string
+  tone: string
+  pacing: string
   slot: string
   role: string
   position: string
@@ -231,6 +230,9 @@ export const slotBrief = (
     story: story.name,
     template: template.name,
     audience: story.audience,
+    purpose: template.purpose,
+    tone: template.tone,
+    pacing: template.pacing,
     slot: slot.id,
     role: slot.role,
     position: `${template.slots.indexOf(slot) + 1} of ${template.slots.length}`,

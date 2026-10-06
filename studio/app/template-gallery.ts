@@ -155,7 +155,7 @@ export class TemplateGallery {
       this.showSlot((this.slot + 1) % template.slots.length)
     }, LOOP * 1000)
   }
-  /** A slot change redraws the player and the list's mark, nothing else. */
+  /** A slot change redraws the player and its chapters, nothing else. */
   private showSlot(index: number) {
     const template = templateById(this.templateId)
     if (!template) return
@@ -167,14 +167,6 @@ export class TemplateGallery {
     this.root
       .querySelector('.tpl-player')
       ?.replaceWith(fresh.firstElementChild!)
-    this.root
-      .querySelectorAll<HTMLElement>('.tpl-slots [data-tpl-slot]')
-      .forEach((button) =>
-        button.setAttribute(
-          'aria-current',
-          String(Number(button.dataset.tplSlot) === this.slot)
-        )
-      )
     this.schedulePlayer()
   }
   /** A search redraws the results only, so the field keeps its focus. */

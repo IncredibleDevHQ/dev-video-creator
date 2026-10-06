@@ -463,7 +463,11 @@ button.tpl-segment:hover {
   }
 }
 
-/* A template, opened: the player beside what the slot does, then the slots. */
+/* A template, opened: its name and one line, the other ways to tell the
+   story, and the player with the slots beside it as chapters. */
+.tpl-detail {
+  max-width: 1060px;
+}
 .tpl-crumb {
   margin: 0 0 10px;
   padding: 4px 0;
@@ -479,12 +483,17 @@ button.tpl-segment:hover {
   justify-content: space-between;
   align-items: flex-end;
   gap: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+.tpl-detail-meta {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 .tpl-use {
   flex: none;
   text-align: right;
-  max-width: 260px;
+  max-width: 240px;
 }
 .tpl-use-note {
   margin: 8px 0 0;
@@ -496,7 +505,7 @@ button.tpl-segment:hover {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 2px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   padding: 3px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -516,17 +525,18 @@ button.tpl-segment:hover {
 }
 .tpl-player {
   display: grid;
-  grid-template-columns: minmax(0, 1.75fr) minmax(220px, 1fr);
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 24px;
   align-items: start;
 }
 .tpl-player-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   margin-top: 12px;
 }
 .tpl-round {
+  flex: none;
   width: 34px;
   height: 34px;
   padding: 0;
@@ -537,124 +547,52 @@ button.tpl-segment:hover {
   font-size: 15px;
   line-height: 1;
 }
-.tpl-player-where,
-.tpl-player-time {
-  color: var(--muted);
-  font-size: 12.5px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.tpl-player-where {
-  margin-left: 6px;
-}
-.tpl-player-time {
-  margin-left: auto;
-}
-.tpl-now h2 {
-  margin: 0 0 6px;
-  font-size: 18px;
-}
-.tpl-now p {
-  margin: 0;
-  color: var(--muted);
+.tpl-caption {
+  margin: 6px 0 0 8px;
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.5;
 }
-.tpl-now .tpl-now-meta {
-  margin-top: 12px;
-  color: inherit;
-  font-size: 13px;
-}
-.tpl-now-meta .tpl-type-dot {
-  margin-right: 7px;
-}
-.tpl-facts {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 7px 14px;
-  margin: 20px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-}
-.tpl-facts dt {
-  color: var(--muted);
-}
-.tpl-facts dd {
-  margin: 0;
-}
-.tpl-slots {
-  margin-top: 36px;
-}
-.tpl-slots-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
-  margin-bottom: 10px;
-}
-.tpl-slots-head h2 {
-  margin: 0;
-  font-size: 16px;
-}
-.tpl-slots-head p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-.tpl-slots ol {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.tpl-slots li + li {
-  border-top: 1px solid var(--line);
-}
-.tpl-slots button {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  width: 100%;
-  text-align: left;
-  padding: 10px 16px;
-  border-radius: 0;
-}
-.tpl-slots button[aria-current='true'] {
-  background: var(--selected);
-}
-.tpl-slot-n {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  display: grid;
-  place-items: center;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  font-size: 11.5px;
-  font-weight: 700;
-  flex: none;
-}
-.tpl-slot-role {
-  flex: 1;
-  min-width: 0;
-  font-size: 14px;
+.tpl-caption b {
+  margin-right: 6px;
   font-weight: 600;
 }
-.tpl-slot-type {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+.tpl-caption span {
   color: var(--muted);
-  font-size: 12.5px;
 }
-.tpl-slot-time {
-  width: 84px;
-  text-align: right;
+/* The slots as chapters, the one playing marked. */
+.tpl-chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tpl-chapters button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 13.5px;
+  text-align: left;
+}
+.tpl-chapters button[aria-current='true'] {
+  background: var(--selected);
+  color: inherit;
+  font-weight: 600;
+}
+.tpl-chapters span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tpl-chapters small {
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
