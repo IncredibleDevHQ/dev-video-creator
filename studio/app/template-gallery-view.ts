@@ -7,12 +7,12 @@ import { templateSketch } from './template-sketches'
 import { LOOKS } from '../shared/looks'
 import type { Branding } from '../shared/settings'
 import {
-  SEAM_LABELS,
   SLOT_TYPES,
-  SPEAKER_LABELS,
   TEMPLATE_FAMILIES,
   VIDEO_TEMPLATES,
   familyById,
+  seamLine,
+  type SpeakerPlace,
   type TemplateFamilyId,
   type VideoTemplate
 } from '../shared/video-templates'
@@ -30,8 +30,17 @@ export type GalleryState = {
   back: string
 }
 
-export const mmss = (seconds: number) =>
+const mmss = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+const lowerFirst = (text: string) =>
+  text.charAt(0).toLowerCase() + text.slice(1)
+/** Where the creator appears in a slot, said to them. */
+const PLACES: Record<SpeakerPlace, string> = {
+  off: 'Off camera',
+  corner: 'You in the corner',
+  beside: 'You beside the slide',
+  full: 'You full frame'
+}
 
 /** The sketches' colours: the notebook's look, else the first named look. */
 export const lookStyle = (branding?: Branding) => {
@@ -46,8 +55,16 @@ export const lookStyle = (branding?: Branding) => {
     `--sk-secondary:${value(palette.secondary)}`
   ].join(';')
 }
-export const lookName = (branding?: Branding) =>
-  branding?.look?.name || (branding?.palette ? 'your look' : LOOKS[0].name)
+
+/** Said once, in the rail, when the previews take a notebook's look. */
+const lookNote = (branding?: Branding) =>
+  branding
+    ? `<p class="tpl-rail-foot">${
+        branding.look?.name
+          ? `Previews use ${escape(branding.look.name)}, this notebook’s look.`
+          : 'Previews use this notebook’s look.'
+      }</p>`
+    : ''
 
 const typeDot = (type: keyof typeof SLOT_TYPES) =>
   `<i class="tpl-type-dot" data-type="${type}"></i>`
@@ -66,7 +83,10 @@ const segments = (template: VideoTemplate, active: number, clickable = false) =>
     })
     .join('')}</div>`
 
-/** The 16:9 stage that plays one slot of a template. */
+/**
+ * The 16:9 stage that plays one slot of a template. A card names the slot
+ * on its stage; the player names it beside the stage instead.
+ */
 export const templateStage = (
   template: VideoTemplate,
   index: number,
@@ -80,13 +100,9 @@ export const templateStage = (
     ${options.cycle ? 'data-tpl-cycle' : ''}
   >
     <div class="tpl-sketch">${templateSketch(slot.sketch)}</div>
-    <span class="tpl-stage-role"><b>${index + 1}</b>${escape(slot.role)}</span>
-    <span class="tpl-stage-type"
-      >${typeDot(slot.type)}${SLOT_TYPES[slot.type].label}</span
-    >
     ${options.large
-      ? `<span class="tpl-stage-seam">${SEAM_LABELS[slot.seam]} →</span>`
-      : ''}
+      ? ''
+      : `<span class="tpl-stage-role"><b>${index + 1}</b>${escape(slot.role)}</span>`}
     ${segments(template, index, options.clickable)}
   </div>`
 }
@@ -102,18 +118,10 @@ const templateCard = (template: VideoTemplate, current?: string) =>
       ${templateStage(template, 0, { cycle: true })}
     </button>
     <div class="tpl-card-body">
-      <div class="tpl-card-title">
-        <h3>${escape(template.name)}</h3>
-        ${current === template.id
-          ? '<span class="tpl-badge">In use</span>'
-          : ''}
-      </div>
-      <p>${escape(template.purpose)}</p>
-      <div class="tpl-meta">
-        <span>${mmss(template.seconds)}</span
-        ><span>${template.slots.length} slots</span
-        ><span>${escape(familyById(template.family).short)}</span>
-      </div>
+      <h3>${escape(template.name)}</h3>
+      ${current === template.id ? '<span class="tpl-badge">In use</span>' : ''}
+      <span class="tpl-card-time">${mmss(template.seconds)}</span>
+      <p>${escape(template.tagline)}</p>
     </div>
   </article>`
 
@@ -123,24 +131,8 @@ const familySection = (
 ) =>
   html`<section class="tpl-family" data-family="${family.id}">
     <div class="tpl-family-head">
-      <div>
-        <h2>${escape(family.name)}</h2>
-        <p>${escape(family.summary)}</p>
-      </div>
-      <dl class="tpl-facts">
-        <div>
-          <dt>For</dt>
-          <dd>${escape(family.audience)}</dd>
-        </div>
-        <div>
-          <dt>Length</dt>
-          <dd>${escape(family.length)}</dd>
-        </div>
-        <div>
-          <dt>Tone</dt>
-          <dd>${escape(family.tone)}</dd>
-        </div>
-      </dl>
+      <h2>${escape(family.name)}</h2>
+      <p>For ${escape(lowerFirst(family.audience))}</p>
     </div>
     <div class="tpl-grid">
       ${VIDEO_TEMPLATES.filter((item) => item.family === family.id)
@@ -164,120 +156,97 @@ const useButton = (state: GalleryState, template: VideoTemplate) =>
         }</p>`
       : '<p class="tpl-use-note">Open a notebook with finished wireframes to use a template.</p>'
 
-/** The storyboard player: one slot large, the controls, and what it does. */
+/**
+ * The storyboard player: one slot large with its controls, and beside it
+ * what the slot does and whom the template is for.
+ */
 export const templatePlayer = (
   state: GalleryState,
   template: VideoTemplate
 ) => {
   const slot = template.slots[state.slot]
+  const family = familyById(template.family)
   return html`<section
     class="tpl-player"
     aria-label="Storyboard"
     data-playing="${state.playing}"
   >
-    ${templateStage(template, state.slot, { large: true, clickable: true })}
-    <div class="tpl-player-bar">
-      <button
-        type="button"
-        class="tpl-round"
-        data-tpl-step="-1"
-        aria-label="Previous slot"
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        class="tpl-round"
-        data-tpl-play
-        aria-label="${state.playing ? 'Pause' : 'Play'}"
-        aria-pressed="${state.playing}"
-      >
-        ${state.playing ? '❚❚' : '▶'}
-      </button>
-      <button
-        type="button"
-        class="tpl-round"
-        data-tpl-step="1"
-        aria-label="Next slot"
-      >
-        ›
-      </button>
-      <span class="tpl-player-where">
-        Slot ${state.slot + 1} of ${template.slots.length} ·
-        ${mmss(slot.from)}–${mmss(slot.to)}
-      </span>
-      <span class="tpl-player-look"
-        >Drawn in ${escape(lookName(state.look))}</span
-      >
-    </div>
-    <div class="tpl-now">
-      <h2>${escape(slot.role)}</h2>
-      <p>${escape(slot.move)}</p>
-      <div class="tpl-chips">
-        <span class="tpl-chip"
-          >${typeDot(slot.type)}${SLOT_TYPES[slot.type].label}</span
+    <div class="tpl-player-main">
+      ${templateStage(template, state.slot, { large: true, clickable: true })}
+      <div class="tpl-player-bar">
+        <button
+          type="button"
+          class="tpl-round"
+          data-tpl-step="-1"
+          aria-label="Previous slot"
         >
-        <span class="tpl-chip">${SPEAKER_LABELS[slot.speaker]}</span>
-        <span class="tpl-chip">${SEAM_LABELS[slot.seam]} into the next</span>
+          ‹
+        </button>
+        <button
+          type="button"
+          class="tpl-round"
+          data-tpl-play
+          aria-label="${state.playing ? 'Pause' : 'Play'}"
+          aria-pressed="${state.playing}"
+        >
+          ${state.playing ? '❚❚' : '▶'}
+        </button>
+        <button
+          type="button"
+          class="tpl-round"
+          data-tpl-step="1"
+          aria-label="Next slot"
+        >
+          ›
+        </button>
+        <span class="tpl-player-where"
+          >Slot ${state.slot + 1} of ${template.slots.length}</span
+        >
+        <span class="tpl-player-time"
+          >${mmss(slot.from)}–${mmss(slot.to)} of
+          ${mmss(template.seconds)}</span
+        >
       </div>
-      <p class="tpl-builds">
-        Built from HyperFrames
-        ${slot.builds.map((name) => `<code>${escape(name)}</code>`).join(' ')}
-      </p>
+    </div>
+    <div class="tpl-player-side">
+      <div class="tpl-now">
+        <h2>${escape(slot.role)}</h2>
+        <p>${escape(slot.move)}</p>
+        <p class="tpl-now-meta">
+          ${typeDot(slot.type)}${SLOT_TYPES[slot.type].label} ·
+          ${PLACES[slot.speaker]} · ${seamLine(slot.seam)}
+        </p>
+      </div>
+      <dl class="tpl-facts">
+        <dt>For</dt>
+        <dd>${escape(family.audience)}</dd>
+        <dt>Tone</dt>
+        <dd>${escape(family.tone)}</dd>
+        <dt>Pacing</dt>
+        <dd>${escape(family.pacing)}</dd>
+      </dl>
     </div>
   </section>`
 }
 
-const detail = (state: GalleryState, template: VideoTemplate) => {
-  const family = familyById(template.family)
-  return html`<div class="tpl-detail">
-    <button type="button" class="tpl-crumb" data-tpl-back>
-      ‹ All templates
-    </button>
+const detail = (state: GalleryState, template: VideoTemplate) =>
+  html`<div class="tpl-detail">
     <div class="tpl-detail-head">
       <div>
-        <p class="tpl-eyebrow">
-          ${escape(family.short)} · ${mmss(template.seconds)} ·
-          ${template.slots.length} slots
-        </p>
+        <button type="button" class="tpl-crumb" data-tpl-back>
+          ‹ All templates
+        </button>
         <h1>${escape(template.name)}</h1>
         <p class="tpl-lede">${escape(template.purpose)}</p>
       </div>
       <div class="tpl-use">${useButton(state, template)}</div>
     </div>
-    <div class="tpl-detail-grid">
-      ${templatePlayer(state, template)}
-      <aside class="tpl-side">
-        <h3>Who it's for</h3>
-        <p>${escape(family.summary)}</p>
-        <dl class="tpl-facts stacked">
-          <div>
-            <dt>For</dt>
-            <dd>${escape(family.audience)}</dd>
-          </div>
-          <div>
-            <dt>Length</dt>
-            <dd>${escape(family.length)}</dd>
-          </div>
-          <div>
-            <dt>Tone</dt>
-            <dd>${escape(family.tone)}</dd>
-          </div>
-          <div>
-            <dt>Pacing</dt>
-            <dd>${escape(family.pacing)}</dd>
-          </div>
-        </dl>
-        <h3>How your scenes take the slots</h3>
-        <p>
-          Your scenes take these slots in order: the first opens, the last
-          closes, and the scenes between spread across the middle. You can move
-          any scene to another slot from the video.
-        </p>
-      </aside>
-    </div>
+    ${templatePlayer(state, template)}
     <section class="tpl-slots" aria-label="Slots">
-      <h2>The slots</h2>
+      <div class="tpl-slots-head">
+        <h2>The slots</h2>
+        <p>Your scenes take them in order.</p>
+      </div>
       <ol>
         ${template.slots
           .map(
@@ -289,18 +258,13 @@ const detail = (state: GalleryState, template: VideoTemplate) => {
                   aria-current="${index === state.slot}"
                 >
                   <span class="tpl-slot-n">${index + 1}</span>
-                  <span class="tpl-slot-main">
-                    <b>${escape(item.role)}</b>
-                    <span>${escape(item.move)}</span>
-                  </span>
-                  <span class="tpl-slot-side">
-                    <span class="tpl-chip"
-                      >${typeDot(item.type)}${SLOT_TYPES[item.type].label}</span
-                    >
-                    <span class="tpl-slot-time"
-                      >${mmss(item.from)}–${mmss(item.to)}</span
-                    >
-                  </span>
+                  <b class="tpl-slot-role">${escape(item.role)}</b>
+                  <span class="tpl-slot-type"
+                    >${typeDot(item.type)}${SLOT_TYPES[item.type].label}</span
+                  >
+                  <span class="tpl-slot-time"
+                    >${mmss(item.from)}–${mmss(item.to)}</span
+                  >
                 </button>
               </li>`
           )
@@ -308,7 +272,6 @@ const detail = (state: GalleryState, template: VideoTemplate) => {
       </ol>
     </section>
   </div>`
-}
 
 export const templateGalleryPage = (state: GalleryState) => {
   const template = VIDEO_TEMPLATES.find((item) => item.id === state.templateId)
@@ -351,20 +314,16 @@ export const templateGalleryPage = (state: GalleryState) => {
         ${TEMPLATE_FAMILIES.map((family) => tab(family.id, family.short)).join(
           ''
         )}
-        <p class="tpl-rail-foot">
-          Previews are drawn in ${escape(lookName(state.look))}.
-        </p>
+        ${lookNote(state.look)}
       </nav>
       <section class="tpl-panel">
         ${template
           ? detail(state, template)
           : html`<div class="tpl-head">
-                <h1>Templates <small>${count(state.family)}</small></h1>
+                <h1>Templates</h1>
                 <p>
-                  Shapes for engineering explainers. Each template is a run of
-                  slots, and every slot has its role, its kind of shot, where
-                  you appear and one signature move. Your scenes take the slots
-                  in order.
+                  Shapes for an engineering explainer. Your scenes take a
+                  template’s slots in order.
                 </p>
               </div>
               ${families

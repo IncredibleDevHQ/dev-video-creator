@@ -41,6 +41,8 @@ export type VideoTemplate = {
   family: TemplateFamilyId
   name: string
   purpose: string
+  /** One short line, for the gallery's cards. */
+  tagline: string
   seconds: number
   slots: TemplateSlot[]
 }
@@ -70,6 +72,9 @@ export const SEAM_LABELS: Record<Seam, string> = {
   zoom: 'Zoom',
   end: 'End'
 }
+/** How a slot hands over: into the next scene, or it ends the video. */
+export const seamLine = (seam: Seam) =>
+  seam === 'end' ? 'Ends the video' : `${SEAM_LABELS[seam]} into the next`
 
 export const TEMPLATE_FAMILIES: TemplateFamily[] = [
   {
@@ -138,6 +143,7 @@ export const VIDEO_TEMPLATES: VideoTemplate[] = [
     name: 'Design decision walkthrough',
     purpose:
       'A design doc or RFC in three minutes: the decision first, then why, then what else was considered.',
+    tagline: 'A design doc or RFC, decision first',
     seconds: 180,
     slots: [
       slot(
@@ -220,6 +226,7 @@ export const VIDEO_TEMPLATES: VideoTemplate[] = [
     name: 'Incident walkthrough',
     purpose:
       'An internal postmortem: what users felt, what happened when, why, and what changes now.',
+    tagline: 'A postmortem your team can act on',
     seconds: 150,
     slots: [
       slot(
@@ -290,6 +297,7 @@ export const VIDEO_TEMPLATES: VideoTemplate[] = [
     name: 'How it works',
     purpose:
       'One concept, the way the best teaching channels do it: a hook, one example, the mechanism, the breaking point, the pattern.',
+    tagline: 'One concept, from example to pattern',
     seconds: 120,
     slots: [
       slot(
@@ -372,6 +380,7 @@ export const VIDEO_TEMPLATES: VideoTemplate[] = [
     name: 'Engineering story',
     purpose:
       'A public postmortem or case study: the moment it broke, a normal day, the cascade, the hunt, the safeguard.',
+    tagline: 'A public postmortem, told as a story',
     seconds: 150,
     slots: [
       slot(
@@ -454,6 +463,7 @@ export const VIDEO_TEMPLATES: VideoTemplate[] = [
     name: 'Launch demo',
     purpose:
       'A feature or product launch: the outcome, the old pain, the walkthrough, a look under the hood, the proof, one way to try it.',
+    tagline: 'A launch that shows the result first',
     seconds: 90,
     slots: [
       slot(
@@ -536,6 +546,7 @@ export const VIDEO_TEMPLATES: VideoTemplate[] = [
     name: 'Feature deep dive',
     purpose:
       "Engineer to engineer: the problem in today's code, a live run, how it works inside, the honest limits, and how to start.",
+    tagline: 'One feature, engineer to engineer',
     seconds: 180,
     slots: [
       slot(

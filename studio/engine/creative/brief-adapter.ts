@@ -12,6 +12,7 @@
 // treats as what the user accepted.
 import type { ExplanationBriefV1, StatementBasis } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
+import { SEAM_LABELS } from '../../shared/video-templates'
 
 const yamlString = (value: string) =>
   JSON.stringify(value.replace(/\s+/g, ' ').trim())
@@ -356,6 +357,20 @@ const introSection = (title: string) => [
   ''
 ]
 
+// The slot of the video's template this scene plays, said to the planner.
+const templateLine = (slot: NonNullable<ScenePacketInput['template']>) =>
+  [
+    `The video follows the template "${slot.template}" (${slot.family}).`,
+    `This scene plays its "${slot.role}" slot (${slot.position}): ${slot.type}.`,
+    `Its signature move: ${slot.move}`,
+    `When on camera, the presenter is framed this way: ${slot.speaker}.`,
+    `Aim for about ${slot.seconds} seconds, and ${
+      slot.seam === SEAM_LABELS.end
+        ? 'close the video there'
+        : `hand over to the next scene with a ${slot.seam.toLowerCase()}`
+    }.`
+  ].join(' ')
+
 export const renderScenePacket = (input: ScenePacketInput) => {
   const lines = [
     `# Scene ${input.scene.index + 1}: ${input.scene.title}`,
@@ -431,9 +446,7 @@ export const renderScenePacket = (input: ScenePacketInput) => {
         ? `Delivery for this scene: ${input.delivery} (the creator's choice — keep it).`
         : 'Delivery for this scene is undecided: suggest a presenter treatment if it helps, but keep delivery.voice "undecided".',
       presenceLine(input.presence, input.delivery),
-      input.template
-        ? `The video follows the template "${input.template.template}" (${input.template.family}). This scene plays its "${input.template.role}" slot (${input.template.position}): ${input.template.type}. Its signature move: ${input.template.move} When on camera, the presenter is framed this way: ${input.template.speaker}. Aim for about ${input.template.seconds} seconds, and hand over to the next scene with a ${input.template.seam.toLowerCase()}.`
-        : '',
+      input.template ? templateLine(input.template) : '',
       input.reviewed
         ? `A reviewed plan exists (question: ${input.reviewed.question}). Keep what it got right unless the direction below asks otherwise.`
         : ''

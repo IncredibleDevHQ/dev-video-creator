@@ -14,7 +14,8 @@ const { makeVideo, setSceneSlot, updateVideoSettings, validateVideoSettings } =
 const { loadProject } = await import('./projects')
 const { scenePlanKey } = await import('./scene-model')
 const { renderScenePacket } = await import('./creative/brief-adapter')
-const { slotBrief, templateById } = await import('../shared/video-templates')
+const { seamLine, slotBrief, templateById } =
+  await import('../shared/video-templates')
 
 // The planner's stand-in, as in video.test.ts: two moments that meet each
 // scene's role and presence.
@@ -180,21 +181,27 @@ it('tells the planner which slot the scene plays', () => {
     seconds: 35,
     seam: 'Hold'
   })
-  const packet = renderScenePacket({
-    videoTitle: 'Tokens',
-    scene: { id: 'scene-b', title: 'b', index: 1, originScenes: ['b'] },
-    presentation: [],
-    script: '',
-    units: [],
-    adjacent: [],
-    direction: { video: '', scene: '' },
-    delivery: 'human',
-    template: brief,
-    reviewed: null,
-    assets: []
-  })
-  expect(packet).toContain(
+  const packet = (template: typeof brief) =>
+    renderScenePacket({
+      videoTitle: 'Tokens',
+      scene: { id: 'scene-b', title: 'b', index: 1, originScenes: ['b'] },
+      presentation: [],
+      script: '',
+      units: [],
+      adjacent: [],
+      direction: { video: '', scene: '' },
+      delivery: 'human',
+      template,
+      reviewed: null,
+      assets: []
+    })
+  expect(packet(brief)).toContain(
     'The video follows the template "How it works" (Engineering explainers for the world). This scene plays its "Mechanism" slot (3 of 6): Explainer.'
   )
-  expect(packet).toContain('hand over to the next scene with a hold.')
+  expect(packet(brief)).toContain('hand over to the next scene with a hold.')
+  // The closing slot ends the video instead of handing over.
+  const last = slotBrief(template, template.slots[5], 'low')
+  expect(packet(last)).toContain('and close the video there.')
+  expect(seamLine('end')).toBe('Ends the video')
+  expect(seamLine('push')).toBe('Push into the next')
 })

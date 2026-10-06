@@ -155,13 +155,22 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
   expect(
     [...root.querySelectorAll('.tpl-card h3')].map((title) => title.textContent)
   ).toEqual(['Launch demo', 'Feature deep dive'])
+  expect(root.querySelector('.tpl-card p')?.textContent).toBe(
+    'A launch that shows the result first'
+  )
   click('[data-tpl-open="launch-demo"]')
   expect(root.querySelector('.tpl-detail h1')?.textContent).toBe('Launch demo')
   expect(root.querySelector('.tpl-now h2')?.textContent).toBe('Result first')
+  expect(root.querySelector('.tpl-player-time')?.textContent).toBe(
+    '0:00–0:06 of 1:30'
+  )
   click('[data-tpl-step="1"]')
   expect(root.querySelector('.tpl-now h2')?.textContent).toBe('The old way')
   click('[data-tpl-slot="5"]')
   expect(root.querySelector('.tpl-now h2')?.textContent).toBe('Try it')
+  expect(root.querySelector('.tpl-now-meta')?.textContent).toContain(
+    'Ends the video'
+  )
   click('[data-tpl-step="1"]')
   expect(root.querySelector('.tpl-now h2')?.textContent).toBe('Result first')
   click('[data-tpl-use]')
