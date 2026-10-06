@@ -11,7 +11,7 @@ import {
 } from './template-gallery-view'
 import { templateSketch } from './template-sketches'
 import { LOOP } from './template-sketch-kit'
-import { templateById, type TemplateFamilyId } from '../shared/video-templates'
+import { templateById } from '../shared/video-templates'
 import type { Branding } from '../shared/settings'
 
 /** What the gallery needs to know about where it was opened from. */
@@ -29,7 +29,7 @@ const reducedMotion = () =>
 
 export class TemplateGallery {
   isOpen = false
-  private family: GalleryState['family'] = 'all'
+  private story = 'all'
   private templateId: string | null = null
   private slot = 0
   private playing = true
@@ -54,7 +54,7 @@ export class TemplateGallery {
   open(context: GalleryContext, templateId?: string) {
     this.context = context
     this.isOpen = true
-    this.family = 'all'
+    this.story = 'all'
     this.templateId = templateId && templateById(templateId) ? templateId : null
     this.slot = 0
     this.playing = !reducedMotion()
@@ -73,7 +73,7 @@ export class TemplateGallery {
   }
   private state(): GalleryState {
     return {
-      family: this.family,
+      story: this.story,
       templateId: this.templateId,
       slot: this.slot,
       playing: this.playing,
@@ -98,14 +98,17 @@ export class TemplateGallery {
   }
   /**
    * The cards move on in turn, a third of them at each tick, so the grid is
-   * never blank while sketches start over.
+   * never blank while sketches start over. Cards out of view wait.
    */
   private advanceCards() {
     this.tick++
+    const height = window.innerHeight || 0
     this.root
       .querySelectorAll<HTMLElement>('[data-tpl-cycle]')
       .forEach((stage, index) => {
         if ((this.tick + index) % 3) return
+        const box = stage.getBoundingClientRect?.()
+        if (box && height && (box.bottom < 0 || box.top > height)) return
         const template = templateById(stage.dataset.template)
         if (!template) return
         const next = (Number(stage.dataset.slot) + 1) % template.slots.length
@@ -147,17 +150,18 @@ export class TemplateGallery {
   }
   private click(event: Event) {
     const target = (event.target as Element).closest<HTMLElement>(
-      '[data-tpl-close],[data-tpl-family],[data-tpl-open],[data-tpl-back],[data-tpl-slot],[data-tpl-step],[data-tpl-play],[data-tpl-use]'
+      '[data-tpl-close],[data-tpl-story],[data-tpl-open],[data-tpl-slot],[data-tpl-step],[data-tpl-play],[data-tpl-use]'
     )
     if (!target) return
     event.preventDefault()
     event.stopPropagation()
     const data = target.dataset
     if ('tplClose' in data) return this.close()
-    if (data.tplFamily) {
-      this.family = data.tplFamily as 'all' | TemplateFamilyId
+    if (data.tplStory) {
+      this.story = data.tplStory
       this.templateId = null
-      return this.draw()
+      this.draw()
+      return window.scrollTo?.(0, 0)
     }
     if (data.tplOpen) {
       this.templateId = data.tplOpen
@@ -165,10 +169,6 @@ export class TemplateGallery {
       this.playing = !reducedMotion()
       this.draw()
       return window.scrollTo?.(0, 0)
-    }
-    if ('tplBack' in data) {
-      this.templateId = null
-      return this.draw()
     }
     if (data.tplSlot !== undefined) return this.showSlot(Number(data.tplSlot))
     if (data.tplStep) return this.showSlot(this.slot + Number(data.tplStep))

@@ -69,7 +69,7 @@ it('plans every scene again when the template changes', () => {
     changed: true
   })
   expect(videoSettingsPreview(project, next)).toContain(
-    'Shape the video as Launch demo. Every scene is planned again in the new shape.'
+    'Shape the video as Launch: Result first. Every scene is planned again in the new shape.'
   )
   expect(videoSettingsPreview(project, next)).toContain('Apply and re-plan')
 })

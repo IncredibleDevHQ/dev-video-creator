@@ -1,5 +1,6 @@
-// The template gallery: every shape an engineering explainer can take, each
-// card playing its slots in turn, drawn in the notebook's own look.
+// The template gallery: the stories an engineering blog tells, and for each
+// the ways to tell it, every card playing its slots in turn, drawn in the
+// notebook's own look.
 import incredibleLogo from './assets/incredible-logo.svg'
 import { themeControl } from './appearance'
 import { escape, html } from './ui'
@@ -8,18 +9,23 @@ import { LOOKS } from '../shared/looks'
 import type { Branding } from '../shared/settings'
 import {
   SLOT_TYPES,
-  TEMPLATE_FAMILIES,
+  STORY_GROUPS,
+  TEMPLATE_STORIES,
   VIDEO_TEMPLATES,
-  familyById,
+  cameraShare,
+  coverIndex,
   seamLine,
+  storyById,
+  storyTemplates,
   type SpeakerPlace,
-  type TemplateFamilyId,
+  type TemplateStory,
   type VideoTemplate
 } from '../shared/video-templates'
 
 export type GalleryUse = 'make' | 'settings' | null
 export type GalleryState = {
-  family: 'all' | TemplateFamilyId
+  /** The story the rail shows, or all of them. */
+  story: string
   templateId: string | null
   slot: number
   playing: boolean
@@ -39,7 +45,21 @@ const PLACES: Record<SpeakerPlace, string> = {
   off: 'Off camera',
   corner: 'You in the corner',
   beside: 'You beside the slide',
-  full: 'You full frame'
+  full: 'You full frame',
+  over: 'You full frame, words over you'
+}
+/** How much of a template puts the creator on camera, in words. */
+const onCamera = (template: VideoTemplate) => {
+  const share = cameraShare(template)
+  return share >= 0.85
+    ? 'Throughout'
+    : share >= 0.5
+      ? 'Most of it'
+      : share >= 0.2
+        ? 'Some of it'
+        : share > 0
+          ? 'A little'
+          : 'Not at all'
 }
 
 /** The sketches' colours: the notebook's look, else the first named look. */
@@ -83,9 +103,14 @@ const segments = (template: VideoTemplate, active: number, clickable = false) =>
     })
     .join('')}</div>`
 
+const PERSON =
+  '<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="15" r="7"/><path d="M6 40c0-9 6-14 14-14s14 5 14 14z"/></svg>'
+
 /**
  * The 16:9 stage that plays one slot of a template. A card names the slot
- * on its stage; the player names it beside the stage instead.
+ * on its stage; the player names it beside the stage instead. When the slot
+ * puts the speaker in the corner or beside the content and its sketch does
+ * not draw them, the stage does.
  */
 export const templateStage = (
   template: VideoTemplate,
@@ -93,29 +118,37 @@ export const templateStage = (
   options: { large?: boolean; clickable?: boolean; cycle?: boolean } = {}
 ) => {
   const slot = template.slots[index]
+  const sketch = templateSketch(slot.sketch)
+  const place =
+    (slot.speaker === 'corner' || slot.speaker === 'beside') &&
+    !/sk-cam|sk-ring/.test(sketch)
+      ? slot.speaker
+      : ''
   return html`<div
     class="tpl-stage${options.large ? ' large' : ''}"
     data-template="${template.id}"
     data-slot="${index}"
+    ${place ? `data-speaker="${place}"` : ''}
     ${options.cycle ? 'data-tpl-cycle' : ''}
   >
-    <div class="tpl-sketch">${templateSketch(slot.sketch)}</div>
+    <div class="tpl-sketch">${sketch}</div>
     ${options.large
       ? ''
       : `<span class="tpl-stage-role"><b>${index + 1}</b>${escape(slot.role)}</span>`}
+    ${place ? `<span class="tpl-stage-cam ${place}">${PERSON}</span>` : ''}
     ${segments(template, index, options.clickable)}
   </div>`
 }
 
 const templateCard = (template: VideoTemplate, current?: string) =>
-  html`<article class="tpl-card" data-family="${template.family}">
+  html`<article class="tpl-card">
     <button
       type="button"
       class="tpl-card-open"
       data-tpl-open="${template.id}"
       aria-label="${escape(`Open ${template.name}`)}"
     >
-      ${templateStage(template, 0, { cycle: true })}
+      ${templateStage(template, coverIndex(template), { cycle: true })}
     </button>
     <div class="tpl-card-body">
       <h3>${escape(template.name)}</h3>
@@ -125,20 +158,22 @@ const templateCard = (template: VideoTemplate, current?: string) =>
     </div>
   </article>`
 
-const familySection = (
-  family: (typeof TEMPLATE_FAMILIES)[number],
-  current?: string
-) =>
-  html`<section class="tpl-family" data-family="${family.id}">
-    <div class="tpl-family-head">
-      <h2>${escape(family.name)}</h2>
-      <p>For ${escape(lowerFirst(family.audience))}</p>
+const cards = (story: TemplateStory, current?: string) =>
+  `<div class="tpl-grid">${storyTemplates(story.id)
+    .map((item) => templateCard(item, current))
+    .join('')}</div>`
+
+const storySection = (story: TemplateStory, current?: string) =>
+  html`<section class="tpl-story" data-story="${story.id}">
+    <div class="tpl-story-head">
+      <h2>
+        <button type="button" data-tpl-story="${story.id}">
+          ${escape(story.name)}
+        </button>
+      </h2>
+      <p>${escape(story.line)}</p>
     </div>
-    <div class="tpl-grid">
-      ${VIDEO_TEMPLATES.filter((item) => item.family === family.id)
-        .map((item) => templateCard(item, current))
-        .join('')}
-    </div>
+    ${cards(story, current)}
   </section>`
 
 const useButton = (state: GalleryState, template: VideoTemplate) =>
@@ -158,14 +193,14 @@ const useButton = (state: GalleryState, template: VideoTemplate) =>
 
 /**
  * The storyboard player: one slot large with its controls, and beside it
- * what the slot does and whom the template is for.
+ * what the slot does and how the template feels.
  */
 export const templatePlayer = (
   state: GalleryState,
   template: VideoTemplate
 ) => {
   const slot = template.slots[state.slot]
-  const family = familyById(template.family)
+  const story = storyById(template.story)
   return html`<section
     class="tpl-player"
     aria-label="Storyboard"
@@ -219,29 +254,58 @@ export const templatePlayer = (
       </div>
       <dl class="tpl-facts">
         <dt>For</dt>
-        <dd>${escape(family.audience)}</dd>
+        <dd>${escape(story.audience)}</dd>
         <dt>Tone</dt>
-        <dd>${escape(family.tone)}</dd>
+        <dd>${escape(template.tone)}</dd>
         <dt>Pacing</dt>
-        <dd>${escape(family.pacing)}</dd>
+        <dd>${escape(template.pacing)}</dd>
+        <dt>On camera</dt>
+        <dd>${onCamera(template)}</dd>
       </dl>
     </div>
   </section>`
 }
 
-const detail = (state: GalleryState, template: VideoTemplate) =>
-  html`<div class="tpl-detail">
+/** The other ways to tell the same story, as tabs above the player. */
+const variantTabs = (template: VideoTemplate) => {
+  const siblings = storyTemplates(template.story)
+  return siblings.length < 2
+    ? ''
+    : html`<div
+        class="tpl-variants"
+        role="tablist"
+        aria-label="Ways to tell it"
+      >
+        ${siblings
+          .map(
+            (item) =>
+              html`<button
+                type="button"
+                role="tab"
+                aria-selected="${item.id === template.id}"
+                data-tpl-open="${item.id}"
+              >
+                ${escape(item.name)}
+              </button>`
+          )
+          .join('')}
+      </div>`
+}
+
+const detail = (state: GalleryState, template: VideoTemplate) => {
+  const story = storyById(template.story)
+  return html`<div class="tpl-detail">
     <div class="tpl-detail-head">
       <div>
-        <button type="button" class="tpl-crumb" data-tpl-back>
-          ‹ All templates
+        <button type="button" class="tpl-crumb" data-tpl-story="${story.id}">
+          ‹ ${escape(story.name)}
         </button>
         <h1>${escape(template.name)}</h1>
         <p class="tpl-lede">${escape(template.purpose)}</p>
       </div>
       <div class="tpl-use">${useButton(state, template)}</div>
     </div>
-    ${templatePlayer(state, template)}
+    ${variantTabs(template)} ${templatePlayer(state, template)}
     <section class="tpl-slots" aria-label="Slots">
       <div class="tpl-slots-head">
         <h2>The slots</h2>
@@ -272,31 +336,42 @@ const detail = (state: GalleryState, template: VideoTemplate) =>
       </ol>
     </section>
   </div>`
+}
+
+/** The page's heading: all the stories, or the one the rail picked. */
+const listHead = (state: GalleryState) => {
+  const story = TEMPLATE_STORIES.find((item) => item.id === state.story)
+  return story
+    ? html`<div class="tpl-head">
+          <h1>${escape(story.name)}</h1>
+          <p>
+            ${escape(story.line)} For ${escape(lowerFirst(story.audience))}.
+          </p>
+        </div>
+        ${cards(story, state.current)}`
+    : html`<div class="tpl-head">
+          <h1>Templates</h1>
+          <p>
+            Pick the story your blog tells, then a way to tell it. Your scenes
+            take the template’s slots in order.
+          </p>
+        </div>
+        ${TEMPLATE_STORIES.map((item) =>
+          storySection(item, state.current)
+        ).join('')}`
+}
 
 export const templateGalleryPage = (state: GalleryState) => {
   const template = VIDEO_TEMPLATES.find((item) => item.id === state.templateId)
-  const count = (family: 'all' | TemplateFamilyId) =>
-    family === 'all'
-      ? VIDEO_TEMPLATES.length
-      : VIDEO_TEMPLATES.filter((item) => item.family === family).length
-  const tab = (family: 'all' | TemplateFamilyId, label: string) =>
+  const lit = template ? template.story : state.story
+  const tab = (story: string, label: string, count: number) =>
     html`<button
       type="button"
-      data-tpl-family="${family}"
-      aria-current="${(template ? template.family : state.family) === family
-        ? 'page'
-        : 'false'}"
+      data-tpl-story="${story}"
+      aria-current="${lit === story ? 'page' : 'false'}"
     >
-      ${family === 'all'
-        ? ''
-        : `<i class="tpl-family-dot" data-family="${family}"></i>`}<span
-        >${escape(label)}</span
-      ><small>${count(family)}</small>
+      <span>${escape(label)}</span><small>${count}</small>
     </button>`
-  const families =
-    state.family === 'all'
-      ? TEMPLATE_FAMILIES
-      : TEMPLATE_FAMILIES.filter((family) => family.id === state.family)
   return html`<header>
       <a class="brand" href="/" aria-label="Incredible Studio"
         ><img src="${incredibleLogo}" alt="" />Incredible</a
@@ -308,27 +383,22 @@ export const templateGalleryPage = (state: GalleryState) => {
       </div>
     </header>
     <main class="tpl-layout" style="${lookStyle(state.look)}">
-      <nav class="tpl-rail" aria-label="Template kinds">
-        ${tab('all', 'All templates')}
-        <p class="tpl-rail-label">Kinds</p>
-        ${TEMPLATE_FAMILIES.map((family) => tab(family.id, family.short)).join(
-          ''
-        )}
+      <nav class="tpl-rail" aria-label="Stories">
+        ${tab('all', 'All templates', VIDEO_TEMPLATES.length)}
+        ${STORY_GROUPS.map(
+          (group) =>
+            `<p class="tpl-rail-label">${escape(group.name)}</p>${TEMPLATE_STORIES.filter(
+              (story) => story.group === group.id
+            )
+              .map((story) =>
+                tab(story.id, story.name, storyTemplates(story.id).length)
+              )
+              .join('')}`
+        ).join('')}
         ${lookNote(state.look)}
       </nav>
       <section class="tpl-panel">
-        ${template
-          ? detail(state, template)
-          : html`<div class="tpl-head">
-                <h1>Templates</h1>
-                <p>
-                  Shapes for an engineering explainer. Your scenes take a
-                  template’s slots in order.
-                </p>
-              </div>
-              ${families
-                .map((family) => familySection(family, state.current))
-                .join('')}`}
+        ${template ? detail(state, template) : listHead(state)}
       </section>
     </main>`
 }

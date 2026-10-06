@@ -360,7 +360,7 @@ const introSection = (title: string) => [
 // The slot of the video's template this scene plays, said to the planner.
 const templateLine = (slot: NonNullable<ScenePacketInput['template']>) =>
   [
-    `The video follows the template "${slot.template}" (${slot.family}).`,
+    `The video follows the "${slot.template}" template of the story "${slot.story}" (for ${slot.audience.charAt(0).toLowerCase()}${slot.audience.slice(1)}).`,
     `This scene plays its "${slot.role}" slot (${slot.position}): ${slot.type}.`,
     `Its signature move: ${slot.move}`,
     `When on camera, the presenter is framed this way: ${slot.speaker}.`,

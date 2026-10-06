@@ -173,7 +173,9 @@ it('tells the planner which slot the scene plays', () => {
   const template = templateById('how-it-works')!
   const brief = slotBrief(template, template.slots[2], 'low')
   expect(brief).toMatchObject({
-    template: 'How it works',
+    story: 'How it works',
+    template: 'One request',
+    audience: 'Developers who use it but never looked inside',
     role: 'Mechanism',
     position: '3 of 6',
     type: 'Explainer',
@@ -196,7 +198,7 @@ it('tells the planner which slot the scene plays', () => {
       assets: []
     })
   expect(packet(brief)).toContain(
-    'The video follows the template "How it works" (Engineering explainers for the world). This scene plays its "Mechanism" slot (3 of 6): Explainer.'
+    'The video follows the "One request" template of the story "How it works" (for developers who use it but never looked inside). This scene plays its "Mechanism" slot (3 of 6): Explainer.'
   )
   expect(packet(brief)).toContain('hand over to the next scene with a hold.')
   // The closing slot ends the video instead of handing over.

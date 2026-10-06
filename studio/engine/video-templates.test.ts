@@ -1,45 +1,135 @@
 import { expect, it } from 'vitest'
 import {
+  SEAM_LABELS,
   SLOT_TYPES,
-  TEMPLATE_FAMILIES,
+  SPEAKER_LABELS,
+  STORY_GROUPS,
+  TEMPLATE_STORIES,
   VIDEO_TEMPLATES,
   assignSlots,
+  cameraShare,
   presenterLayoutFor,
   sceneSlot,
   sceneTemplateSlot,
+  slotTable,
   speakerPlace,
+  storyTemplates,
   templateById
 } from '../shared/video-templates'
 import { templateSketch } from '../app/template-sketches'
 
-it('gives every family two templates whose slots tile their length', () => {
-  for (const family of TEMPLATE_FAMILIES)
-    expect(
-      VIDEO_TEMPLATES.filter((template) => template.family === family.id)
-    ).toHaveLength(2)
+it('tells every story more than one way, each slot a known kind', () => {
+  expect(new Set(VIDEO_TEMPLATES.map((item) => item.id)).size).toBe(
+    VIDEO_TEMPLATES.length
+  )
+  for (const story of TEMPLATE_STORIES) {
+    expect(STORY_GROUPS.some((group) => group.id === story.group)).toBe(true)
+    expect(storyTemplates(story.id).length).toBeGreaterThan(1)
+  }
   for (const template of VIDEO_TEMPLATES) {
+    expect(TEMPLATE_STORIES.some((story) => story.id === template.story)).toBe(
+      true
+    )
     let at = 0
     for (const slot of template.slots) {
       expect(slot.from).toBe(at)
       expect(slot.to).toBeGreaterThan(slot.from)
       expect(SLOT_TYPES[slot.type]).toBeTruthy()
+      expect(SPEAKER_LABELS[slot.speaker]).toBeTruthy()
+      expect(SEAM_LABELS[slot.seam]).toBeTruthy()
+      expect(slot.move).toMatch(/\.$/)
       at = slot.to
     }
     expect(at).toBe(template.seconds)
+    if (template.cover)
+      expect(template.slots.map((slot) => slot.id)).toContain(template.cover)
     expect(template.slots.at(-1)!.seam).toBe('end')
+    expect(
+      template.slots.slice(0, -1).every((slot) => slot.seam !== 'end')
+    ).toBe(true)
     expect(new Set(template.slots.map((slot) => slot.id)).size).toBe(
       template.slots.length
     )
   }
+  // The first six keep their ids, so videos made with them still open.
+  for (const id of [
+    'design-decision',
+    'incident',
+    'how-it-works',
+    'engineering-story',
+    'launch-demo',
+    'feature-deep-dive'
+  ])
+    expect(templateById(id)).toBeTruthy()
+})
+
+it('reads a storyboard table, one slot a row', () => {
+  expect(
+    slotTable(`
+open | Open | 8 | captions | over | headcaps | cut | Words over you. | caption-kinetic-slam asr-keyword-glow
+close | Close | 12 | speaker | beside | recap | end | Three points. |
+`)
+  ).toEqual([
+    {
+      id: 'open',
+      role: 'Open',
+      from: 0,
+      to: 8,
+      type: 'captions',
+      speaker: 'over',
+      sketch: 'headcaps',
+      seam: 'cut',
+      move: 'Words over you.',
+      builds: ['caption-kinetic-slam', 'asr-keyword-glow']
+    },
+    {
+      id: 'close',
+      role: 'Close',
+      from: 8,
+      to: 20,
+      type: 'speaker',
+      speaker: 'beside',
+      sketch: 'recap',
+      seam: 'end',
+      move: 'Three points.',
+      builds: []
+    }
+  ])
+})
+
+it('says how much of a template puts the speaker on camera', () => {
+  expect(cameraShare(templateById('launch-teaser')!)).toBe(0)
+  expect(cameraShare(templateById('debug-screencast')!)).toBe(1)
+  const share = cameraShare(templateById('launch-demo')!)
+  expect(share).toBeGreaterThan(0.4)
+  expect(share).toBeLessThan(0.5)
+})
+
+it('draws the speaker only where a slot puts them', () => {
+  for (const template of VIDEO_TEMPLATES)
+    for (const slot of template.slots) {
+      const where = `${template.id} ${slot.id}`
+      const camera =
+        /sk-cam|sk-ring/.test(templateSketch(slot.sketch)) ||
+        slot.sketch === 'keynote'
+      if (slot.speaker === 'off') expect(camera, where).toBe(false)
+      if (slot.speaker === 'full' || slot.speaker === 'over')
+        expect(camera, where).toBe(true)
+      if (slot.type === 'captions') expect(slot.speaker, where).toBe('over')
+      if (slot.type === 'speaker') expect(slot.speaker, where).not.toBe('off')
+    }
 })
 
 it('draws a sketch for every slot', () => {
-  for (const template of VIDEO_TEMPLATES)
-    for (const slot of template.slots)
-      expect(templateSketch(slot.sketch)).toMatch(/^<svg[\s\S]+<\/svg>$/)
-  expect(templateSketch('none')).toBe(
+  const blank =
     '<svg viewBox="0 0 320 180" aria-hidden="true" focusable="false"></svg>'
-  )
+  expect(templateSketch('none')).toBe(blank)
+  for (const template of VIDEO_TEMPLATES)
+    for (const slot of template.slots) {
+      const sketch = templateSketch(slot.sketch)
+      expect(sketch, `${template.id} ${slot.id}`).not.toBe(blank)
+      expect(sketch).toMatch(/^<svg[\s\S]+<\/svg>$/)
+    }
 })
 
 it('opens and closes on the template, and spreads the scenes between', () => {
@@ -96,5 +186,6 @@ it('places the speaker by the creator’s presence', () => {
   expect(presenterLayoutFor('beside')).toBe('beside-slide')
   expect(presenterLayoutFor('corner')).toBe('corner')
   expect(presenterLayoutFor('full')).toBe('full-screen')
+  expect(presenterLayoutFor('over')).toBe('full-screen')
   expect(presenterLayoutFor('off')).toBeNull()
 })

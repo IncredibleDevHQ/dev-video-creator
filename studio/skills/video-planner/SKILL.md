@@ -195,7 +195,9 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   move the centre of the scene, frame the presenter as the slot says whenever
   presence puts them on camera, aim for the slot's seconds, and end on its
   seam into the next scene. Presence still decides when the presenter
-  appears.
+  appears. When the slot sets words over the presenter, keep them to a few
+  words at a time and away from the face; on a diagram, label the parts in
+  place rather than captioning the voice.
 - A presenter suggestion never decides the scene's delivery. On-camera
   presence is the creator's, apart from who speaks: when SCENE.md states it,
   the plan puts the presenter exactly where it says.

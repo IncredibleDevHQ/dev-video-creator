@@ -9,6 +9,7 @@ const { pickTemplate, sceneSlotChip, sceneSlotMenu, templatePicker } =
   await import('../app/template-picker')
 const { lookStyle, templateGalleryPage } =
   await import('../app/template-gallery-view')
+const { VIDEO_TEMPLATES } = await import('../shared/video-templates')
 const { TemplateGallery } = await import('../app/template-gallery')
 
 const settings = {
@@ -56,36 +57,37 @@ const project = (template?: string) =>
     }
   }) as unknown as Project
 
-it('offers every template in the dialog, with no template as the default', () => {
+it('offers no template, the chosen one, and the way to the gallery', () => {
   const { document } = parseHTML(
     `<div>${makeVideoDialog(settings, undefined, undefined)}</div>`
   )
-  const radios = [
-    ...document.querySelectorAll<HTMLInputElement>('input[name="template"]')
-  ]
-  expect(radios.map((radio) => radio.value)).toEqual([
-    '',
-    'design-decision',
-    'incident',
-    'how-it-works',
-    'engineering-story',
-    'launch-demo',
-    'feature-deep-dive'
-  ])
-  expect(radios[0].hasAttribute('checked')).toBe(true)
+  const values = (doc: Document) =>
+    [...doc.querySelectorAll<HTMLInputElement>('input[name="template"]')].map(
+      (radio) => radio.value
+    )
+  expect(values(document)).toEqual([''])
   expect(
-    document.querySelector('[data-action="open-templates"]')?.textContent
-  ).toContain('Browse templates')
+    document.querySelector('input[value=""]')?.hasAttribute('checked')
+  ).toBe(true)
+  const browse = document.querySelector('[data-action="open-templates"]')!
+  expect(browse.textContent).toContain('Browse templates')
+  expect(browse.textContent).toMatch(/\d+ ways to tell \d+\s+stories/)
   // A template chosen in the gallery is waiting in the next dialog, once.
   pickTemplate('incident')
   const picked = parseHTML(`<div>${makeVideoDialog(settings)}</div>`).document
+  expect(values(picked)).toEqual(['', 'incident'])
   expect(
     picked.querySelector('input[value="incident"]')?.hasAttribute('checked')
   ).toBe(true)
-  const again = parseHTML(`<div>${makeVideoDialog(settings)}</div>`).document
-  expect(again.querySelector('input[value=""]')?.hasAttribute('checked')).toBe(
-    true
+  expect(picked.querySelector('.tpl-option b')?.textContent).toBe('No template')
+  expect(picked.querySelector('.tpl-picker')?.textContent).toContain(
+    'Incident walkthrough'
   )
+  expect(picked.querySelector('.tpl-picker')?.textContent).toContain(
+    'Choose another'
+  )
+  const again = parseHTML(`<div>${makeVideoDialog(settings)}</div>`).document
+  expect(values(again)).toEqual([''])
   // The settings dialog shows the video's own template.
   expect(
     templatePicker('launch-demo').includes('value="launch-demo" checked')
@@ -143,24 +145,47 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
     current: undefined,
     back: 'Back to notebook'
   })
-  expect(root.querySelectorAll('.tpl-card')).toHaveLength(6)
-  expect(root.querySelector('[data-tpl-family="all"]')?.textContent).toContain(
-    '6'
+  expect(root.querySelectorAll('.tpl-card')).toHaveLength(
+    VIDEO_TEMPLATES.length
+  )
+  expect(root.querySelector('[data-tpl-story="all"]')?.textContent).toContain(
+    String(VIDEO_TEMPLATES.length)
   )
   const click = (selector: string) =>
     root
       .querySelector<HTMLElement>(selector)!
       .dispatchEvent(new window.Event('click', { bubbles: true }))
-  click('[data-tpl-family="demo"]')
-  expect(
+  const titles = () =>
     [...root.querySelectorAll('.tpl-card h3')].map((title) => title.textContent)
-  ).toEqual(['Launch demo', 'Feature deep dive'])
+  click('.tpl-rail [data-tpl-story="launch"]')
+  expect(root.querySelector('.tpl-head h1')?.textContent).toBe('Launch')
+  expect(titles()).toEqual([
+    'Result first',
+    'Keynote',
+    'Teaser',
+    'Founder walkthrough'
+  ])
   expect(root.querySelector('.tpl-card p')?.textContent).toBe(
-    'A launch that shows the result first'
+    'The outcome plays first, then the walkthrough'
   )
-  click('[data-tpl-open="launch-demo"]')
-  expect(root.querySelector('.tpl-detail h1')?.textContent).toBe('Launch demo')
-  expect(root.querySelector('.tpl-now h2')?.textContent).toBe('Result first')
+  click('[data-tpl-open="launch-keynote"]')
+  expect(root.querySelector('.tpl-detail h1')?.textContent).toBe('Keynote')
+  expect(root.querySelector('.tpl-now h2')?.textContent).toBe('On stage')
+  // The other ways to tell the story are a tab away.
+  expect(
+    [...root.querySelectorAll('.tpl-variants [role="tab"]')].map((tab) =>
+      tab.textContent?.trim()
+    )
+  ).toEqual(['Result first', 'Keynote', 'Teaser', 'Founder walkthrough'])
+  click('.tpl-variants [data-tpl-open="launch-demo"]')
+  expect(root.querySelector('.tpl-detail h1')?.textContent).toBe('Result first')
+  expect(
+    root.querySelector('.tpl-variants [aria-selected="true"]')?.textContent
+  ).toContain('Result first')
+  const facts = [...root.querySelectorAll('.tpl-facts dd')].map(
+    (fact) => fact.textContent
+  )
+  expect(facts.at(-1)).toBe('Some of it')
   expect(root.querySelector('.tpl-player-time')?.textContent).toBe(
     '0:00–0:06 of 1:30'
   )
@@ -173,6 +198,15 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
   )
   click('[data-tpl-step="1"]')
   expect(root.querySelector('.tpl-now h2')?.textContent).toBe('Result first')
+  // Back to the story's other ways, then into this one again to use it.
+  click('.tpl-crumb')
+  expect(titles()).toEqual([
+    'Result first',
+    'Keynote',
+    'Teaser',
+    'Founder walkthrough'
+  ])
+  click('[data-tpl-open="launch-demo"]')
   click('[data-tpl-use]')
   expect(used).toHaveBeenCalledWith('launch-demo')
   expect(gallery.isOpen).toBe(false)
@@ -189,7 +223,7 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
 
 it('says when a template is in use, or cannot be used yet', () => {
   const base = {
-    family: 'all' as const,
+    story: 'all',
     templateId: 'incident',
     slot: 0,
     playing: false,

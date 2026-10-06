@@ -11,6 +11,7 @@ import {
   path,
   rect,
   svg,
+  terminalFrame,
   traveller,
   windowFrame
 } from './template-sketch-kit'
@@ -18,10 +19,6 @@ import {
 // Each typing clip gets its own id: a shared one breaks when the first copy
 // sits in a hidden part of the page.
 let serial = 0
-
-const terminal = (x: number, y: number, w: number, h: number) =>
-  rect(x, y, w, h, 'sk-chip', 10) +
-  `<circle cx="${x + 12}" cy="${y + 12}" r="2.4" class="sk-bad"/><circle cx="${x + 20}" cy="${y + 12}" r="2.4" class="sk-warn"/><circle cx="${x + 28}" cy="${y + 12}" r="2.4" class="sk-ok"/>`
 
 export const MORE_SKETCHES: Record<string, () => string> = {
   logzoom: () => {
@@ -186,7 +183,7 @@ export const MORE_SKETCHES: Record<string, () => string> = {
   terminal: () => {
     const clip = `sk-type-${++serial}`
     return svg(
-      terminal(14, 30, 196, 120) +
+      terminalFrame(14, 30, 196, 120) +
         `<clipPath id="${clip}"><rect class="sk-tl ${m.type(0.6, 1.8)}" x="26" y="60" width="170" height="16"/></clipPath>` +
         `<g clip-path="url(#${clip})"><text x="26" y="72" class="sk-term">$ npx studio init</text></g>` +
         group(
@@ -229,7 +226,7 @@ export const MORE_SKETCHES: Record<string, () => string> = {
   },
   stream: () =>
     svg(
-      terminal(14, 16, 210, 148) +
+      terminalFrame(14, 16, 210, 148) +
         [0, 1, 2, 3, 4, 5]
           .map((i) =>
             group(

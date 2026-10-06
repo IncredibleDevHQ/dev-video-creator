@@ -184,3 +184,7 @@ export const tick = (x: number, y: number, cls: string) =>
 export const windowFrame = (x: number, y: number, w: number, h: number) =>
   rect(x, y, w, h, 'sk-card', 8) +
   `<circle cx="${x + 9}" cy="${y + 8}" r="2.2" class="sk-bad"/><circle cx="${x + 16}" cy="${y + 8}" r="2.2" class="sk-warn"/><circle cx="${x + 23}" cy="${y + 8}" r="2.2" class="sk-ok"/>`
+/** A dark terminal window with its three lights. */
+export const terminalFrame = (x: number, y: number, w: number, h: number) =>
+  rect(x, y, w, h, 'sk-chip', 10) +
+  `<circle cx="${x + 12}" cy="${y + 12}" r="2.4" class="sk-bad"/><circle cx="${x + 20}" cy="${y + 12}" r="2.4" class="sk-warn"/><circle cx="${x + 28}" cy="${y + 12}" r="2.4" class="sk-ok"/>`

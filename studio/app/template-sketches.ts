@@ -1,6 +1,7 @@
 // One looping sketch per slot's signature move, for the template gallery and
 // picker. Sketches show the idea of a slot, never the creator's content. The
-// product and code sketches are in template-sketches-more.ts.
+// product and code sketches are in template-sketches-more.ts, the speaker
+// with words on them in -speaker.ts, and story moves in -story.ts.
 import {
   bar,
   box,
@@ -18,6 +19,8 @@ import {
   traveller
 } from './template-sketch-kit'
 import { MORE_SKETCHES } from './template-sketches-more'
+import { SPEAKER_SKETCHES } from './template-sketches-speaker'
+import { STORY_SKETCHES } from './template-sketches-story'
 
 type Sketch = () => string
 
@@ -465,7 +468,11 @@ const SKETCHES: Record<string, Sketch> = {
 
 /** The sketch for a slot, its motion put on the page. */
 export const templateSketch = (name: string) => {
-  const sketch = SKETCHES[name] ?? MORE_SKETCHES[name]
+  const sketch =
+    SKETCHES[name] ??
+    MORE_SKETCHES[name] ??
+    SPEAKER_SKETCHES[name] ??
+    STORY_SKETCHES[name]
   const markup = sketch ? sketch() : svg('')
   flushMotion()
   return markup

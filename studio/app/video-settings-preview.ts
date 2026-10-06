@@ -1,7 +1,12 @@
 import { html } from './ui'
 import type { Project, VideoSettings } from '../shared/model'
 import { button, escape } from './ui'
-import { templateById } from '../shared/video-templates'
+import { templateById, templateTitle } from '../shared/video-templates'
+
+const title = (id: string) => {
+  const template = templateById(id)
+  return template ? templateTitle(template) : id
+}
 export function videoSettingsEffect(project: Project, next: VideoSettings) {
   const video = project.video!
   const presenceChanged = video.settings.presence !== next.presence
@@ -38,7 +43,7 @@ export function videoSettingsPreview(project: Project, next: VideoSettings) {
     ${effect.templateChanged
       ? html`<p>
           ${next.template
-            ? `Shape the video as ${escape(templateById(next.template)?.name || next.template)}.`
+            ? `Shape the video as ${escape(title(next.template))}.`
             : 'Plan each scene on its own, with no template.'}
           Every scene is planned again in the new shape.
         </p>`

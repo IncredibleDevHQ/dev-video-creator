@@ -1,4 +1,4 @@
-// Templates where a video is set up and shown: the picker in the make-video
+// Templates where a video is set up and shown: the choice in the make-video
 // and notebook-settings dialogs, and the chip that says which slot a scene
 // plays, with the menu that moves it to another.
 import { escape, html } from './ui'
@@ -8,11 +8,14 @@ import type { Project } from '../shared/model'
 import type { Branding } from '../shared/settings'
 import {
   SLOT_TYPES,
-  TEMPLATE_FAMILIES,
+  TEMPLATE_STORIES,
   VIDEO_TEMPLATES,
   assignSlots,
-  familyById,
+  coverIndex,
   sceneTemplateSlot,
+  storyById,
+  templateById,
+  templateTitle,
   type SlotType
 } from '../shared/video-templates'
 
@@ -32,22 +35,35 @@ export const takePickedTemplate = () => {
   return id
 }
 
-/** The template choice in the make-video and notebook-settings dialogs. */
-export const templatePicker = (selected: string | undefined, look?: Branding) =>
-  html`<fieldset class="tpl-picker" style="${lookStyle(look)}">
-    <legend>
-      Template
-      <button type="button" class="quiet" data-action="open-templates">
-        Browse templates
-      </button>
-    </legend>
+/** A small grid, for the card that opens the gallery. */
+const browseMark = `<svg viewBox="0 0 320 180"><g class="tpl-browse-mark">${[
+  0, 1, 2, 3
+]
+  .map(
+    (i) =>
+      `<rect x="${92 + (i % 2) * 72}" y="${34 + Math.floor(i / 2) * 58}" width="64" height="50" rx="8"/>`
+  )
+  .join('')}</g></svg>`
+
+/**
+ * The template choice in the make-video and notebook-settings dialogs: no
+ * template, the one chosen, and the way to the gallery, where they are
+ * chosen.
+ */
+export const templatePicker = (
+  selected: string | undefined,
+  look?: Branding
+) => {
+  const chosen = templateById(selected)
+  return html`<fieldset class="tpl-picker" style="${lookStyle(look)}">
+    <legend>Template</legend>
     <div class="tpl-picker-grid">
       <label class="tpl-option tpl-option-none">
         <input
           type="radio"
           name="template"
           value=""
-          ${selected ? '' : 'checked'}
+          ${chosen ? '' : 'checked'}
         />
         <span class="tpl-option-thumb" aria-hidden="true">
           <svg viewBox="0 0 320 180">
@@ -59,31 +75,37 @@ export const templatePicker = (selected: string | undefined, look?: Branding) =>
           ><small>Each scene is planned on its own</small></span
         >
       </label>
-      ${TEMPLATE_FAMILIES.flatMap((family) =>
-        VIDEO_TEMPLATES.filter((item) => item.family === family.id).map(
-          (template) =>
-            html`<label class="tpl-option">
-              <input
-                type="radio"
-                name="template"
-                value="${template.id}"
-                ${selected === template.id ? 'checked' : ''}
-              />
-              <span class="tpl-option-thumb" aria-hidden="true"
-                >${templateSketch(template.slots[0].sketch)}</span
-              >
-              <span class="tpl-option-text"
-                ><b>${escape(template.name)}</b
-                ><small
-                  >${escape(family.short)} · ${minutes(template.seconds)} ·
-                  ${template.slots.length} slots</small
-                ></span
-              >
-            </label>`
-        )
-      ).join('')}
+      ${chosen
+        ? html`<label class="tpl-option">
+            <input type="radio" name="template" value="${chosen.id}" checked />
+            <span class="tpl-option-thumb" aria-hidden="true"
+              >${templateSketch(chosen.slots[coverIndex(chosen)].sketch)}</span
+            >
+            <span class="tpl-option-text"
+              ><b>${escape(storyById(chosen.story).name)}</b
+              ><small
+                >${escape(chosen.name)} · ${minutes(chosen.seconds)}</small
+              ></span
+            >
+          </label>`
+        : ''}
+      <button
+        type="button"
+        class="tpl-option tpl-option-browse"
+        data-action="open-templates"
+      >
+        <span class="tpl-option-thumb" aria-hidden="true">${browseMark}</span>
+        <span class="tpl-option-text"
+          ><b>${chosen ? 'Choose another' : 'Browse templates'}</b
+          ><small
+            >${VIDEO_TEMPLATES.length} ways to tell ${TEMPLATE_STORIES.length}
+            stories</small
+          ></span
+        >
+      </button>
     </div>
   </fieldset>`
+}
 
 /** Which slot a scene plays, in the scene's header; empty without a template. */
 export const sceneSlotChip = (project: Project, sceneId: string) => {
@@ -97,7 +119,7 @@ export const sceneSlotChip = (project: Project, sceneId: string) => {
     data-popover="scene-slot"
     data-scene-id="${escape(sceneId)}"
     aria-label="${escape(
-      `Slot: ${shape.slot.role}, ${index + 1} of ${shape.template.slots.length} in ${shape.template.name}. Change slot`
+      `Slot: ${shape.slot.role}, ${index + 1} of ${shape.template.slots.length} in ${templateTitle(shape.template)}. Change slot`
     )}"
   >
     ${dot(shape.slot.type)}<span>${escape(shape.slot.role)}</span
@@ -128,10 +150,11 @@ export const sceneSlotMenu = (project: Project, sceneId: string) => {
         >${escape(label)}</span
       ><small>${escape(note)}</small>
     </button>`
-  return html`<p class="popover-title">${escape(shape.template.name)}</p>
+  return html`<p class="popover-title">
+      ${escape(templateTitle(shape.template))}
+    </p>
     <p class="popover-note">
-      ${escape(familyById(shape.template.family).short)} · Which slot this scene
-      plays. Changing it plans the scene again.
+      Which slot this scene plays. Changing it plans the scene again.
     </p>
     <div class="tpl-slot-menu" role="radiogroup" aria-label="Slot">
       ${option('', 'Its place in order', inOrder.role)}

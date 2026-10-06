@@ -9,9 +9,8 @@
   --tpl-code: #b9770c;
   --tpl-speaker: #d2456b;
   --tpl-order: #8a948f;
-  --tpl-internal: #64748b;
-  --tpl-external: #2f6fe4;
-  --tpl-demo: #0c9488;
+  --tpl-data: #0e8fa8;
+  --tpl-captions: #c4581c;
 }
 :root[data-theme='dark'] {
   --tpl-motion: #a383ff;
@@ -20,9 +19,8 @@
   --tpl-code: #e6a83a;
   --tpl-speaker: #ff6f93;
   --tpl-order: #9aa39e;
-  --tpl-internal: #9aa5b4;
-  --tpl-external: #6b9cff;
-  --tpl-demo: #2fc4b4;
+  --tpl-data: #38c6e0;
+  --tpl-captions: #fb8f4a;
 }
 [data-type='motion'] {
   --tpl-c: var(--tpl-motion);
@@ -42,6 +40,12 @@
 [data-type='order'] {
   --tpl-c: var(--tpl-order);
 }
+[data-type='data'] {
+  --tpl-c: var(--tpl-data);
+}
+[data-type='captions'] {
+  --tpl-c: var(--tpl-captions);
+}
 .tpl-type-dot {
   display: inline-block;
   width: 8px;
@@ -50,24 +54,8 @@
   background: var(--tpl-c, var(--tpl-order));
   flex: none;
 }
-.tpl-family-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex: none;
-}
-.tpl-family-dot[data-family='internal'] {
-  background: var(--tpl-internal);
-}
-.tpl-family-dot[data-family='external'] {
-  background: var(--tpl-external);
-}
-.tpl-family-dot[data-family='demo'] {
-  background: var(--tpl-demo);
-}
 
-/* The gallery page: a rail of kinds beside an inset panel. */
+/* The gallery page: a rail of stories beside an inset panel. */
 .tpl-layout {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -89,9 +77,10 @@
   align-items: center;
   gap: 10px;
   text-align: left;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border-radius: 8px;
   color: var(--muted);
+  font-size: 13.5px;
 }
 .tpl-rail button span {
   flex: 1;
@@ -110,7 +99,7 @@
   font-weight: 600;
 }
 .tpl-rail-label {
-  margin: 16px 10px 6px;
+  margin: 14px 10px 4px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -143,25 +132,38 @@
   font-size: 14.5px;
   line-height: 1.55;
 }
-.tpl-family {
+.tpl-head + .tpl-grid {
+  margin-top: 28px;
+}
+.tpl-story {
   margin-top: 40px;
 }
-.tpl-family-head {
+.tpl-story-head {
   margin-bottom: 14px;
 }
-.tpl-family-head h2 {
+.tpl-story-head h2 {
   margin: 0;
   font-size: 16px;
 }
-.tpl-family-head p {
+.tpl-story-head h2 button {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.tpl-story-head h2 button:hover {
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tpl-story-head p {
   margin: 3px 0 0;
   color: var(--muted);
   font-size: 13px;
 }
 .tpl-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px 22px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 26px 20px;
 }
 
 /* A card: its stage plays the template; under it, a name and one line. */
@@ -268,6 +270,36 @@
   color: #111;
   font-size: 10px;
 }
+/* The speaker, where a slot puts them and its sketch does not draw them. */
+.tpl-stage-cam {
+  position: absolute;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+  background: #26303d;
+  pointer-events: none;
+}
+.tpl-stage-cam svg {
+  width: 72%;
+  fill: #8a9bb0;
+}
+.tpl-stage-cam.corner {
+  right: 4%;
+  bottom: 13%;
+  width: 18%;
+  aspect-ratio: 1;
+  border-radius: 9px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
+}
+.tpl-stage-cam.beside {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 30%;
+}
+.tpl-stage[data-speaker='beside'] .tpl-sketch {
+  right: 30%;
+}
 .tpl-segments {
   position: absolute;
   left: 12px;
@@ -348,6 +380,29 @@ button.tpl-segment:hover {
   margin: 8px 0 0;
   font-size: 12.5px;
   color: var(--muted);
+}
+/* The other ways to tell the story, as a segmented control. */
+.tpl-variants {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 18px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.tpl-variants button {
+  padding: 5px 12px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.tpl-variants button[aria-selected='true'] {
+  background: var(--panel);
+  color: inherit;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 .tpl-player {
   display: grid;
@@ -513,9 +568,22 @@ dialog:has(.tpl-picker) {
 }
 .tpl-picker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 8px;
+}
+.dialog-body .tpl-picker .tpl-option-browse {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+.tpl-option-browse .tpl-option-thumb {
+  background: var(--bg);
+}
+.tpl-browse-mark rect {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 5;
 }
 .dialog-body .tpl-picker .tpl-option {
   position: relative;
@@ -633,7 +701,12 @@ dialog:has(.tpl-picker) {
   .tpl-rail {
     position: static;
     flex-direction: row;
-    flex-wrap: wrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    min-width: 0;
+  }
+  .tpl-rail button {
+    flex: none;
   }
   .tpl-rail-label,
   .tpl-rail-foot {
