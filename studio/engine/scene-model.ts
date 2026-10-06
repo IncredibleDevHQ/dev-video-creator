@@ -2,17 +2,27 @@ import type { ActivityLedger } from './activity'
 import { transitionScene } from './autopilot'
 import type { Project, Scene, Moment, Voice } from '../shared/model'
 import { fingerprintOf } from './planning/fingerprint'
+import { assignSlots, templateById } from '../shared/video-templates'
 export const roleOf = (index: number, count: number) =>
   index === 0 ? 'title' : index === count - 1 ? 'ending' : 'body'
 export const scenePlanKey = (project: Project, scene: Scene) => {
   const index = project.slides.findIndex((slide) => slide.id === scene.slideId)
+  // By the slide's place: while the video reconciles, its scene list is
+  // still being rebuilt, and scenes follow the slides one to one.
+  const template = templateById(project.video!.settings.template)
+  const slot =
+    template &&
+    (template.slots.find((item) => item.id === scene.slot) ??
+      assignSlots(template, project.slides.length)[index])
   return fingerprintOf({
     harness: project.video!.settings.harness,
     slide: project.slides[index],
     title: project.title,
     role: roleOf(index, project.slides.length),
     presence: scene.presence || project.video!.settings.presence,
-    instructions: scene.instructions || []
+    instructions: scene.instructions || [],
+    // Absent without a template, so those plans keep their fingerprint.
+    ...(template && slot ? { template: template.id, slot: slot.id } : {})
   })
 }
 export const recordingKeyOf = (

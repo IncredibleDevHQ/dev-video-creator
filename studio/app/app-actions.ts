@@ -19,13 +19,14 @@ import { closePopover } from './popover'
 import { openPresenter } from './presenter-view'
 import { clickVideo, submitVideo } from './video-controller'
 import { syncSceneChoice } from './scene-link'
+import { clickTemplates, openTemplates } from './template-controller'
 
 export const installAppActions = (app: AppContext) => {
   document.addEventListener('submit', async (event) => {
     const form = event.target as HTMLFormElement
     if (form.closest('[data-confirm]')) return
     event.preventDefault()
-    if (app.settingsScreen.isOpen) return
+    if (app.settingsScreen.isOpen || app.templateGallery.isOpen) return
     const values = new FormData(form)
     try {
       await submitStart(app, form, values)
@@ -43,6 +44,7 @@ export const installAppActions = (app: AppContext) => {
       event.preventDefault()
       closePopover()
       closeLookPanel(app)
+      app.templateGallery.dismiss()
       try {
         await flushNotebookEdits(app)
       } catch (reason) {
@@ -214,6 +216,14 @@ export const installAppActions = (app: AppContext) => {
         await app.openNotebook(app.opening.state.id, app.openingAutoStage)
         return
       }
+      if (action === 'open-templates') {
+        if (app.capture.phase !== 'idle')
+          throw new Error(
+            'Finish or discard this take before browsing templates'
+          )
+        openTemplates(app)
+        return
+      }
       if (!app.snapshot) return
       if (
         app.capture.phase !== 'idle' &&
@@ -228,6 +238,7 @@ export const installAppActions = (app: AppContext) => {
       await clickStart(app, target, action)
       await clickSlides(app, target, action)
       await clickVideo(app, target, action)
+      await clickTemplates(app, target, action)
       await clickRecording(app, target, action)
     } catch (reason) {
       app.error(reason)

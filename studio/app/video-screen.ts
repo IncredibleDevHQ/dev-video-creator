@@ -33,7 +33,7 @@ import {
   videoDisplay
 } from '../shared/state'
 import { sceneActivity, sceneActivityRail } from './scene-activity'
-import type { StudioSettings } from '../shared/settings'
+import type { Branding, StudioSettings } from '../shared/settings'
 import { momentViewKey } from '../shared/model'
 import type { Scene, Slide, VideoSettings } from '../shared/model'
 import { voiceChoices } from './voice-choice'
@@ -45,6 +45,11 @@ import { escape, button } from './ui'
 import { agentNames } from './agent-setup'
 import { wireframeStatus } from './wireframe-copy'
 import { sceneChoice } from './scene-link'
+import {
+  sceneSlotChip,
+  takePickedTemplate,
+  templatePicker
+} from './template-picker'
 const standIn = new URL('./assets/presenter.jpg', import.meta.url).href
 /** A moment's state in plain words, not "auto" (review 5). */
 const momentWords = (state?: string) =>
@@ -597,7 +602,7 @@ export const videoScreen = (
 </div>
 <aside class="transcript" ${focused ? 'inert' : ''}>
 <div class="transcript-header">
-<h2>Scene ${selected + 1}</h2>
+<h2>Scene ${selected + 1}</h2>${sceneSlotChip(project, scene.id)}
 </div>${
     showActivity
       ? `<details class="activity-disclosure" data-activity-key="${scene.id}" ${
@@ -656,12 +661,14 @@ export const makeVideoDialog = (
   settings: StudioSettings,
   current?: VideoSettings,
   /** For a new video: its wireframes, the one in view, and whether only it. */
-  choice?: { slides: Slide[]; selected: number | null; only: boolean }
+  choice?: { slides: Slide[]; selected: number | null; only: boolean },
+  look?: Branding
 ) => {
   const presence = current?.presence || 'high'
   const voice = current?.voice || settings.voice.selected
   return `<h2>Make the video</h2>
 <form id="video-form">
+${templatePicker(current?.template ?? takePickedTemplate(), look)}
 <fieldset>
 <legend>On camera</legend>${(['off', 'low', 'high'] as const)
     .map(

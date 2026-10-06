@@ -126,6 +126,10 @@ export const api = {
       'POST',
       { presence }
     ),
+  setSceneSlot: (id: string, sceneId: string, slot: string | null) =>
+    request<Snapshot>(`/projects/${id}/scenes/${sceneId}/slot`, 'POST', {
+      slot
+    }),
   replan: (id: string, sceneId: string, presence: Presence | null) =>
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/presence`, 'POST', {
       presence

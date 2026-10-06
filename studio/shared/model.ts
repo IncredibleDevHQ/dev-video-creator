@@ -9,6 +9,8 @@ export type VideoSettings = {
   presence: Presence
   voice: Voice
   harness?: HarnessSelection
+  /** The video's template (shared/video-templates.ts), when one is chosen. */
+  template?: string
 }
 export type CameraWindow = 'none' | 'full' | 'start' | 'end' | 'both'
 export type MomentSegment = {
@@ -75,6 +77,8 @@ export type Scene = {
   slideId: string
   phase: ScenePhase
   presence: Presence | null
+  /** The template slot the creator chose for this scene; else its place. */
+  slot?: string | null
   moments: Moment[]
   inputKey: string
   animationKey?: string

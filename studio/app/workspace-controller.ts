@@ -26,7 +26,7 @@ import { markPin } from './wireframe-pin'
 import { syncPlayerBar } from './player-bar'
 
 export const createRender = (app: AppContext) => () => {
-  if (app.settingsScreen.isOpen) return
+  if (app.settingsScreen.isOpen || app.templateGallery.isOpen) return
   const selection = getSelection()
   const editSelection =
     document.activeElement?.closest('.dialogue-studio') && selection?.anchorNode

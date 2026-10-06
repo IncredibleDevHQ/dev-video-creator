@@ -1,4 +1,5 @@
 import type { SceneProgressReporter } from '../../shared/model'
+import { sceneTemplateSlot, slotBrief } from '../../shared/video-templates'
 import { prepareCastPacket } from './cast-packet'
 import { randomUUID } from 'node:crypto'
 import type { Project, Scene, Moment } from '../../shared/model'
@@ -63,6 +64,10 @@ export const planCreativeScene = async (
     reviewed: null
   }))
   const presence = scene.presence || video.settings.presence
+  const shape = sceneTemplateSlot(video, scene.id)
+  const template = shape
+    ? slotBrief(shape.template, shape.slot, presence)
+    : null
   const retained = await readRow<{ text: string }>('sources', project.id)
   await onProgress?.('Planning the scene', 'planning')
   const treatment = await prepareCreativeTreatment({
@@ -80,7 +85,9 @@ export const planCreativeScene = async (
       presence,
       intro: index === 0 ? { title: project.title } : null,
       assetKeys: cast.assetKeys,
-      neighbors
+      neighbors,
+      // Absent without a template, so those plans keep their fingerprint.
+      ...(template ? { template } : {})
     },
     scenePacket: {
       videoTitle: project.title,
@@ -113,6 +120,7 @@ export const planCreativeScene = async (
       delivery: video.settings.voice.kind === 'record' ? 'human' : 'generated',
       presence: { value: presence, from: scene.presence ? 'scene' : 'video' },
       intro: index === 0,
+      ...(template ? { template } : {}),
       reviewed: previous?.treatment || null,
       assets: cast.assets
     },

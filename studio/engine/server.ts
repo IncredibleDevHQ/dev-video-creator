@@ -51,6 +51,7 @@ import {
   leaveOutScene,
   previewPresence,
   replanPresence,
+  setSceneSlot,
   schedulePlanning,
   chatVideo,
   updateVideoSettings
@@ -267,7 +268,7 @@ export const createStudioServer = (
           )
         )
       const sceneRoute = url.pathname.match(
-        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|produce|download|cover|make|leave-out)$/
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|slot|produce|download|cover|make|leave-out)$/
       )
       if (sceneRoute && sceneRoute[3] === 'cover' && request.method === 'GET') {
         const bytes = await sceneCover(
@@ -317,6 +318,12 @@ export const createStudioServer = (
           return send(response, 200, await makeScene(id, sceneId))
         if (action === 'leave-out')
           return send(response, 200, await leaveOutScene(id, sceneId))
+        if (action === 'slot')
+          return send(
+            response,
+            200,
+            await setSceneSlot(id, sceneId, body?.slot)
+          )
         if (action === 'retry') {
           const snapshot = await loadProject(id)
           return send(

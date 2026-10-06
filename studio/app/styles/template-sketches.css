@@ -1,0 +1,181 @@
+/* The slot sketches. A card sets the notebook's look as --sk-ground,
+   --sk-text and --sk-accent; every other colour is mixed from them, so a
+   sketch reads on any look, light or dark. */
+/* Sketches: a look gives ground, text and accent; the rest is mixed. */
+.tpl-sketch,
+.tpl-option-thumb,
+.tpl-thumb {
+  --sk-ink: var(--sk-text, #1f2328);
+  --sk-ink2: color-mix(in srgb, var(--sk-ink) 68%, var(--sk-ground, #fff));
+  --sk-ink3: color-mix(in srgb, var(--sk-ink) 16%, var(--sk-ground, #fff));
+  --sk-line: color-mix(in srgb, var(--sk-ink) 22%, var(--sk-ground, #fff));
+  --sk-edge: color-mix(in srgb, var(--sk-ink) 40%, var(--sk-ground, #fff));
+  --sk-surface: color-mix(in srgb, var(--sk-ink) 4%, var(--sk-ground, #fff));
+  background: var(--sk-ground, #fff);
+}
+.tpl-sketch svg,
+.tpl-option-thumb svg,
+.tpl-thumb svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.sk-card {
+  fill: var(--sk-surface);
+  stroke: var(--sk-line);
+  stroke-width: 1.2;
+}
+.sk-ink {
+  fill: var(--sk-ink);
+}
+.sk-ink2 {
+  fill: var(--sk-ink2);
+}
+.sk-ink3 {
+  fill: var(--sk-ink3);
+}
+.sk-bg {
+  fill: var(--sk-ground, #fff);
+}
+.sk-acc {
+  fill: var(--sk-accent, #3a5fcd);
+}
+.sk-ok {
+  fill: #1f9d55;
+}
+.sk-warn {
+  fill: #d99a00;
+}
+.sk-bad {
+  fill: #d64545;
+}
+.sk-sacc,
+.sk-sok,
+.sk-sbad {
+  fill: none;
+  stroke-width: 2.5;
+}
+.sk-sacc {
+  stroke: var(--sk-accent, #3a5fcd);
+}
+.sk-sok {
+  stroke: #1f9d55;
+}
+.sk-sbad {
+  stroke: #d64545;
+}
+.sk-edge {
+  fill: none;
+  stroke: var(--sk-edge);
+  stroke-width: 1.8;
+}
+.sk-cam {
+  fill: #26303d;
+}
+.sk-person {
+  fill: #8a9bb0;
+}
+.sk-chip {
+  fill: #0b1220;
+}
+.sk-before {
+  fill: var(--sk-ink2);
+  opacity: 0.45;
+}
+.sk-gate {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.sk-onacc {
+  fill: #fff;
+}
+.sk-onacc-line {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+}
+.sk-cursor {
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 1;
+}
+.sk-label,
+.sk-small,
+.sk-big,
+.sk-mid,
+.sk-title,
+.sk-white {
+  font-family: Inter, Arial, sans-serif;
+}
+.sk-label {
+  fill: var(--sk-ink2);
+  font-size: 9px;
+  font-weight: 600;
+}
+.sk-small {
+  fill: var(--sk-ink2);
+  font-size: 7.5px;
+  font-weight: 500;
+}
+.sk-big {
+  fill: var(--sk-ink);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.sk-mid {
+  fill: var(--sk-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sk-title {
+  fill: var(--sk-ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+.sk-white {
+  fill: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.sk-mono,
+.sk-term,
+.sk-term-ok,
+.sk-term-dim {
+  font:
+    600 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.sk-mono {
+  fill: var(--sk-ink);
+}
+.sk-term {
+  fill: #e6edf3;
+}
+.sk-term-ok {
+  fill: var(--sk-accent, #2dd4bf);
+}
+.sk-term-dim {
+  fill: #a8b6c4;
+}
+.sk-term-bar {
+  fill: #5b6b7b;
+}
+.sk-term-bar-ok {
+  fill: var(--sk-accent, #2dd4bf);
+}
+.sk-draw {
+  stroke-dasharray: 1;
+}
+.sk-tb {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.sk-tl {
+  transform-box: fill-box;
+  transform-origin: left center;
+}

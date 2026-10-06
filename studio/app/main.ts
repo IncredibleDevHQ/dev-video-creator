@@ -1,3 +1,5 @@
+import { TemplateGallery } from './template-gallery'
+import { useTemplate } from './template-controller'
 import { installAppearance } from './appearance'
 import { showError } from './error-surface'
 import type { Snapshot } from '../shared/api'
@@ -117,6 +119,11 @@ app.settingsScreen = new Settings(
   async () => {
     if (app.snapshot) app.snapshot = await api.load(app.snapshot.project.id)
   }
+)
+app.templateGallery = new TemplateGallery(
+  app.root,
+  () => app.render(),
+  (templateId) => void useTemplate(app, templateId).catch(app.error)
 )
 app.pendingChats = new Set<string>()
 app.liveConnected = true

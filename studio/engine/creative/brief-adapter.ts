@@ -311,6 +311,8 @@ export type ScenePacketInput = {
     from: 'scene' | 'video' | null
   }
   intro?: boolean
+  // The slot of the video's template this scene plays, when there is one.
+  template?: import('../../shared/video-templates').SlotBrief
   reviewed: SceneTreatmentV1 | null
   assets: Array<{ key: string; role: string; parts: string[] }>
 }
@@ -429,6 +431,9 @@ export const renderScenePacket = (input: ScenePacketInput) => {
         ? `Delivery for this scene: ${input.delivery} (the creator's choice — keep it).`
         : 'Delivery for this scene is undecided: suggest a presenter treatment if it helps, but keep delivery.voice "undecided".',
       presenceLine(input.presence, input.delivery),
+      input.template
+        ? `The video follows the template "${input.template.template}" (${input.template.family}). This scene plays its "${input.template.role}" slot (${input.template.position}): ${input.template.type}. Its signature move: ${input.template.move} When on camera, the presenter is framed this way: ${input.template.speaker}. Aim for about ${input.template.seconds} seconds, and hand over to the next scene with a ${input.template.seam.toLowerCase()}.`
+        : '',
       input.reviewed
         ? `A reviewed plan exists (question: ${input.reviewed.question}). Keep what it got right unless the direction below asks otherwise.`
         : ''

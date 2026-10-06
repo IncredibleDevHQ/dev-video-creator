@@ -1,4 +1,5 @@
 import type { SceneStage } from '../shared/model'
+import { templateById } from '../shared/video-templates'
 import { takeTrimRange, trimTake } from './take-trim'
 import { scriptEditProblems } from './moment-edit-scope'
 import { generationFailure } from './generation-errors'
@@ -37,8 +38,15 @@ export const validateVideoSettings = (value: unknown): VideoSettings => {
       raw.voice.id.length > 200)
   )
     throw new Error('Choose a voice')
+  if (
+    raw.template !== undefined &&
+    raw.template !== '' &&
+    !templateById(raw.template)
+  )
+    throw new Error('Choose one of the templates, or none')
   return {
     ...(raw.harness ? { harness: validateHarnessSelection(raw.harness) } : {}),
+    ...(raw.template ? { template: raw.template } : {}),
     presence: raw.presence,
     voice:
       raw.voice.kind === 'record'
@@ -472,6 +480,38 @@ export const replanPresence = async (
   return snapshot
 }
 
+/**
+ * The template slot a scene plays: the creator's choice, or null to take its
+ * place in order again. The scene is planned again in its new role.
+ */
+export const setSceneSlot = async (
+  id: string,
+  sceneId: string,
+  slot: unknown
+) => {
+  const snapshot = await changeProject(id, (current) => {
+    const video = current.project.video
+    const scene = video?.scenes.find((item) => item.id === sceneId)
+    if (!video || !scene) throw new Error('Scene not found')
+    const template = templateById(video.settings.template)
+    if (!template) throw new Error('Choose a template for the video first')
+    if (slot !== null && !template.slots.some((item) => item.id === slot))
+      throw new Error('Choose one of the template’s slots')
+    if (
+      ['writing', 'replanning', 'changing', 'producing'].includes(scene.phase)
+    )
+      throw new Error('Wait for this scene to finish before changing its slot')
+    delete scene.editMomentId
+    scene.slot = slot as string | null
+    scene.planKey = scenePlanKey(current.project, scene)
+    transitionScene(scene, 'replan', current)
+    scene.produced = null
+    refreshVideoKeys(current.project)
+  })
+  void planScene(id, sceneId).catch(() => {})
+  return snapshot
+}
+
 export const chatVideo = async (id: string, request: ChatRequest) => {
   if (
     !request ||
@@ -543,6 +583,9 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
         'Wait for the active scene work to finish before changing notebook settings. Saved work is kept.'
       )
     const oldPresence = video.settings.presence
+    // A slot is chosen within one template; a new template starts in order.
+    if ((video.settings.template || '') !== (valid.template || ''))
+      for (const scene of video.scenes) delete scene.slot
     video.settings = {
       ...valid,
       ...(!valid.harness && video.settings.harness

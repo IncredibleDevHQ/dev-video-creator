@@ -240,6 +240,8 @@ export type TreatmentContext = {
   // Set when an artwork provider draws the plan's generate and enrich
   // objects; the plan then names the parts each drawing separates.
   drawsArtwork?: true
+  // The slot of the video's template this scene plays, when there is one.
+  template?: import('../../shared/video-templates').SlotBrief
   // The verified objects of the scene's own page, by library key, and what
   // that page is. Each object is decided (used, adapted, replaced or
   // omitted); on a designed slide a plan that leaves one undecided is refused.

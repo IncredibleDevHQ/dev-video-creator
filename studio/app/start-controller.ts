@@ -95,7 +95,7 @@ export const createRenderStartScreen = (app: AppContext) => () => {
     `<header class="home">
 <a class="brand" href="/" aria-label="Incredible Studio">
 <img src="${incredibleLogo}" alt="">Incredible</a>
-<div class="header-actions">${themeControl()}${button('Settings', 'settings')}</div></header>
+<div class="header-actions">${themeControl()}${button('Templates', 'open-templates')}${button('Settings', 'settings')}</div></header>
 <main class="start has-story${firstVisit ? '' : ' has-recent'}">
 ${rollingHeadline()}
 <form id="source">

@@ -22,6 +22,7 @@ it('previews only inherited scenes for a camera change and preserves custom came
   expect(videoSettingsEffect(project, next)).toEqual({
     replanned: [1, 3],
     voiceChanged: false,
+    templateChanged: false,
     changed: true,
     custom: 1,
     recordings: 1
@@ -55,4 +56,20 @@ it('explains a default change when every scene has an override', () => {
   expect(videoSettingsPreview(custom, next)).toContain(
     'keep their custom camera choices'
   )
+})
+it('plans every scene again when the template changes', () => {
+  const next = {
+    presence: 'off' as const,
+    voice: { kind: 'ai' as const, id: 'first' },
+    template: 'launch-demo'
+  }
+  expect(videoSettingsEffect(project, next)).toMatchObject({
+    replanned: [1, 2, 3],
+    templateChanged: true,
+    changed: true
+  })
+  expect(videoSettingsPreview(project, next)).toContain(
+    'Shape the video as Launch demo. Every scene is planned again in the new shape.'
+  )
+  expect(videoSettingsPreview(project, next)).toContain('Apply and re-plan')
 })

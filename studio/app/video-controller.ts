@@ -292,7 +292,12 @@ export const submitVideo = async (
   if (['video-form', 'video-settings-form'].includes(form.id) && app.snapshot) {
     const presence = String(values.get('presence')) as Presence
     const voice = String(values.get('voice'))
-    const next = { presence, voice: parseVoice(voice) }
+    const template = String(values.get('template') || '')
+    const next = {
+      presence,
+      voice: parseVoice(voice),
+      ...(template ? { template } : {})
+    }
     if (form.id === 'video-settings-form') {
       app.pendingVideoSettings = next
       app.showDialog(videoSettingsPreview(app.snapshot.project, next))
@@ -383,7 +388,9 @@ ${button('Try again', 'video-settings', true)}`
     app.showDialog(
       makeVideoDialog(
         settings,
-        app.pendingVideoSettings || app.snapshot.project.video!.settings
+        app.pendingVideoSettings || app.snapshot.project.video!.settings,
+        undefined,
+        app.snapshot.project.branding
       )
     )
     const form = app.dialog.querySelector<HTMLFormElement>(
@@ -405,11 +412,16 @@ ${button('Try again', 'video-settings', true)}`
     } else {
       const onWireframe = app.stage === 'presentation'
       app.showDialog(
-        makeVideoDialog(await api.settings(), undefined, {
-          slides: app.snapshot.project.slides,
-          selected: onWireframe ? app.selected : null,
-          only: action === 'make-video-one'
-        })
+        makeVideoDialog(
+          await api.settings(),
+          undefined,
+          {
+            slides: app.snapshot.project.slides,
+            selected: onWireframe ? app.selected : null,
+            only: action === 'make-video-one'
+          },
+          app.snapshot.project.branding
+        )
       )
       syncSceneChoice(app.dialog)
     }

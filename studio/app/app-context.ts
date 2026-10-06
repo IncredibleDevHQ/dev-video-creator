@@ -72,6 +72,7 @@ export interface AppContext {
   dialogRevision: number
   dialog: HTMLDialogElement
   settingsScreen: Settings
+  templateGallery: import('./template-gallery').TemplateGallery
   pendingChats: Set<string>
   liveConnected: boolean
   openingAutoStage: boolean
