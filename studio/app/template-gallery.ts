@@ -1,6 +1,7 @@
 // The template gallery as a page of its own, opened from home, the make-video
-// dialog or the video: cards play their slots in turn; a template opens to a
-// storyboard player and its slot list, and can be used for the open video.
+// dialog or the video: a rail of groups, lists of stories and templates whose
+// cards play in turn, a search, and a template opened to its storyboard
+// player and slot list, ready to use for the open video.
 import { replacePlayerView } from './player-view'
 import {
   templateGalleryPage,
@@ -10,9 +11,13 @@ import {
   type GalleryState,
   type GalleryUse
 } from './template-gallery-view'
-import { templateSketch } from './template-sketches'
+import { storyStage } from './template-gallery-parts'
 import { LOOP } from './template-sketch-kit'
-import { templateById } from '../shared/video-templates'
+import {
+  storyById,
+  storyTemplates,
+  templateById
+} from '../shared/video-templates'
 import type { Branding } from '../shared/settings'
 
 /** What the gallery needs to know about where it was opened from. */
@@ -30,6 +35,7 @@ const reducedMotion = () =>
 
 export class TemplateGallery {
   isOpen = false
+  private group: GalleryState['group'] = 'all'
   private story = 'all'
   private query = ''
   private templateId: string | null = null
@@ -55,10 +61,14 @@ export class TemplateGallery {
     root.addEventListener('input', (event) => {
       if (this.isOpen) this.search(event)
     })
+    globalThis.addEventListener?.('keydown', (event) => {
+      if (this.isOpen) this.key(event as KeyboardEvent)
+    })
   }
   open(context: GalleryContext, templateId?: string) {
     this.context = context
     this.isOpen = true
+    this.group = 'all'
     this.story = 'all'
     this.query = ''
     this.templateId = templateId && templateById(templateId) ? templateId : null
@@ -79,6 +89,7 @@ export class TemplateGallery {
   }
   private state(): GalleryState {
     return {
+      group: this.group,
       story: this.story,
       query: this.query,
       templateId: this.templateId,
@@ -105,7 +116,9 @@ export class TemplateGallery {
   }
   /**
    * The cards move on in turn, a third of them at each tick, so the grid is
-   * never blank while sketches start over. Cards out of view wait.
+   * never blank while sketches start over: a template's card to its next
+   * slot, a story's tile to its next way of telling it. Cards out of view
+   * wait.
    */
   private advanceCards() {
     this.tick++
@@ -118,9 +131,18 @@ export class TemplateGallery {
         if (box && height && (box.bottom < 0 || box.top > height)) return
         const template = templateById(stage.dataset.template)
         if (!template) return
-        const next = (Number(stage.dataset.slot) + 1) % template.slots.length
         const fresh = document.createElement('div')
-        fresh.innerHTML = templateStage(template, next, { cycle: true })
+        if ('tplVariants' in stage.dataset) {
+          const variants = storyTemplates(template.story)
+          fresh.innerHTML = storyStage(
+            variants[(variants.indexOf(template) + 1) % variants.length]
+          )
+        } else
+          fresh.innerHTML = templateStage(
+            template,
+            (Number(stage.dataset.slot) + 1) % template.slots.length,
+            { cycle: true }
+          )
         stage.replaceWith(fresh.firstElementChild!)
       })
   }
@@ -159,25 +181,59 @@ export class TemplateGallery {
   private search(event: Event) {
     const field = event.target as HTMLInputElement
     if (!field.matches?.('[data-tpl-search]')) return
-    this.query = field.value
+    this.find(field.value)
+  }
+  private find(query: string) {
+    this.query = query
     const results = this.root.querySelector('.tpl-results')
     if (results) results.innerHTML = templateResults(this.state())
   }
+  /** "/" goes to the search field from anywhere on the page but a field. */
+  private key(event: KeyboardEvent) {
+    const target = event.target as HTMLElement | null
+    if (
+      event.key !== '/' ||
+      event.metaKey ||
+      event.ctrlKey ||
+      target?.closest?.('input, textarea, select, [contenteditable="true"]')
+    )
+      return
+    const field = this.root.querySelector<HTMLInputElement>('[data-tpl-search]')
+    if (!field) return
+    event.preventDefault()
+    field.focus()
+  }
+  /** Goes to a list: a group, a story, or everything. */
+  private list(group: GalleryState['group'], story = 'all') {
+    this.group = group
+    this.story = story
+    this.query = ''
+    this.templateId = null
+    this.draw()
+    window.scrollTo?.(0, 0)
+  }
   private click(event: Event) {
     const target = (event.target as Element).closest<HTMLElement>(
-      '[data-tpl-close],[data-tpl-story],[data-tpl-open],[data-tpl-slot],[data-tpl-step],[data-tpl-play],[data-tpl-use]'
+      '[data-tpl-close],[data-tpl-group],[data-tpl-story],[data-tpl-jump],[data-tpl-try],[data-tpl-open],[data-tpl-slot],[data-tpl-step],[data-tpl-play],[data-tpl-use]'
     )
     if (!target) return
     event.preventDefault()
     event.stopPropagation()
     const data = target.dataset
     if ('tplClose' in data) return this.close()
-    if (data.tplStory) {
-      this.story = data.tplStory
-      this.query = ''
-      this.templateId = null
-      this.draw()
-      return window.scrollTo?.(0, 0)
+    if (data.tplGroup) return this.list(data.tplGroup as GalleryState['group'])
+    if (data.tplStory)
+      return this.list(storyById(data.tplStory).group, data.tplStory)
+    if (data.tplJump)
+      return this.root
+        .querySelector(`#tpl-story-${data.tplJump}`)
+        ?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    if (data.tplTry) {
+      const field =
+        this.root.querySelector<HTMLInputElement>('[data-tpl-search]')
+      if (field) field.value = data.tplTry
+      this.find(data.tplTry)
+      return field?.focus()
     }
     if (data.tplOpen) {
       this.templateId = data.tplOpen
@@ -200,7 +256,3 @@ export class TemplateGallery {
     }
   }
 }
-
-/** A sketch on its own, for small places such as the picker and the chip. */
-export const slotThumb = (sketch: string) =>
-  `<span class="tpl-thumb">${templateSketch(sketch)}</span>`

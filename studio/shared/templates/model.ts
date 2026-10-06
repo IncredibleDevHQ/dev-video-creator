@@ -44,7 +44,7 @@ export type StoryGroupId =
   | 'show'
   | 'announce'
   | 'share'
-export type StoryGroup = { id: StoryGroupId; name: string }
+export type StoryGroup = { id: StoryGroupId; name: string; line: string }
 export type TemplateStory = {
   id: string
   group: StoryGroupId

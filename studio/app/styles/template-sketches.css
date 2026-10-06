@@ -3,8 +3,7 @@
    sketch reads on any look, light or dark. */
 /* Sketches: a look gives ground, text and accent; the rest is mixed. */
 .tpl-sketch,
-.tpl-option-thumb,
-.tpl-thumb {
+.tpl-option-thumb {
   --sk-ink: var(--sk-text, #1f2328);
   --sk-ink2: color-mix(in srgb, var(--sk-ink) 68%, var(--sk-ground, #fff));
   --sk-ink3: color-mix(in srgb, var(--sk-ink) 16%, var(--sk-ground, #fff));
@@ -14,8 +13,7 @@
   background: var(--sk-ground, #fff);
 }
 .tpl-sketch svg,
-.tpl-option-thumb svg,
-.tpl-thumb svg {
+.tpl-option-thumb svg {
   display: block;
   width: 100%;
   height: 100%;

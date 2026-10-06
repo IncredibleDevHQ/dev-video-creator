@@ -9,7 +9,8 @@ const { pickTemplate, sceneSlotChip, sceneSlotMenu, templatePicker } =
   await import('../app/template-picker')
 const { lookStyle, templateGalleryPage } =
   await import('../app/template-gallery-view')
-const { VIDEO_TEMPLATES } = await import('../shared/video-templates')
+const { STORY_GROUPS, TEMPLATE_STORIES, VIDEO_TEMPLATES } =
+  await import('../shared/video-templates')
 const { TemplateGallery } = await import('../app/template-gallery')
 
 const settings = {
@@ -145,11 +146,17 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
     current: undefined,
     back: 'Back to notebook'
   })
-  expect(root.querySelectorAll('.tpl-card')).toHaveLength(
-    VIDEO_TEMPLATES.length
-  )
-  expect(root.querySelector('[data-tpl-story="all"]')?.textContent).toContain(
+  // The rail lists the groups; everything opens on one tile per story.
+  expect(
+    [...root.querySelectorAll('.tpl-rail button span')].map(
+      (name) => name.textContent
+    )
+  ).toEqual(['All templates', ...STORY_GROUPS.map((group) => group.name)])
+  expect(root.querySelector('[data-tpl-group="all"]')?.textContent).toContain(
     String(VIDEO_TEMPLATES.length)
+  )
+  expect(root.querySelectorAll('.tpl-story-tile')).toHaveLength(
+    TEMPLATE_STORIES.length
   )
   const click = (selector: string) =>
     root
@@ -170,15 +177,29 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
       (story) => story.textContent === 'Incident walkthrough'
     )
   ).toBe(true)
+  // A whole phrase first, and a one-click search under the field.
+  click('[data-tpl-try="no one on camera"]')
+  expect(root.querySelector<HTMLInputElement>('[data-tpl-search]')?.value).toBe(
+    'no one on camera'
+  )
+  expect(titles()).toEqual(expect.arrayContaining(['Teaser', 'Code only']))
   search('zebra')
-  expect(root.querySelector('.tpl-count')?.textContent).toBe(
+  expect(root.querySelector('.tpl-count')?.textContent).toContain(
     'No template matches “zebra”.'
   )
   search('')
-  expect(root.querySelectorAll('.tpl-card')).toHaveLength(
-    VIDEO_TEMPLATES.length
+  expect(root.querySelectorAll('.tpl-story-tile')).toHaveLength(
+    TEMPLATE_STORIES.length
   )
-  click('.tpl-rail [data-tpl-story="launch"]')
+  // A group lists its stories, with a chip for each to jump to.
+  click('.tpl-rail [data-tpl-group="show"]')
+  expect(root.querySelector('.tpl-head h1')?.textContent).toBe('Show')
+  expect(
+    [...root.querySelectorAll('.tpl-jump button')].map(
+      (chip) => chip.textContent
+    )
+  ).toContain('Launch')
+  click('.tpl-story-head [data-tpl-story="launch"]')
   expect(root.querySelector('.tpl-head h1')?.textContent).toBe('Launch')
   expect(titles()).toEqual([
     'Result first',
@@ -244,6 +265,7 @@ it('opens a template from the gallery, steps its slots, and uses it', () => {
 
 it('says when a template is in use, or cannot be used yet', () => {
   const base = {
+    group: 'all' as const,
     story: 'all',
     query: '',
     templateId: 'incident',

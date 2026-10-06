@@ -34,13 +34,41 @@ import {
 export * from './templates/model'
 
 export const STORY_GROUPS: StoryGroup[] = [
-  { id: 'explain', name: 'Explain' },
-  { id: 'teach', name: 'Teach' },
-  { id: 'decide', name: 'Decide' },
-  { id: 'look-back', name: 'Look back' },
-  { id: 'show', name: 'Show' },
-  { id: 'announce', name: 'Announce' },
-  { id: 'share', name: 'Share' }
+  {
+    id: 'explain',
+    name: 'Explain',
+    line: 'How something works, and why it is built that way.'
+  },
+  {
+    id: 'teach',
+    name: 'Teach',
+    line: 'Get someone from stuck to working.'
+  },
+  {
+    id: 'decide',
+    name: 'Decide',
+    line: 'Choices, the options, and the evidence behind them.'
+  },
+  {
+    id: 'look-back',
+    name: 'Look back',
+    line: 'What happened, what you learned, what changed.'
+  },
+  {
+    id: 'show',
+    name: 'Show',
+    line: 'Launches, releases and work in progress.'
+  },
+  {
+    id: 'announce',
+    name: 'Announce',
+    line: 'Changes people need to know about, and when.'
+  },
+  {
+    id: 'share',
+    name: 'Share',
+    line: 'Customers, teams, community and talks.'
+  }
 ]
 export const TEMPLATE_STORIES: TemplateStory[] = [
   ...EXPLAIN_STORIES,
@@ -69,6 +97,8 @@ export const templateById = (id?: string | null) =>
   VIDEO_TEMPLATES.find((template) => template.id === id)
 export const storyById = (id: string) =>
   TEMPLATE_STORIES.find((story) => story.id === id)!
+export const groupById = (id: string) =>
+  STORY_GROUPS.find((group) => group.id === id)
 /** A story's templates, in the catalog's order. */
 export const storyTemplates = (storyId: string) =>
   VIDEO_TEMPLATES.filter((template) => template.story === storyId)

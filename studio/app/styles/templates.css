@@ -80,10 +80,20 @@
   align-items: center;
   gap: 10px;
   text-align: left;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-radius: 8px;
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: 14px;
+}
+.tpl-icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .tpl-rail button span {
   flex: 1;
@@ -100,14 +110,6 @@
   background: var(--selected);
   color: inherit;
   font-weight: 600;
-}
-.tpl-rail-label {
-  margin: 14px 10px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 .tpl-rail-foot {
   margin: 18px 10px 0;
@@ -138,23 +140,80 @@
 .tpl-head + .tpl-grid {
   margin-top: 28px;
 }
-.tpl-head-row {
+/* The search field: large, under every list's heading, "/" to reach it. */
+.tpl-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 680px;
+  height: 48px;
+  margin-top: 20px;
+  padding: 0 12px 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  cursor: text;
+}
+.tpl-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.tpl-search .tpl-icon {
+  width: 19px;
+  height: 19px;
+  color: var(--muted);
+}
+.tpl-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+}
+.tpl-search kbd {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font:
+    12px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.tpl-suggest,
+.tpl-jump {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12.5px;
 }
-.tpl-search {
-  width: 260px;
-  max-width: 100%;
-  padding: 7px 12px;
+.tpl-suggest span {
+  margin-right: 2px;
+}
+.tpl-suggest button,
+.tpl-jump button {
+  padding: 4px 11px;
   border: 1px solid var(--line);
-  border-radius: 9px;
-  background: var(--bg);
+  border-radius: 999px;
   color: inherit;
-  font: inherit;
-  font-size: 13.5px;
+  font-size: 12.5px;
+}
+.tpl-suggest button:hover,
+.tpl-jump button:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--selected);
 }
 .tpl-count {
   margin: 28px 0 14px;
@@ -167,8 +226,18 @@
   color: var(--muted);
   font-size: 11.5px;
 }
-.tpl-story {
+.tpl-story,
+.tpl-group {
   margin-top: 40px;
+  scroll-margin-top: 20px;
+}
+.tpl-group .tpl-story-head h2 {
+  font-size: 18px;
+}
+.tpl-group .tpl-story-head h2 button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .tpl-story-head {
   margin-bottom: 14px;
@@ -196,6 +265,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 26px 20px;
+}
+/* A card never widens its column, whatever its one line says. */
+.tpl-card {
+  min-width: 0;
 }
 
 /* A card: its stage plays the template; under it, a name and one line. */
@@ -599,7 +672,6 @@ button.tpl-segment:hover {
   .tpl-rail button {
     flex: none;
   }
-  .tpl-rail-label,
   .tpl-rail-foot {
     display: none;
   }
@@ -621,7 +693,6 @@ button.tpl-segment:hover {
 @media (prefers-reduced-motion: reduce) {
   .tpl-sketch *,
   .tpl-option-thumb *,
-  .tpl-thumb *,
   .tpl-stage .tpl-sketch,
   .tpl-segment-fill {
     animation: none !important;
