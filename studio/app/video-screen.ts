@@ -98,12 +98,9 @@ export const videoHeader = (snapshot: Snapshot) => {
       snapshot.status !== 'ready'
     )
   const view = snapshot.views?.video
-  return button(
-    videoDisplay(snapshot).actionLabel,
-    'produce-video',
-    true,
-    !view?.enabled
-  )
+  return `${
+    video.produced ? button('Release', 'release-dialog') : ''
+  }${button(videoDisplay(snapshot).actionLabel, 'produce-video', true, !view?.enabled)}`
 }
 export const videoScreen = (
   snapshot: Snapshot,

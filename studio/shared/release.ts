@@ -26,9 +26,8 @@ export type Teaser = {
   id: string
   channel: Channel
   aspect: Aspect
-  /** Seconds into the produced video. */
-  from: number
-  to: number
+  /** The cuts from the produced video, in seconds: the hook, then a beat. */
+  segments: Array<{ from: number; to: number }>
   state: 'cutting' | 'ready' | 'failed'
   objectKey?: string
   error?: string

@@ -238,3 +238,55 @@ it('offers a page’s demo where one is wanted, and shows it once captured', asy
     'No page'
   )
 })
+
+it('lays out a release: when, teasers, words and the YouTube bundle', async () => {
+  const { localTime, releaseBusy, releaseDialog } =
+    await import('../app/release-view')
+  const teaser = {
+    id: 't',
+    channel: 'x' as const,
+    aspect: '1:1' as const,
+    segments: [
+      { from: 0, to: 4 },
+      { from: 48, to: 60 }
+    ],
+    at: ''
+  }
+  const made = snapshot(
+    {},
+    {
+      release: {
+        at: '2026-10-20T09:30:00.000Z',
+        teasers: [
+          { ...teaser, state: 'ready', objectKey: 'n/teaser/t.mp4' },
+          { ...teaser, id: 'u', state: 'cutting' }
+        ],
+        posts: {
+          x: 'It broke.',
+          linkedin: 'Last week',
+          youtube: 'Why',
+          at: ''
+        },
+        campaign: []
+      }
+    }
+  )
+  const page = doc(releaseDialog(made))
+  expect(page.querySelector<HTMLInputElement>('#release-at')?.value).toBe(
+    localTime('2026-10-20T09:30:00.000Z')
+  )
+  expect(
+    [...page.querySelectorAll('.teaser-row span')].map(
+      (item) => item.textContent
+    )
+  ).toEqual(['X · 1:1 · 16s', 'X · 1:1 · 16s'])
+  expect(page.querySelector('.teaser-row a')?.getAttribute('download')).toBe(
+    'teaser-x-1x1.mp4'
+  )
+  expect(page.querySelector('label[for="post-x"] small')?.textContent).toBe(
+    '9/280'
+  )
+  expect(page.querySelector('a[href="/api/projects/n/bundle"]')).not.toBeNull()
+  expect(releaseBusy(made)).toBe(true)
+  expect(releaseBusy(snapshot())).toBe(false)
+})

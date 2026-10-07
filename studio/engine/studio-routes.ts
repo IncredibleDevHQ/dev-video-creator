@@ -3,6 +3,8 @@
 // returns null when the path is not its own, so the server falls through.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { captureDemo } from './product-capture'
+import { draftPosts, updateRelease, uploadBundle } from './release'
+import { makeTeaser } from './teasers'
 import { askRepo, setNotebookRepos } from './repo-answers'
 import { inspectRepo } from './repo-git'
 import { Refusal } from './refusal'
@@ -19,7 +21,7 @@ type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle)$/
 
 export const studioRoute = (
   url: URL,
@@ -39,7 +41,6 @@ const route = async (
   body: Record<string, unknown>,
   response: ServerResponse
 ): Promise<Reply | 'sent'> => {
-  void response
   const method = request.method || 'GET'
   if (url.pathname === '/api/repos/inspect' && method === 'POST')
     return ok(await inspectRepo(body.path))
@@ -73,6 +74,21 @@ const route = async (
       return ok(await askRepo(id, body))
     if (action === 'captures' && method === 'POST')
       return ok(await captureDemo(id, body))
+    if (action === 'teasers' && method === 'POST')
+      return ok(await makeTeaser(id, body))
+    if (action === 'posts' && method === 'POST') return ok(await draftPosts(id))
+    if (action === 'release' && method === 'POST')
+      return ok(await updateRelease(id, body))
+    if (action === 'bundle' && method === 'GET') {
+      const bundle = await uploadBundle(id)
+      response.writeHead(200, {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(bundle.name)}"; filename*=UTF-8''${encodeURIComponent(bundle.name)}`,
+        'Content-Length': bundle.bytes.length
+      })
+      response.end(bundle.bytes)
+      return 'sent'
+    }
   }
   return null
 }

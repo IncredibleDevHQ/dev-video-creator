@@ -94,3 +94,19 @@ type made-up examples. Write `story/capture.json` as `{ "steps": "click Pricing\
 Call story_submit_capture with this run directory; fix refusals within six
 submissions, then stop after acceptance.
 
+
+## Draft Posts
+
+A made video goes out on X, LinkedIn and YouTube. Read `packet/VIDEO.json`
+(its title, template, pages and their narration, the teasers cut, the series
+and episode) and `packet/VOICE.md` (the creator's own writing: match its
+voice, its person and its plainness; never copy its sentences). Write each
+channel its own words: `x` at most 280 characters with the hook first and no
+hashtag wall; `linkedin` a short first line that earns the "see more", then
+two to four short paragraphs on what the viewer learns, in the first person;
+`youtube` the video's description: two or three sentences on what it shows and
+for whom (the studio adds the chapters). No made-up figures or claims beyond
+the pages. Write `story/posts.json` as `{ "x": "…", "linkedin": "…", "youtube": "…" }`.
+Call story_submit_posts with this run directory; fix refusals within six
+submissions, then stop after acceptance.
+

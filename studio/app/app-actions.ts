@@ -7,6 +7,7 @@ import { seekSavedMedia } from './media-seek'
 import { clickRecording } from './recording-controller'
 import { clickRepos, submitRepos } from './repo-controller'
 import { clickSeries, submitSeries } from './series-controller'
+import { clickRelease, submitRelease } from './release-controller'
 import { clickSlides, submitSlides } from './slides-controller'
 import {
   clickStart,
@@ -38,6 +39,7 @@ export const installAppActions = (app: AppContext) => {
       await submitVideo(app, form, values)
       await submitRepos(app, form, values)
       await submitSeries(app, form, values)
+      await submitRelease(app, form, values)
     } catch (reason) {
       app.error(reason)
     } finally {
@@ -273,6 +275,7 @@ export const installAppActions = (app: AppContext) => {
       await clickTemplates(app, target, action)
       await clickRecording(app, target, action)
       await clickRepos(app, target, action)
+      await clickRelease(app, target, action)
     } catch (reason) {
       app.error(reason)
     }
