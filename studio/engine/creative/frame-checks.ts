@@ -16,11 +16,18 @@ export type FrameBox = {
   right: number
   bottom: number
 }
-export type FrameText = { text: string; box: FrameBox; layer: string | null }
+export type FrameText = {
+  text: string
+  box: FrameBox
+  layer: string | null
+  /** Part of a defect the scene shows on purpose (data-intentional). */
+  intentional?: boolean
+}
 export type FrameShape = {
   tag: string
   box: FrameBox
   layer: string | null
+  intentional?: boolean
 }
 export type FrameMeasure = {
   frame: FrameBox
@@ -44,10 +51,11 @@ const MEASURE = `(() => {
     }
     return opacity
   }
-  // data-intentional marks a defect the scene shows on purpose (a caption
-  // cut off, a label on a shape): the check leaves it to the scene.
   const hidden = (element) =>
-    element.closest('defs, clipPath, mask, marker, pattern, symbol, script, style, title, audio, [data-intentional]')
+    element.closest('defs, clipPath, mask, marker, pattern, symbol, script, style, title, audio')
+  // data-intentional marks a defect the scene shows on purpose (a caption
+  // cut off, a label on a shape): measured, and excused only among itself.
+  const intentional = (element) => Boolean(element.closest('[data-intentional]'))
   const layerOf = (element) =>
     element.closest('[data-sketch-layer]')?.getAttribute('data-sketch-layer') ?? null
   const texts = []
@@ -69,7 +77,7 @@ const MEASURE = `(() => {
     }
     if (r.width < 1 || r.height < 1) continue
     const text = (owner.textContent || words).replace(/\\s+/g, ' ').trim()
-    texts.push({ text: text.slice(0, 60), box: box(r), layer: layerOf(owner) })
+    texts.push({ text: text.slice(0, 60), box: box(r), layer: layerOf(owner), intentional: intentional(owner) })
   }
   const shapes = []
   const painted = 'path, rect, circle, ellipse, polygon, polyline, line, image, use, img'
@@ -87,7 +95,7 @@ const MEASURE = `(() => {
     }
     const r = element.getBoundingClientRect()
     if (r.width < 1 && r.height < 1) continue
-    shapes.push({ tag, box: box(r), layer: layerOf(element) })
+    shapes.push({ tag, box: box(r), layer: layerOf(element), intentional: intentional(element) })
   }
   return { frame: box(root.getBoundingClientRect()), texts, shapes }
 })()`
@@ -147,7 +155,10 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
   const defects: FrameDefect[] = []
   const said = (text: string) => `“${text}”`
   const layers = new Map<string, string[]>()
+  // A defect shown on purpose is excused on its own and among itself; it
+  // still collides with everything else in the frame.
   for (const shape of shapes) {
+    if (shape.intentional) continue
     const edges = edgesCut(shape.box, frame)
     if (edges.length) layers.set(shape.layer || 'artwork', edges)
   }
@@ -157,7 +168,7 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
       message: `${layer} is cut by the ${edges.join(' and ')} edge`
     })
   for (const text of texts) {
-    const edges = edgesCut(text.box, frame)
+    const edges = text.intentional ? [] : edgesCut(text.box, frame)
     if (edges.length)
       defects.push({
         kind: 'cut',
@@ -167,6 +178,7 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
     // share of the words sits on it; words inside a card are the card's.
     const covered = shapes.find((shape) => {
       if (shape.layer === text.layer) return false
+      if (shape.intentional && text.intentional) return false
       if (holds(shape.box, text.box) && area(shape.box) >= 3 * area(text.box))
         return false
       const shared = meet(shape.box, text.box)
@@ -180,7 +192,10 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
   }
   texts.forEach((a, index) => {
     for (const b of texts.slice(index + 1))
-      if (meet(a.box, b.box) > 0.15 * Math.min(area(a.box), area(b.box)))
+      if (
+        !(a.intentional && b.intentional) &&
+        meet(a.box, b.box) > 0.15 * Math.min(area(a.box), area(b.box))
+      )
         defects.push({
           kind: 'overlap',
           message: `${said(a.text)} overlaps ${said(b.text)}`
@@ -189,6 +204,7 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
   const frameArea = area(frame)
   for (const card of shapes) {
     if (
+      card.intentional ||
       card.tag !== 'rect' ||
       width(card.box) < 100 ||
       height(card.box) < 50 ||

@@ -47,6 +47,10 @@ it('leaves alone a defect the scene shows on purpose', async () => {
       '<g data-sketch-layer="actor" data-intentional="the cut-off frame the story is about">'
     )
     .replace(
+      '<g data-sketch-layer="packet">',
+      '<g data-sketch-layer="packet" data-intentional="the packet the covered label shows">'
+    )
+    .replace(
       '<g data-sketch-layer="labels">',
       '<g data-sketch-layer="labels" data-intentional="the covered label the story shows">'
     )
@@ -56,4 +60,18 @@ it('leaves alone a defect the scene shows on purpose', async () => {
       { id: 'm2', start: 1, end: 2 }
     ])
   ).toEqual([])
+  // Something else laid over the depiction still counts.
+  const crowded = shown.replace(
+    '</svg>',
+    '<g data-sketch-layer="note"><text x="960" y="312" font-size="44" font-family="Helvetica">a real note</text></g></svg>'
+  )
+  expect(
+    await settledFrameProblems({ 'index.html': crowded }, [
+      { id: 'm1', start: 0, end: 1 },
+      { id: 'm2', start: 1, end: 2 }
+    ])
+  ).toEqual([
+    'At the end of m1, m2, “a real note” sits on packet: move the words into clear space beside it (or, when the scene shows that defect on purpose, wrap it in data-intentional="why")',
+    'At the end of m1, “cap: five a second” overlaps “a real note”: move one of them'
+  ])
 }, 60_000)

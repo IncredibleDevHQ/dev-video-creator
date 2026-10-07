@@ -117,3 +117,38 @@ it('says each defect once, with the moments it spans and what to do', () => {
     'At the end of m2, an empty box in flood: give the box its words (VISUAL_CAST.json meaning.label) and its artwork, or leave it out'
   ])
 })
+
+it('excuses a defect shown on purpose only among itself', () => {
+  const frame = { left: 0, top: 0, right: 1920, bottom: 1080 }
+  const box = (left: number, top: number, w: number, h: number) => ({
+    left,
+    top,
+    right: left + w,
+    bottom: top + h
+  })
+  const shown = { intentional: true }
+  const defects = frameDefects({
+    frame,
+    texts: [
+      // The depicted caption runs off the edge, over its own mock diagram.
+      {
+        text: 'the caption runs off',
+        box: box(1700, 900, 400, 40),
+        layer: 'mock',
+        ...shown
+      },
+      {
+        text: 'label',
+        box: box(400, 420, 80, 30),
+        layer: 'mock-label',
+        ...shown
+      },
+      // A real card's words, laid over the depiction by mistake.
+      { text: 'Measurement', box: box(1750, 905, 160, 30), layer: 'card' }
+    ],
+    shapes: [
+      { tag: 'rect', box: box(380, 400, 200, 120), layer: 'mock', ...shown }
+    ]
+  }).map((defect) => defect.message)
+  expect(defects).toEqual(['“the caption runs off” overlaps “Measurement”'])
+})
