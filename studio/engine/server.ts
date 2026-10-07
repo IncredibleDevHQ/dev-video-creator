@@ -3,6 +3,7 @@ import { answerEvidence, chatSlide, scheduleChanges } from './slide-changes'
 import { applyLook } from './look-apply'
 import { setNotebookLength, setNotebookTemplate } from './notebook-intake'
 import { checkCoverage, suggestTemplate } from './template-suggest'
+import { studioRoute } from './studio-routes'
 import {
   startPresentation,
   refreshNotebookSource,
@@ -216,6 +217,9 @@ export const createStudioServer = (
         )
         return send(response, reply.httpStatus, reply.body)
       }
+      const routed = await studioRoute(url, request, body, response)
+      if (routed === 'sent') return
+      if (routed) return send(response, routed.status, routed.value)
       if (url.pathname === '/api/harnesses' && request.method === 'GET')
         return send(response, 200, {
           selected: await loadHarnessPreference(),

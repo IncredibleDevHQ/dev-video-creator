@@ -404,7 +404,8 @@ it('offers the template beside the agent before the wireframes', async () => {
     'the agent found on this computer',
     'No template',
     'about 10 wireframes',
-    'Paper look'
+    'Paper look',
+    'No repo'
   ])
   expect(
     chips(

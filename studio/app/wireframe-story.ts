@@ -11,6 +11,7 @@ import {
   openRequests
 } from '../shared/narratives'
 import { escape, html } from './ui'
+import { givenAnswer, repoAsk } from './repo-view'
 
 const dot = (fn: string) => `<i class="tpl-beat-dot" data-function="${fn}"></i>`
 
@@ -66,35 +67,33 @@ export const pageStory = (
             .map(
               ({ need }) =>
                 html`<form
-                  class="evidence-ask"
-                  data-evidence-slide="${escape(slide.id)}"
-                  data-evidence-what="${escape(need.what)}"
-                >
-                  <label for="ask-${escape(slide.id)}-${escape(need.what)}"
-                    >${escape(
-                      need.what.charAt(0).toUpperCase() + need.what.slice(1)
-                    )}<small
-                      >${escape(EVIDENCE_LABELS[need.kind])}</small
-                    ></label
-                  ><input
-                    id="ask-${escape(slide.id)}-${escape(need.what)}"
-                    name="answer"
-                    placeholder="Your answer"
-                    autocomplete="off"
-                    ${editable ? '' : 'disabled'}
-                  /><button type="submit" ${editable ? '' : 'disabled'}>
-                    Add
-                  </button>
-                </form>`
+                    class="evidence-ask"
+                    data-evidence-slide="${escape(slide.id)}"
+                    data-evidence-what="${escape(need.what)}"
+                  >
+                    <label for="ask-${escape(slide.id)}-${escape(need.what)}"
+                      >${escape(
+                        need.what.charAt(0).toUpperCase() + need.what.slice(1)
+                      )}<small
+                        >${escape(EVIDENCE_LABELS[need.kind])}</small
+                      ></label
+                    ><input
+                      id="ask-${escape(slide.id)}-${escape(need.what)}"
+                      name="answer"
+                      placeholder="Your answer"
+                      autocomplete="off"
+                      ${editable ? '' : 'disabled'}
+                    /><button type="submit" ${editable ? '' : 'disabled'}>
+                      Add
+                    </button>
+                  </form>
+                  ${repoAsk(snapshot, slide, need, editable)}`
             )
             .join('')}
         </div>`
       : ''}
     ${answered
-      .map(
-        (item) =>
-          `<p class="evidence-given"><b>${escape(item.what)}</b> ${escape(item.answer)}</p>`
-      )
+      .map((item) => givenAnswer(snapshot, slide, item, editable))
       .join('')}
   </section>`
 }

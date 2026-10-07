@@ -36,6 +36,8 @@ export type Snapshot = {
   suggestion?: import('./narratives').TemplateSuggestion
   /** Which beat Jev reads each wireframe as carrying. */
   coverageReading?: import('./narratives').CoverageReading
+  /** Requests the local agent is answering from a linked repo. */
+  repoAsks?: Record<string, import('./repos').RepoAsk>
   /** Wireframe changes waiting for, or with, the agent. */
   changes?: SlideChange[]
   progress?: { label: string; startedAt: string }

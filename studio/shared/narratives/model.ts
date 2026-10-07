@@ -50,7 +50,12 @@ export type EvidenceNeed = {
   source: string | null
 }
 /** What the creator supplied for a need the source did not hold. */
-export type EvidenceAnswer = { what: string; answer: string }
+export type EvidenceAnswer = {
+  what: string
+  answer: string
+  /** Set when the local agent found it in a linked repo. */
+  from?: import('../repos').RepoProvenance
+}
 
 export type StoryGroupId =
   | 'explain'

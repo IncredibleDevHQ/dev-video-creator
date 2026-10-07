@@ -5,6 +5,7 @@ import { flushNotebookEdits } from './notebook-editor'
 import type { AppContext } from './app-context'
 import { seekSavedMedia } from './media-seek'
 import { clickRecording } from './recording-controller'
+import { clickRepos, submitRepos } from './repo-controller'
 import { clickSlides, submitSlides } from './slides-controller'
 import {
   clickStart,
@@ -34,6 +35,7 @@ export const installAppActions = (app: AppContext) => {
       await submitStart(app, form, values)
       await submitSlides(app, form, values)
       await submitVideo(app, form, values)
+      await submitRepos(app, form, values)
     } catch (reason) {
       app.error(reason)
     } finally {
@@ -266,6 +268,7 @@ export const installAppActions = (app: AppContext) => {
       await clickVideo(app, target, action)
       await clickTemplates(app, target, action)
       await clickRecording(app, target, action)
+      await clickRepos(app, target, action)
     } catch (reason) {
       app.error(reason)
     }

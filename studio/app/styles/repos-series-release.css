@@ -1,0 +1,58 @@
+/* Linked repos: the link dialog, a request the agent answers, provenance. */
+.repo-form {
+  display: grid;
+  gap: 8px;
+}
+.repo-form label small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.repo-path {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.repo-ask,
+.repo-asking {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.repo-ask button {
+  padding: 3px 8px;
+  font-size: 12.5px;
+}
+.repo-failed {
+  margin-right: 8px;
+  color: var(--danger, #b91c1c);
+}
+.evidence-given.from-repo {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+}
+.evidence-given.from-repo p {
+  margin: 0;
+}
+.provenance {
+  font-size: 12px;
+}
+.provenance code {
+  margin-right: 4px;
+  font-size: 11.5px;
+}
+.ask-again {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.ask-again input {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}

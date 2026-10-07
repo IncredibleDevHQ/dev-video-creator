@@ -134,6 +134,8 @@ export type Slide = {
    * source did not hold it. */
   needs?: EvidenceNeed[]
   answers?: EvidenceAnswer[]
+  /** A product demo captured for this page's product-capture shot. */
+  capture?: import('./release').ProductCapture
 }
 export type Transition =
   | 'none'
@@ -158,6 +160,14 @@ export type Project = {
   /** The story the wireframes are planned for, and how it is told. */
   narrative?: string
   direction?: Direction
+  /** Linked repos: the local agent answers the pages' requests from them. */
+  repos?: import('./repos').RepoLink[]
+  /** The series this notebook is an episode of. */
+  episode?: import('./series').EpisodeRef
+  /** Product pages a demo can be captured from. */
+  productUrls?: string[]
+  /** What goes out once it is made: teasers, posts, the campaign. */
+  release?: import('./release').Release
   id: string
   title: string
   source: string
