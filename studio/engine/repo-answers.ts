@@ -202,6 +202,7 @@ const answerFromRepo = async (
 ) => {
   const snapshot = (await loadProject(id))!
   const { slide, need } = findNeed(snapshot, slideId, what)
+  const asked = new Date().toISOString()
   const head = await branchHead(repo)
   const files = await repoFiles(repo, Infinity)
   const previous = slide.answers?.find((item) => item.what === what)
@@ -215,7 +216,8 @@ const answerFromRepo = async (
   }
   const answer = await runValidatedJsonStage<Answer>({
     projectId: id,
-    inputKey: fingerprintOf({ request, head, repo: repo.path }),
+    // Each ask is its own run: asking again never replays the last answer.
+    inputKey: fingerprintOf({ request, head, repo: repo.path, asked }),
     checkpoint: 'repo-answer',
     stage: 'story',
     route: 'Answer From Repo',

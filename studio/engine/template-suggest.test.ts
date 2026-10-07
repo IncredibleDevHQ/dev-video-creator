@@ -10,7 +10,8 @@ const { writeRow } = await import('./persistence')
 const { askJev } = await import('./jev')
 const { checkCoverage, readSuggestion, suggestTemplate, suggestionQuestions } =
   await import('./template-suggest')
-const { suggestedDirection } = await import('../shared/narratives')
+const { lengthForWords, suggestedDirection } =
+  await import('../shared/narratives')
 afterAll(() => rm(root, { recursive: true, force: true }))
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -97,6 +98,21 @@ it('reads Jev’s answers as a suggestion, keeping only what it is sure of', () 
   // Security excludes Short and dramatic: its default is kept.
   expect(suggestedDirection('security', suggestion).preset).toBe('briefing')
   expect(readSuggestion({})).toBeNull()
+  // Unsure of the direction and the length: the template's own preset, and
+  // a length the source's size supports (60 words, under two minutes).
+  const unsure = readSuggestion(
+    {
+      ...answers(0.9),
+      direction: { ...answers(0.9).direction, confidence: 0.4 },
+      length: { ...answers(0.9).length, confidence: 0.3 }
+    } as never,
+    'now',
+    60
+  )!
+  expect(unsure).toMatchObject({ preset: 'briefing', length: [45, 90] })
+  expect(lengthForWords(287)).toEqual([120, 240])
+  expect(lengthForWords(800)).toEqual([360, 600])
+  expect(lengthForWords(10)).toEqual([45, 90])
 })
 
 it('needs a key, and retries a busy Jev before giving up', async () => {

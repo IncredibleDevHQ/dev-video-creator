@@ -79,7 +79,11 @@ const seed = async (id: string) => {
 }
 
 type Call = { url: string; method: string; body?: string }
-const youtube = (kept: 'private' | 'public', thumbnail = 200) => {
+const youtube = (
+  kept: 'private' | 'public',
+  thumbnail = 200,
+  playlists = 200
+) => {
   const calls: Call[] = []
   vi.stubGlobal(
     'fetch',
@@ -99,6 +103,8 @@ const youtube = (kept: 'private' | 'public', thumbnail = 200) => {
         return Response.json({ id: 'vid123', status: { privacyStatus: kept } })
       if (call.url.includes('thumbnails/set'))
         return new Response('{}', { status: thumbnail })
+      if (call.url.includes('/playlists') && playlists !== 200)
+        return new Response('{}', { status: playlists })
       if (call.url.includes('/playlists?part=snippet&mine=true'))
         return Response.json({
           items: [{ id: 'other', snippet: { title: 'Other' } }]
@@ -193,4 +199,28 @@ it('keeps the reason when the upload fails', async () => {
       error: 'YouTube refused the upload (403)'
     })
   )
+})
+
+it('keeps the video when the playlist fails, and never uploads twice', async () => {
+  await seed('playlist')
+  youtube('public', 200, 403)
+  await publishToYouTube('playlist', { privacy: 'public' })
+  // A second click while it uploads is refused.
+  await expect(
+    publishToYouTube('playlist', { privacy: 'public' })
+  ).rejects.toThrow('It is uploading now')
+  await vi.waitFor(async () =>
+    expect(
+      (await loadProject('playlist'))!.project.release!.youtube!.state
+    ).toBe('uploaded')
+  )
+  const upload = (await loadProject('playlist'))!.project.release!.youtube!
+  expect(upload.videoId).toBe('vid123')
+  expect(upload.notes).toEqual([
+    'It was not added to the “Rate limits” playlist: add it in YouTube Studio.'
+  ])
+  // Once it is up, the studio never uploads it again.
+  await expect(
+    publishToYouTube('playlist', { privacy: 'public' })
+  ).rejects.toThrow('on YouTube already')
 })

@@ -48,9 +48,11 @@ export type CampaignItem = {
   offsetDays: number
   /** The time of day, local, as HH:MM. */
   time: string
-  state: 'draft' | 'approved' | 'dropped' | 'posted'
+  state: 'draft' | 'approved' | 'dropped' | 'posting' | 'posted'
   postedAt?: string
   postUrl?: string
+  /** What went wrong, or needs checking, the last time it was posted. */
+  note?: string
 }
 
 export type YouTubeUpload = {
@@ -106,6 +108,14 @@ export type ProductCapture = {
   seconds?: number
   error?: string
   at: string
+  /** The last good capture, kept while a new one is made or if it fails. */
+  last?: {
+    url: string
+    steps: CaptureStep[]
+    objectKey: string
+    seconds: number
+    at: string
+  }
 }
 
 export const emptyRelease = (): Release => ({ teasers: [], campaign: [] })

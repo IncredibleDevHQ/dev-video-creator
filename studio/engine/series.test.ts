@@ -173,6 +173,23 @@ it('plans an arc, then adds episodes from what changed on the branch', async () 
   )
 })
 
+it('adds one episode at a time, never two as the same number', async () => {
+  const started = await series.createSeries({
+    title: 'Once',
+    about: 'One at a time'
+  })
+  const [first, second] = await Promise.allSettled([
+    series.addEpisode(started.id, { source: 'First' }),
+    series.addEpisode(started.id, { source: 'Second' })
+  ])
+  expect(first.status).toBe('fulfilled')
+  expect(second).toMatchObject({
+    status: 'rejected',
+    reason: expect.objectContaining({ message: 'An episode is being added' })
+  })
+  expect((await series.loadSeries(started.id))!.episodes).toHaveLength(1)
+})
+
 it('says when the arc could not be planned', async () => {
   stage.mockRejectedValue(new Error('The agent stopped'))
   const started = await series.createSeries({

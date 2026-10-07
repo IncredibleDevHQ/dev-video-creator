@@ -70,7 +70,9 @@ ${repoChip(snapshot, editable)}${episodeChip(snapshot)}</p>${editable ? suggesti
 const suggestionRow = (snapshot: Snapshot) => {
   const suggestion = snapshot.suggestion
   if (!suggestion || snapshot.project.narrative) return ''
+  // A long shot is noise: only what Jev gives one chance in ten or more.
   return `<p class="suggest-row"><span>Suggested</span>${suggestion.narratives
+    .filter(({ p }, index) => index === 0 || p >= 0.1)
     .map(({ id, p }) => {
       const narrative = narrativeById(id)
       return narrative

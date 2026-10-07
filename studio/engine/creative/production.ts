@@ -1,4 +1,4 @@
-import { captureNote } from '../../shared/capture'
+import { captureNote, readyCapture } from '../../shared/capture'
 import { HarnessStageError } from '../generation-errors'
 import { prepareCastPacket } from './cast-packet'
 import {
@@ -82,7 +82,7 @@ export const buildCreativeProduction = async (
   }
   const slide = project.slides.find((item) => item.id === scene.slideId)
   // A captured demo plays as supplied media in the product-capture shot.
-  const capture = slide?.capture?.state === 'ready' ? slide.capture : null
+  const capture = readyCapture(slide?.capture)
   if (capture?.objectKey)
     supplied['media/product-capture.mp4'] = await readAsset(capture.objectKey)
   const preview = await readRow<{

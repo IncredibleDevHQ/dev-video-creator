@@ -5,7 +5,7 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { parseSteps } from '../shared/capture'
+import { parseSteps, readyCapture } from '../shared/capture'
 import type { CaptureStep, ProductCapture } from '../shared/release'
 import { addEvent } from './activity'
 import { runValidatedJsonStage } from './creative/stage'
@@ -152,6 +152,9 @@ export const recordSteps = async (url: string, steps: CaptureStep[]) => {
     const frames: number[] = []
     let recording = true
     const started = Date.now()
+    // A failed frame stops the loop and is rethrown after the steps: never
+    // left unhandled, which would end the engine with every job in it.
+    let failure: unknown = null
     const loop = (async () => {
       while (recording && Date.now() - started < LIMIT_MS) {
         const shot = await page.screenshot({ type: 'jpeg', quality: 82 })
@@ -161,7 +164,10 @@ export const recordSteps = async (url: string, steps: CaptureStep[]) => {
           shot
         )
       }
-    })()
+    })().catch((error: unknown) => {
+      failure = error
+      recording = false
+    })
     try {
       await new Promise((done) => setTimeout(done, 1000))
       for (const step of steps) await act(page, step, origin)
@@ -170,6 +176,7 @@ export const recordSteps = async (url: string, steps: CaptureStep[]) => {
       recording = false
       await loop
     }
+    if (failure) throw new Error('The capture lost its page')
     if (frames.length < 2) throw new Error('The capture took no frames')
     // Each frame lasts until the next was taken: the timing stays true.
     const list = frames
@@ -314,7 +321,21 @@ export const captureDemo = async (id: string, raw: unknown) => {
   if (!snapshot?.project.slides.some((item) => item.id === slideId))
     throw new Refusal('Wireframe not found')
   const at = () => new Date().toISOString()
+  // The last good capture stays until the new one is ready.
+  const kept = readyCapture(
+    snapshot.project.slides.find((item) => item.id === slideId)?.capture
+  )
+  const last = kept
+    ? {
+        url: kept.url,
+        steps: kept.steps,
+        objectKey: kept.objectKey,
+        seconds: kept.seconds,
+        at: kept.at
+      }
+    : undefined
   const started = await setCapture(id, slideId, {
+    ...(last ? { last } : {}),
     url,
     steps: parsed?.steps || [],
     state: parsed ? 'capturing' : 'planning',
@@ -324,6 +345,7 @@ export const captureDemo = async (id: string, raw: unknown) => {
     const steps = parsed?.steps || (await planSteps(id, slideId, url))
     if (!parsed)
       await setCapture(id, slideId, {
+        ...(last ? { last } : {}),
         url,
         steps,
         state: 'capturing',
@@ -354,6 +376,7 @@ export const captureDemo = async (id: string, raw: unknown) => {
     )
   })().catch((error: Error) =>
     setCapture(id, slideId, {
+      ...(last ? { last } : {}),
       url,
       steps: parsed?.steps || [],
       state: 'failed',

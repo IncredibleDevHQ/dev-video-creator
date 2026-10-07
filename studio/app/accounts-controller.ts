@@ -4,6 +4,7 @@ import type { AppContext } from './app-context'
 import { accountsDialog } from './accounts-view'
 import { showRelease } from './release-controller'
 import { studioApi } from './studio-api'
+import { busy } from './ui'
 
 const accountsApi = {
   view: () => studioApi.request<AccountsView>('/accounts'),
@@ -27,6 +28,7 @@ const accountsApi = {
 
 const showAccounts = (app: AppContext, view: AccountsView) => {
   app.showDialog(accountsDialog(view))
+  delete app.dialog.dataset.release
   app.dialog.dataset.accounts = 'yes'
 }
 
@@ -65,17 +67,14 @@ export const clickAccounts = async (
     return true
   }
   if (action === 'read-numbers' && app.snapshot) {
-    target.disabled = true
-    app.snapshot = await studioApi.notebook(
-      app.snapshot.project.id,
-      'numbers',
-      {
-        action: 'read'
-      }
-    )
+    const id = app.snapshot.project.id
+    await busy(target, async () => {
+      app.snapshot = await studioApi.notebook(id, 'numbers', { action: 'read' })
+    })
     showRelease(app)
     return true
   }
+
   return false
 }
 

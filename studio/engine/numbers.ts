@@ -115,7 +115,11 @@ export const readNumbers = async (id: string) => {
   const read: string[] = []
   const videoId = release?.youtube?.videoId
   if (videoId) {
-    const since = day(new Date(release.youtube!.at || release.at || at))
+    // From the notebook's start: the video cannot be older, and a link
+    // pasted days after the upload must not lose those days.
+    const since = day(
+      new Date(Date.parse(snapshot.events[0]?.time || at) - 86_400_000)
+    )
     await keep(id, {
       at,
       source: 'youtube',

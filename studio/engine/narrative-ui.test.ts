@@ -546,6 +546,21 @@ it('says what Jev suggests once, and where it reads a page differently', async (
     )
   ).toEqual(['incident', 'debugging'])
   expect(choicesRow(snapshot({}), false)).not.toContain('take-suggestion')
+  // A long shot is left out.
+  expect(
+    choicesRow(
+      snapshot(
+        {},
+        {
+          suggestion: {
+            ...suggestion,
+            narratives: [...suggestion.narratives, { id: 'retro', p: 0.06 }]
+          }
+        }
+      ),
+      true
+    )
+  ).not.toContain('data-narrative="retro"')
   // A template Jev set says so in its chip, and the row is gone.
   const sure = choicesRow(
     snapshot(

@@ -62,10 +62,23 @@ export const inspectRepo = async (raw: unknown): Promise<RepoInspection> => {
   const current = (
     await git(path, ['rev-parse', '--abbrev-ref', 'HEAD']).catch(() => '')
   ).trim()
+  // The usual names first, then the branch the repo's remote calls its
+  // default, then the one checked out.
+  const remoteDefault = (
+    await git(path, [
+      'symbolic-ref',
+      '--short',
+      'refs/remotes/origin/HEAD'
+    ]).catch(() => '')
+  )
+    .trim()
+    .replace(/^origin\//, '')
   const base =
     ['main', 'master', 'trunk', 'develop'].find((name) =>
       branches.includes(name)
     ) ||
+    (branches.includes(remoteDefault) ? remoteDefault : '') ||
+    (branches.includes(current) ? current : '') ||
     branches[0] ||
     current
   return { path: resolve(path), name: basename(path), current, branches, base }

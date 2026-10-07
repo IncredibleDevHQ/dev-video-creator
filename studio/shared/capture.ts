@@ -57,3 +57,13 @@ export const parseSteps = (text: string) => {
 /** For the scene planner and producer: what the capture shows, in words. */
 export const captureNote = (capture: ProductCapture) =>
   `A ${capture.seconds}s capture of ${capture.url}: ${formatSteps(capture.steps).replace(/\n/g, '; ')}`
+
+/** The capture a scene uses: this one when ready, else the last good one. */
+export const readyCapture = (
+  capture: ProductCapture | undefined
+): (ProductCapture & { objectKey: string; seconds: number }) | null =>
+  capture?.state === 'ready' && capture.objectKey
+    ? (capture as ProductCapture & { objectKey: string; seconds: number })
+    : capture?.last
+      ? { ...capture.last, state: 'ready' }
+      : null

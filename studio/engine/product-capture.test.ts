@@ -8,7 +8,7 @@ import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 import type { Snapshot } from '../shared/api'
 const root = await mkdtemp(join(tmpdir(), 'minimal-product-capture-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
-const { formatSteps, parseSteps, captureNote } =
+const { formatSteps, parseSteps, captureNote, readyCapture } =
   await import('../shared/capture')
 const { captureDemo, captureUrl, recordSteps } =
   await import('./product-capture')
@@ -126,6 +126,34 @@ it.skipIf(!tools)(
     await expect(
       recordSteps(url, [{ do: 'click', target: 'Checkout' }])
     ).rejects.toThrow('Could not find “Checkout”')
+  },
+  90_000
+)
+
+it.skipIf(!tools)(
+  'keeps the last good demo when a new capture fails',
+  async () => {
+    const done = (await loadProject('demo'))!
+    const before = done.project.slides[0].capture!
+    expect(before.state).toBe('ready')
+    await captureDemo('demo', { slideId: 'a', url, steps: 'click Checkout' })
+    await vi.waitFor(
+      async () =>
+        expect(
+          (await loadProject('demo'))!.project.slides[0].capture?.state
+        ).toBe('failed'),
+      { timeout: 60_000, interval: 250 }
+    )
+    const after = (await loadProject('demo'))!.project.slides[0].capture!
+    expect(after.error).toBe('Could not find “Checkout” on the page')
+    expect(after.last).toMatchObject({
+      objectKey: before.objectKey,
+      seconds: before.seconds
+    })
+    expect(readyCapture(after)).toMatchObject({
+      state: 'ready',
+      objectKey: before.objectKey
+    })
   },
   90_000
 )

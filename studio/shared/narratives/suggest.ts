@@ -2,6 +2,7 @@
 // tell it, and what the source holds. Above the confidence threshold the
 // template is preselected; below it the creator sees the top few to pick.
 import { allowedPresets, directionSettings, narrativeById } from './catalog'
+import { LENGTHS } from './presets'
 import type {
   Audience,
   Direction,
@@ -56,4 +57,16 @@ export const suggestedDirection = (
       : {}),
     ...(suggestion.audience ? { audience: suggestion.audience } : {})
   }
+}
+
+/**
+ * The length a source supports by its size, when Jev is unsure: about four
+ * fifths of a second of video for each word (narration at 150 a minute,
+ * with room to show things), as the longest range that starts below it.
+ */
+export const lengthForWords = (words: number): LengthRange => {
+  const seconds = words * 0.8
+  return (
+    [...LENGTHS].reverse().find((range) => range[0] <= seconds) || LENGTHS[0]
+  )
 }

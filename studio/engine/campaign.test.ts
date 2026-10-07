@@ -198,3 +198,103 @@ it('changes, approves and posts an item only when asked, with its tagged link', 
     changeItem('launch', { item: 'launch-x-0', words: 'x' })
   ).rejects.toThrow('gone out already')
 })
+
+it('claims an item before posting it, finds a teaser cut later, and checks the length', async () => {
+  const base = project({
+    at: '2026-10-20T09:00:00.000Z',
+    youtube: { state: 'uploaded', videoId: 'dQw4w9WgXcQ', at: '' }
+  })
+  base.id = 'claims'
+  // Planned before any teaser was cut: the item's asset is a placeholder.
+  base.release!.teasers = []
+  base.release!.campaign = plan.planCampaign(base)
+  const teaser = await storeAsset({
+    body: Buffer.from('t'),
+    contentType: 'video/mp4',
+    extension: '.mp4',
+    kind: 'teaser',
+    projectId: 'claims'
+  })
+  base.release!.teasers = [
+    {
+      id: 'late',
+      channel: 'x',
+      aspect: '1:1',
+      segments: [],
+      state: 'ready',
+      objectKey: teaser.objectKey,
+      at: ''
+    }
+  ]
+  await writeRow('projects', 'claims', {
+    project: base,
+    status: 'ready',
+    error: null,
+    events: []
+  } satisfies Snapshot)
+  await saveSetting('account-x', { access: 'x', name: '@acme', at: '' })
+  let release!: () => void
+  const held = new Promise<void>((done) => (release = done))
+  const uploads: string[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      uploads.push(String(url))
+      if (String(url).includes('/initialize')) {
+        await held
+        return new Response(JSON.stringify({ data: { id: 'm' } }))
+      }
+      if (String(url).includes('/finalize')) return new Response('{}')
+      if (String(url).endsWith('/2/tweets'))
+        return new Response(JSON.stringify({ data: { id: '5' } }))
+      return new Response(null, { status: 204 })
+    })
+  )
+  const first = postItem('claims', { item: 'teaser-x--14' })
+  await vi.waitFor(() => expect(uploads.length).toBe(1))
+  // A second click while it uploads is refused, never posted twice.
+  await expect(postItem('claims', { item: 'teaser-x--14' })).rejects.toThrow(
+    'being posted now'
+  )
+  expect(
+    (await loadProject('claims'))!.project.release!.campaign.find(
+      (item) => item.id === 'teaser-x--14'
+    )!.state
+  ).toBe('posting')
+  release()
+  expect(
+    (await first).project.release!.campaign.find(
+      (item) => item.id === 'teaser-x--14'
+    )
+  ).toMatchObject({ state: 'posted' })
+  expect(uploads.filter((url) => url.includes('/initialize'))).toHaveLength(1)
+  // Too long once the link is in: refused with the count, and nothing claimed.
+  await changeItem('claims', {
+    item: 'launch-x-0',
+    words: `${'y'.repeat(260)} {link}`
+  })
+  await expect(postItem('claims', { item: 'launch-x-0' })).rejects.toThrow(
+    'It is 284 characters; X takes 280'
+  )
+  // A refused post goes back to how it was, with why.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response('{}', { status: 403 }))
+  )
+  await changeItem('claims', {
+    item: 'launch-x-0',
+    words: 'Out now {link}',
+    state: 'approved'
+  })
+  await expect(postItem('claims', { item: 'launch-x-0' })).rejects.toThrow(
+    'refused (403)'
+  )
+  expect(
+    (await loadProject('claims'))!.project.release!.campaign.find(
+      (item) => item.id === 'launch-x-0'
+    )
+  ).toMatchObject({
+    state: 'approved',
+    note: 'The post on X was refused (403)'
+  })
+})

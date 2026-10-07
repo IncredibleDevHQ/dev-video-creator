@@ -2,6 +2,7 @@
 // shot, says where the speaker is and when, and plans the seams between
 // scenes in one direction, so the video reads as one piece. It runs for a
 // video that tells a narrative; each scene's planner develops its shot.
+import { readyCapture } from '../capture'
 import type { Presence, Project, Transition, VideoSettings } from '../model'
 import {
   FUNCTION_LABELS,
@@ -236,7 +237,7 @@ export const orchestrate = (project: Project): SceneShot[] | null => {
         slide.pageKind ||
         (index === 0 ? 'title' : index === count - 1 ? 'close' : undefined),
       needs: (slide.needs || []).map((need) => need.kind),
-      captured: slide.capture?.state === 'ready',
+      captured: Boolean(readyCapture(slide.capture)),
       place,
       previous,
       intro: index === 0

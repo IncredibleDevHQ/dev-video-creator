@@ -8,6 +8,7 @@ import {
   type SeriesPageData
 } from './series-view'
 import { studioApi } from './studio-api'
+import { busy, typingIn } from './ui'
 
 export const seriesApi = {
   list: () => studioApi.request<SeriesSummary[]>('/series'),
@@ -33,12 +34,17 @@ export const showSeries = async (app: AppContext, id: string) => {
   app.showDialog(seriesPageView(page))
   app.dialog.dataset.series = id
   if (watching) clearTimeout(watching)
-  if (page.series.planning?.state === 'planning')
-    watching = setTimeout(() => {
-      watching = null
-      if (app.dialog.open && app.dialog.dataset.series === id)
-        void showSeries(app, id).catch(app.error)
-    }, 3000)
+  if (page.series.planning?.state === 'planning') watchSeries(app, id)
+}
+
+// Follows the arc's planning, never refreshing under the creator's typing.
+const watchSeries = (app: AppContext, id: string) => {
+  watching = setTimeout(() => {
+    watching = null
+    if (!app.dialog.open || app.dialog.dataset.series !== id) return
+    if (typingIn(app.dialog)) watchSeries(app, id)
+    else void showSeries(app, id).catch(app.error)
+  }, 3000)
 }
 
 export const clickSeries = async (
@@ -55,9 +61,9 @@ export const clickSeries = async (
     return true
   }
   if (action === 'plan-arc' && target.dataset.series) {
-    target.disabled = true
-    await seriesApi.planArc(target.dataset.series)
-    await showSeries(app, target.dataset.series)
+    const id = target.dataset.series
+    await busy(target, () => seriesApi.planArc(id))
+    await showSeries(app, id)
     return true
   }
   return false
@@ -71,21 +77,28 @@ export const submitSeries = async (
   if (form.id === 'series-form') {
     const path = String(values.get('path') || '').trim()
     const branch = String(values.get('branch') || '').trim()
-    const created = (await seriesApi.create({
-      title: values.get('title'),
-      about: values.get('about'),
-      growth: values.get('growth'),
-      repos: path ? [{ path, ...(branch ? { branch } : {}) }] : []
-    })) as Series
+    const created = (await busy(form.querySelector('button.primary')!, () =>
+      seriesApi.create({
+        title: values.get('title'),
+        about: values.get('about'),
+        growth: values.get('growth'),
+        repos: path ? [{ path, ...(branch ? { branch } : {}) }] : []
+      })
+    )) as Series
     app.series = await seriesApi.list()
+    // The home page behind the dialog shows the new series' tile.
+    app.render()
     await showSeries(app, created.id)
   }
   if (form.id === 'episode-form' && form.dataset.series) {
     const part = values.get('part')
-    const { notebook } = await seriesApi.addEpisode(form.dataset.series, {
-      source: String(values.get('source') || ''),
-      ...(part === null ? {} : { part: Number(part) })
-    })
+    const series = form.dataset.series
+    const { notebook } = await busy(form.querySelector('button')!, () =>
+      seriesApi.addEpisode(series, {
+        source: String(values.get('source') || ''),
+        ...(part === null ? {} : { part: Number(part) })
+      })
+    )
     app.dialog.close()
     app.stage = 'notebook'
     app.attach(notebook)

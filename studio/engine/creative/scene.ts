@@ -4,7 +4,7 @@ import {
   plannedPages,
   sceneNarrative
 } from '../../shared/narratives'
-import { captureNote } from '../../shared/capture'
+import { captureNote, readyCapture } from '../../shared/capture'
 import { prepareCastPacket } from './cast-packet'
 import { sceneOrchestration } from './orchestration'
 import { scenePresence } from '../../shared/orchestration'
@@ -122,8 +122,8 @@ export const planCreativeScene = async (
                 )
               }
             : {}),
-          ...(slide.capture?.state === 'ready'
-            ? { productCapture: captureNote(slide.capture) }
+          ...(readyCapture(slide.capture)
+            ? { productCapture: captureNote(readyCapture(slide.capture)!) }
             : {}),
           wireframe: null
         }

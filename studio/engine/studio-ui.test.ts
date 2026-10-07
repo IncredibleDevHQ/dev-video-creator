@@ -113,6 +113,28 @@ it('shows where an answer came from, and asks again', () => {
     'From limiter · fix-burst @ abcdef1 bucket.ts:2–2'
   )
   expect(given.querySelector('form.ask-again')).not.toBeNull()
+  // Asking again failed: the reason shows above the form.
+  const failed = doc(
+    givenAnswer(
+      snapshot({
+        repoAsks: {
+          [repoAskKey('a', 'the setting')]: {
+            slideId: 'a',
+            what: 'the setting',
+            state: 'failed',
+            error: 'The agent stopped',
+            at: ''
+          }
+        }
+      }),
+      slide,
+      answer,
+      true
+    )
+  )
+  expect(failed.querySelector('.repo-failed')?.textContent).toBe(
+    'The agent stopped'
+  )
   expect(givenAnswer(snapshot(), slide, { what: 'x', answer: 'y' }, true)).toBe(
     '<p class="evidence-given"><b>x</b> y</p>'
   )

@@ -57,7 +57,9 @@ const playlistFor = async (title: string) => {
 /** Uploads the video and its parts; returns what YouTube kept. */
 export const uploadToYouTube = async (
   id: string,
-  options: { privacy: Privacy; publishAt?: string }
+  options: { privacy: Privacy; publishAt?: string },
+  /** Told the video's id the moment YouTube has it, before the extras. */
+  uploaded: (videoId: string) => Promise<unknown> = async () => {}
 ) => {
   const snapshot = await loadProject(id)
   const project = snapshot?.project
@@ -111,6 +113,7 @@ export const uploadToYouTube = async (
   )
   const videoId = String(video.id || '')
   if (!videoId) throw new Refusal('YouTube did not say which video it made')
+  await uploaded(videoId)
   const notes: string[] = []
   const kept = (video.status as { privacyStatus?: string } | undefined)
     ?.privacyStatus
@@ -133,22 +136,29 @@ export const uploadToYouTube = async (
         'The thumbnail was not set: custom thumbnails need a channel verified by phone.'
       )
   }
-  if (series) {
-    const playlistId = await playlistFor(series.title)
-    await ok(
-      await accountFetch('google', `${API}/playlistItems?part=snippet`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          snippet: {
-            playlistId,
-            resourceId: { kind: 'youtube#video', videoId }
-          }
-        })
-      }),
-      'playlist item'
-    )
-  }
+  // The video is up: a playlist YouTube refuses is a note, never a reason
+  // to lose the video or upload it twice.
+  if (series)
+    try {
+      const playlistId = await playlistFor(series.title)
+      await ok(
+        await accountFetch('google', `${API}/playlistItems?part=snippet`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            snippet: {
+              playlistId,
+              resourceId: { kind: 'youtube#video', videoId }
+            }
+          })
+        }),
+        'playlist item'
+      )
+    } catch {
+      notes.push(
+        `It was not added to the “${series.title}” playlist: add it in YouTube Studio.`
+      )
+    }
   return { videoId, notes }
 }
 
@@ -175,21 +185,38 @@ export const publishToYouTube = async (id: string, raw: unknown) => {
       publishAt.getTime() < Date.now() + 60_000)
   )
     throw new Refusal('Schedule it for a time in the future')
-  const snapshot = await loadProject(id)
-  if (!snapshot?.project.video?.produced)
-    throw new Refusal('Produce the video first')
-  if (snapshot.project.release?.youtube?.state === 'uploading') return snapshot
   const at = new Date().toISOString()
-  const started = await setUpload(id, {
-    state: 'uploading',
-    ...(publishAt ? { publishAt: publishAt.toISOString() } : {}),
-    at
+  // Claimed inside the notebook's queue: two clicks never upload twice.
+  const started = await changeProject(id, (current) => {
+    if (!current.project.video?.produced)
+      throw new Refusal('Produce the video first')
+    const release = current.project.release || emptyRelease()
+    if (release.youtube?.state === 'uploading')
+      throw new Refusal('It is uploading now')
+    if (release.youtube?.state === 'uploaded' && release.youtube.videoId)
+      throw new Refusal('It is on YouTube already: change it in YouTube Studio')
+    release.youtube = {
+      state: 'uploading',
+      ...(publishAt ? { publishAt: publishAt.toISOString() } : {}),
+      at
+    }
+    current.project.release = release
   })
+  let videoId = ''
   void (async () => {
-    const { videoId, notes } = await uploadToYouTube(id, {
-      privacy,
-      ...(publishAt ? { publishAt: publishAt.toISOString() } : {})
-    })
+    const { notes } = await uploadToYouTube(
+      id,
+      { privacy, ...(publishAt ? { publishAt: publishAt.toISOString() } : {}) },
+      async (made) => {
+        // Kept the moment YouTube has it: a later failure never loses it.
+        videoId = made
+        await changeProject(id, (current) => {
+          const release = current.project.release || emptyRelease()
+          release.youtube = { ...release.youtube!, videoId: made }
+          current.project.release = release
+        })
+      }
+    )
     await changeProject(id, (current) => {
       const release = current.project.release || emptyRelease()
       release.youtube = {
@@ -217,9 +244,23 @@ export const publishToYouTube = async (id: string, raw: unknown) => {
     })
   })().catch((error: Error) =>
     setUpload(id, {
-      state: 'failed',
-      error:
-        error instanceof Refusal ? error.message : 'The upload did not finish',
+      // With the video up, it is uploaded, and what failed after is a note.
+      ...(videoId
+        ? {
+            state: 'uploaded' as const,
+            videoId,
+            notes: [
+              'The upload finished, but the studio could not finish its extras.'
+            ]
+          }
+        : {
+            state: 'failed' as const,
+            error:
+              error instanceof Refusal
+                ? error.message
+                : 'The upload did not finish'
+          }),
+      ...(publishAt ? { publishAt: publishAt.toISOString() } : {}),
       at: new Date().toISOString()
     }).catch(() => {})
   )

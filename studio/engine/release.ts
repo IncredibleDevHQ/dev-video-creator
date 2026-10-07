@@ -19,13 +19,20 @@ import { loadSeries } from './series'
 import { runCommand } from './voice'
 import { zipFiles } from './zip'
 
-export const POST_LIMITS: Record<Channel, number> = {
+/** Each channel's limit for a post. */
+export const CHANNEL_LIMITS: Record<Channel, number> = {
   x: 280,
   linkedin: 3000,
   youtube: 5000
 }
+/** A draft's limit: room is left for the link the launch post adds. */
+export const POST_LIMITS: Record<Channel, number> = {
+  x: CHANNEL_LIMITS.x - 24,
+  linkedin: CHANNEL_LIMITS.linkedin - 120,
+  youtube: CHANNEL_LIMITS.youtube
+}
 /** X counts any link as 23 characters. */
-const xLength = (text: string) =>
+export const xLength = (text: string) =>
   text.replace(/https?:\/\/\S+/g, 'x'.repeat(23)).length
 
 /** The agent's words for each channel: within limits, never pasted thrice. */
@@ -38,7 +45,7 @@ export const validatePosts = (raw: unknown) => {
     const length = channel === 'x' ? xLength(text) : text.length
     if (!text || length > POST_LIMITS[channel])
       problems.push(
-        `Write ${channel} in 1–${POST_LIMITS[channel]} characters${channel === 'x' ? ' (a link counts as 23)' : ''}`
+        `Write ${channel} in 1–${POST_LIMITS[channel]} characters${channel === 'youtube' ? '' : ', leaving room for the link the launch post adds'}`
       )
     words[channel] = text
   }
@@ -79,10 +86,12 @@ export const draftPosts = async (id: string) => {
         }
       : null
   }
+  const asked = new Date().toISOString()
   void (async () => {
     const words = await runValidatedJsonStage<Record<Channel, string>>({
       projectId: id,
-      inputKey: fingerprintOf(brief),
+      // Each ask is its own run: "Draft again" never replays the last.
+      inputKey: fingerprintOf({ brief, asked }),
       checkpoint: 'release-posts',
       stage: 'story',
       route: 'Draft Posts',

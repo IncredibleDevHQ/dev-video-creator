@@ -7,6 +7,7 @@ import { emptyRelease, type CampaignItem } from '../shared/release'
 import { addEvent } from './activity'
 import { readAsset } from './persistence'
 import { postToLinkedIn, postToX } from './posting'
+import { CHANNEL_LIMITS, xLength } from './release'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { loadSeries } from './series'
@@ -38,6 +39,7 @@ export const changeItem = (id: string, raw: unknown) => {
     )
     if (!item) throw new Refusal('That item is not in the campaign')
     if (item.state === 'posted') throw new Refusal('It has gone out already')
+    if (item.state === 'posting') throw new Refusal('It is being posted now')
     if (typeof value.words === 'string') item.words = value.words.slice(0, 5000)
     if (value.offsetDays !== undefined) {
       const days = Number(value.offsetDays)
@@ -72,47 +74,92 @@ export const itemWords = (
   )
 }
 
+/** The teaser an item shows: its own, else one cut for its channel since. */
+const teaserOf = (
+  release: NonNullable<import('../shared/model').Project['release']>,
+  item: CampaignItem
+) => {
+  if (item.asset === 'episode' || item.asset === 'quote') return null
+  const ready = release.teasers.filter((entry) => entry.state === 'ready')
+  return (
+    ready.find((entry) => entry.id === item.asset) ||
+    ready.find((entry) => entry.channel === item.channel) ||
+    ready[0] ||
+    null
+  )
+}
+
 /**
  * Posts one item, now, because the creator clicked: with its teaser when
- * its asset is one. Returns the notebook with the item marked posted.
+ * it shows one. The item is claimed inside the notebook's queue first, so
+ * a second click while it uploads is refused, never posted (and charged)
+ * twice. Returns the notebook with the item posted.
  */
 export const postItem = async (id: string, raw: unknown) => {
   const itemId = String((raw as { item?: unknown })?.item || '')
-  const snapshot = await loadProject(id)
-  const project = snapshot?.project
-  const item = project?.release?.campaign.find((entry) => entry.id === itemId)
-  if (!project || !item) throw new Refusal('That item is not in the campaign')
-  if (item.state === 'posted') throw new Refusal('It has gone out already')
-  if (item.state === 'dropped') throw new Refusal('Restore it first')
-  if (item.channel === 'youtube')
-    throw new Refusal(
-      'YouTube’s goes out with the upload: use the bundle, or publish'
-    )
-  const words = itemWords(project, item)
-  const teaser = project.release!.teasers.find(
-    (entry) => entry.id === item.asset && entry.state === 'ready'
-  )
-  if (item.kind === 'teaser' && !teaser)
-    throw new Refusal('Cut a teaser for it first')
-  const video = teaser?.objectKey
-    ? await readAsset(teaser.objectKey)
-    : undefined
-  const url =
-    item.channel === 'x'
-      ? await postToX(words, video)
-      : await postToLinkedIn(words, video, project.title)
-  return changeProject(id, (current) => {
-    const kept = current.project.release?.campaign.find(
-      (entry) => entry.id === itemId
-    )
-    if (!kept) return
-    kept.state = 'posted'
-    kept.postedAt = new Date().toISOString()
-    kept.postUrl = url
-    addEvent(
-      current,
-      'video',
-      `Posted on ${item.channel === 'x' ? 'X' : 'LinkedIn'}`
-    )
+  let item: CampaignItem | undefined
+  let words = ''
+  let videoKey: string | undefined
+  let title = ''
+  let before: CampaignItem['state'] = 'approved'
+  await changeProject(id, (current) => {
+    const release = current.project.release
+    const found = release?.campaign.find((entry) => entry.id === itemId)
+    if (!release || !found)
+      throw new Refusal('That item is not in the campaign')
+    if (found.state === 'posted') throw new Refusal('It has gone out already')
+    if (found.state === 'posting') throw new Refusal('It is being posted now')
+    if (found.state === 'dropped') throw new Refusal('Restore it first')
+    if (found.channel === 'youtube')
+      throw new Refusal(
+        'YouTube’s goes out with the upload: use the bundle, or publish'
+      )
+    words = itemWords(current.project, found)
+    const length = found.channel === 'x' ? xLength(words) : words.length
+    if (length > CHANNEL_LIMITS[found.channel])
+      throw new Refusal(
+        `It is ${length} characters; ${found.channel === 'x' ? 'X takes 280, a link counting as 23' : 'LinkedIn takes 3000'}`
+      )
+    const teaser = teaserOf(release, found)
+    if (found.kind === 'teaser' && !teaser)
+      throw new Refusal('Cut a teaser for it first')
+    videoKey = teaser?.objectKey
+    title = current.project.title
+    before = found.state
+    found.state = 'posting'
+    delete found.note
+    item = { ...found }
   })
+  const posting = item!
+  try {
+    const video = videoKey ? await readAsset(videoKey) : undefined
+    const url =
+      posting.channel === 'x'
+        ? await postToX(words, video)
+        : await postToLinkedIn(words, video, title)
+    return await changeProject(id, (current) => {
+      const kept = current.project.release?.campaign.find(
+        (entry) => entry.id === itemId
+      )
+      if (!kept) return
+      kept.state = 'posted'
+      kept.postedAt = new Date().toISOString()
+      kept.postUrl = url
+      addEvent(
+        current,
+        'video',
+        `Posted on ${posting.channel === 'x' ? 'X' : 'LinkedIn'}`
+      )
+    })
+  } catch (error) {
+    await changeProject(id, (current) => {
+      const kept = current.project.release?.campaign.find(
+        (entry) => entry.id === itemId
+      )
+      if (!kept || kept.state !== 'posting') return
+      kept.state = before
+      kept.note = error instanceof Refusal ? error.message : 'It did not go out'
+    }).catch(() => {})
+    throw error
+  }
 }

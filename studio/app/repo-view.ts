@@ -83,8 +83,13 @@ export const givenAnswer = (
 ) => {
   if (!item.from)
     return `<p class="evidence-given"><b>${escape(item.what)}</b> ${escape(item.answer)}</p>`
-  const asking =
-    snapshot.repoAsks?.[repoAskKey(slide.id, item.what)]?.state === 'asking'
+  const ask = snapshot.repoAsks?.[repoAskKey(slide.id, item.what)]
+  const asking = ask?.state === 'asking'
+  // Asking again failed: say why, above the form to try once more.
+  const failed =
+    ask?.state === 'failed'
+      ? `<p class="repo-failed">${escape(ask.error || 'The agent could not answer')}</p>`
+      : ''
   const files = item.from.files
     .map(
       (file) =>
@@ -96,7 +101,7 @@ export const givenAnswer = (
 ${
   asking
     ? `<p class="repo-asking" role="status">Asking ${escape(item.from.repo)} again…</p>`
-    : `<form class="ask-again" data-evidence-slide="${escape(slide.id)}" data-evidence-what="${escape(item.what)}"><input name="prompt" placeholder="Not right? Say what to look for" aria-label="What to look for instead" autocomplete="off" ${editable ? '' : 'disabled'}><button ${editable ? '' : 'disabled'}>Ask again</button></form>`
+    : `${failed}<form class="ask-again" data-evidence-slide="${escape(slide.id)}" data-evidence-what="${escape(item.what)}"><input name="prompt" placeholder="Not right? Say what to look for" aria-label="What to look for instead" autocomplete="off" ${editable ? '' : 'disabled'}><button ${editable ? '' : 'disabled'}>Ask again</button></form>`
 }</div>`
 }
 

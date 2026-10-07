@@ -22,6 +22,7 @@ import {
   type LengthRange,
   type PresetId,
   type TemplateSuggestion,
+  lengthForWords,
   suggestedDirection
 } from '../shared/narratives'
 import { askJev, jevConfigured, type JevAnswer, type JevQuestion } from './jev'
@@ -106,7 +107,9 @@ const level = <T>(answer: JevAnswer | undefined, levels: T[], fallback: T) =>
 /** Jev's answers, read as a suggestion. */
 export const readSuggestion = (
   answers: Record<string, JevAnswer>,
-  at = new Date().toISOString()
+  at = new Date().toISOString(),
+  /** The source's size: the length when Jev is unsure of it. */
+  words?: number
 ): TemplateSuggestion | null => {
   const narrative = choice(answers.narrative)
   if (!narrative || !narrativeById(narrative.choice)) return null
@@ -117,10 +120,13 @@ export const readSuggestion = (
     .map(([id, p]) => ({ id, p: Math.round(p * 100) / 100 }))
   const sure = (answer: ReturnType<typeof choice>) =>
     answer && answer.confidence >= SUGGEST_CONFIDENCE ? answer.choice : null
-  const preset = choice(answers.direction)?.choice as PresetId | undefined
-  const length = LENGTHS.find(
-    (range) => lengthKey(range) === sure(choice(answers.length))
-  )
+  // A direction or length Jev is unsure of is not taken: the template's
+  // own preset, and a length the source's size supports.
+  const preset = sure(choice(answers.direction)) as PresetId | null
+  const length =
+    LENGTHS.find(
+      (range) => lengthKey(range) === sure(choice(answers.length))
+    ) || (words ? lengthForWords(words) : undefined)
   const audience = sure(choice(answers.audience))
   return {
     at,
@@ -157,11 +163,12 @@ export const suggestTemplate = async (id: string) => {
   const source = await readRow<SourceRead>('sources', id)
   const snapshot = await loadProject(id)
   if (!source || !snapshot) throw new Error('Read the source first')
+  const words = source.text.split(/\s+/).filter(Boolean).length
   const answers = await askJev(
-    { title: source.title, text: source.text.slice(0, 24_000) },
+    { title: source.title, words, text: source.text.slice(0, 24_000) },
     suggestionQuestions()
   )
-  const suggestion = readSuggestion(answers)
+  const suggestion = readSuggestion(answers, undefined, words)
   if (!suggestion) throw new Error('Jev did not suggest a template')
   return changeProject(id, (current) => {
     const open =

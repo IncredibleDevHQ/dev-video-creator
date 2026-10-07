@@ -200,6 +200,7 @@ export const planArc = async (id: string) => {
   const series = await changeSeries(id, (current) => {
     current.planning = { state: 'planning', at: new Date().toISOString() }
   })
+  const asked = new Date().toISOString()
   void (async () => {
     const brief = {
       title: series.title,
@@ -211,7 +212,8 @@ export const planArc = async (id: string) => {
     const branch = await branchStory(series.repos)
     const arc = await runValidatedJsonStage({
       projectId: id,
-      inputKey: fingerprintOf({ brief, branch }),
+      // Each plan is its own run: "Plan again" never replays the last arc.
+      inputKey: fingerprintOf({ brief, branch, asked }),
       checkpoint: 'series-arc',
       stage: 'story',
       route: 'Plan Arc',
@@ -263,7 +265,20 @@ export const previouslyOf = (last: Snapshot | null) => {
  * The next episode, as a notebook: its source the creator's, else what the
  * series is about and what changed on the branch since the last episode.
  */
+const adding = new Set<string>()
 export const addEpisode = async (id: string, raw: unknown) => {
+  // One at a time: a second submit while one is made would number two
+  // notebooks as the same episode.
+  if (adding.has(id)) throw new Refusal('An episode is being added')
+  adding.add(id)
+  try {
+    return await addOneEpisode(id, raw)
+  } finally {
+    adding.delete(id)
+  }
+}
+
+const addOneEpisode = async (id: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
   const series = await loadSeries(id)
   if (!series) throw new Refusal('Series not found')

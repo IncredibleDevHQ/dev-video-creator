@@ -51,12 +51,15 @@ export const submitRepos = async (
   if (!app.snapshot) return
   const id = app.snapshot.project.id
   if (form.id === 'repo-form') {
+    // The dialog changes the first repo; the others (a series can give an
+    // episode several) stay linked.
     app.snapshot = await studioApi.setRepos(id, [
       {
         path: String(values.get('path') || '').trim(),
         branch: String(values.get('branch') || ''),
         base: String(values.get('base') || '')
-      }
+      },
+      ...(app.snapshot.project.repos || []).slice(1)
     ])
     app.dialog.close()
     app.render()

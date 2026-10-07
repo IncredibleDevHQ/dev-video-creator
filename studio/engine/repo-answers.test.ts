@@ -65,6 +65,21 @@ it('reads a branch without writing to the repo', async () => {
   expect(await readdir(join(repo, '.git'))).not.toContain('index.lock')
 })
 
+it('guesses the base from the usual names, else the branch checked out', async () => {
+  const other = join(root, 'no-main')
+  execFileSync('git', ['init', '-q', '-b', 'zeta', other])
+  const there = (...args: string[]) =>
+    execFileSync('git', ['-C', other, ...args], { encoding: 'utf8' })
+  there('config', 'user.email', 'test@example.com')
+  there('config', 'user.name', 'Test')
+  await writeFile(join(other, 'a.txt'), 'a\n')
+  there('add', '.')
+  there('commit', '-qm', 'A')
+  there('branch', 'alpha')
+  // No main: the branch checked out, not the first by name.
+  expect((await git.inspectRepo(other)).base).toBe('zeta')
+})
+
 it('refuses what is not a repo, a branch or a file inside it', async () => {
   await expect(git.inspectRepo('relative/path')).rejects.toThrow('full path')
   await expect(git.inspectRepo(root)).rejects.toThrow('not a git repo')

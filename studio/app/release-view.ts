@@ -124,6 +124,7 @@ export const releaseBusy = (snapshot: Snapshot) => {
   return Boolean(
     release?.drafting?.state === 'drafting' ||
     release?.teasers.some((item) => item.state === 'cutting') ||
-    release?.youtube?.state === 'uploading'
+    release?.youtube?.state === 'uploading' ||
+    release?.campaign.some((item) => item.state === 'posting')
   )
 }

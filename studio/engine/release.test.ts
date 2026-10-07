@@ -118,7 +118,7 @@ it('keeps each channel’s words within its limits, and never the same', () => {
     validatePosts({ ...words, x: 'y'.repeat(281), linkedin: words.youtube })
       .problems
   ).toEqual([
-    'Write x in 1–280 characters (a link counts as 23)',
+    'Write x in 1–256 characters, leaving room for the link the launch post adds',
     'Write each channel its own words, never the same text'
   ])
 })

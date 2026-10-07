@@ -55,5 +55,12 @@ export const captureBlock = (
 <p class="capture-state">${capture.seconds}s of ${escape(host(capture.url))}</p>
 <details class="capture-again"><summary>Change the steps</summary>${form(snapshot, slide, editable, 'Capture again')}</details>`
           : `${capture?.state === 'failed' ? `<p class="capture-failed">${escape(capture.error || 'The capture did not finish')}</p>` : ''}${form(snapshot, slide, editable, capture ? 'Try again' : 'Capture the demo')}`
-  return `<div class="capture-block"><h3>Demo</h3>${body}</div>`
+  // While a new capture is made, or after one fails, the last good one
+  // still plays in the scene: say so, and show it.
+  const kept =
+    capture?.last && capture.state !== 'ready'
+      ? `<video class="capture-video" src="/objects/${escape(capture.last.objectKey)}" muted controls playsinline preload="metadata"></video>
+<p class="capture-state">The scene keeps this ${capture.last.seconds}s capture until the new one is ready.</p>`
+      : ''
+  return `<div class="capture-block"><h3>Demo</h3>${body}${kept}</div>`
 }

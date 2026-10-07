@@ -4,6 +4,7 @@ import { applyLook } from './look-apply'
 import { setNotebookLength, setNotebookTemplate } from './notebook-intake'
 import { checkCoverage, suggestTemplate } from './template-suggest'
 import { studioRoute } from './studio-routes'
+import { settleInterruptedWork } from './studio-recovery'
 import {
   startPresentation,
   refreshNotebookSource,
@@ -563,6 +564,7 @@ if (
   await initializePersistence()
   await recoverEngineRuns()
   await listClones()
+  await settleInterruptedWork()
   await recoverProjects({
     changes: scheduleChanges,
     slides: scheduleSlides,

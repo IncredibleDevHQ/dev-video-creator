@@ -6,6 +6,8 @@ import { confirmAction } from './confirm-action'
 import { numbersSection } from './numbers-view'
 import { releaseBusy, releaseDialog } from './release-view'
 import { studioApi } from './studio-api'
+import { busy, typingIn } from './ui'
+import type { AccountsView } from '../shared/accounts'
 
 /** The sections after the bundle: the campaign, then the numbers. */
 const extras: Array<(snapshot: Snapshot) => string> = [
@@ -14,6 +16,17 @@ const extras: Array<(snapshot: Snapshot) => string> = [
 ]
 
 let following: ReturnType<typeof setTimeout> | null = null
+let shown = ''
+/** What the follow loop watches: whatever is still being made. */
+const progress = (snapshot: Snapshot) => {
+  const release = snapshot.project.release
+  return JSON.stringify([
+    release?.teasers.map((item) => [item.id, item.state]),
+    release?.drafting?.state,
+    release?.youtube?.state,
+    release?.campaign.map((item) => item.state)
+  ])
+}
 /** Shows the release, and follows it while a teaser or the words are made. */
 export const showRelease = (app: AppContext) => {
   const snapshot = app.snapshot
@@ -24,16 +37,27 @@ export const showRelease = (app: AppContext) => {
   )
   app.dialog.dataset.release = snapshot.project.id
   app.dialog.scrollTop = scroll
+  shown = progress(snapshot)
   if (following) clearTimeout(following)
-  if (releaseBusy(snapshot))
-    following = setTimeout(() => {
-      following = null
-      if (
-        app.dialog.open &&
-        app.dialog.dataset.release === app.snapshot?.project.id
-      )
-        showRelease(app)
-    }, 2000)
+  if (releaseBusy(snapshot)) follow(app)
+}
+
+// Refreshes while something is made: only when it changed, never under the
+// creator's typing, and never over another dialog opened from this one.
+const follow = (app: AppContext) => {
+  following = setTimeout(() => {
+    following = null
+    const snapshot = app.snapshot
+    if (
+      !snapshot ||
+      !app.dialog.open ||
+      !app.dialog.querySelector('#release-form') ||
+      app.dialog.dataset.release !== snapshot.project.id
+    )
+      return
+    if (typingIn(app.dialog) || progress(snapshot) === shown) follow(app)
+    else showRelease(app)
+  }, 2000)
 }
 
 const update = (app: AppContext, snapshot: Snapshot) => {
@@ -62,28 +86,45 @@ export const clickRelease = async (
     )
   if (action === 'campaign-post') {
     const x = target.dataset.channel === 'x'
-    // Posting is public and, on X, charged: the creator says yes first.
+    const item = app.snapshot.project.release?.campaign.find(
+      (entry) => entry.id === target.dataset.item
+    )
+    const words = item?.words || ''
+    // Posting is public and, on X, charged: the creator sees the words and
+    // the price, and says yes first.
+    const prices = x
+      ? (await studioApi.request<AccountsView>('/accounts')).xPrices
+      : null
+    const cost = prices
+      ? /https?:\/\/|\{link\}/.test(words)
+        ? prices.postWithLink
+        : prices.post
+      : 0
     const sure = await confirmAction({
       title: `Post on ${x ? 'X' : 'LinkedIn'} now?`,
-      detail: x
-        ? 'It goes out from your X app, which is charged for it (see Accounts for the prices).'
-        : 'It goes out on LinkedIn as you.',
+      detail: `“${words.length > 160 ? `${words.slice(0, 160)}…` : words}” ${
+        x
+          ? `It goes out from your X app, which is charged about $${cost.toFixed(3).replace(/0$/, '')} for it.`
+          : 'It goes out on LinkedIn as you.'
+      }`,
       action: 'Post now'
     })
     if (!sure) return
-    target.disabled = true
-    update(
-      app,
-      await studioApi.notebook(id, 'campaign', {
-        action: 'post',
-        item: target.dataset.item
-      })
+    await busy(target, async () =>
+      update(
+        app,
+        await studioApi.notebook(id, 'campaign', {
+          action: 'post',
+          item: target.dataset.item
+        })
+      )
     )
   }
-  if (action === 'draft-posts') {
-    target.disabled = true
-    update(app, await studioApi.notebook(id, 'posts'))
-  }
+
+  if (action === 'draft-posts')
+    await busy(target, async () =>
+      update(app, await studioApi.notebook(id, 'posts'))
+    )
 }
 
 export const submitRelease = async (
