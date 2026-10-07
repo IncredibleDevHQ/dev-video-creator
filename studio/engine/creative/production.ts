@@ -21,6 +21,7 @@ import { readSubmission, submissionSchema } from '../harness/submissions'
 import { creativeContext } from './stage'
 import { validateProduction, type ProductionContext } from './production-bundle'
 import { prepareCreativeClock } from './clock'
+import { settledFrameProblems } from './frame-checks'
 import type { CreativeSceneRecord } from './scene'
 export const mediaBindingInstructions = (contentOnly: boolean) =>
   contentOnly
@@ -171,6 +172,23 @@ export const buildCreativeProduction = async (
         report.problems.push(
           `Copy the product-supplied media unchanged: ${name}`
         )
+    }
+    // The settled frames, once the bundle is sound: words on objects,
+    // labels on each other, anything cut by the frame's edge, empty boxes.
+    // Late in the budget they are recorded rather than refused, so a scene
+    // is not lost to one stubborn label.
+    if (!report.problems.length) {
+      const frames = await settledFrameProblems(
+        files,
+        context.clock.moments
+      ).catch((error: Error) => {
+        report.warnings.push(
+          `The settled-frame check could not run: ${error.message}`
+        )
+        return []
+      })
+      if (attempt <= 4) report.problems.push(...frames)
+      else report.warnings.push(...frames)
     }
     report.ok = report.problems.length === 0
     await writeRow('creative-production-attempts', artifacts[0].id, {

@@ -146,10 +146,14 @@ scene has **no** presenter layer and reserves no empty camera box.
 Submission checks the bundle paths, file limits, manifest, plan, timing,
 layer declarations, controls, and unchanged supplied media. A refused
 submission returns concrete problems to fix, within six submissions.
-Acceptance saves the composition; the app then renders with the pinned
-Hyperframes runtime and checks render failures and missing media/audio.
-Do not assume structural acceptance proves visual quality. Inspect long text,
-layout boundaries, and transitions while building the composition.
+Once the bundle is sound, the product plays the composition in a browser
+on the pinned runtime to each moment's settled frame (its last fifth of a
+second) and refuses anything visible cut by the frame's edge, words on a
+shape they do not belong to, overlapping text and empty boxes, naming the
+moment and what to move. Acceptance saves the composition; the app then
+renders with the pinned Hyperframes runtime and checks render failures and
+missing media/audio. The settled frames are not every frame: inspect long
+text, layout boundaries and transitions while building the composition.
 
 Stop when the submission is accepted. The producer never approves a plan,
 accepts its own scene, records, generates audio or exports.

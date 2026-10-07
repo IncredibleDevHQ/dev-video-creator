@@ -56,6 +56,29 @@ parts by their `data-part` attribute (a needle turns, a light blinks, a
 gate closes). Never redraw a drawn object from plain shapes or retype its
 path data, and keep it clear of text and other layers.
 
+## Every settled frame reads clean
+
+The product plays each moment to its last fifth of a second and measures
+that frame. It refuses a build where, at a moment's end:
+
+- anything visible is cut by the frame's edge: an actor, a card, a label.
+  A camera move (`#world` scale and pan, a journey, a push) ends with every
+  actor and its words at least 48 px inside the frame; pull back or move
+  the actor rather than crop it;
+- words sit on a shape they do not belong to: a label on a moving packet,
+  an icon or another card. Words inside their own card are fine; place a
+  label in clear space beside what it names;
+- two pieces of text overlap;
+- a box holds nothing. When you draw a page node's card, draw its words
+  inside it (the entry's `meaning.label` and `detail` in
+  `VISUAL_CAST.json`) with its artwork; a card without them reads as a
+  placeholder.
+
+An SVG element that carries a `transform` attribute is never tweened on
+`x`, `y`, `scale` or `rotation`: GSAP replaces the attribute and the
+element jumps. Put the attribute on a wrapping `<g>` and tween the inner
+element, or tween the wrapper only.
+
 ## Work within the run budget
 
 Read the required packet once. Use bounded file reads rather than dumping the
