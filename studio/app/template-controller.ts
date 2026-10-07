@@ -1,16 +1,17 @@
-// What template controls do: open the gallery, move a scene to another slot,
+// What template controls do: open the gallery, give a scene another beat,
 // and carry a template chosen in the gallery into the dialog that uses it.
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
 import { confirmAction } from './confirm-action'
-import { pickTemplate, sceneSlotMenu } from './template-picker'
-import { templateById } from '../shared/video-templates'
+import { pickTemplate, sceneBeatMenu } from './template-picker'
+import { narrativeById, type PresetId } from '../shared/narratives'
 import { clickVideo } from './video-controller'
 
 /** Where the gallery returns to, and what it may do there. */
 export const galleryContext = (app: AppContext) => {
   const project = app.snapshot?.project
+  const settings = project?.video?.settings
   return {
     look: project?.branding,
     use: !project
@@ -20,28 +21,46 @@ export const galleryContext = (app: AppContext) => {
         : project.slides.length && project.slides.every((slide) => slide.svg)
           ? ('make' as const)
           : null,
-    current: project?.video?.settings.template,
+    current: {
+      narrative: settings?.narrative,
+      preset: settings?.direction?.preset
+    },
     back: project ? 'Back to notebook' : 'Back home'
   }
 }
 
-export const openTemplates = (app: AppContext, templateId?: string) => {
+export const openTemplates = (app: AppContext, narrative?: string) => {
   app.stopPractice()
   if (app.dialog.open) app.dialog.close()
   closePopover()
-  app.templateGallery.open(galleryContext(app), templateId)
+  app.templateGallery.open(galleryContext(app), narrative)
 }
 
 /**
  * The gallery's "Use": a new video opens the make-video dialog with the
- * template chosen; an existing one opens its settings with it.
+ * template and its direction chosen; an existing one opens its settings
+ * with them. A new direction starts from the preset alone.
  */
-export const useTemplate = async (app: AppContext, templateId: string) => {
-  if (!templateById(templateId) || !app.snapshot) return app.render()
+export const useTemplate = async (
+  app: AppContext,
+  id: string,
+  preset: PresetId
+) => {
+  const narrative = narrativeById(id)
+  if (!narrative || !app.snapshot) return app.render()
   const video = app.snapshot.project.video
+  const direction =
+    video?.settings.narrative === id &&
+    video.settings.direction?.preset === preset
+      ? video.settings.direction
+      : { preset }
   if (video)
-    app.pendingVideoSettings = { ...video.settings, template: templateId }
-  else pickTemplate(templateId)
+    app.pendingVideoSettings = {
+      ...video.settings,
+      narrative: narrative.id,
+      direction
+    }
+  else pickTemplate({ narrative: narrative.id, direction })
   app.render()
   const target = document.createElement('button')
   target.dataset.action = video ? 'video-settings' : 'make-video'
@@ -56,41 +75,41 @@ export const clickTemplates = async (
   if (action === 'open-templates') return openTemplates(app)
   if (!app.snapshot) return
   const sceneId = target.dataset.sceneId
-  if (action === 'scene-slot' && sceneId) {
+  if (action === 'scene-beats' && sceneId) {
     openPopover(
       target,
-      'scene-slot',
-      sceneSlotMenu(app.snapshot.project, sceneId),
+      'scene-beats',
+      sceneBeatMenu(app.snapshot.project, sceneId),
       'tpl-slot-popover'
     )
     return
   }
-  if (action === 'scene-slot-set' && sceneId) {
+  if (action === 'scene-beats-set' && sceneId) {
     const video = app.snapshot.project.video
     const scene = video?.scenes.find((item) => item.id === sceneId)
-    const template = templateById(video?.settings.template)
-    if (!scene || !template) return
-    const slot = target.dataset.slot || null
-    if ((scene.slot || null) === slot) return closePopover()
+    const narrative = narrativeById(video?.settings.narrative)
+    if (!scene || !narrative) return
+    const beat = target.dataset.beat || null
+    const own = scene.beats?.length === 1 ? scene.beats[0] : null
+    if (own === beat && (beat || !scene.beats?.length)) return closePopover()
     closePopover()
-    const role = slot
-      ? template.slots.find((item) => item.id === slot)?.role
-      : 'its place in order'
-    const planned = scene.moments.length > 0
+    const name = beat
+      ? narrative.beats.find((item) => item.id === beat)?.name
+      : 'its share in order'
     if (
-      planned &&
+      scene.moments.length > 0 &&
       !(await confirmAction({
-        title: `Play ${role}?`,
+        title: `Carry ${name}?`,
         detail:
-          'This scene is planned again in its new slot: new words and a new animation. Takes whose words still match are kept.',
+          'This scene is planned again for its new beat: new words and a new animation. Takes whose words still match are kept.',
         action: 'Plan it again'
       }))
     )
       return
-    app.snapshot = await api.setSceneSlot(
+    app.snapshot = await api.setSceneBeats(
       app.snapshot.project.id,
       sceneId,
-      slot
+      beat ? [beat] : null
     )
     app.render()
   }

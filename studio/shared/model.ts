@@ -1,4 +1,5 @@
 import type { Branding } from './settings'
+import type { Direction } from './narratives/model'
 export type Presence = 'off' | 'low' | 'high'
 export type Voice = { kind: 'record' } | { kind: 'ai' | 'clone'; id: string }
 export type HarnessSelection = {
@@ -9,8 +10,10 @@ export type VideoSettings = {
   presence: Presence
   voice: Voice
   harness?: HarnessSelection
-  /** The video's template (shared/video-templates.ts), when one is chosen. */
-  template?: string
+  /** The story the video tells (shared/narratives), when one is chosen. */
+  narrative?: string
+  /** How this telling sounds and how long it runs, with the narrative. */
+  direction?: Direction
 }
 export type CameraWindow = 'none' | 'full' | 'start' | 'end' | 'both'
 export type MomentSegment = {
@@ -77,8 +80,8 @@ export type Scene = {
   slideId: string
   phase: ScenePhase
   presence: Presence | null
-  /** The template slot the creator chose for this scene; else its place. */
-  slot?: string | null
+  /** The narrative's beats the creator gave this scene; else its share. */
+  beats?: string[] | null
   moments: Moment[]
   inputKey: string
   animationKey?: string

@@ -190,14 +190,16 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   moments move. Every actor then shares one drawn style. Keep `native` for
   what must be exact: charts, counts, code, labels, connector paths and the
   dots that travel along them.
-- When `CONTEXT.json` has a `template`, this scene plays one slot of the
-  video's template: shape it for the slot's role, make the slot's signature
-  move the centre of the scene, frame the presenter as the slot says whenever
-  presence puts them on camera, aim for the slot's seconds, and end on its
-  seam into the next scene. Presence still decides when the presenter
-  appears. When the slot sets words over the presenter, keep them to a few
-  words at a time and away from the face; on a diagram, label the parts in
-  place rather than captioning the voice.
+- When `CONTEXT.json` has a `story`, the video tells one kind of story
+  and this scene carries some of its beats (SCENE.md says which). Leave the viewer knowing what
+  each beat says they must know, drawing only on the evidence the source
+  holds; keep the story's rules; sound as the direction says (its drama,
+  elaboration and structure); aim for the scene's seconds; and frame the
+  presenter as it says whenever presence puts them on camera. Presence
+  still decides when the presenter appears. How many moments the scene
+  has and how each looks is yours to decide. When words go over the
+  presenter, keep them to a few at a time and away from the face; on a
+  diagram, label the parts in place rather than captioning the voice.
 - A presenter suggestion never decides the scene's delivery. On-camera
   presence is the creator's, apart from who speaks: when SCENE.md states it,
   the plan puts the presenter exactly where it says.

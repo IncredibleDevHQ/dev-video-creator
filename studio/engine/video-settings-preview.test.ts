@@ -57,11 +57,12 @@ it('explains a default change when every scene has an override', () => {
     'keep their custom camera choices'
   )
 })
-it('plans every scene again when the template changes', () => {
+it('plans every scene again when the template or its direction changes', () => {
   const next = {
     presence: 'off' as const,
     voice: { kind: 'ai' as const, id: 'first' },
-    template: 'launch-demo'
+    narrative: 'launch',
+    direction: { preset: 'demo-led' as const }
   }
   expect(videoSettingsEffect(project, next)).toMatchObject({
     replanned: [1, 2, 3],
@@ -69,7 +70,25 @@ it('plans every scene again when the template changes', () => {
     changed: true
   })
   expect(videoSettingsPreview(project, next)).toContain(
-    'Shape the video as Launch: Result first. Every scene is planned again in the new shape.'
+    'Tell the video as Launch, told as Demo-led (2–5 min). Every scene is planned again in the new shape.'
   )
   expect(videoSettingsPreview(project, next)).toContain('Apply and re-plan')
+  // The same template told another way shapes every scene too.
+  const told = structuredClone(project)
+  Object.assign(told.video!.settings, {
+    narrative: 'launch',
+    direction: { preset: 'demo-led' }
+  })
+  const longer = {
+    ...next,
+    direction: {
+      preset: 'deep-dive' as const,
+      length: [1500, 1800] as [number, number]
+    }
+  }
+  expect(videoSettingsEffect(told, longer).templateChanged).toBe(true)
+  expect(videoSettingsPreview(told, longer)).toContain(
+    'Tell the video as Launch, told as Deep dive (25–30 min).'
+  )
+  expect(videoSettingsEffect(told, next).templateChanged).toBe(false)
 })

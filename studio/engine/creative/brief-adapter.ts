@@ -12,7 +12,7 @@
 // treats as what the user accepted.
 import type { ExplanationBriefV1, StatementBasis } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
-import { SEAM_LABELS } from '../../shared/video-templates'
+import type { NarrativeBrief } from '../../shared/narratives'
 
 const yamlString = (value: string) =>
   JSON.stringify(value.replace(/\s+/g, ' ').trim())
@@ -312,8 +312,8 @@ export type ScenePacketInput = {
     from: 'scene' | 'video' | null
   }
   intro?: boolean
-  // The slot of the video's template this scene plays, when there is one.
-  template?: import('../../shared/video-templates').SlotBrief
+  // The story the video tells and the beats this scene carries, when chosen.
+  story?: NarrativeBrief
   reviewed: SceneTreatmentV1 | null
   assets: Array<{ key: string; role: string; parts: string[] }>
 }
@@ -357,21 +357,35 @@ const introSection = (title: string) => [
   ''
 ]
 
-// The slot of the video's template this scene plays, said to the planner.
-const templateLine = (slot: NonNullable<ScenePacketInput['template']>) =>
-  [
-    `The video follows the "${slot.template}" template of the story "${slot.story}" (for ${slot.audience.charAt(0).toLowerCase()}${slot.audience.slice(1)}).`,
-    slot.purpose,
-    `Its tone: ${slot.tone.toLowerCase()}. Its pacing: ${slot.pacing.toLowerCase()}.`,
-    `This scene plays its "${slot.role}" slot (${slot.position}): ${slot.type}.`,
-    `Its signature move: ${slot.move}`,
-    `When on camera, the presenter is framed this way: ${slot.speaker}.`,
-    `Aim for about ${slot.seconds} seconds, and ${
-      slot.seam === SEAM_LABELS.end
-        ? 'close the video there'
-        : `hand over to the next scene with a ${slot.seam.toLowerCase()}`
-    }.`
-  ].join(' ')
+const lowerFirst = (text: string) =>
+  text.charAt(0).toLowerCase() + text.slice(1)
+const listed = (items: string[]) => items.map(lowerFirst).join(', ')
+
+// The story the video tells and the beats this scene carries, said to the
+// planner. The beats say what the viewer must know, never how it looks.
+const storySection = (story: NarrativeBrief) => [
+  "## This scene in the video's story",
+  '',
+  `The video tells a "${story.narrative}" story: ${story.line} It is for ${lowerFirst(story.audience)}.`,
+  '',
+  `The story insists: ${story.rules.join(' ')}`,
+  '',
+  `It is told as ${story.direction}, ${story.length} in all: ${story.drama}; ${story.elaboration}; ${story.structure}.${story.leads.length ? ` The material that leads: ${listed(story.leads)}.` : ''}`,
+  '',
+  `Its spine: ${story.spine.join(' → ')}.`,
+  '',
+  `This scene, ${story.position}, carries:`,
+  '',
+  bullet(
+    story.beats.map(
+      (beat) =>
+        `${beat.name} (${beat.function}): the viewer comes away knowing ${lowerFirst(beat.know)}. Evidence it can draw on: ${listed(beat.evidence)}.${beat.expansions.length ? ` In this telling it grows: ${beat.expansions.map(lowerFirst).join('; ')}.` : ''}`
+    )
+  ),
+  '',
+  `Aim for about ${story.seconds}. When presence puts the presenter on camera, frame them this way: ${story.speaker}. How many moments there are and how each looks is yours to decide from the material; never show evidence the source does not hold.`,
+  ''
+]
 
 export const renderScenePacket = (input: ScenePacketInput) => {
   const lines = [
@@ -441,6 +455,7 @@ export const renderScenePacket = (input: ScenePacketInput) => {
     "NEIGHBORS.json says the same as data. State `continuity.incoming` and `continuity.outgoing` as self-contained, agreed or proposed; never write a neighbour's image as fact when its plan does not promise it.",
     '',
     ...(input.intro ? introSection(input.videoTitle) : []),
+    ...(input.story ? storySection(input.story) : []),
     '## Decisions already made',
     '',
     bullet([
@@ -448,7 +463,7 @@ export const renderScenePacket = (input: ScenePacketInput) => {
         ? `Delivery for this scene: ${input.delivery} (the creator's choice — keep it).`
         : 'Delivery for this scene is undecided: suggest a presenter treatment if it helps, but keep delivery.voice "undecided".',
       presenceLine(input.presence, input.delivery),
-      input.template ? templateLine(input.template) : '',
+
       input.reviewed
         ? `A reviewed plan exists (question: ${input.reviewed.question}). Keep what it got right unless the direction below asks otherwise.`
         : ''

@@ -20,6 +20,7 @@ import { openPresenter } from './presenter-view'
 import { clickVideo, submitVideo } from './video-controller'
 import { syncSceneChoice } from './scene-link'
 import { clickTemplates, openTemplates } from './template-controller'
+import { syncTemplateFields } from './template-picker'
 
 export const installAppActions = (app: AppContext) => {
   document.addEventListener('submit', async (event) => {
@@ -252,10 +253,12 @@ export const installAppActions = (app: AppContext) => {
     if (!form) return
     if (app.settingsScreen.isOpen) return
     syncSceneChoice(form, event.target)
+    syncTemplateFields(form, event.target)
     const values = new FormData(form)
     const warning = form.querySelector<HTMLElement>('.two-voices')!
     warning.hidden =
       !String(values.get('voice')).startsWith('ai:') ||
-      values.get('presence') === 'off'
+      (values.get('presence') ?? values.get('oncamera')) === 'off' ||
+      values.get('oncamera') === 'none'
   })
 }

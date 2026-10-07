@@ -1,38 +1,160 @@
 // Templates where a video is set up and shown: the choice in the make-video
-// and notebook-settings dialogs, and the chip that says which slot a scene
-// plays, with the menu that moves it to another.
+// and notebook-settings dialogs (the template, the way to tell it, and how
+// long, always a range), and the chip that says which beats a scene carries,
+// with the menu that gives it another.
 import { escape, html } from './ui'
-import { lookStyle } from './template-gallery-view'
+import { beatDot, lookStyle } from './template-gallery-parts'
 import { templateSketch } from './template-sketches'
-import type { Project } from '../shared/model'
+import type { Presence, Project } from '../shared/model'
 import type { Branding } from '../shared/settings'
 import {
-  SLOT_TYPES,
-  TEMPLATE_STORIES,
-  VIDEO_TEMPLATES,
-  assignSlots,
-  coverIndex,
-  sceneTemplateSlot,
-  storyById,
-  templateById,
-  templateTitle,
-  type SlotType
-} from '../shared/video-templates'
+  AUDIENCE_LABELS,
+  DRAMA_LABELS,
+  ELABORATION_LABELS,
+  EVIDENCE_LABELS,
+  FUNCTION_LABELS,
+  LENGTHS,
+  NARRATIVES,
+  ON_CAMERA_LABELS,
+  STRUCTURE_LABELS,
+  allowedPresets,
+  assignBeats,
+  directionSettings,
+  lengthLabel,
+  narrativeById,
+  presenceFor,
+  presetFor,
+  sceneNarrative,
+  type Direction,
+  type EvidenceKind,
+  type LengthRange,
+  type Narrative,
+  type OnCamera
+} from '../shared/narratives'
 
-const dot = (type: SlotType) =>
-  `<i class="tpl-type-dot" data-type="${type}"></i>`
-const minutes = (seconds: number) =>
-  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+/** A template and its direction, as a dialog starts from. */
+export type TemplateChoice = { narrative?: string; direction?: Direction }
 
 // A template chosen in the gallery waits here for the dialog that uses it.
-let picked: string | undefined
-export const pickTemplate = (id: string | undefined) => {
-  picked = id
+let picked: TemplateChoice | undefined
+export const pickTemplate = (choice: TemplateChoice | undefined) => {
+  picked = choice
 }
 export const takePickedTemplate = () => {
-  const id = picked
+  const choice = picked
   picked = undefined
-  return id
+  return choice
+}
+
+/** The material a creator can ask to lead. */
+const LEADS: EvidenceKind[] = ['code', 'demo', 'numbers', 'diagram']
+
+const option = (value: string, label: string, selected: boolean) =>
+  `<option value="${escape(value)}"${selected ? ' selected' : ''}>${escape(label)}</option>`
+const select = (
+  name: string,
+  label: string,
+  labels: Record<string, string>,
+  value: string
+) =>
+  `<label>${label}<select name="${name}">${Object.entries(labels)
+    .map(([key, text]) => option(key, text, key === value))
+    .join('')}</select></label>`
+
+/** The lengths offered: the usual ones, each direction's, and the video's. */
+const lengthsFor = (narrative: Narrative, current: LengthRange) =>
+  [
+    ...new Map(
+      [
+        ...LENGTHS,
+        ...allowedPresets(narrative).map(
+          (item) => directionSettings(narrative, { preset: item.id }).length
+        ),
+        current
+      ].map((range) => [range.join(','), range])
+    ).values()
+  ].sort((a, b) => a[0] - b[0] || a[1] - b[1])
+
+/**
+ * How to tell it: the directions as chips, the length, and the rest folded
+ * away. Each chip carries its own settings, which the dialog takes on when
+ * it is picked.
+ */
+const directionFields = (narrative: Narrative, chosen?: Direction) => {
+  const preset = presetFor(narrative, chosen?.preset)
+  const settings = directionSettings(narrative, { ...chosen, preset })
+  const length = settings.length.join(',')
+  return html`<fieldset class="tpl-direction" aria-label="How to tell it">
+    <div class="tpl-chips">
+      ${allowedPresets(narrative)
+        .map(
+          (item) =>
+            `<label class="tpl-chip"><input type="radio" name="preset" value="${item.id}"${item.id === preset ? ' checked' : ''} data-settings="${escape(JSON.stringify(directionSettings(narrative, { preset: item.id })))}"><span>${escape(item.name)}</span></label>`
+        )
+        .join('')}
+    </div>
+    <div class="tpl-length">
+      <label
+        >Length<select name="length">
+          ${lengthsFor(narrative, settings.length)
+            .map((range) =>
+              option(
+                range.join(','),
+                lengthLabel(range),
+                range.join(',') === length
+              )
+            )
+            .join('')}${option('own', 'Your own range…', false)}
+        </select></label
+      ><span class="tpl-length-own" hidden
+        ><input
+          type="number"
+          name="length-from"
+          min="0.25"
+          step="any"
+          aria-label="Shortest"
+        />
+        to
+        <input
+          type="number"
+          name="length-to"
+          min="0.25"
+          step="any"
+          aria-label="Longest"
+        /><select name="length-unit" aria-label="Unit">
+          <option value="60">min</option>
+          <option value="1">s</option>
+        </select></span
+      >
+    </div>
+    <details class="tpl-more">
+      <summary>More direction</summary>
+      <div class="tpl-more-grid">
+        ${select(
+          'elaboration',
+          'Elaboration',
+          ELABORATION_LABELS,
+          settings.elaboration
+        )}${select('drama', 'Drama', DRAMA_LABELS, settings.drama)}${select(
+          'structure',
+          'Order',
+          STRUCTURE_LABELS,
+          settings.structure
+        )}${select(
+          'audience',
+          'For',
+          { '': narrative.audience, ...AUDIENCE_LABELS },
+          settings.audience || ''
+        )}
+      </div>
+      <p class="tpl-leads">
+        <span>Material that leads</span>${LEADS.map(
+          (kind) =>
+            `<label><input type="checkbox" name="leads" value="${kind}"${settings.leads.includes(kind) ? ' checked' : ''}> ${EVIDENCE_LABELS[kind]}</label>`
+        ).join('')}
+      </p>
+    </details>
+  </fieldset>`
 }
 
 /** A small grid, for the card that opens the gallery. */
@@ -47,23 +169,23 @@ const browseMark = `<svg viewBox="0 0 320 180"><g class="tpl-browse-mark">${[
 
 /**
  * The template choice in the make-video and notebook-settings dialogs: no
- * template, the one chosen, and the way to the gallery, where they are
- * chosen.
+ * template, the one chosen with how to tell it, and the way to the gallery,
+ * where they are chosen.
  */
 export const templatePicker = (
-  selected: string | undefined,
+  choice: TemplateChoice | undefined,
   look?: Branding
 ) => {
-  const chosen = templateById(selected)
+  const narrative = narrativeById(choice?.narrative)
   return html`<fieldset class="tpl-picker" style="${lookStyle(look)}">
     <legend>Template</legend>
     <div class="tpl-picker-grid">
       <label class="tpl-option tpl-option-none">
         <input
           type="radio"
-          name="template"
+          name="narrative"
           value=""
-          ${chosen ? '' : 'checked'}
+          ${narrative ? '' : 'checked'}
         />
         <span class="tpl-option-thumb" aria-hidden="true">
           <svg viewBox="0 0 320 180">
@@ -75,17 +197,20 @@ export const templatePicker = (
           ><small>Each scene is planned on its own</small></span
         >
       </label>
-      ${chosen
+      ${narrative
         ? html`<label class="tpl-option">
-            <input type="radio" name="template" value="${chosen.id}" checked />
+            <input
+              type="radio"
+              name="narrative"
+              value="${narrative.id}"
+              checked
+            />
             <span class="tpl-option-thumb" aria-hidden="true"
-              >${templateSketch(chosen.slots[coverIndex(chosen)].sketch)}</span
+              >${templateSketch(narrative.beats[0].example)}</span
             >
             <span class="tpl-option-text"
-              ><b>${escape(storyById(chosen.story).name)}</b
-              ><small
-                >${escape(chosen.name)} · ${minutes(chosen.seconds)}</small
-              ></span
+              ><b>${escape(narrative.name)}</b
+              ><small>${escape(narrative.line)}</small></span
             >
           </label>`
         : ''}
@@ -96,71 +221,189 @@ export const templatePicker = (
       >
         <span class="tpl-option-thumb" aria-hidden="true">${browseMark}</span>
         <span class="tpl-option-text"
-          ><b>${chosen ? 'Choose another' : 'Browse templates'}</b
-          ><small
-            >${VIDEO_TEMPLATES.length} ways to tell ${TEMPLATE_STORIES.length}
-            stories</small
-          ></span
+          ><b>${narrative ? 'Choose another' : 'Browse templates'}</b
+          ><small>${NARRATIVES.length} stories, each told your way</small></span
         >
       </button>
     </div>
+    ${narrative ? directionFields(narrative, choice?.direction) : ''}
   </fieldset>`
 }
 
-/** Which slot a scene plays, in the scene's header; empty without a template. */
-export const sceneSlotChip = (project: Project, sceneId: string) => {
-  const shape = sceneTemplateSlot(project.video, sceneId)
+/** With a template, how much the creator is on camera is its direction's. */
+export const onCameraChoice = (choice: TemplateChoice | undefined) => {
+  const narrative = narrativeById(choice?.narrative)
+  const value = narrative
+    ? directionSettings(narrative, choice?.direction).onCamera
+    : 'ends'
+  return `<fieldset class="tpl-on-camera"${narrative ? '' : ' hidden disabled'}><legend>You on camera</legend>${(
+    Object.keys(ON_CAMERA_LABELS) as OnCamera[]
+  )
+    .map(
+      (key) =>
+        `<label><input type="radio" name="oncamera" value="${key}"${key === value ? ' checked' : ''}> ${ON_CAMERA_LABELS[key]}</label>`
+    )
+    .join('')}</fieldset>`
+}
+
+/** The length a dialog asks for, always a range, the shorter end first. */
+const lengthFrom = (values: FormData): LengthRange | null => {
+  const value = String(values.get('length') || '')
+  if (value !== 'own') {
+    const range = value.split(',').map(Number)
+    return range.length === 2 && range.every(Number.isFinite)
+      ? (range as LengthRange)
+      : null
+  }
+  const unit = Number(values.get('length-unit')) || 60
+  const [from, to] = ['length-from', 'length-to'].map(
+    (name) => Number(values.get(name)) * unit
+  )
+  if (!(from > 0 && to > from))
+    throw new Error('Give the length as a range, the shorter end first')
+  return [Math.round(from), Math.round(to)]
+}
+
+/**
+ * The template, direction and presence a dialog chose. Only what differs
+ * from the chosen direction is kept, so the direction stays a preset.
+ */
+export const templateFromForm = (
+  values: FormData
+): { narrative?: string; direction?: Direction; presence?: Presence } => {
+  const narrative = narrativeById(String(values.get('narrative') || ''))
+  if (!narrative) return {}
+  const preset = presetFor(narrative, String(values.get('preset') || ''))
+  const base = directionSettings(narrative, { preset })
+  const direction: Direction = { preset }
+  const length = lengthFrom(values) ?? base.length
+  if (length.join() !== base.length.join()) direction.length = length
+  const picked = {
+    elaboration: values.get('elaboration'),
+    drama: values.get('drama'),
+    structure: values.get('structure'),
+    onCamera: values.get('oncamera')
+  }
+  for (const [key, value] of Object.entries(picked))
+    if (value && value !== base[key as keyof typeof picked])
+      Object.assign(direction, { [key]: String(value) })
+  const audience = String(values.get('audience') || '')
+  if (audience) Object.assign(direction, { audience })
+  if (values.has('elaboration')) {
+    const leads = values.getAll('leads').map(String) as EvidenceKind[]
+    if ([...leads].sort().join() !== [...base.leads].sort().join())
+      direction.leads = leads
+  }
+  return {
+    narrative: narrative.id,
+    direction,
+    presence: presenceFor(directionSettings(narrative, direction).onCamera)
+  }
+}
+
+/**
+ * Keeps a dialog's template fields in step: no template hides how to tell
+ * it, a direction sets every field to its own, and your own length opens
+ * its two fields.
+ */
+export const syncTemplateFields = (
+  form: HTMLFormElement,
+  target: EventTarget | null
+) => {
+  const field = target as HTMLInputElement | null
+  const hide = (selector: string, hidden: boolean) =>
+    form.querySelectorAll<HTMLFieldSetElement>(selector).forEach((item) => {
+      item.hidden = hidden
+      item.toggleAttribute('disabled', hidden)
+    })
+  if (field?.name === 'narrative') {
+    const none = !field.value
+    hide('.tpl-direction, .tpl-on-camera', none)
+    hide('.tpl-presence', !none)
+  }
+  if (field?.name === 'preset' && field.dataset.settings) {
+    const settings = JSON.parse(field.dataset.settings)
+    // Picking an option deselects the rest of a single select.
+    const set = (name: string, value: string) => {
+      const item = form.querySelector<HTMLOptionElement>(
+        `select[name="${name}"] option[value="${value}"]`
+      )
+      if (item) item.selected = true
+    }
+    set('length', settings.length.join(','))
+    set('elaboration', settings.elaboration)
+    set('drama', settings.drama)
+    set('structure', settings.structure)
+    form
+      .querySelectorAll<HTMLInputElement>('input[name="oncamera"]')
+      .forEach((radio) => (radio.checked = radio.value === settings.onCamera))
+    form
+      .querySelectorAll<HTMLInputElement>('input[name="leads"]')
+      .forEach((box) => (box.checked = settings.leads.includes(box.value)))
+  }
+  const own = form.querySelector<HTMLElement>('.tpl-length-own')
+  const length = form.querySelector<HTMLSelectElement>('select[name="length"]')
+  if (own && length) own.hidden = length.value !== 'own'
+}
+
+/** Which beats a scene carries, in the scene's header; empty without a template. */
+export const sceneBeatChip = (project: Project, sceneId: string) => {
+  const shape = sceneNarrative(project.video, sceneId)
   if (!shape) return ''
-  const index = shape.template.slots.indexOf(shape.slot)
+  const names = shape.beats.map((plan) => plan.beat.name)
   return html`<button
     type="button"
     class="tpl-scene-chip"
-    data-action="scene-slot"
-    data-popover="scene-slot"
+    data-action="scene-beats"
+    data-popover="scene-beats"
     data-scene-id="${escape(sceneId)}"
     aria-label="${escape(
-      `Slot: ${shape.slot.role}, ${index + 1} of ${shape.template.slots.length} in ${templateTitle(shape.template)}. Change slot`
+      `Carries ${names.join(' and ')}, in ${shape.narrative.name}. Change`
     )}"
   >
-    ${dot(shape.slot.type)}<span>${escape(shape.slot.role)}</span
-    ><small>${index + 1}/${shape.template.slots.length}</small>
+    ${beatDot(shape.beats[0].beat.function)}<span
+      >${escape(names.join(' · '))}</span
+    >
   </button>`
 }
 
-/** The menu that moves a scene to another slot of the video's template. */
-export const sceneSlotMenu = (project: Project, sceneId: string) => {
+/** The menu that gives a scene another beat of the video's template. */
+export const sceneBeatMenu = (project: Project, sceneId: string) => {
   const video = project.video
-  const shape = sceneTemplateSlot(video, sceneId)
+  const shape = sceneNarrative(video, sceneId)
   if (!video || !shape) return ''
-  const index = video.scenes.findIndex((scene) => scene.id === sceneId)
-  const chosen = video.scenes[index].slot || null
-  const inOrder = assignSlots(shape.template, video.scenes.length)[index]
-  const option = (slot: string, label: string, note: string, type?: SlotType) =>
+  const own = video.scenes[shape.index].beats
+  const chosen = own?.length === 1 ? own[0] : own?.length ? null : ''
+  const inOrder = assignBeats(shape.plans, shape.count)[shape.index].map(
+    (id) => shape.plans.find((plan) => plan.beat.id === id)!.beat.name
+  )
+  const choice = (beat: string, label: string, note: string, fn: string) =>
     html`<button
       type="button"
       role="radio"
-      aria-checked="${(chosen || '') === slot}"
-      data-action="scene-slot-set"
-      data-slot="${slot}"
+      aria-checked="${chosen === beat}"
+      data-action="scene-beats-set"
+      data-beat="${beat}"
       data-scene-id="${escape(sceneId)}"
     >
-      ${type
-        ? dot(type)
-        : '<i class="tpl-type-dot" data-type="order"></i>'}<span
-        >${escape(label)}</span
-      ><small>${escape(note)}</small>
+      ${beatDot(fn)}<span>${escape(label)}</span><small>${escape(note)}</small>
     </button>`
-  return html`<p class="popover-title">
-      ${escape(templateTitle(shape.template))}
-    </p>
+  return html`<p class="popover-title">${escape(shape.narrative.name)}</p>
     <p class="popover-note">
-      Which slot this scene plays. Changing it plans the scene again.
+      Which beat this scene carries. Changing it plans the scene again.
     </p>
-    <div class="tpl-slot-menu" role="radiogroup" aria-label="Slot">
-      ${option('', 'Its place in order', inOrder.role)}
-      ${shape.template.slots
-        .map((slot) =>
-          option(slot.id, slot.role, SLOT_TYPES[slot.type].label, slot.type)
+    <div class="tpl-slot-menu" role="radiogroup" aria-label="Beat">
+      ${choice('', 'Its share in order', inOrder.join(' · '), 'order')}
+      ${shape.plans
+        .map((plan) =>
+          choice(
+            plan.beat.id,
+            plan.beat.name,
+            plan.told
+              ? FUNCTION_LABELS[plan.beat.function]
+              : 'Left out of this telling',
+            plan.beat.function
+          )
         )
         .join('')}
     </div>`

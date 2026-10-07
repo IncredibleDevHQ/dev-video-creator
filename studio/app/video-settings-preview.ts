@@ -1,11 +1,21 @@
 import { html } from './ui'
 import type { Project, VideoSettings } from '../shared/model'
 import { button, escape } from './ui'
-import { templateById, templateTitle } from '../shared/video-templates'
+import {
+  directionSettings,
+  lengthLabel,
+  narrativeById,
+  presetById,
+  presetFor
+} from '../shared/narratives'
 
-const title = (id: string) => {
-  const template = templateById(id)
-  return template ? templateTitle(template) : id
+/** A template and how it is told, in words: "Launch, as a Briefing (2–4 min)". */
+const telling = (settings: VideoSettings) => {
+  const narrative = narrativeById(settings.narrative)
+  if (!narrative) return ''
+  const preset = presetById(presetFor(narrative, settings.direction?.preset))!
+  const length = directionSettings(narrative, settings.direction).length
+  return `${narrative.name}, told as ${preset.name} (${lengthLabel(length)})`
 }
 export function videoSettingsEffect(project: Project, next: VideoSettings) {
   const video = project.video!
@@ -14,8 +24,11 @@ export function videoSettingsEffect(project: Project, next: VideoSettings) {
     video.settings.voice.kind !== next.voice.kind ||
     ('id' in video.settings.voice ? video.settings.voice.id : null) !==
       ('id' in next.voice ? next.voice.id : null)
+  // The template, or how it is told: either shapes every scene.
   const templateChanged =
-    (video.settings.template || '') !== (next.template || '')
+    (video.settings.narrative || '') !== (next.narrative || '') ||
+    JSON.stringify(video.settings.direction || null) !==
+      JSON.stringify(next.direction || null)
   const replanned = templateChanged
     ? video.scenes.map((_scene, index) => index + 1)
     : presenceChanged
@@ -42,8 +55,8 @@ export function videoSettingsPreview(project: Project, next: VideoSettings) {
     <h2>${effect.changed ? 'Review your changes' : 'No settings changed'}</h2>
     ${effect.templateChanged
       ? html`<p>
-          ${next.template
-            ? `Shape the video as ${escape(title(next.template))}.`
+          ${next.narrative
+            ? `Tell the video as ${escape(telling(next))}.`
             : 'Plan each scene on its own, with no template.'}
           Every scene is planned again in the new shape.
         </p>`

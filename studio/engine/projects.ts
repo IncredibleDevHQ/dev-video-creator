@@ -20,6 +20,7 @@ import { prepareCreativePages } from './creative/pages'
 import { prepareCreativeSlideRevision } from './creative/slide-revision'
 import { fingerprintOf } from './planning/fingerprint'
 import { STORY_SCENES, type HarnessSelection } from '../shared/model'
+import { legacyNarrative } from '../shared/narratives'
 import { randomUUID } from 'node:crypto'
 import type { Snapshot, SlideEdit, ChatRequest } from '../shared/api'
 import type { ProjectEvent } from '../shared/model'
@@ -45,9 +46,23 @@ import { pageBrandFrom, renderPage } from './source-page'
 import { identityOf } from './branding'
 import { startingLook, withLook } from './looks'
 const queues = new Map<string, Promise<unknown>>()
+/**
+ * A video saved before narratives (October 2026) named a template, and its
+ * scenes a slot: it opens on the narrative that template told, in order.
+ */
+const fromTemplate = (project: Snapshot['project']) => {
+  const video = project.video
+  const old = video?.settings as { template?: string } | undefined
+  if (!video || !old?.template) return
+  const narrative = legacyNarrative(old.template)
+  delete old.template
+  if (narrative) video.settings.narrative = narrative
+  for (const scene of video.scenes) delete (scene as { slot?: unknown }).slot
+}
 export const loadProject = async (id: string) => {
   const snapshot = await readRow<Snapshot>('projects', id)
   if (snapshot) {
+    fromTemplate(snapshot.project)
     snapshot.views = projectViews(snapshot.project, snapshot.events)
     snapshot.views.video.display = videoDisplay(snapshot)
     snapshot.views.presentation = presentationDisplay(snapshot)

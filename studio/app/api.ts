@@ -126,9 +126,9 @@ export const api = {
       'POST',
       { presence }
     ),
-  setSceneSlot: (id: string, sceneId: string, slot: string | null) =>
-    request<Snapshot>(`/projects/${id}/scenes/${sceneId}/slot`, 'POST', {
-      slot
+  setSceneBeats: (id: string, sceneId: string, beats: string[] | null) =>
+    request<Snapshot>(`/projects/${id}/scenes/${sceneId}/beats`, 'POST', {
+      beats
     }),
   replan: (id: string, sceneId: string, presence: Presence | null) =>
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/presence`, 'POST', {

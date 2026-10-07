@@ -1,56 +1,66 @@
 /* Video templates: the gallery page, the dialog picker and the scene chip.
    The sketches' own styles are in template-sketches.css. */
 
-/* Slot types and template kinds, light then dark. */
+/* A beat's narrative function, light then dark. */
 :root {
-  --tpl-motion: #7a4fe0;
-  --tpl-explainer: #2f6fe4;
-  --tpl-capture: #0c9488;
-  --tpl-code: #b9770c;
-  --tpl-speaker: #d2456b;
+  --tpl-hook: #d2456b;
+  --tpl-context: #6b7a90;
+  --tpl-problem: #c4581c;
+  --tpl-explain: #2f6fe4;
+  --tpl-evidence: #0e8fa8;
+  --tpl-turn: #7a4fe0;
+  --tpl-resolution: #0c9488;
+  --tpl-payoff: #b9770c;
+  --tpl-action: #5a8f1c;
   --tpl-order: #8a948f;
-  --tpl-data: #0e8fa8;
-  --tpl-captions: #c4581c;
 }
 :root[data-theme='dark'] {
-  --tpl-motion: #a383ff;
-  --tpl-explainer: #6b9cff;
-  --tpl-capture: #2fc4b4;
-  --tpl-code: #e6a83a;
-  --tpl-speaker: #ff6f93;
+  --tpl-hook: #ff6f93;
+  --tpl-context: #9aa8bd;
+  --tpl-problem: #fb8f4a;
+  --tpl-explain: #6b9cff;
+  --tpl-evidence: #38c6e0;
+  --tpl-turn: #a383ff;
+  --tpl-resolution: #2fc4b4;
+  --tpl-payoff: #e6a83a;
+  --tpl-action: #9ad65a;
   --tpl-order: #9aa39e;
-  --tpl-data: #38c6e0;
-  --tpl-captions: #fb8f4a;
 }
-[data-type='motion'] {
-  --tpl-c: var(--tpl-motion);
+[data-function='hook'] {
+  --tpl-c: var(--tpl-hook);
 }
-[data-type='explainer'] {
-  --tpl-c: var(--tpl-explainer);
+[data-function='context'] {
+  --tpl-c: var(--tpl-context);
 }
-[data-type='capture'] {
-  --tpl-c: var(--tpl-capture);
+[data-function='problem'] {
+  --tpl-c: var(--tpl-problem);
 }
-[data-type='code'] {
-  --tpl-c: var(--tpl-code);
+[data-function='explain'] {
+  --tpl-c: var(--tpl-explain);
 }
-[data-type='speaker'] {
-  --tpl-c: var(--tpl-speaker);
+[data-function='evidence'] {
+  --tpl-c: var(--tpl-evidence);
 }
-[data-type='order'] {
+[data-function='turn'] {
+  --tpl-c: var(--tpl-turn);
+}
+[data-function='resolution'] {
+  --tpl-c: var(--tpl-resolution);
+}
+[data-function='payoff'] {
+  --tpl-c: var(--tpl-payoff);
+}
+[data-function='action'] {
+  --tpl-c: var(--tpl-action);
+}
+[data-function='order'] {
   --tpl-c: var(--tpl-order);
 }
-[data-type='data'] {
-  --tpl-c: var(--tpl-data);
-}
-[data-type='captions'] {
-  --tpl-c: var(--tpl-captions);
-}
-.tpl-type-dot {
+.tpl-beat-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: 3px;
+  border-radius: 50%;
   background: var(--tpl-c, var(--tpl-order));
   flex: none;
 }
@@ -375,7 +385,7 @@
   color: #111;
   font-size: 10px;
 }
-/* The speaker, where a slot puts them and its sketch does not draw them. */
+/* The speaker, where the direction puts them for this beat. */
 .tpl-stage-cam {
   position: absolute;
   display: grid;
@@ -409,6 +419,44 @@
 }
 .tpl-stage[data-speaker='beside'] .tpl-sketch {
   right: 30%;
+}
+/* Full frame: the speaker fills the stage; words go over them when the
+   direction has them lead. */
+.tpl-stage-cam.full,
+.tpl-stage-cam.over {
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, #35414f, #1d252e);
+}
+.tpl-stage-cam.full svg,
+.tpl-stage-cam.over svg {
+  width: 44%;
+}
+.tpl-stage[data-speaker='full'] .tpl-sketch,
+.tpl-stage[data-speaker='over'] .tpl-sketch {
+  visibility: hidden;
+}
+.tpl-stage-words {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 14%;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.45);
+  animation: tpl-words 0.7s ease-out both;
+}
+.tpl-stage.large .tpl-stage-words {
+  font-size: 40px;
+}
+@keyframes tpl-words {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 .tpl-segments {
   position: absolute;
@@ -463,8 +511,8 @@ button.tpl-segment:hover {
   }
 }
 
-/* A template, opened: its name and one line, the other ways to tell the
-   story, and the player with the slots beside it as chapters. */
+/* A template, opened: its name and one line, its directions, and the
+   player with the beats beside it as chapters. */
 .tpl-detail {
   max-width: 1060px;
 }
@@ -490,6 +538,10 @@ button.tpl-segment:hover {
   color: var(--muted);
   font-size: 13px;
 }
+/* Under the directions: the chosen one's settings, then the player. */
+.tpl-variants + .tpl-detail-meta {
+  margin: -6px 0 14px;
+}
 .tpl-use {
   flex: none;
   text-align: right;
@@ -500,7 +552,7 @@ button.tpl-segment:hover {
   font-size: 12.5px;
   color: var(--muted);
 }
-/* The other ways to tell the story, as a segmented control. */
+/* The directions, as a segmented control. */
 .tpl-variants {
   display: inline-flex;
   flex-wrap: wrap;
@@ -559,7 +611,13 @@ button.tpl-segment:hover {
 .tpl-caption span {
   color: var(--muted);
 }
-/* The slots as chapters, the one playing marked. */
+.tpl-caption small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+/* The beats as chapters, the one playing marked. */
 .tpl-chapters {
   display: flex;
   flex-direction: column;
@@ -595,6 +653,37 @@ button.tpl-segment:hover {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+/* A beat this direction leaves out: listed, dimmed, not playable. */
+.tpl-chapters .tpl-left-out {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 13.5px;
+  opacity: 0.55;
+}
+/* What the story insists on, and what the source must hold. */
+.tpl-insists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.tpl-insists h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tpl-insists ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
 
 @media (max-width: 900px) {
   .tpl-layout {
@@ -614,7 +703,8 @@ button.tpl-segment:hover {
     display: none;
   }
   .tpl-grid,
-  .tpl-player {
+  .tpl-player,
+  .tpl-insists {
     grid-template-columns: 1fr;
   }
   .tpl-detail-head {

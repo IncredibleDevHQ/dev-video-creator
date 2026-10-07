@@ -123,7 +123,8 @@ app.settingsScreen = new Settings(
 app.templateGallery = new TemplateGallery(
   app.root,
   () => app.render(),
-  (templateId) => void useTemplate(app, templateId).catch(app.error)
+  (narrative, preset) =>
+    void useTemplate(app, narrative, preset).catch(app.error)
 )
 app.pendingChats = new Set<string>()
 app.liveConnected = true

@@ -1,5 +1,5 @@
 import type { SceneStage } from '../shared/model'
-import { templateById } from '../shared/video-templates'
+import { narrativeById, validDirection } from '../shared/narratives'
 import { takeTrimRange, trimTake } from './take-trim'
 import { scriptEditProblems } from './moment-edit-scope'
 import { generationFailure } from './generation-errors'
@@ -38,15 +38,20 @@ export const validateVideoSettings = (value: unknown): VideoSettings => {
       raw.voice.id.length > 200)
   )
     throw new Error('Choose a voice')
-  if (
-    raw.template !== undefined &&
-    raw.template !== '' &&
-    !templateById(raw.template)
-  )
+  const narrative = raw.narrative ? narrativeById(raw.narrative) : undefined
+  if (raw.narrative && !narrative)
     throw new Error('Choose one of the templates, or none')
   return {
     ...(raw.harness ? { harness: validateHarnessSelection(raw.harness) } : {}),
-    ...(raw.template ? { template: raw.template } : {}),
+    ...(narrative
+      ? {
+          narrative: narrative.id,
+          direction: validDirection(
+            narrative,
+            raw.direction ?? { preset: narrative.preset }
+          )
+        }
+      : {}),
     presence: raw.presence,
     voice:
       raw.voice.kind === 'record'
@@ -481,28 +486,34 @@ export const replanPresence = async (
 }
 
 /**
- * The template slot a scene plays: the creator's choice, or null to take its
- * place in order again. The scene is planned again in its new role.
+ * The beats a scene carries: the creator's choice, or null to take its
+ * share in order again. The scene is planned again for its new beats.
  */
-export const setSceneSlot = async (
+export const setSceneBeats = async (
   id: string,
   sceneId: string,
-  slot: unknown
+  beats: unknown
 ) => {
   const snapshot = await changeProject(id, (current) => {
     const video = current.project.video
     const scene = video?.scenes.find((item) => item.id === sceneId)
     if (!video || !scene) throw new Error('Scene not found')
-    const template = templateById(video.settings.template)
-    if (!template) throw new Error('Choose a template for the video first')
-    if (slot !== null && !template.slots.some((item) => item.id === slot))
-      throw new Error('Choose one of the template’s slots')
+    const narrative = narrativeById(video.settings.narrative)
+    if (!narrative) throw new Error('Choose a template for the video first')
+    if (
+      beats !== null &&
+      (!Array.isArray(beats) ||
+        !beats.length ||
+        new Set(beats).size !== beats.length ||
+        beats.some((beat) => !narrative.beats.some((item) => item.id === beat)))
+    )
+      throw new Error('Choose beats of the video’s template')
     if (
       ['writing', 'replanning', 'changing', 'producing'].includes(scene.phase)
     )
-      throw new Error('Wait for this scene to finish before changing its slot')
+      throw new Error('Wait for this scene to finish before changing its beats')
     delete scene.editMomentId
-    scene.slot = slot as string | null
+    scene.beats = beats as string[] | null
     scene.planKey = scenePlanKey(current.project, scene)
     transitionScene(scene, 'replan', current)
     scene.produced = null
@@ -583,9 +594,9 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
         'Wait for the active scene work to finish before changing notebook settings. Saved work is kept.'
       )
     const oldPresence = video.settings.presence
-    // A slot is chosen within one template; a new template starts in order.
-    if ((video.settings.template || '') !== (valid.template || ''))
-      for (const scene of video.scenes) delete scene.slot
+    // Beats are chosen within one narrative; a new one starts in order.
+    if ((video.settings.narrative || '') !== (valid.narrative || ''))
+      for (const scene of video.scenes) delete scene.beats
     video.settings = {
       ...valid,
       ...(!valid.harness && video.settings.harness

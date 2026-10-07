@@ -2,12 +2,7 @@
 // tells, how this telling sounds, and the beats this scene carries. The
 // planner decides the shots, the moments and where the words go.
 import type { Presence } from '../model'
-import {
-  allocateBeats,
-  assignBeats,
-  speakerFor,
-  type BeatPlan
-} from './allocate'
+import { allocateBeats, assignBeats, speakerFor } from './allocate'
 import {
   directionSettings,
   narrativeById,
@@ -27,49 +22,77 @@ import {
   type Structure
 } from './model'
 
-type NarratedVideo = {
-  settings: { narrative?: string; direction?: Direction }
-  scenes: Array<{ id: string; beats?: string[] | null }>
-}
+type NarrativeSettings = { narrative?: string; direction?: Direction }
 
 /**
- * The video's narrative, its direction, and the beats one scene carries:
- * the creator's choice for the scene, else its share in order.
+ * The video's narrative, its direction, and the beats the scene at one
+ * place carries: the creator's choice for it, else its share in order.
  */
-export const sceneNarrative = (
-  video: NarratedVideo | null | undefined,
-  sceneId: string
+export const narrativeAt = (
+  settings: NarrativeSettings,
+  index: number,
+  count: number,
+  chosen?: string[] | null
 ) => {
-  const narrative = narrativeById(video?.settings.narrative)
-  const index = video?.scenes.findIndex((scene) => scene.id === sceneId) ?? -1
-  if (!video || !narrative || index < 0) return null
-  const settings = directionSettings(narrative, video.settings.direction)
-  const plans = allocateBeats(narrative, settings)
-  const assigned = assignBeats(plans, video.scenes.length)
-  const chosen = (video.scenes[index].beats || []).filter((id) =>
+  const narrative = narrativeById(settings.narrative)
+  if (!narrative || index < 0 || index >= count) return null
+  const direction = directionSettings(narrative, settings.direction)
+  const plans = allocateBeats(narrative, direction)
+  const assigned = assignBeats(plans, count)
+  const own = (chosen || []).filter((id) =>
     plans.some((plan) => plan.beat.id === id)
   )
-  const ids = chosen.length ? chosen : assigned[index]
-  const beats = ids.map((id) => plans.find((plan) => plan.beat.id === id)!)
-  // A beat split over several scenes gives each its part of the time.
-  const share = (plan: BeatPlan, end: 0 | 1) =>
-    plan.seconds[end] /
-    Math.max(1, assigned.filter((list) => list.includes(plan.beat.id)).length)
-  const seconds: LengthRange = [0, 1].map((end) =>
-    Math.round(beats.reduce((sum, plan) => sum + share(plan, end as 0 | 1), 0))
-  ) as LengthRange
+  const ids = own.length ? own : assigned[index]
+  const planOf = (id: string) => plans.find((plan) => plan.beat.id === id)!
+  // A beat split over several scenes gives each its part of the time; a
+  // chosen beat this telling leaves out takes the scene's own share.
+  const timeOf = (list: string[]) =>
+    [0, 1].map((end) =>
+      Math.round(
+        list.reduce(
+          (sum, id) =>
+            sum +
+            planOf(id).seconds[end] /
+              Math.max(1, assigned.filter((item) => item.includes(id)).length),
+          0
+        )
+      )
+    ) as LengthRange
+  const seconds = timeOf(ids)
   return {
     narrative,
-    preset: presetFor(narrative, video.settings.direction?.preset),
-    settings,
+    preset: presetFor(narrative, settings.direction?.preset),
+    settings: direction,
     plans,
-    beats,
-    seconds,
+    beats: ids.map(planOf),
+    seconds: seconds[1] ? seconds : timeOf(assigned[index]),
     index,
-    count: video.scenes.length
+    count
   }
 }
-export type SceneNarrative = NonNullable<ReturnType<typeof sceneNarrative>>
+
+/** The narrative as one scene of a video carries it. */
+export const sceneNarrative = (
+  video:
+    | {
+        settings: NarrativeSettings
+        scenes: Array<{ id: string; beats?: string[] | null }>
+      }
+    | null
+    | undefined,
+  sceneId: string
+) => {
+  const index = video?.scenes.findIndex((scene) => scene.id === sceneId) ?? -1
+  return video && index >= 0
+    ? narrativeAt(
+        video.settings,
+        index,
+        video.scenes.length,
+        video.scenes[index].beats
+      )
+    : null
+}
+export type SceneNarrative = NonNullable<ReturnType<typeof narrativeAt>>
 
 const DRAMA_NOTES: Record<Drama, string> = {
   calm: 'calm and clear: steady pacing, no hype',

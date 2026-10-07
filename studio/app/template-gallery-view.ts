@@ -1,46 +1,39 @@
-// The template gallery page: a rail of the groups of stories beside the
-// lists (template-gallery-lists.ts) or one template opened, with its
-// storyboard player. Every sketch is drawn in the notebook's own look.
+// The template gallery page: a rail of the groups beside the lists
+// (template-gallery-lists.ts) or one template opened: its directions as
+// tabs, a player that walks its beats as that direction tells them, and
+// what the story insists on. Every sketch is drawn in the notebook's look.
 import incredibleLogo from './assets/incredible-logo.svg'
 import { themeControl } from './appearance'
 import { escape, html } from './ui'
 import { galleryIcon } from './template-icons'
 import { listPage } from './template-gallery-lists'
 import {
+  beatDot,
+  beatStage,
   lookStyle,
-  mmss,
-  templateStage,
-  typeDot,
+  lowerFirst,
+  telling,
   type GalleryState
 } from './template-gallery-parts'
 import type { Branding } from '../shared/settings'
 import {
+  DRAMA_LABELS,
+  NARRATIVES,
+  ON_CAMERA_LABELS,
   STORY_GROUPS,
-  TEMPLATE_STORIES,
-  VIDEO_TEMPLATES,
-  cameraShare,
-  storyById,
-  storyTemplates,
-  type VideoTemplate
-} from '../shared/video-templates'
+  STRUCTURE_LABELS,
+  allowedPresets,
+  groupById,
+  groupNarratives,
+  lengthLabel,
+  narrativeById,
+  presetFor,
+  type Narrative
+} from '../shared/narratives'
 
-export { lookStyle, templateStage } from './template-gallery-parts'
+export { lookStyle } from './template-gallery-parts'
 export type { GalleryState, GalleryUse } from './template-gallery-parts'
 export { templateResults } from './template-gallery-lists'
-
-/** How much of a template puts the creator on camera, in words. */
-const onCamera = (template: VideoTemplate) => {
-  const share = cameraShare(template)
-  return share >= 0.85
-    ? 'Throughout'
-    : share >= 0.5
-      ? 'Most of it'
-      : share >= 0.2
-        ? 'Some of it'
-        : share > 0
-          ? 'A little'
-          : 'Not at all'
-}
 
 /** Said once, in the rail, when the previews take a notebook's look. */
 const lookNote = (branding?: Branding) =>
@@ -52,43 +45,51 @@ const lookNote = (branding?: Branding) =>
       }</p>`
     : ''
 
-const useButton = (state: GalleryState, template: VideoTemplate) =>
-  state.current === template.id
-    ? '<p class="tpl-use-note">This video uses it.</p>'
-    : state.use
-      ? `<button type="button" class="primary" data-tpl-use="${template.id}">${
-          state.use === 'make'
-            ? 'Use for this video →'
-            : 'Switch this video to it →'
-        }</button><p class="tpl-use-note">${
-          state.use === 'make'
-            ? 'Camera and voice come next.'
-            : 'Every scene is planned again.'
-        }</p>`
-      : '<p class="tpl-use-note">Open a notebook with finished wireframes to use it.</p>'
+const useButton = (state: GalleryState, narrative: Narrative) => {
+  const preset = presetFor(narrative, state.preset)
+  const same = state.current.narrative === narrative.id
+  if (same && presetFor(narrative, state.current.preset) === preset)
+    return '<p class="tpl-use-note">This video tells it this way.</p>'
+  if (!state.use)
+    return '<p class="tpl-use-note">Open a notebook with finished wireframes to use it.</p>'
+  const label =
+    state.use === 'make'
+      ? 'Use for this video →'
+      : same
+        ? 'Tell it this way →'
+        : 'Switch this video to it →'
+  return `<button type="button" class="primary" data-tpl-use="${narrative.id}" data-preset="${preset}">${label}</button><p class="tpl-use-note">${
+    state.use === 'make'
+      ? 'Camera and voice come next.'
+      : 'Every scene is planned again.'
+  }</p>`
+}
 
 /**
- * The storyboard player: one slot large, a caption saying what it does,
- * and the slots beside it as chapters.
+ * The player: one beat large, a caption saying what the viewer comes away
+ * knowing, and the beats beside it as chapters with their time. Beats this
+ * direction leaves out stay listed, dimmed.
  */
-export const templatePlayer = (
-  state: GalleryState,
-  template: VideoTemplate
-) => {
-  const slot = template.slots[state.slot]
+export const templatePlayer = (state: GalleryState, narrative: Narrative) => {
+  const { plans, told } = telling(narrative, state.preset)
+  const at = ((state.beat % told.length) + told.length) % told.length
+  const shown = told[at]
   return html`<section
     class="tpl-player"
-    aria-label="Storyboard"
+    aria-label="Beats"
     data-playing="${state.playing}"
   >
     <div class="tpl-player-main">
-      ${templateStage(template, state.slot, { large: true, clickable: true })}
+      ${beatStage(narrative, state.preset, at, {
+        large: true,
+        clickable: true
+      })}
       <div class="tpl-player-bar">
         <button
           type="button"
           class="tpl-round"
           data-tpl-step="-1"
-          aria-label="Previous slot"
+          aria-label="Previous beat"
         >
           ‹
         </button>
@@ -105,93 +106,119 @@ export const templatePlayer = (
           type="button"
           class="tpl-round"
           data-tpl-step="1"
-          aria-label="Next slot"
+          aria-label="Next beat"
         >
           ›
         </button>
         <p class="tpl-caption">
-          <b>${escape(slot.role)}</b><span>${escape(slot.move)}</span>
+          <b>${escape(shown.beat.name)}</b
+          ><span>${escape(shown.beat.know)}</span>${shown.expanded
+            ? `<small>Grows: ${escape(shown.beat.expansions.map(lowerFirst).join('; '))}</small>`
+            : ''}
         </p>
       </div>
     </div>
-    <ol class="tpl-chapters" aria-label="Slots">
-      ${template.slots
-        .map(
-          (item, index) =>
-            html`<li>
-              <button
-                type="button"
-                data-tpl-slot="${index}"
-                aria-current="${index === state.slot}"
-              >
-                ${typeDot(item.type)}<span>${escape(item.role)}</span
-                ><small>${mmss(item.from)}</small>
-              </button>
-            </li>`
-        )
+    <ol class="tpl-chapters" aria-label="Beats">
+      ${plans
+        .map((plan) => {
+          const index = told.indexOf(plan)
+          return plan.told
+            ? html`<li>
+                <button
+                  type="button"
+                  data-tpl-beat="${index}"
+                  aria-current="${index === at}"
+                >
+                  ${beatDot(plan.beat.function)}<span
+                    >${escape(plan.beat.name)}</span
+                  ><small>${lengthLabel(plan.seconds)}</small>
+                </button>
+              </li>`
+            : html`<li class="tpl-left-out" title="Left out in this telling">
+                ${beatDot(plan.beat.function)}<span
+                  >${escape(plan.beat.name)}</span
+                ><small>—</small>
+              </li>`
+        })
         .join('')}
     </ol>
   </section>`
 }
 
-/** The other ways to tell the same story, as tabs above the player. */
-const variantTabs = (template: VideoTemplate) => {
-  const siblings = storyTemplates(template.story)
-  return siblings.length < 2
-    ? ''
-    : html`<div
-        class="tpl-variants"
-        role="tablist"
-        aria-label="Ways to tell it"
-      >
-        ${siblings
-          .map(
-            (item) =>
-              html`<button
-                type="button"
-                role="tab"
-                aria-selected="${item.id === template.id}"
-                data-tpl-open="${item.id}"
-              >
-                ${escape(item.name)}
-              </button>`
-          )
-          .join('')}
-      </div>`
+/** The directions as tabs, and the chosen one's settings in one line. */
+const directions = (state: GalleryState, narrative: Narrative) => {
+  const preset = presetFor(narrative, state.preset)
+  const { settings } = telling(narrative, preset)
+  return html`<div
+      class="tpl-variants"
+      role="tablist"
+      aria-label="Ways to tell it"
+    >
+      ${allowedPresets(narrative)
+        .map(
+          (item) =>
+            html`<button
+              type="button"
+              role="tab"
+              aria-selected="${item.id === preset}"
+              data-tpl-preset="${item.id}"
+            >
+              ${escape(item.name)}
+            </button>`
+        )
+        .join('')}
+    </div>
+    <p class="tpl-detail-meta">
+      ${[
+        lengthLabel(settings.length),
+        DRAMA_LABELS[settings.drama],
+        ON_CAMERA_LABELS[settings.onCamera],
+        STRUCTURE_LABELS[settings.structure]
+      ]
+        .map(escape)
+        .join(' · ')}
+    </p>`
 }
 
-const detail = (state: GalleryState, template: VideoTemplate) => {
-  const story = storyById(template.story)
+const detail = (state: GalleryState, narrative: Narrative) => {
+  const group = groupById(narrative.group)!
   return html`<div class="tpl-detail">
     <div class="tpl-detail-head">
       <div>
-        <button type="button" class="tpl-crumb" data-tpl-story="${story.id}">
-          ‹ ${escape(story.name)}
+        <button type="button" class="tpl-crumb" data-tpl-group="${group.id}">
+          ‹ ${escape(group.name)}
         </button>
-        <h1>${escape(template.name)}</h1>
-        <p class="tpl-lede">${escape(template.tagline)}</p>
-        <p class="tpl-detail-meta">
-          ${mmss(template.seconds)} · On camera:
-          ${onCamera(template).toLowerCase()}
-        </p>
+        <h1>${escape(narrative.name)}</h1>
+        <p class="tpl-lede">${escape(narrative.line)}</p>
       </div>
-      <div class="tpl-use">${useButton(state, template)}</div>
+      <div class="tpl-use">${useButton(state, narrative)}</div>
     </div>
-    ${variantTabs(template)} ${templatePlayer(state, template)}
+    ${directions(state, narrative)} ${templatePlayer(state, narrative)}
+    <div class="tpl-insists">
+      <section>
+        <h2>It insists</h2>
+        <ul>
+          ${narrative.rules.map((rule) => `<li>${escape(rule)}</li>`).join('')}
+        </ul>
+      </section>
+      <section>
+        <h2>Your source needs</h2>
+        <ul>
+          ${narrative.needs
+            .map(
+              (need) =>
+                `<li>${escape(need.charAt(0).toUpperCase() + need.slice(1))}</li>`
+            )
+            .join('')}
+        </ul>
+      </section>
+    </div>
   </div>`
 }
 
-/** The group the rail lights: the open template's, the story's, or chosen. */
-const litGroup = (state: GalleryState, template?: VideoTemplate) => {
-  const story = template ? template.story : state.story
-  return (
-    TEMPLATE_STORIES.find((item) => item.id === story)?.group ?? state.group
-  )
-}
-
 export const templateGalleryPage = (state: GalleryState) => {
-  const template = VIDEO_TEMPLATES.find((item) => item.id === state.templateId)
-  const lit = litGroup(state, template)
+  const narrative = narrativeById(state.narrative)
+  const lit = narrative?.group ?? state.group
   const item = (id: string, name: string, count: number) =>
     html`<button
       type="button"
@@ -211,21 +238,15 @@ export const templateGalleryPage = (state: GalleryState) => {
       </div>
     </header>
     <main class="tpl-layout" style="${lookStyle(state.look)}">
-      <nav class="tpl-rail" aria-label="Groups of stories">
-        ${item('all', 'All templates', VIDEO_TEMPLATES.length)}
+      <nav class="tpl-rail" aria-label="Groups of templates">
+        ${item('all', 'All templates', NARRATIVES.length)}
         ${STORY_GROUPS.map((group) =>
-          item(
-            group.id,
-            group.name,
-            VIDEO_TEMPLATES.filter(
-              (entry) => storyById(entry.story).group === group.id
-            ).length
-          )
+          item(group.id, group.name, groupNarratives(group.id).length)
         ).join('')}
         ${lookNote(state.look)}
       </nav>
       <section class="tpl-panel">
-        ${template ? detail(state, template) : listPage(state)}
+        ${narrative ? detail(state, narrative) : listPage(state)}
       </section>
     </main>`
 }

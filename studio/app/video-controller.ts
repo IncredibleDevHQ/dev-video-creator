@@ -1,5 +1,6 @@
 import { dialogueBoundary } from '../shared/dialogue'
 import type { Presence, Transition } from '../shared/model'
+import { templateFromForm } from './template-picker'
 import { momentViewKey } from '../shared/model'
 import { animationSecond } from '../shared/scene-time'
 import { sceneDisplay } from '../shared/state'
@@ -290,13 +291,13 @@ export const submitVideo = async (
   values: FormData
 ) => {
   if (['video-form', 'video-settings-form'].includes(form.id) && app.snapshot) {
-    const presence = String(values.get('presence')) as Presence
     const voice = String(values.get('voice'))
-    const template = String(values.get('template') || '')
+    // A template's direction sets the presence; without one, the radios do.
+    const { presence, ...template } = templateFromForm(values)
     const next = {
-      presence,
+      presence: presence || (String(values.get('presence')) as Presence),
       voice: parseVoice(voice),
-      ...(template ? { template } : {})
+      ...template
     }
     if (form.id === 'video-settings-form') {
       app.pendingVideoSettings = next

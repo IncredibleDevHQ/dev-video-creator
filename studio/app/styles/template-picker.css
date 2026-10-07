@@ -1,5 +1,5 @@
-/* Templates in the make-video and notebook-settings dialogs, and the chip
-   and menu for the slot a scene plays. */
+/* Templates in the make-video and notebook-settings dialogs, with how to
+   tell them, and the chip and menu for the beats a scene carries. */
 
 /* In the dialogs: no template, the chosen one, and the way to the gallery. */
 dialog:has(.tpl-picker) {
@@ -100,7 +100,111 @@ dialog:has(.tpl-picker) {
   font-size: 11.5px;
 }
 
-/* The scene's slot, beside its heading, and the menu that moves it. */
+/* How to tell it: the directions as chips, the length, the rest folded. */
+.dialog-body .tpl-direction {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 0;
+}
+.dialog-body .tpl-direction[hidden],
+.dialog-body .tpl-on-camera[hidden],
+.dialog-body .tpl-presence[hidden] {
+  display: none;
+}
+.tpl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dialog-body .tpl-direction .tpl-chip {
+  position: relative;
+  margin: 0;
+}
+.dialog-body .tpl-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.tpl-chip span {
+  display: inline-block;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.tpl-chip input:checked + span {
+  border-color: var(--accent);
+  background: var(--selected);
+  color: inherit;
+  font-weight: 600;
+}
+.tpl-chip input:focus-visible + span {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.tpl-length {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px 10px;
+}
+.dialog-body .tpl-direction .tpl-length label {
+  display: block;
+  margin: 0;
+  min-width: 180px;
+}
+.dialog-body .tpl-length select {
+  margin: 6px 0 0;
+}
+.dialog-body .tpl-length-own {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.dialog-body .tpl-length-own[hidden] {
+  display: none;
+}
+.dialog-body .tpl-length-own input {
+  width: 76px;
+  margin: 0;
+  padding: 10px;
+}
+.dialog-body .tpl-length-own select {
+  width: auto;
+  margin: 0;
+  padding: 10px;
+}
+.tpl-more summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+}
+.tpl-more-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+  margin-top: 8px;
+}
+.dialog-body .tpl-direction .tpl-more-grid label {
+  display: block;
+  margin: 0;
+}
+.dialog-body .tpl-leads {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+.dialog-body .tpl-direction .tpl-leads label {
+  margin: 0;
+}
+
+/* The scene's beats, beside its heading, and the menu that changes them. */
 .tpl-scene-chip {
   display: inline-flex;
   align-items: center;

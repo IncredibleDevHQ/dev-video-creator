@@ -46,7 +46,8 @@ import { agentNames } from './agent-setup'
 import { wireframeStatus } from './wireframe-copy'
 import { sceneChoice } from './scene-link'
 import {
-  sceneSlotChip,
+  onCameraChoice,
+  sceneBeatChip,
   takePickedTemplate,
   templatePicker
 } from './template-picker'
@@ -602,7 +603,7 @@ export const videoScreen = (
 </div>
 <aside class="transcript" ${focused ? 'inert' : ''}>
 <div class="transcript-header">
-<h2>Scene ${selected + 1}</h2>${sceneSlotChip(project, scene.id)}
+<h2>Scene ${selected + 1}</h2>${sceneBeatChip(project, scene.id)}
 </div>${
     showActivity
       ? `<details class="activity-disclosure" data-activity-key="${scene.id}" ${
@@ -666,10 +667,14 @@ export const makeVideoDialog = (
 ) => {
   const presence = current?.presence || 'high'
   const voice = current?.voice || settings.voice.selected
+  // With a template, its direction says how much you are on camera.
+  const story = current?.narrative
+    ? { narrative: current.narrative, direction: current.direction }
+    : takePickedTemplate()
   return `<h2>Make the video</h2>
 <form id="video-form">
-${templatePicker(current?.template ?? takePickedTemplate(), look)}
-<fieldset>
+${templatePicker(story, look)}${onCameraChoice(story)}
+<fieldset class="tpl-presence"${story?.narrative ? ' hidden disabled' : ''}>
 <legend>On camera</legend>${(['off', 'low', 'high'] as const)
     .map(
       (value) =>
