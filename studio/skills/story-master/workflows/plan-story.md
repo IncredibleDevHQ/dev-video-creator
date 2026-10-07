@@ -87,13 +87,16 @@ pages come from its beats:
 - The scenes' seconds add up to the telling's `length` range. `elaboration`
   and `drama` say how much each page explains and how it sounds.
 - Keep the story's `rules`; its `needs` say what the source must hold.
-- Each scene lists the evidence it needs, `"needs": [{ "kind": "numbers",
-  "what": "how many requests failed", "source": "…" }]`, with `kind` one of
-  numbers, timeline, code, diff, diagram, demo, terminal, quote, creator.
-  `source` is one full sentence copied verbatim from the source when it
-  holds that evidence, or `null` when it does not: the creator is asked for
-  it. Never invent the missing evidence; a scene may still go ahead with a
-  need left open.
+- Each scene lists the evidence it must show that has to come from
+  somewhere, `"needs": [{ "kind": "numbers", "what": "how many requests
+  failed", "source": "…" }]`: a number, a quote, code, a diff, a timeline of
+  events, terminal output, a product demo (`kind` one of numbers, quote,
+  code, diff, timeline, terminal, demo). `source` is one full sentence
+  copied verbatim from the source when it holds that evidence, or `null`
+  when it does not: the creator is asked for it. A diagram is drawn from
+  the source's facts, so it is never a need left for the creator; list one
+  only with the sentence it rests on. Never invent the missing evidence; a
+  scene may still go ahead with a need left open.
 - The first scene is still the `title` (it carries the opening beat) and the
   last the `close`.
 

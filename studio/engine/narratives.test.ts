@@ -361,6 +361,7 @@ it('checks which pages carry each beat, and what they still need', () => {
       needs: [
         { kind: 'numbers' as const, what: 'error rate', source: null },
         { kind: 'quote' as const, what: 'the trigger', source: 'A sentence.' },
+        { kind: 'diagram' as const, what: 'the flow', source: null },
         { kind: 'timeline' as const, what: 'when it began', source: null }
       ],
       answers: [{ what: 'when it began', answer: '14:02 UTC' }]

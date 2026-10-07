@@ -141,13 +141,18 @@ export const coverage = (
   }
 }
 
-/** The evidence pages still need from the creator, page by page. */
+/**
+ * The evidence pages still need from the creator, page by page. A diagram
+ * is drawn from the source, and you on camera is a take: neither is asked.
+ */
 export const openRequests = (pages: Page[]) =>
   pages.flatMap((page, index) =>
     (page.needs || [])
       .filter(
         (need) =>
           !need.source &&
+          need.kind !== 'diagram' &&
+          need.kind !== 'creator' &&
           !page.answers?.some((answer) => answer.what === need.what)
       )
       .map((need) => ({ slideId: page.id, index, need }))

@@ -133,6 +133,16 @@ it('keeps the lengths in range and asks for evidence the source lacks', () => {
   expect(problems(told({ 1: { needs: undefined } }))).toContain(
     'Scene 2 needs its list of evidence needs'
   )
+  // A diagram is drawn from the source, never asked of the creator.
+  expect(
+    problems(
+      told({
+        1: { needs: [{ kind: 'diagram', what: 'the flow', source: null }] }
+      })
+    )
+  ).toContain(
+    'Scene 2: "the flow" is drawn from the source, never asked of the creator; quote the sentence it rests on, or leave it out of needs'
+  )
   const kept = validateCreativeStory(told(), source, short).value.scenes
   expect(kept[0].beats).toEqual(['impact'])
   expect(kept[0].needs).toEqual([

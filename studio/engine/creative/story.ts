@@ -4,6 +4,9 @@ import { fingerprintOf, quotedIn } from '../planning/fingerprint'
 import { runValidatedJsonStage, type CreativeSelection } from './stage'
 import { EVIDENCE_LABELS, type StoryPlanBrief } from '../../shared/narratives'
 
+/** Evidence the studio draws from the source's facts: never a request. */
+const DRAWN = ['diagram', 'creator']
+
 type DraftScene = {
   title?: string
   kind?: string
@@ -82,6 +85,10 @@ const storyProblems = (
       if (!need.what || !Object.hasOwn(EVIDENCE_LABELS, String(need.kind)))
         problems.push(
           `Scene ${index + 1} has an evidence need without a kind and a what`
+        )
+      else if (need.source === null && DRAWN.includes(String(need.kind)))
+        problems.push(
+          `Scene ${index + 1}: "${need.what}" is drawn from the source, never asked of the creator; quote the sentence it rests on, or leave it out of needs`
         )
       else if (
         need.source !== null &&
