@@ -75,3 +75,16 @@ it('leaves alone a defect the scene shows on purpose', async () => {
     'At the end of m1, “cap: five a second” overlaps “a real note”: move one of them'
   ])
 }, 60_000)
+
+it('reads words clipped by their card as cut', async () => {
+  const clipped = composition.replace(
+    '</svg>',
+    '</svg><div style="position:absolute;left:300px;top:700px;width:240px;height:80px;overflow:hidden;border:2px solid #333"><span style="white-space:nowrap;font:40px Helvetica">FLAGGED: overlap and more</span></div>'
+  )
+  const problems = await settledFrameProblems({ 'index.html': clipped }, [
+    { id: 'm2', start: 1, end: 2 }
+  ])
+  expect(problems).toEqual([
+    'At the end of m2, “FLAGGED: overlap and more” is cut by the box that holds it: give the words room in their box, or make the box larger'
+  ])
+}, 60_000)

@@ -69,6 +69,8 @@ that frame. It refuses a build where, at a moment's end:
   an icon or another card. Words inside their own card are fine; place a
   label in clear space beside what it names;
 - two pieces of text overlap;
+- words run past the card or panel that clips them, or sit within 16 px
+  of the frame's edge;
 - a box holds nothing. When you draw a page node's card, draw its words
   inside it (the entry's `meaning.label` and `detail` in
   `VISUAL_CAST.json`) with its artwork; a card without them reads as a

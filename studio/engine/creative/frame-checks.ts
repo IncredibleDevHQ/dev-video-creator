@@ -22,6 +22,8 @@ export type FrameText = {
   layer: string | null
   /** Part of a defect the scene shows on purpose (data-intentional). */
   intentional?: boolean
+  /** The box that clips it, when one does (overflow hidden). */
+  clip?: FrameBox | null
 }
 export type FrameShape = {
   tag: string
@@ -77,7 +79,16 @@ const MEASURE = `(() => {
     }
     if (r.width < 1 || r.height < 1) continue
     const text = (owner.textContent || words).replace(/\\s+/g, ' ').trim()
-    texts.push({ text: text.slice(0, 60), box: box(r), layer: layerOf(owner), intentional: intentional(owner) })
+    // The nearest box that clips it (overflow hidden), inside the frame.
+    let clip = null
+    for (let e = owner.parentElement; e && e !== root; e = e.parentElement) {
+      const style = getComputedStyle(e)
+      if (/hidden|clip/.test(style.overflow + style.overflowX + style.overflowY)) {
+        clip = box(e.getBoundingClientRect())
+        break
+      }
+    }
+    texts.push({ text: text.slice(0, 60), box: box(r), layer: layerOf(owner), intentional: intentional(owner), clip })
   }
   const shapes = []
   const painted = 'path, rect, circle, ellipse, polygon, polyline, line, image, use, img'
@@ -123,7 +134,13 @@ const centre = (b: FrameBox) => ({
 const thin = (b: FrameBox) => Math.min(width(b), height(b)) < 6
 
 /** Which edges a box crosses while part of it is still in the frame. */
-const edgesCut = (b: FrameBox, frame: FrameBox, slack = 4) => {
+const edgesCut = (
+  b: FrameBox,
+  frame: FrameBox,
+  slack = 4,
+  /** How close to an edge still reads as cut by it. */
+  margin = -slack
+) => {
   if (
     b.right <= frame.left + slack ||
     b.left >= frame.right - slack ||
@@ -132,15 +149,17 @@ const edgesCut = (b: FrameBox, frame: FrameBox, slack = 4) => {
   )
     return []
   return [
-    b.left < frame.left - slack ? 'left' : '',
-    b.top < frame.top - slack ? 'top' : '',
-    b.right > frame.right + slack ? 'right' : '',
-    b.bottom > frame.bottom + slack ? 'bottom' : ''
+    b.left < frame.left + margin ? 'left' : '',
+    b.top < frame.top + margin ? 'top' : '',
+    b.right > frame.right - margin ? 'right' : '',
+    b.bottom > frame.bottom - margin ? 'bottom' : ''
   ].filter(Boolean)
 }
+/** Words closer than this to the frame's edge read as cut by it. */
+const TEXT_MARGIN = 16
 
 export type FrameDefect = {
-  kind: 'cut' | 'covered' | 'overlap' | 'empty'
+  kind: 'cut' | 'clipped' | 'covered' | 'overlap' | 'empty'
   message: string
 }
 
@@ -168,11 +187,23 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
       message: `${layer} is cut by the ${edges.join(' and ')} edge`
     })
   for (const text of texts) {
-    const edges = text.intentional ? [] : edgesCut(text.box, frame)
+    const edges = text.intentional
+      ? []
+      : edgesCut(text.box, frame, 4, TEXT_MARGIN)
     if (edges.length)
       defects.push({
         kind: 'cut',
         message: `${said(text.text)} is cut by the ${edges.join(' and ')} edge`
+      })
+    // Words cut off by the card or panel that clips them.
+    else if (
+      !text.intentional &&
+      text.clip &&
+      edgesCut(text.box, text.clip, 2, -2).length
+    )
+      defects.push({
+        kind: 'clipped',
+        message: `${said(text.text)} is cut by the box that holds it`
       })
     // Words hide a shape when they cover a fair share of it, or a fair
     // share of the words sits on it; words inside a card are the card's.
@@ -237,6 +268,7 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
 
 const HOW: Record<FrameDefect['kind'], string> = {
   cut: 'keep it, and the camera’s framing, at least 48 px inside the frame (if the scene shows a cut caption on purpose, wrap that depiction in data-intentional="why")',
+  clipped: 'give the words room in their box, or make the box larger',
   covered:
     'move the words into clear space beside it (or, when the scene shows that defect on purpose, wrap it in data-intentional="why")',
   overlap: 'move one of them',
