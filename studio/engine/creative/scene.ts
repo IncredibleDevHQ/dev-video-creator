@@ -11,7 +11,7 @@ import { cutNeighbours, inCut, scenePresence } from '../../shared/orchestration'
 import { randomUUID } from 'node:crypto'
 import type { Project, Scene, Moment } from '../../shared/model'
 import { readRow, writeRow } from '../persistence'
-import { roleOf } from '../scene-model'
+import { sceneRole } from '../scene-model'
 import { prepareCreativeBrief } from './brief'
 import { prepareCreativeTreatment } from './treatment'
 import { prepareCreativeScript } from './script'
@@ -89,7 +89,7 @@ export const planCreativeScene = async (
     selection,
     origin,
     editMomentId: scene.editMomentId,
-    role: roleOf(index, project.slides.length),
+    role: sceneRole(project, index),
     context: {
       brief,
       scene: scene.id,
@@ -163,7 +163,7 @@ export const planCreativeScene = async (
     plan: treatment,
     brief,
     presence,
-    role: roleOf(index, project.slides.length),
+    role: sceneRole(project, index),
     videoTitle: project.title,
     sourceText: retained?.text || project.source,
     previous: scene.moments,

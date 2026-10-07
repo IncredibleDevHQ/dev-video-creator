@@ -26,7 +26,7 @@ import {
   scenePlanKey,
   reconcileVideo,
   refreshVideoKeys,
-  roleOf
+  sceneRole
 } from './scene-model'
 import { fingerprintOf } from './planning/fingerprint'
 import { loadStageCheckpoint, saveStageCheckpoint } from './artifacts'
@@ -238,7 +238,7 @@ export const planScene = async (id: string, sceneId: string) => {
   )
   const slide = snapshot.project.slides[index]
   const presence = scenePresence(video, scene.id)
-  const role = roleOf(index, snapshot.project.slides.length)
+  const role = sceneRole(snapshot.project, index)
   const retainedSource = await readRow<{ source: { text: string } }>(
     'outlines',
     id

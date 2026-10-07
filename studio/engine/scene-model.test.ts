@@ -55,3 +55,39 @@ it('invalidates an in-flight moment revision when its slide changes', () => {
   expect(() => reconcileVideo(p, { project: p, events: [] })).not.toThrow()
   expect(scene.phase).toBe('queued')
 })
+
+it('closes the video on the last scene in the cut', async () => {
+  const { sceneRole } = await import('./scene-model')
+  const slides = ['a', 'b', 'c', 'd'].map((id) => ({ id, title: id, svg: '' }))
+  const project = (made: string[]) =>
+    ({
+      id: 'p',
+      title: 'P',
+      source: '',
+      slides,
+      video: {
+        settings: { presence: 'off', voice: { kind: 'record' } },
+        scenes: slides.map((slide) => ({
+          id: `s-${slide.id}`,
+          slideId: slide.id,
+          phase: made.includes(slide.id) ? 'waiting' : 'idle',
+          presence: null,
+          moments: [],
+          inputKey: '',
+          produced: null,
+          error: null
+        })),
+        transitions: [],
+        inputKey: '',
+        produced: null
+      }
+    }) as never
+  // Pages a and c are made: c closes this cut; the last page closes a full one.
+  expect(
+    [0, 1, 2, 3].map((index) => sceneRole(project(['a', 'c']), index))
+  ).toEqual(['title', 'body', 'ending', 'body'])
+  expect(
+    [0, 2, 3].map((index) => sceneRole(project(['a', 'c', 'd']), index))
+  ).toEqual(['title', 'body', 'ending'])
+  expect(sceneRole(project([]), 3)).toBe('ending')
+})

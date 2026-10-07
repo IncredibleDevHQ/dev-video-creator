@@ -1,4 +1,5 @@
 import { readyCapture } from '../shared/capture'
+import { inCut } from '../shared/orchestration'
 import type { ActivityLedger } from './activity'
 import { transitionScene } from './autopilot'
 import type { Project, Scene, Moment, Voice } from '../shared/model'
@@ -8,6 +9,19 @@ import { donePages } from '../shared/state'
 import { orchestrate, presenceAt } from '../shared/orchestration'
 export const roleOf = (index: number, count: number) =>
   index === 0 ? 'title' : index === count - 1 ? 'ending' : 'body'
+/**
+ * A scene's role in the video's cut: the title page opens, and the last
+ * scene in the cut closes, so it never points at a page left out.
+ */
+export const sceneRole = (project: Project, index: number) => {
+  const scenes = project.video?.scenes || []
+  const inVideo = project.slides.map((slide) =>
+    inCut(scenes.find((scene) => scene.slideId === slide.id))
+  )
+  if (index === 0 || !inVideo.some(Boolean))
+    return roleOf(index, project.slides.length)
+  return index === inVideo.lastIndexOf(true) ? 'ending' : 'body'
+}
 export const scenePlanKey = (project: Project, scene: Scene) => {
   const index = project.slides.findIndex((slide) => slide.id === scene.slideId)
   // By the slide's place: while the video reconciles, its scene list is
@@ -28,7 +42,7 @@ export const scenePlanKey = (project: Project, scene: Scene) => {
     harness: project.video!.settings.harness,
     slide: project.slides[index] ? slide : undefined,
     title: project.title,
-    role: roleOf(index, project.slides.length),
+    role: sceneRole(project, index),
     // With a narrative, the direction gives each scene its presence.
     presence: presenceAt(
       project.video!.settings,
