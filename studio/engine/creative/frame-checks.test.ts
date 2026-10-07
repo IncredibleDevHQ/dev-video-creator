@@ -113,7 +113,7 @@ it('says each defect once, with the moments it spans and what to do', () => {
       { moment: 'm3', defects: [] }
     ])
   ).toEqual([
-    'At the end of m1, m2, script is cut by the left edge: keep it, and the camera’s framing, at least 48 px inside the frame',
+    'At the end of m1, m2, script is cut by the left edge: keep it, and the camera’s framing, at least 48 px inside the frame (if the scene shows a cut caption on purpose, wrap that depiction in data-intentional="why")',
     'At the end of m2, an empty box in flood: give the box its words (VISUAL_CAST.json meaning.label) and its artwork, or leave it out'
   ])
 })

@@ -44,8 +44,10 @@ const MEASURE = `(() => {
     }
     return opacity
   }
+  // data-intentional marks a defect the scene shows on purpose (a caption
+  // cut off, a label on a shape): the check leaves it to the scene.
   const hidden = (element) =>
-    element.closest('defs, clipPath, mask, marker, pattern, symbol, script, style, title, audio')
+    element.closest('defs, clipPath, mask, marker, pattern, symbol, script, style, title, audio, [data-intentional]')
   const layerOf = (element) =>
     element.closest('[data-sketch-layer]')?.getAttribute('data-sketch-layer') ?? null
   const texts = []
@@ -218,8 +220,9 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
 }
 
 const HOW: Record<FrameDefect['kind'], string> = {
-  cut: 'keep it, and the camera’s framing, at least 48 px inside the frame',
-  covered: 'move the words into clear space beside it',
+  cut: 'keep it, and the camera’s framing, at least 48 px inside the frame (if the scene shows a cut caption on purpose, wrap that depiction in data-intentional="why")',
+  covered:
+    'move the words into clear space beside it (or, when the scene shows that defect on purpose, wrap it in data-intentional="why")',
   overlap: 'move one of them',
   empty:
     'give the box its words (VISUAL_CAST.json meaning.label) and its artwork, or leave it out'

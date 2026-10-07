@@ -33,7 +33,27 @@ it('refuses a settled frame that cuts an actor or puts words on a shape', async 
     { id: 'm2', start: 1, end: 2 }
   ])
   expect(problems).toEqual([
-    'At the end of m1, actor is cut by the left edge: keep it, and the camera’s framing, at least 48 px inside the frame',
-    'At the end of m1, “cap: five a second” sits on packet: move the words into clear space beside it'
+    'At the end of m1, actor is cut by the left edge: keep it, and the camera’s framing, at least 48 px inside the frame (if the scene shows a cut caption on purpose, wrap that depiction in data-intentional="why")',
+    'At the end of m1, “cap: five a second” sits on packet: move the words into clear space beside it (or, when the scene shows that defect on purpose, wrap it in data-intentional="why")'
   ])
+}, 60_000)
+
+it('leaves alone a defect the scene shows on purpose', async () => {
+  // The same frame, with the cut actor and the covered label marked as
+  // the story's own depiction of the defect.
+  const shown = composition
+    .replace(
+      '<g data-sketch-layer="actor">',
+      '<g data-sketch-layer="actor" data-intentional="the cut-off frame the story is about">'
+    )
+    .replace(
+      '<g data-sketch-layer="labels">',
+      '<g data-sketch-layer="labels" data-intentional="the covered label the story shows">'
+    )
+  expect(
+    await settledFrameProblems({ 'index.html': shown }, [
+      { id: 'm1', start: 0, end: 1 },
+      { id: 'm2', start: 1, end: 2 }
+    ])
+  ).toEqual([])
 }, 60_000)

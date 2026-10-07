@@ -74,6 +74,12 @@ that frame. It refuses a build where, at a moment's end:
   `VISUAL_CAST.json`) with its artwork; a card without them reads as a
   placeholder.
 
+When the scene shows one of these defects on purpose (the story is about a
+caption cut off at the edge, or a label sitting on a diagram), wrap that
+depiction in an element with `data-intentional="why it is shown"`. The
+check leaves it alone. Use it only for a defect the narration is about,
+never to get past the check.
+
 An SVG element that carries a `transform` attribute is never tweened on
 `x`, `y`, `scale` or `rotation`: GSAP replaces the attribute and the
 element jumps. Put the attribute on a wrapping `<g>` and tween the inner
