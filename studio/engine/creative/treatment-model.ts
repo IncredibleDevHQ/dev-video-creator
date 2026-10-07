@@ -242,6 +242,8 @@ export type TreatmentContext = {
   drawsArtwork?: true
   // The story the video tells and the beats this scene carries, when chosen.
   story?: import('../../shared/narratives').NarrativeBrief
+  // The shot the orchestrator gave this scene, and its seams.
+  shot?: import('../../shared/orchestration').ShotBrief
   // The verified objects of the scene's own page, by library key, and what
   // that page is. Each object is decided (used, adapted, replaced or
   // omitted); on a designed slide a plan that leaves one undecided is refused.

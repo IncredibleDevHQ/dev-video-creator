@@ -9,8 +9,13 @@ vi.mock('./model-gateway', () => ({ modelFetch: generate }))
 const root = await mkdtemp(join(tmpdir(), 'minimal-narrative-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { writeRow } = await import('./persistence')
-const { makeVideo, setSceneBeats, updateVideoSettings, validateVideoSettings } =
-  await import('./video')
+const {
+  makeVideo,
+  setSceneBeats,
+  setSceneShot,
+  updateVideoSettings,
+  validateVideoSettings
+} = await import('./video')
 const { loadProject } = await import('./projects')
 const { scenePlanKey } = await import('./scene-model')
 const { renderScenePacket } = await import('./creative/brief-adapter')
@@ -275,4 +280,53 @@ it('tells the planner the story and the beats the scene carries', () => {
     'In this telling it grows: the false leads, and why they misled.'
   )
   expect(text).toContain('frame them this way: Speaker in the corner.')
+})
+
+it('orchestrates the video: seams in one direction, a shot in every plan', async () => {
+  await seed('directed')
+  await makeVideo('directed', {
+    presence: 'low',
+    voice: { kind: 'record' },
+    narrative: 'how-it-works',
+    direction: { preset: 'briefing' }
+  })
+  await settled('directed')
+  const made = (await loadProject('directed'))!.project
+  // Three scenes, each a new beat: two pushes forward.
+  expect(made.video!.transitions).toEqual(['push-left', 'push-left'])
+  const [, middle] = made.video!.scenes
+  const before = middle.planKey
+  await setSceneShot('directed', middle.id, 'code-focus')
+  await settled('directed')
+  const shot = (await loadProject('directed'))!.project.video!.scenes[1]
+  expect(shot.shot).toBe('code-focus')
+  expect(shot.planKey).not.toBe(before)
+  await expect(setSceneShot('directed', middle.id, 'zebra')).rejects.toThrow(
+    'Choose one of the shots'
+  )
+  await setSceneShot('directed', middle.id, null)
+  await settled('directed')
+  expect(
+    (await loadProject('directed'))!.project.video!.scenes[1].planKey
+  ).toBe(before)
+  // A new story starts from the orchestrator's shots again.
+  await setSceneShot('directed', middle.id, 'stat-hit')
+  await settled('directed')
+  await updateVideoSettings('directed', {
+    presence: 'low',
+    voice: { kind: 'record' },
+    narrative: 'incident'
+  })
+  await settled('directed')
+  expect(
+    (await loadProject('directed'))!.project.video!.scenes[1].shot
+  ).toBeUndefined()
+  await seed('plain-shot')
+  await makeVideo('plain-shot', { presence: 'off', voice: { kind: 'record' } })
+  await settled('plain-shot')
+  const plain = (await loadProject('plain-shot'))!.project.video!
+  expect(plain.transitions).toEqual(['none', 'none'])
+  await expect(
+    setSceneShot('plain-shot', plain.scenes[0].id, 'stat-hit')
+  ).rejects.toThrow('Choose a template for the video first')
 })

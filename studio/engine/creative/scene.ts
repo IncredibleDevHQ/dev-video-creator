@@ -5,6 +5,8 @@ import {
   sceneNarrative
 } from '../../shared/narratives'
 import { prepareCastPacket } from './cast-packet'
+import { sceneOrchestration } from './orchestration'
+import { scenePresence } from '../../shared/orchestration'
 import { randomUUID } from 'node:crypto'
 import type { Project, Scene, Moment } from '../../shared/model'
 import { readRow, writeRow } from '../persistence'
@@ -67,9 +69,12 @@ export const planCreativeScene = async (
     scene: other.id,
     reviewed: null
   }))
-  const presence = scene.presence || video.settings.presence
+  // With a narrative, the direction gives the scene its presence, and the
+  // orchestrator its shot, its seams and the cast so far.
+  const presence = scenePresence(video, scene.id)
   const shape = sceneNarrative(video, scene.id, plannedPages(project))
   const story = shape ? narrativeBrief(shape, presence) : null
+  const orchestration = await sceneOrchestration(project, scene.id)
   const retained = await readRow<{ text: string }>('sources', project.id)
   await onProgress?.('Planning the scene', 'planning')
   const treatment = await prepareCreativeTreatment({
@@ -89,7 +94,14 @@ export const planCreativeScene = async (
       assetKeys: cast.assetKeys,
       neighbors,
       // Absent without a narrative, so those plans keep their fingerprint.
-      ...(story ? { story } : {})
+      ...(story ? { story } : {}),
+      ...(orchestration
+        ? {
+            shot: orchestration.shot,
+            castSize: orchestration.cast.length
+          }
+        : {}),
+      ...(orchestration ? { shot: orchestration.shot } : {})
     },
     scenePacket: {
       videoTitle: project.title,
@@ -135,7 +147,8 @@ export const planCreativeScene = async (
     },
     theme: { branding: project.branding || null },
     visualCast: cast.visualCast,
-    media: cast.media
+    media: cast.media,
+    orchestration
   })
   await onProgress?.('Writing the spoken lines', 'script')
   const moments = await prepareCreativeScript({

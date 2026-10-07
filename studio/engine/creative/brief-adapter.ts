@@ -316,6 +316,10 @@ export type ScenePacketInput = {
   intro?: boolean
   // The story the video tells and the beats this scene carries, when chosen.
   story?: NarrativeBrief
+  // The orchestrator's shot for the scene, and how many actors the rest of
+  // the video established (their detail is in CAST.json).
+  shot?: import('../../shared/orchestration').ShotBrief
+  castSize?: number
   reviewed: SceneTreatmentV1 | null
   assets: Array<{ key: string; role: string; parts: string[] }>
 }
@@ -386,6 +390,40 @@ const storySection = (story: NarrativeBrief) => [
   ),
   '',
   `Aim for about ${story.seconds}. When presence puts the presenter on camera, frame them this way: ${story.speaker}. How many moments there are and how each looks is yours to decide from the material; never show evidence the source does not hold.`,
+  ''
+]
+
+const SEAM_WORDS: Record<string, string> = {
+  none: 'a cut',
+  crossfade: 'a dissolve: the same beat goes on, so keep the frame close',
+  'push-left': 'a push forward, to the next beat',
+  'push-right': 'a push back',
+  'push-up': 'a push up',
+  wipe: 'a wipe: the story goes back to its start after the cold open',
+  zoom: 'a zoom'
+}
+
+// The orchestrator's shot for this scene: the one plan above the scenes.
+const shotSection = (
+  shot: NonNullable<ScenePacketInput['shot']>,
+  cast: number
+) => [
+  '## The shot',
+  '',
+  `${shot.chosenBy === 'creator' ? 'The creator chose' : 'The orchestrator chose'} a "${shot.name}" shot for this scene (${shot.why}): ${shot.line} It borrows from the ${shot.workflow} workflow. Start from its recipes — ${shot.recipes.join(', ')} — and cite at least one in a moment's recipes, or name an adapted recipe that says why the shot does not fit.`,
+  '',
+  [
+    shot.entry
+      ? `The scene opens from ${SEAM_WORDS[shot.entry] || shot.entry}.`
+      : '',
+    shot.exit ? `It hands over with ${SEAM_WORDS[shot.exit] || shot.exit}.` : ''
+  ]
+    .filter(Boolean)
+    .join(' '),
+  '',
+  cast
+    ? `packet/CAST.json lists the ${cast === 1 ? 'actor' : `${cast} actors`} the video's other scenes already established, with their artwork and where each scene left them. An actor that comes back keeps its id and its asset and picks up from its last state.`
+    : '',
   ''
 ]
 
@@ -465,6 +503,7 @@ export const renderScenePacket = (input: ScenePacketInput) => {
     '',
     ...(input.intro ? introSection(input.videoTitle) : []),
     ...(input.story ? storySection(input.story) : []),
+    ...(input.shot ? shotSection(input.shot, input.castSize || 0) : []),
     '## Decisions already made',
     '',
     bullet([

@@ -3,6 +3,7 @@ import { transitionScene } from './autopilot'
 import type { Project, Scene, Moment, Voice } from '../shared/model'
 import { fingerprintOf } from './planning/fingerprint'
 import { narrativeAt, plannedPages } from '../shared/narratives'
+import { orchestrate, presenceAt } from '../shared/orchestration'
 export const roleOf = (index: number, count: number) =>
   index === 0 ? 'title' : index === count - 1 ? 'ending' : 'body'
 export const scenePlanKey = (project: Project, scene: Scene) => {
@@ -21,14 +22,21 @@ export const scenePlanKey = (project: Project, scene: Scene) => {
     slide: project.slides[index],
     title: project.title,
     role: roleOf(index, project.slides.length),
-    presence: scene.presence || project.video!.settings.presence,
+    // With a narrative, the direction gives each scene its presence.
+    presence: presenceAt(
+      project.video!.settings,
+      index,
+      project.slides.length,
+      scene.presence
+    ),
     instructions: scene.instructions || [],
     // Absent without a narrative, so those plans keep their fingerprint.
     ...(shape
       ? {
           narrative: shape.narrative.id,
           direction: shape.settings,
-          beats: shape.beats.map((plan) => plan.beat.id)
+          beats: shape.beats.map((plan) => plan.beat.id),
+          shot: orchestrate(project)?.[index]?.shot.id
         }
       : {})
   })

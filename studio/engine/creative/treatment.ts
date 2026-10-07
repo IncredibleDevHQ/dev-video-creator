@@ -1,6 +1,7 @@
 import { editScopeProblems } from '../moment-edit-scope'
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { orchestrationProblems } from './orchestration'
 import { fingerprintOf } from '../planning/fingerprint'
 import {
   renderNativeBrief,
@@ -93,6 +94,11 @@ export const prepareCreativeTreatment = async (input: {
   visualCast: unknown
   media?: Record<string, Buffer>
   onEvent?: (event: HarnessEvent) => Promise<void> | void
+  // The orchestrator's shot and the cast other scenes established: advisory
+  // context for the planner, held by the plan checks, outside the input key.
+  orchestration?: Awaited<
+    ReturnType<typeof import('./orchestration').sceneOrchestration>
+  >
 }) => {
   if (input.scenePacket.scene.id !== input.context.scene)
     throw new Error('Scene packet does not match the planning context')
@@ -154,6 +160,15 @@ export const prepareCreativeTreatment = async (input: {
       'packet/THEME.json': JSON.stringify(input.theme, null, 2),
       'packet/VISUAL_CAST.json': JSON.stringify(input.visualCast, null, 2),
       'packet/NEIGHBORS.json': JSON.stringify(context.neighbors || [], null, 2),
+      ...(input.orchestration?.cast.length
+        ? {
+            'packet/CAST.json': JSON.stringify(
+              input.orchestration.cast,
+              null,
+              2
+            )
+          }
+        : {}),
       'packet/PREVIOUS_PLAN.json': JSON.stringify(
         input.scenePacket.reviewed,
         null,
@@ -189,7 +204,8 @@ export const prepareCreativeTreatment = async (input: {
           report.treatment,
           context.presence,
           input.role || (context.intro ? 'title' : 'body')
-        )
+        ),
+        ...orchestrationProblems(report.treatment, input.orchestration ?? null)
       ]
       return {
         ...report,

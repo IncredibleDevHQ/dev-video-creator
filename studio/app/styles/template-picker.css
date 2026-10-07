@@ -250,3 +250,27 @@ dialog:has(.tpl-picker) {
 .tpl-slot-popover {
   width: 290px;
 }
+
+/* The scene's shot: how the orchestrator, or the creator, builds it. */
+.shot-mark {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+.shot-chip {
+  margin-left: 6px;
+}
+.shot-popover {
+  width: 340px;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+}
+.shot-menu button {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.shot-menu button small {
+  flex-basis: 100%;
+}

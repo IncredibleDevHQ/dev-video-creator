@@ -295,7 +295,14 @@ const reviseSlide = async (id: string, change: SlideChange) => {
       svg,
       narration: revised.narration,
       idea: revised.idea,
-      evidence: revised.source
+      evidence: revised.source,
+      // A page planned from beats keeps what it now is.
+      ...(current.project.slides[currentIndex].beats?.length
+        ? {
+            pageKind: revised.kind,
+            parts: revised.parts.map((part) => part.label)
+          }
+        : {})
     }
     delete current.project.slides[currentIndex].draft
     current.changes = (current.changes || []).filter(

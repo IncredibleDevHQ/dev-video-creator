@@ -200,6 +200,16 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   has and how each looks is yours to decide. When words go over the
   presenter, keep them to a few at a time and away from the face; on a
   diagram, label the parts in place rather than captioning the voice.
+- When `CONTEXT.json` has a `shot`, the orchestrator (or the creator) chose
+  how this scene is built: SCENE.md says which shot, why, its workflow and
+  its recipes, and the seams it meets. Develop that shot. Start at least
+  one moment from one of its recipes, or name an `adapted` recipe that says
+  why the shot does not fit this material. Plan the opening and the ending
+  for the seams: a dissolve means the same beat goes on, so keep the frame
+  close; a push means a new beat. When `packet/CAST.json` lists actors the
+  video's other scenes established, an actor that comes back keeps its
+  entity id and its asset (reuse, adapt or enrich the same ref, or build it
+  native) and picks up from where its last scene left it.
 - A presenter suggestion never decides the scene's delivery. On-camera
   presence is the creator's, apart from who speaks: when SCENE.md states it,
   the plan puts the presenter exactly where it says.

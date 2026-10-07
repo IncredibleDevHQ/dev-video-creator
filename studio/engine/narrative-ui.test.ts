@@ -463,3 +463,41 @@ it('offers the template beside the agent before the wireframes', async () => {
   expect(page2).toContain('Use for this notebook')
   expect(page2).toContain('Your wireframes are planned from its beats.')
 })
+
+it('names a scene’s shot, offers the others, and follows the direction', async () => {
+  const { sceneShotChip, sceneShotMenu } = await import('../app/shot-picker')
+  const { sceneSettings } = await import('../app/camera-settings')
+  expect(sceneShotChip(project(), 'scene-a')).toBe('')
+  const told = project('incident')
+  // The orchestrator walks the wireframes, one scene each.
+  told.slides = ['a', 'b', 'c'].map((id) => ({
+    id,
+    title: id,
+    svg: '<svg/>'
+  }))
+  const chip = parseHTML(
+    `<div>${sceneShotChip(told, 'scene-a')}</div>`
+  ).document
+  expect(chip.querySelector('button')?.textContent?.trim()).toBe('Title')
+  const menu = parseHTML(
+    `<div>${sceneShotMenu(told, 'scene-b')}</div>`
+  ).document
+  const options = [...menu.querySelectorAll('[role="radio"]')]
+  expect(options[0].getAttribute('data-shot')).toBe('')
+  expect(options[0].getAttribute('aria-checked')).toBe('true')
+  // The title shot is the opening's alone.
+  expect(options.map((item) => item.getAttribute('data-shot'))).not.toContain(
+    'title-reveal'
+  )
+  expect(menu.querySelector('.popover-note')?.textContent).toContain(
+    'The orchestrator chose'
+  )
+  // A briefing keeps you off camera between the first and last scenes.
+  const video = told.video!
+  const middle = parseHTML(
+    `<div>${sceneSettings(video.scenes[1], video.settings, 1, true, 3)}</div>`
+  ).document
+  expect(middle.querySelector('.settings-note')?.textContent?.trim()).toBe(
+    'Following the template’s direction · Off'
+  )
+})

@@ -18,8 +18,13 @@ process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { readRow, writeRow } = await import('./persistence')
 const { editSlide, loadProject, scheduleSlides } = await import('./projects')
 const { setNotebookTemplate } = await import('./notebook-intake')
-const { answerEvidence, chatSlide } = await import('./slide-changes')
-afterAll(() => rm(root, { recursive: true, force: true }))
+const { answerEvidence, chatSlide, settledChanges } =
+  await import('./slide-changes')
+// The change queue runs in the background; let it finish before cleaning up.
+afterAll(async () => {
+  await Promise.all(['gaps', 'asks'].map((id) => settledChanges(id)))
+  await rm(root, { recursive: true, force: true })
+})
 
 const seed = async (
   id: string,

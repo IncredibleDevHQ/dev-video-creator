@@ -141,6 +141,10 @@ export const api = {
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/beats`, 'POST', {
       beats
     }),
+  setSceneShot: (id: string, sceneId: string, shot: string | null) =>
+    request<Snapshot>(`/projects/${id}/scenes/${sceneId}/shot`, 'POST', {
+      shot
+    }),
   replan: (id: string, sceneId: string, presence: Presence | null) =>
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/presence`, 'POST', {
       presence

@@ -284,7 +284,11 @@ const planned = (
   scene: ReturnType<typeof sanitizeOutline>['scenes'][number]
 ) => ({
   ...(scene.beats?.length ? { beats: scene.beats } : {}),
-  ...(scene.needs?.length ? { needs: scene.needs } : {})
+  ...(scene.needs?.length ? { needs: scene.needs } : {}),
+  // What the page is, for the orchestrator to choose its shot.
+  ...(scene.beats?.length
+    ? { pageKind: scene.kind, parts: scene.parts.map((part) => part.label) }
+    : {})
 })
 const requireSlidesRunning = async (id: string) => {
   if ((await loadProject(id))?.stopping) throw new Error(generationStops.user)

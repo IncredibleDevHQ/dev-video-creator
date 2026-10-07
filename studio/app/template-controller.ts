@@ -5,6 +5,8 @@ import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
 import { confirmAction } from './confirm-action'
 import { pickTemplate, sceneBeatMenu } from './template-picker'
+import { sceneShotMenu } from './shot-picker'
+import { shotById } from '../shared/orchestration'
 import { narrativeById, type PresetId } from '../shared/narratives'
 import { clickVideo } from './video-controller'
 
@@ -100,6 +102,43 @@ export const clickTemplates = async (
       sceneBeatMenu(app.snapshot.project, sceneId),
       'tpl-slot-popover'
     )
+    return
+  }
+  if (action === 'scene-shot' && sceneId) {
+    openPopover(
+      target,
+      'scene-shot',
+      sceneShotMenu(app.snapshot.project, sceneId),
+      'tpl-slot-popover shot-popover'
+    )
+    return
+  }
+  if (action === 'scene-shot-set' && sceneId) {
+    const scene = app.snapshot.project.video?.scenes.find(
+      (item) => item.id === sceneId
+    )
+    if (!scene) return
+    const shot = target.dataset.shot || null
+    if ((scene.shot || null) === shot) return closePopover()
+    closePopover()
+    if (
+      scene.moments.length > 0 &&
+      !(await confirmAction({
+        title: shot
+          ? `Build it as ${shotById(shot)?.name}?`
+          : 'Use the orchestrator’s shot?',
+        detail:
+          'This scene is planned again for its new shot: new words and a new animation. Takes whose words still match are kept.',
+        action: 'Plan it again'
+      }))
+    )
+      return
+    app.snapshot = await api.setSceneShot(
+      app.snapshot.project.id,
+      sceneId,
+      shot
+    )
+    app.render()
     return
   }
   if (action === 'scene-beats-set' && sceneId) {

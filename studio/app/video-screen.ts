@@ -45,6 +45,7 @@ import { escape, button } from './ui'
 import { agentNames } from './agent-setup'
 import { wireframeStatus } from './wireframe-copy'
 import { sceneChoice } from './scene-link'
+import { sceneShotChip } from './shot-picker'
 import {
   onCameraChoice,
   sceneBeatChip,
@@ -603,7 +604,7 @@ export const videoScreen = (
 </div>
 <aside class="transcript" ${focused ? 'inert' : ''}>
 <div class="transcript-header">
-<h2>Scene ${selected + 1}</h2>${sceneBeatChip(project, scene.id)}
+<h2>Scene ${selected + 1}</h2>${sceneBeatChip(project, scene.id)}${sceneShotChip(project, scene.id)}
 </div>${
     showActivity
       ? `<details class="activity-disclosure" data-activity-key="${scene.id}" ${

@@ -52,6 +52,7 @@ import {
   previewPresence,
   replanPresence,
   setSceneBeats,
+  setSceneShot,
   schedulePlanning,
   chatVideo,
   updateVideoSettings
@@ -268,7 +269,7 @@ export const createStudioServer = (
           )
         )
       const sceneRoute = url.pathname.match(
-        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|beats|produce|download|cover|make|leave-out)$/
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|beats|shot|produce|download|cover|make|leave-out)$/
       )
       if (sceneRoute && sceneRoute[3] === 'cover' && request.method === 'GET') {
         const bytes = await sceneCover(
@@ -323,6 +324,12 @@ export const createStudioServer = (
             response,
             200,
             await setSceneBeats(id, sceneId, body?.beats)
+          )
+        if (action === 'shot')
+          return send(
+            response,
+            200,
+            await setSceneShot(id, sceneId, body?.shot)
           )
         if (action === 'retry') {
           const snapshot = await loadProject(id)

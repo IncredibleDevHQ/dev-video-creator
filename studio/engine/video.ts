@@ -1,5 +1,15 @@
 import type { SceneStage } from '../shared/model'
-import { narrativeById, validDirection } from '../shared/narratives'
+import {
+  directionSettings,
+  narrativeById,
+  validDirection
+} from '../shared/narratives'
+import {
+  orchestrate,
+  scenePresence,
+  seamPlan,
+  shotById
+} from '../shared/orchestration'
 import { takeTrimRange, trimTake } from './take-trim'
 import { scriptEditProblems } from './moment-edit-scope'
 import { generationFailure } from './generation-errors'
@@ -100,6 +110,16 @@ export const makeVideo = async (id: string, settings: unknown) => {
       current.project.slides.map((slide) => slide.id)
     )
     reconcileVideo(current.project, current, make)
+    // With a narrative, the orchestrator plans the seams in one direction.
+    const shots = orchestrate(current.project)
+    if (shots) {
+      const narrative = narrativeById(valid.narrative)!
+      current.project.video.transitions = seamPlan(
+        shots,
+        directionSettings(narrative, valid.direction).structure
+      )
+      refreshVideoKeys(current.project)
+    }
     addEvent(
       current,
       'video',
@@ -205,7 +225,7 @@ export const planScene = async (id: string, sceneId: string) => {
     (slide) => slide.id === scene.slideId
   )
   const slide = snapshot.project.slides[index]
-  const presence = scene.presence || video.settings.presence
+  const presence = scenePresence(video, scene.id)
   const role = roleOf(index, snapshot.project.slides.length)
   const retainedSource = await readRow<{ source: { text: string } }>(
     'outlines',
@@ -444,13 +464,21 @@ export const previewPresence = async (
   const video = snapshot?.project.video
   const scene = video?.scenes.find((scene) => scene.id === sceneId)
   if (!scene || !video) throw new Error('Scene not found')
+  // The scene's default: the direction's for its place, or the notebook's.
+  const following = scenePresence(
+    {
+      ...video,
+      scenes: video.scenes.map((item) => ({ ...item, presence: null }))
+    },
+    sceneId
+  )
   return {
     sceneId,
-    from: scene.presence || video.settings.presence,
+    from: scenePresence(video, sceneId),
     to: presence,
     recordings: scene.moments.filter((moment) => moment.take).length,
     message: `This scene will be written again with on camera ${
-      presence ?? video.settings.presence
+      presence ?? following
     } (${
       presence === null ? 'notebook default' : 'scene override'
     }). Recordings with matching words and timing will be kept.`
@@ -514,6 +542,38 @@ export const setSceneBeats = async (
       throw new Error('Wait for this scene to finish before changing its beats')
     delete scene.editMomentId
     scene.beats = beats as string[] | null
+    scene.planKey = scenePlanKey(current.project, scene)
+    transitionScene(scene, 'replan', current)
+    scene.produced = null
+    refreshVideoKeys(current.project)
+  })
+  void planScene(id, sceneId).catch(() => {})
+  return snapshot
+}
+
+/**
+ * The shot a scene is built as: the creator's choice, or null to take the
+ * orchestrator's again. The scene is planned again for its new shot.
+ */
+export const setSceneShot = async (
+  id: string,
+  sceneId: string,
+  shot: unknown
+) => {
+  const snapshot = await changeProject(id, (current) => {
+    const video = current.project.video
+    const scene = video?.scenes.find((item) => item.id === sceneId)
+    if (!video || !scene) throw new Error('Scene not found')
+    if (!narrativeById(video.settings.narrative))
+      throw new Error('Choose a template for the video first')
+    if (shot !== null && !shotById(String(shot)))
+      throw new Error('Choose one of the shots')
+    if (
+      ['writing', 'replanning', 'changing', 'producing'].includes(scene.phase)
+    )
+      throw new Error('Wait for this scene to finish before changing its shot')
+    delete scene.editMomentId
+    scene.shot = shot as string | null
     scene.planKey = scenePlanKey(current.project, scene)
     transitionScene(scene, 'replan', current)
     scene.produced = null
@@ -594,9 +654,17 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
         'Wait for the active scene work to finish before changing notebook settings. Saved work is kept.'
       )
     const oldPresence = video.settings.presence
-    // Beats are chosen within one narrative; a new one starts in order.
+    // Beats and shots are chosen within one narrative; a new one starts
+    // from the orchestrator's plan, and a new telling re-plans the seams.
+    const retold =
+      (video.settings.narrative || '') !== (valid.narrative || '') ||
+      JSON.stringify(video.settings.direction || null) !==
+        JSON.stringify(valid.direction || null)
     if ((video.settings.narrative || '') !== (valid.narrative || ''))
-      for (const scene of video.scenes) delete scene.beats
+      for (const scene of video.scenes) {
+        delete scene.beats
+        delete scene.shot
+      }
     video.settings = {
       ...valid,
       ...(!valid.harness && video.settings.harness
@@ -604,6 +672,13 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
         : {})
     }
     reconcileVideo(current.project, current)
+    const shots = retold ? orchestrate(current.project) : null
+    if (shots)
+      video.transitions = seamPlan(
+        shots,
+        directionSettings(narrativeById(valid.narrative)!, valid.direction)
+          .structure
+      )
     if (oldPresence !== valid.presence)
       for (const scene of video.scenes)
         if (!scene.presence && scene.phase === 'queued') {

@@ -577,7 +577,8 @@ ${button('Practice this moment', 'practice')}${
         scene,
         app.snapshot.project.video!.settings,
         app.selected,
-        sceneDisplay(app.snapshot, scene).inVideo !== false
+        sceneDisplay(app.snapshot, scene).inVideo !== false,
+        app.snapshot.project.video!.scenes.length
       )
     )
   }

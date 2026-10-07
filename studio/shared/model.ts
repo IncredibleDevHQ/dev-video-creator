@@ -86,6 +86,8 @@ export type Scene = {
   presence: Presence | null
   /** The narrative's beats the creator gave this scene; else its share. */
   beats?: string[] | null
+  /** The shot the creator chose for this scene; else the orchestrator's. */
+  shot?: string | null
   moments: Moment[]
   inputKey: string
   animationKey?: string
@@ -120,6 +122,10 @@ export type Slide = {
   narration?: string
   idea?: string
   evidence?: string[]
+  /** What the page is (title, list, diagram, numbers, quote, close) and
+   * the parts it shows, as the story planned it. */
+  pageKind?: string
+  parts?: string[]
   /** The beats of the notebook's narrative this page carries. */
   beats?: string[]
   /** The evidence the page needs, and the creator's answers where the
