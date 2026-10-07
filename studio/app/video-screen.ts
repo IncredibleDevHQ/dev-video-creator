@@ -663,14 +663,16 @@ export const makeVideoDialog = (
   current?: VideoSettings,
   /** For a new video: its wireframes, the one in view, and whether only it. */
   choice?: { slides: Slide[]; selected: number | null; only: boolean },
-  look?: Branding
+  look?: Branding,
+  /** The template the wireframes were planned from, chosen by default. */
+  planned?: { narrative?: string; direction?: VideoSettings['direction'] }
 ) => {
   const presence = current?.presence || 'high'
   const voice = current?.voice || settings.voice.selected
   // With a template, its direction says how much you are on camera.
   const story = current?.narrative
     ? { narrative: current.narrative, direction: current.direction }
-    : takePickedTemplate()
+    : (takePickedTemplate() ?? (planned?.narrative ? planned : undefined))
   return `<h2>Make the video</h2>
 <form id="video-form">
 ${templatePicker(story, look)}${onCameraChoice(story)}

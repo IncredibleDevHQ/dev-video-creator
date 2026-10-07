@@ -62,6 +62,8 @@ export type SlideEdit = {
   index?: number
   /** The wireframe's script, for the 'script' action. */
   narration?: string
+  /** For 'add': the narrative beat the new wireframe carries. */
+  beat?: string
 }
 export type ChatRequest = {
   anchor: ChatAnchor

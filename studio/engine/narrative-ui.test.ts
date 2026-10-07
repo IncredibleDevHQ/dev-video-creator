@@ -380,3 +380,86 @@ it('says when a template is in use, or cannot be used yet', () => {
     'Open a notebook with finished wireframes'
   )
 })
+
+it('offers the template beside the agent before the wireframes', async () => {
+  const { choicesRow } = await import('../app/notebook-choices')
+  const { pageStory, storyGaps } = await import('../app/wireframe-story')
+  const snapshot = (project: object, status = 'draft') =>
+    ({
+      project: {
+        id: 'n',
+        title: 'T',
+        source: '',
+        slides: [],
+        video: null,
+        ...project
+      },
+      status,
+      error: null,
+      events: []
+    }) as never
+  const chips = (html: string) =>
+    names(parseHTML(`<div>${html}</div>`).document, '.choice')
+  expect(chips(choicesRow(snapshot({}), true))).toEqual([
+    'the agent found on this computer',
+    'No template',
+    'about 10 wireframes',
+    'Paper look'
+  ])
+  expect(
+    chips(
+      choicesRow(
+        snapshot({ narrative: 'incident', direction: { preset: 'briefing' } }),
+        true
+      )
+    ).slice(1, 3)
+  ).toEqual(['Incident walkthrough', 'Briefing, 2–4 min'])
+  // On a wireframe: the beats it carries and the evidence it still needs.
+  const slide = {
+    id: 'a',
+    title: 'Impact',
+    svg: '<svg/>',
+    beats: ['impact'],
+    needs: [
+      { kind: 'numbers' as const, what: 'how many failed', source: null },
+      { kind: 'quote' as const, what: 'the trigger', source: 'A sentence.' }
+    ],
+    answers: []
+  }
+  const ready = snapshot({ narrative: 'incident', slides: [slide] }, 'ready')
+  const page = parseHTML(`<div>${pageStory(ready, slide, true)}</div>`).document
+  expect(names(page, '.page-beats b')).toEqual(['Impact'])
+  expect(page.querySelectorAll('.evidence-ask')).toHaveLength(1)
+  expect(
+    page.querySelector('.evidence-ask')?.getAttribute('data-evidence-what')
+  ).toBe('how many failed')
+  expect(pageStory(snapshot({}, 'ready'), slide, true)).toBe('')
+  // Core beats no page carries, each a click from a page of its own.
+  const gaps = parseHTML(`<div>${storyGaps(ready, true)}</div>`).document
+  expect(
+    [...gaps.querySelectorAll('[data-action="add-beat"]')].map((item) =>
+      item.getAttribute('data-beat')
+    )
+  ).toEqual(['timeline', 'cause', 'fix'])
+  expect(
+    storyGaps(
+      snapshot({ narrative: 'incident', slides: [slide] }, 'building'),
+      true
+    )
+  ).toBe('')
+  // The gallery plans a notebook's wireframes before there are any.
+  const page2 = templateGalleryPage({
+    group: 'all',
+    query: '',
+    narrative: 'incident',
+    preset: null,
+    beat: 0,
+    playing: false,
+    look: undefined,
+    use: 'notebook',
+    current: {},
+    back: 'Back'
+  })
+  expect(page2).toContain('Use for this notebook')
+  expect(page2).toContain('Your wireframes are planned from its beats.')
+})

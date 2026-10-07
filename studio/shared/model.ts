@@ -1,5 +1,9 @@
 import type { Branding } from './settings'
-import type { Direction } from './narratives/model'
+import type {
+  Direction,
+  EvidenceAnswer,
+  EvidenceNeed
+} from './narratives/model'
 export type Presence = 'off' | 'low' | 'high'
 export type Voice = { kind: 'record' } | { kind: 'ai' | 'clone'; id: string }
 export type HarnessSelection = {
@@ -116,6 +120,12 @@ export type Slide = {
   narration?: string
   idea?: string
   evidence?: string[]
+  /** The beats of the notebook's narrative this page carries. */
+  beats?: string[]
+  /** The evidence the page needs, and the creator's answers where the
+   * source did not hold it. */
+  needs?: EvidenceNeed[]
+  answers?: EvidenceAnswer[]
 }
 export type Transition =
   | 'none'
@@ -137,6 +147,9 @@ export type Project = {
   harness?: HarnessSelection
   branding?: Branding
   length?: StoryLength
+  /** The story the wireframes are planned for, and how it is told. */
+  narrative?: string
+  direction?: Direction
   id: string
   title: string
   source: string

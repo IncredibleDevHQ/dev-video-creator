@@ -421,7 +421,11 @@ ${button('Try again', 'video-settings', true)}`
             selected: onWireframe ? app.selected : null,
             only: action === 'make-video-one'
           },
-          app.snapshot.project.branding
+          app.snapshot.project.branding,
+          {
+            narrative: app.snapshot.project.narrative,
+            direction: app.snapshot.project.direction
+          }
         )
       )
       syncSceneChoice(app.dialog)

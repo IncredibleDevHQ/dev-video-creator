@@ -24,6 +24,17 @@ export const api = {
     request<Snapshot>(`/projects/${id}/look`, 'POST', { look }),
   setLength: (id: string, length: import('../shared/model').StoryLength) =>
     request<Snapshot>(`/projects/${id}/length`, 'POST', { length }),
+  setTemplate: (
+    id: string,
+    choice: {
+      narrative: string | null
+      direction?: import('../shared/narratives').Direction
+    }
+  ) => request<Snapshot>(`/projects/${id}/template`, 'POST', choice),
+  answerEvidence: (
+    id: string,
+    body: { slideId: string; what: string; answer: string }
+  ) => request<Snapshot>(`/projects/${id}/answers`, 'POST', body),
   saveLibraryBrand: (body: unknown) =>
     request<import('../shared/settings').SavedBrand>(
       '/settings/brands',

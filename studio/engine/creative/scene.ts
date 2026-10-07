@@ -1,5 +1,9 @@
 import type { SceneProgressReporter } from '../../shared/model'
-import { narrativeBrief, sceneNarrative } from '../../shared/narratives'
+import {
+  narrativeBrief,
+  plannedPages,
+  sceneNarrative
+} from '../../shared/narratives'
 import { prepareCastPacket } from './cast-packet'
 import { randomUUID } from 'node:crypto'
 import type { Project, Scene, Moment } from '../../shared/model'
@@ -64,7 +68,7 @@ export const planCreativeScene = async (
     reviewed: null
   }))
   const presence = scene.presence || video.settings.presence
-  const shape = sceneNarrative(video, scene.id)
+  const shape = sceneNarrative(video, scene.id, plannedPages(project))
   const story = shape ? narrativeBrief(shape, presence) : null
   const retained = await readRow<{ text: string }>('sources', project.id)
   await onProgress?.('Planning the scene', 'planning')
@@ -104,6 +108,13 @@ export const planCreativeScene = async (
             'Presentation reference only. Restage the explanation for video.',
           narration: slide.narration || '',
           sourcePassages: slide.evidence || [],
+          ...(slide.answers?.length
+            ? {
+                creatorEvidence: slide.answers.map(
+                  (item) => `${item.what}: ${item.answer}`
+                )
+              }
+            : {}),
           wireframe: null
         }
       ],

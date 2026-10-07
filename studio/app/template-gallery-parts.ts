@@ -19,7 +19,9 @@ import {
   type StoryGroupId
 } from '../shared/narratives'
 
-export type GalleryUse = 'make' | 'settings' | null
+/** What Use does: plan a notebook's wireframes, make its video, or change
+ * the video's settings. */
+export type GalleryUse = 'notebook' | 'make' | 'settings' | null
 export type GalleryState = {
   /** The group the rail shows, or all of them. */
   group: 'all' | StoryGroupId

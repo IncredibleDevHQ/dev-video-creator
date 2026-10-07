@@ -9,6 +9,17 @@ import { api } from './api'
 import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
 import { escape } from './ui'
+import {
+  LENGTHS,
+  allowedPresets,
+  directionSettings,
+  lengthLabel,
+  narrativeById,
+  presetById,
+  presetFor,
+  type LengthRange,
+  type PresetId
+} from '../shared/narratives'
 
 const lengths: Array<[StoryLength, string]> = [
   ['short', 'Short'],
@@ -19,16 +30,112 @@ const lengths: Array<[StoryLength, string]> = [
 export const lookName = (snapshot: Snapshot) =>
   snapshot.project.branding?.look?.name || 'Paper'
 
+/** The notebook's template and how it is told, in a few words. */
+const telling = (snapshot: Snapshot) => {
+  const narrative = narrativeById(snapshot.project.narrative)
+  if (!narrative) return null
+  const direction = snapshot.project.direction
+  const preset = presetById(presetFor(narrative, direction?.preset))!
+  const length = directionSettings(narrative, direction).length
+  return { narrative, label: `${preset.name}, ${lengthLabel(length)}` }
+}
+
 export const choicesRow = (snapshot: Snapshot, editable: boolean) => {
   const { harness, length } = snapshot.project
   const agent = harness
     ? `${agentNames[harness.adapter]}${harness.model ? ` ${modelLabel(harness.model)}` : ''}`
     : 'the agent found on this computer'
   const scenes = STORY_SCENES[length || 'medium']
+  const told = telling(snapshot)
+  const off = editable ? '' : 'disabled'
+  // With a template, its direction sets the length; without, the count does.
   return `<p class="choice-row"><span>With</span>
 <button type="button" class="choice" data-action="agent-menu" data-popover="agent">${escape(agent)}</button><span aria-hidden="true">·</span>
-<button type="button" class="choice" data-action="length-menu" data-popover="length" ${editable ? '' : 'disabled'}>about ${scenes} wireframes</button><span aria-hidden="true">·</span>
+<button type="button" class="choice" data-action="open-templates" ${off}>${escape(told ? told.narrative.name : 'No template')}</button><span aria-hidden="true">·</span>
+${
+  told
+    ? `<button type="button" class="choice" data-action="direction-menu" data-popover="direction" ${off}>${escape(told.label)}</button>`
+    : `<button type="button" class="choice" data-action="length-menu" data-popover="length" ${off}>about ${scenes} wireframes</button>`
+}<span aria-hidden="true">·</span>
 <button type="button" class="choice" data-action="look-panel">${escape(lookName(snapshot))} look</button></p>`
+}
+
+/**
+ * How the notebook's template is told: its directions, then the length as a
+ * range, and the way back to planning without one.
+ */
+export const openDirectionMenu = (app: AppContext, anchor: HTMLElement) => {
+  const snapshot = app.snapshot
+  const narrative = narrativeById(snapshot?.project.narrative)
+  if (!snapshot || !narrative) return
+  const id = snapshot.project.id
+  const direction = snapshot.project.direction
+  const preset = presetFor(narrative, direction?.preset)
+  const length = directionSettings(narrative, direction).length.join(',')
+  const lengths = [
+    ...new Map(
+      [
+        ...LENGTHS,
+        directionSettings(narrative, { preset }).length,
+        directionSettings(narrative, direction).length
+      ].map((range) => [range.join(','), range])
+    ).values()
+  ].sort((a, b) => a[0] - b[0])
+  const radio = (attrs: string, checked: boolean, label: string, note = '') =>
+    `<button type="button" role="radio" aria-checked="${checked}" ${attrs}><span>${escape(label)}</span>${note ? `<small>${escape(note)}</small>` : ''}</button>`
+  const panel = openPopover(
+    anchor,
+    'direction',
+    `<div class="length-menu" role="radiogroup" aria-label="How to tell it"><p class="popover-title">${escape(narrative.name)}</p>${allowedPresets(
+      narrative
+    )
+      .map((item) =>
+        radio(
+          `data-preset="${item.id}"`,
+          item.id === preset,
+          item.name,
+          lengthLabel(directionSettings(narrative, { preset: item.id }).length)
+        )
+      )
+      .join('')}<p class="popover-title">Length</p>${lengths
+      .map((range) =>
+        radio(
+          `data-length="${range.join(',')}"`,
+          range.join(',') === length,
+          lengthLabel(range)
+        )
+      )
+      .join(
+        ''
+      )}<p class="popover-note">The agent plans the wireframes from the template’s beats, for this length.</p><button type="button" class="quiet" data-template-none>Plan without a template</button></div>`,
+    'length-popover'
+  )
+  panel?.addEventListener('click', async (event) => {
+    const choice = (event.target as Element).closest<HTMLElement>(
+      '[data-preset],[data-length],[data-template-none]'
+    )
+    if (!choice) return
+    const next = choice.dataset.preset
+      ? { preset: choice.dataset.preset as PresetId }
+      : choice.dataset.length
+        ? {
+            ...direction,
+            preset,
+            length: choice.dataset.length.split(',').map(Number) as LengthRange
+          }
+        : null
+    try {
+      const changed = await api.setTemplate(id, {
+        narrative: next ? narrative.id : null,
+        ...(next ? { direction: next } : {})
+      })
+      if (app.snapshot?.project.id === id) app.snapshot = changed
+      closePopover()
+      app.render()
+    } catch (reason) {
+      app.error(reason)
+    }
+  })
 }
 
 export const openLengthMenu = (app: AppContext, anchor: HTMLElement) => {

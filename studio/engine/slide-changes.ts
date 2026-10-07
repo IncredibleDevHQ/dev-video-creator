@@ -48,7 +48,12 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
   const changed = await changeProject(id, (current) => {
     const slide = current.project.slides.find((item) => item.id === slideId)
     if (!slide) throw new Error('Select a wireframe first')
-    if (!['ready', 'building', 'failed'].includes(current.status) || !slide.svg)
+    // A blank wireframe is drawn from what the creator says it is about,
+    // once the others are drawn.
+    if (
+      !['ready', 'building', 'failed'].includes(current.status) ||
+      (!slide.svg && current.status !== 'ready')
+    )
       throw new Error('Wait for this wireframe to be drawn')
     const change: SlideChange = {
       id: randomUUID(),
@@ -69,6 +74,33 @@ export const chatSlide = async (id: string, request: ChatRequest) => {
   })
   scheduleChanges(id)
   return changed
+}
+
+/**
+ * The creator's answer to evidence a wireframe needs and the source did not
+ * hold. It is kept with the page, for the video's planner, and the page is
+ * redrawn to show it.
+ */
+export const answerEvidence = async (id: string, raw: unknown) => {
+  const value = (raw ?? {}) as Record<string, unknown>
+  const slideId = String(value.slideId || '')
+  const what = String(value.what || '').trim()
+  const answer = String(value.answer || '').trim()
+  if (!answer || answer.length > 2000)
+    throw new Error('Add an answer of up to 2000 characters')
+  await changeProject(id, (current) => {
+    const slide = current.project.slides.find((item) => item.id === slideId)
+    if (!slide?.needs?.some((need) => need.what === what && !need.source))
+      throw new Error('This wireframe does not ask for that')
+    slide.answers = [
+      ...(slide.answers || []).filter((item) => item.what !== what),
+      { what, answer }
+    ]
+  })
+  return chatSlide(id, {
+    anchor: { stage: 'presentation', slideId },
+    instruction: `Show the evidence the creator supplied for this page. ${what}: ${answer}. It is the creator's own, not the article's: put it in the narration and the parts, never in source.`
+  })
 }
 
 const working = new Map<string, Promise<void>>()
@@ -219,11 +251,16 @@ const reviseSlide = async (id: string, change: SlideChange) => {
             snapshot.project.slides.find(
               (other, at) => at !== index && other.svg
             )?.svg || undefined,
-          edit: {
-            instruction: change.instruction,
-            target: change.target,
-            svg: slide.svg || ''
-          }
+          // A blank wireframe is drawn fresh; a drawn one is changed.
+          ...(slide.svg
+            ? {
+                edit: {
+                  instruction: change.instruction,
+                  target: change.target,
+                  svg: slide.svg
+                }
+              }
+            : {})
         })
       )[0]
     : renderPage(revised, index, snapshot.project.slides.length, pageBrand, {
@@ -250,7 +287,9 @@ const reviseSlide = async (id: string, change: SlideChange) => {
       artifactId: asset.id,
       objectKey: asset.objectKey
     })
+    // The page keeps the beats it carries and the creator's answers.
     current.project.slides[currentIndex] = {
+      ...current.project.slides[currentIndex],
       id: change.slideId,
       title: revised.title,
       svg,
@@ -258,6 +297,7 @@ const reviseSlide = async (id: string, change: SlideChange) => {
       idea: revised.idea,
       evidence: revised.source
     }
+    delete current.project.slides[currentIndex].draft
     current.changes = (current.changes || []).filter(
       (item) => item.id !== change.id
     )

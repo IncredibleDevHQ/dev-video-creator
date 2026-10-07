@@ -20,7 +20,11 @@ import { prepareCreativePages } from './creative/pages'
 import { prepareCreativeSlideRevision } from './creative/slide-revision'
 import { fingerprintOf } from './planning/fingerprint'
 import { STORY_SCENES, type HarnessSelection } from '../shared/model'
-import { legacyNarrative } from '../shared/narratives'
+import {
+  legacyNarrative,
+  narrativeById,
+  storyPlanBrief
+} from '../shared/narratives'
 import { randomUUID } from 'node:crypto'
 import type { Snapshot, SlideEdit, ChatRequest } from '../shared/api'
 import type { ProjectEvent } from '../shared/model'
@@ -275,6 +279,13 @@ type SlideCheckpoint = {
   brand: ReturnType<typeof pageBrandFrom>
   slideIds?: string[]
 }
+/** The beats a planned page carries and the evidence it needs, if any. */
+const planned = (
+  scene: ReturnType<typeof sanitizeOutline>['scenes'][number]
+) => ({
+  ...(scene.beats?.length ? { beats: scene.beats } : {}),
+  ...(scene.needs?.length ? { needs: scene.needs } : {})
+})
 const requireSlidesRunning = async (id: string) => {
   if ((await loadProject(id))?.stopping) throw new Error(generationStops.user)
 }
@@ -326,13 +337,18 @@ const buildSlides = async (id: string) => {
       await changeProject(id, (current) =>
         addEvent(current, 'slide', 'Planning the story')
       )
+      // A narrative plans the pages from its beats and its length range.
+      const narrative = narrativeById(snapshot.project.narrative)
       outline = await prepareCreativeStory(
         id,
         source,
         snapshot.project.harness,
         origin,
         brief,
-        STORY_SCENES[snapshot.project.length || 'medium']
+        STORY_SCENES[snapshot.project.length || 'medium'],
+        narrative
+          ? storyPlanBrief(narrative, snapshot.project.direction)
+          : undefined
       )
     }
     if (!outline.scenes.length) throw new Error('No slides generated')
@@ -404,7 +420,8 @@ const buildSlides = async (id: string) => {
         svg,
         narration: scene.narration,
         idea: scene.idea,
-        evidence: scene.source
+        evidence: scene.source,
+        ...planned(scene)
       }
       const existing = current.project.slides.findIndex(
         (slide) => slide.id === slideId
@@ -472,7 +489,8 @@ const buildSlides = async (id: string) => {
         svg,
         narration: scene.narration,
         idea: scene.idea,
-        evidence: scene.source
+        evidence: scene.source,
+        ...planned(scene)
       }
       const existing = current.project.slides.findIndex(
         (slide) => slide.id === slideId
@@ -488,6 +506,34 @@ const buildSlides = async (id: string) => {
     delete current.plan
     delete current.drawing
     addEvent(current, 'slide', 'Wireframes ready')
+  })
+}
+/**
+ * A blank wireframe at the end, or, for a beat of the notebook's narrative,
+ * one titled for it and placed after the pages that carry earlier beats.
+ */
+const addSlide = (project: Snapshot['project'], beatId?: string) => {
+  const narrative = narrativeById(project.narrative)
+  const beat = beatId
+    ? narrative?.beats.find((item) => item.id === beatId)
+    : null
+  if (beatId && !beat)
+    throw new Error('Choose a beat of this notebook’s template')
+  if (!beat)
+    return project.slides.push({ id: randomUUID(), title: '', svg: null })
+  const order = narrative!.beats.map((item) => item.id)
+  const at = order.indexOf(beat.id)
+  const after = project.slides.reduce(
+    (last, slide, index) =>
+      slide.beats?.some((id) => order.indexOf(id) <= at) ? index : last,
+    -1
+  )
+  project.slides.splice(after + 1, 0, {
+    id: randomUUID(),
+    title: beat.name,
+    svg: null,
+    idea: beat.know,
+    beats: [beat.id]
   })
 }
 export const editSlide = (id: string, edit: SlideEdit) =>
@@ -522,8 +568,7 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       if (snapshot.deletedSlide.scene && snapshot.project.video)
         snapshot.project.video.scenes.push(snapshot.deletedSlide.scene)
       delete snapshot.deletedSlide
-    } else if (edit.action === 'add')
-      slides.push({ id: randomUUID(), title: '', svg: null })
+    } else if (edit.action === 'add') addSlide(snapshot.project, edit.beat)
     else {
       if (index < 0) throw new Error('Slide not found')
       if (edit.action === 'delete') {

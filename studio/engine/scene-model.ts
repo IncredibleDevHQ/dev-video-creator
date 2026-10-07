@@ -2,7 +2,7 @@ import type { ActivityLedger } from './activity'
 import { transitionScene } from './autopilot'
 import type { Project, Scene, Moment, Voice } from '../shared/model'
 import { fingerprintOf } from './planning/fingerprint'
-import { narrativeAt } from '../shared/narratives'
+import { narrativeAt, plannedPages } from '../shared/narratives'
 export const roleOf = (index: number, count: number) =>
   index === 0 ? 'title' : index === count - 1 ? 'ending' : 'body'
 export const scenePlanKey = (project: Project, scene: Scene) => {
@@ -13,7 +13,8 @@ export const scenePlanKey = (project: Project, scene: Scene) => {
     project.video!.settings,
     index,
     project.slides.length,
-    scene.beats
+    scene.beats,
+    plannedPages(project)
   )
   return fingerprintOf({
     harness: project.video!.settings.harness,

@@ -40,6 +40,18 @@ export type Beat = {
   expansions: string[]
 }
 
+/**
+ * Evidence a page needs: what, of which kind, and the source sentence that
+ * holds it, or null when the creator has to supply it.
+ */
+export type EvidenceNeed = {
+  kind: EvidenceKind
+  what: string
+  source: string | null
+}
+/** What the creator supplied for a need the source did not hold. */
+export type EvidenceAnswer = { what: string; answer: string }
+
 export type StoryGroupId =
   | 'explain'
   | 'teach'

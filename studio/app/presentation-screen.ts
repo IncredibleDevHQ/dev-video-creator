@@ -6,6 +6,7 @@ import { escape, button } from './ui'
 import { presentationProgress } from './progress'
 import { wireframeStatus } from './wireframe-copy'
 import { sceneBadge, sceneLink } from './scene-link'
+import { pageStory, storyGaps } from './wireframe-story'
 
 /** A rail entry: a drawn wireframe, or an outline scene not drawn yet. */
 export type WireframeTile =
@@ -139,6 +140,9 @@ export const presentationScreen = (
         event.anchor.slideId === slide?.id
     )
   const scriptEditable = status === 'ready' && !snapshot.readOnly && slide
+  // A blank wireframe is drawn from what the creator says it shows.
+  const describable =
+    !!slide && !drawn && status === 'ready' && !snapshot.readOnly
   const script = planTile ? planTile.narration : slide?.narration || ''
   const pin = view.pin && slide && canChange ? view.pin : null
   const link = slide
@@ -164,6 +168,7 @@ export const presentationScreen = (
             </button>`}
         <p>Each wireframe is one scene of your video.</p>
       </div>
+      ${storyGaps(snapshot, !snapshot.readOnly)}
       ${tiles
         .map((tile, order) => {
           const number = String(order + 1).padStart(2, '0')
@@ -265,6 +270,7 @@ export const presentationScreen = (
             </button>`
           : ''}
       </div>
+      ${pageStory(snapshot, slide, status === 'ready' && !snapshot.readOnly)}
       ${script || slide
         ? html`<section class="script-notes" aria-labelledby="script-heading">
             <h3 id="script-heading">
@@ -306,11 +312,13 @@ ${escape(script)}</textarea
             ? 'Describe a change for this part…'
             : canChange
               ? 'Ask for a change, or click part of the wireframe to point at it'
-              : 'Changes open once this wireframe is drawn'}"
-          ${canChange ? '' : 'disabled'}
+              : describable
+                ? 'Say what this wireframe shows, and it is drawn'
+                : 'Changes open once this wireframe is drawn'}"
+          ${canChange || describable ? '' : 'disabled'}
         /><button
           aria-label="Send instruction"
-          ${!canChange || pendingChat ? 'disabled' : ''}
+          ${!(canChange || describable) || pendingChat ? 'disabled' : ''}
         >
           ↑
         </button>

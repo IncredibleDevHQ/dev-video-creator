@@ -13,8 +13,14 @@ import {
   groupNarratives,
   legacyNarrative,
   lengthLabel,
+  narrativeAt,
   narrativeBrief,
   narrativeById,
+  openRequests,
+  pageRange,
+  plannedPages,
+  storyPlanBrief,
+  coverage,
   presenceFor,
   presenterLayoutFor,
   sceneNarrative,
@@ -314,4 +320,85 @@ it('opens a video saved with an old template on its narrative', () => {
   expect(legacyNarrative('list-told')).toBe('listicle')
   expect(legacyNarrative('nonsense')).toBeUndefined()
   expect(legacyNarrative(undefined)).toBeUndefined()
+})
+
+it('suggests a page range from the length and how much it explains', () => {
+  const incident = narrativeById('incident')!
+  const range = (preset: string) =>
+    pageRange(directionSettings(incident, { preset: preset as never }))
+  expect(range('short-dramatic')).toEqual([3, 6])
+  expect(range('briefing')).toEqual([3, 12])
+  expect(range('explainer')).toEqual([6, 20])
+  expect(range('deep-dive')).toEqual([20, 40])
+  expect(range('demo-led')).toEqual([3, 15])
+  const brief = storyPlanBrief(incident, { preset: 'short-dramatic' })
+  expect(brief).toMatchObject({
+    narrative: 'incident',
+    direction: 'Short and dramatic',
+    lengthLabel: '45–90 s',
+    pages: [3, 6],
+    structure: 'cold-open'
+  })
+  expect(brief.beats.map((beat) => [beat.id, beat.told])).toEqual([
+    ['impact', true],
+    ['timeline', true],
+    ['cause', true],
+    ['fix', true],
+    ['changes', false]
+  ])
+})
+
+it('checks which pages carry each beat, and what they still need', () => {
+  const incident = narrativeById('incident')!
+  expect(coverage(incident, null, [{ id: 'a' }])).toBeNull()
+  const pages = [
+    { id: 'a', beats: ['impact'] },
+    { id: 'b', beats: ['timeline', 'cause'] },
+    { id: 'c' },
+    {
+      id: 'd',
+      beats: ['changes'],
+      needs: [
+        { kind: 'numbers' as const, what: 'error rate', source: null },
+        { kind: 'quote' as const, what: 'the trigger', source: 'A sentence.' },
+        { kind: 'timeline' as const, what: 'when it began', source: null }
+      ],
+      answers: [{ what: 'when it began', answer: '14:02 UTC' }]
+    }
+  ]
+  const checked = coverage(incident, { preset: 'briefing' }, pages)!
+  expect(checked.missing.map((beat) => beat.id)).toEqual(['fix'])
+  expect(checked.beats.find((item) => item.beat.id === 'cause')!.pages).toEqual(
+    [1]
+  )
+  expect(openRequests(pages)).toEqual([
+    { slideId: 'd', index: 3, need: pages[3].needs![0] }
+  ])
+  // Pages planned for one story give their beats only to that story.
+  const project = {
+    narrative: 'incident',
+    slides: pages,
+    video: { settings: { narrative: 'incident' } }
+  }
+  expect(plannedPages(project)?.[1]).toEqual(['timeline', 'cause'])
+  expect(
+    plannedPages({ ...project, video: { settings: { narrative: 'launch' } } })
+  ).toBeUndefined()
+  const settings = {
+    narrative: 'incident',
+    direction: { preset: 'briefing' as const }
+  }
+  const planned = pages.map((page) => page.beats)
+  const second = narrativeAt(settings, 1, 4, null, planned)!
+  expect(second.beats.map((plan) => plan.beat.id)).toEqual([
+    'timeline',
+    'cause'
+  ])
+  // A page added without beats takes its share in order.
+  expect(
+    narrativeAt(settings, 2, 4, null, planned)!.beats.length
+  ).toBeGreaterThan(0)
+  expect(narrativeAt(settings, 1, 4, ['fix'], planned)!.beats[0].beat.id).toBe(
+    'fix'
+  )
 })

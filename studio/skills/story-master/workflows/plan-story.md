@@ -67,6 +67,36 @@ Rules:
 - A scene's claims must come from the source or be marked as the creator's own
   framing in the narration. Do not invent numbers.
 
+## When the creator chose a template
+
+`story` in `motion/inputs.json` (and `packet/STORY.json`) is the narrative the
+creator chose and how they want it told. It replaces `targetScenes`. The
+pages come from its beats:
+
+- `beats` are the story's narrative functions, in order. Each says what the
+  viewer must know after it (`know`), the kinds of evidence it can draw on
+  and roughly how long it runs in this telling (`seconds`). A beat with
+  `told: false` is left out of this telling unless the source makes it
+  essential; one with `expansions` grows by them.
+- Plan within `pages` (a range: the fewest and the most pages). One beat may
+  take several pages, and several beats may share one. Every core beat that
+  is told must be on a page.
+- Each scene names the beats it carries, as ids: `"beats": ["impact"]`.
+  Keep the story's order. A `cold-open` or `result-first` story may open on a
+  later beat's most striking moment, then go back to the start.
+- The scenes' seconds add up to the telling's `length` range. `elaboration`
+  and `drama` say how much each page explains and how it sounds.
+- Keep the story's `rules`; its `needs` say what the source must hold.
+- Each scene lists the evidence it needs, `"needs": [{ "kind": "numbers",
+  "what": "how many requests failed", "source": "…" }]`, with `kind` one of
+  numbers, timeline, code, diff, diagram, demo, terminal, quote, creator.
+  `source` is one full sentence copied verbatim from the source when it
+  holds that evidence, or `null` when it does not: the creator is asked for
+  it. Never invent the missing evidence; a scene may still go ahead with a
+  need left open.
+- The first scene is still the `title` (it carries the opening beat) and the
+  last the `close`.
+
 ## Receipt
 
 Write `story/receipt.json`:

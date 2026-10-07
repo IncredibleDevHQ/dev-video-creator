@@ -18,12 +18,12 @@ import {
   ON_CAMERA_LABELS,
   STRUCTURE_LABELS,
   allowedPresets,
-  assignBeats,
   directionSettings,
   lengthLabel,
   narrativeById,
   presenceFor,
   presetFor,
+  plannedPages,
   sceneNarrative,
   type Direction,
   type EvidenceKind,
@@ -348,7 +348,7 @@ export const syncTemplateFields = (
 
 /** Which beats a scene carries, in the scene's header; empty without a template. */
 export const sceneBeatChip = (project: Project, sceneId: string) => {
-  const shape = sceneNarrative(project.video, sceneId)
+  const shape = sceneNarrative(project.video, sceneId, plannedPages(project))
   if (!shape) return ''
   const names = shape.beats.map((plan) => plan.beat.name)
   return html`<button
@@ -370,11 +370,11 @@ export const sceneBeatChip = (project: Project, sceneId: string) => {
 /** The menu that gives a scene another beat of the video's template. */
 export const sceneBeatMenu = (project: Project, sceneId: string) => {
   const video = project.video
-  const shape = sceneNarrative(video, sceneId)
+  const shape = sceneNarrative(video, sceneId, plannedPages(project))
   if (!video || !shape) return ''
   const own = video.scenes[shape.index].beats
   const chosen = own?.length === 1 ? own[0] : own?.length ? null : ''
-  const inOrder = assignBeats(shape.plans, shape.count)[shape.index].map(
+  const inOrder = shape.layout[shape.index].map(
     (id) => shape.plans.find((plan) => plan.beat.id === id)!.beat.name
   )
   const choice = (beat: string, label: string, note: string, fn: string) =>
@@ -393,7 +393,14 @@ export const sceneBeatMenu = (project: Project, sceneId: string) => {
       Which beat this scene carries. Changing it plans the scene again.
     </p>
     <div class="tpl-slot-menu" role="radiogroup" aria-label="Beat">
-      ${choice('', 'Its share in order', inOrder.join(' · '), 'order')}
+      ${choice(
+        '',
+        plannedPages(project)?.[shape.index]?.length
+          ? 'As its wireframe plans'
+          : 'Its share in order',
+        inOrder.join(' · '),
+        'order'
+      )}
       ${shape.plans
         .map((plan) =>
           choice(

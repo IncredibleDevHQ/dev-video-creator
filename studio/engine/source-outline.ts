@@ -1,4 +1,9 @@
 import type { SourceRead } from './source-document'
+import {
+  EVIDENCE_LABELS,
+  type EvidenceKind,
+  type EvidenceNeed
+} from '../shared/narratives'
 // ——— the outline ———
 
 export const SCENE_KINDS = [
@@ -45,6 +50,11 @@ export type OutlineScene = {
   // is a summary and loses the motivating example, the number and the
   // because; these carry them to the writer, which never sees the source.
   source: string[]
+  // With a narrative: the beats the page carries, and the evidence it needs
+  // (a verbatim sentence when the source holds it, null when it must be
+  // asked for).
+  beats?: string[]
+  needs?: EvidenceNeed[]
 }
 export type Outline = {
   title: string
@@ -170,6 +180,51 @@ const flatten = (text: string) =>
     .replace(/\s+/g, ' ')
     .trim()
 
+/** A scene's beats and needs, kept only when the planner gave them. */
+const plannedFields = (
+  scene: Record<string, unknown>,
+  haystack: string
+): Pick<OutlineScene, 'beats' | 'needs'> => {
+  const beats = Array.isArray(scene.beats)
+    ? [
+        ...new Set(
+          scene.beats
+            .map((id) => String(id || '').trim())
+            .filter((id) => /^[a-z0-9-]{1,40}$/.test(id))
+        )
+      ].slice(0, 8)
+    : undefined
+  const needs = Array.isArray(scene.needs)
+    ? scene.needs
+        .map((entry): EvidenceNeed | null => {
+          const need = (
+            entry && typeof entry === 'object' ? entry : {}
+          ) as Record<string, unknown>
+          const what = String(need.what || '')
+            .trim()
+            .slice(0, 160)
+          const kind = String(need.kind || '') as EvidenceKind
+          if (!what || !Object.hasOwn(EVIDENCE_LABELS, kind)) return null
+          const quote = String(need.source || '')
+            .trim()
+            .replace(/\s+/g, ' ')
+            .slice(0, 320)
+          // A sentence the source does not hold is no source: ask for it.
+          return {
+            kind,
+            what,
+            source:
+              quote && (!haystack || haystack.includes(flatten(quote)))
+                ? quote
+                : null
+          }
+        })
+        .filter((need): need is EvidenceNeed => Boolean(need))
+        .slice(0, 6)
+    : undefined
+  return { ...(beats ? { beats } : {}), ...(needs ? { needs } : {}) }
+}
+
 export const sanitizeOutline = (
   raw: unknown,
   fallbackTitle: string,
@@ -280,11 +335,12 @@ export const sanitizeOutline = (
               (/[.!?]$/.test(line) || /\d/.test(line))
           )
           .filter((line) => !haystack || haystack.includes(flatten(line)))
-          .slice(0, 4)
+          .slice(0, 4),
+        ...plannedFields(s, haystack)
       }
     })
     .filter((scene): scene is OutlineScene => Boolean(scene))
-    .slice(0, 16)
+    .slice(0, 40)
   const glossary = (Array.isArray(o.glossary) ? o.glossary : [])
     .map((entry) => {
       const g = (entry && typeof entry === 'object' ? entry : {}) as Record<

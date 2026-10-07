@@ -53,15 +53,21 @@ const useButton = (state: GalleryState, narrative: Narrative) => {
   if (!state.use)
     return '<p class="tpl-use-note">Open a notebook with finished wireframes to use it.</p>'
   const label =
-    state.use === 'make'
-      ? 'Use for this video →'
-      : same
+    state.use === 'notebook'
+      ? same
         ? 'Tell it this way →'
-        : 'Switch this video to it →'
+        : 'Use for this notebook →'
+      : state.use === 'make'
+        ? 'Use for this video →'
+        : same
+          ? 'Tell it this way →'
+          : 'Switch this video to it →'
   return `<button type="button" class="primary" data-tpl-use="${narrative.id}" data-preset="${preset}">${label}</button><p class="tpl-use-note">${
-    state.use === 'make'
-      ? 'Camera and voice come next.'
-      : 'Every scene is planned again.'
+    state.use === 'notebook'
+      ? 'Your wireframes are planned from its beats.'
+      : state.use === 'make'
+        ? 'Camera and voice come next.'
+        : 'Every scene is planned again.'
   }</p>`
 }
 

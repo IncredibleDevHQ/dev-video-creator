@@ -80,6 +80,16 @@ export const submitSlides = async (
     if (!instruction) return
     await app.sendChat({ anchor: { stage: 'notebook' }, instruction })
   }
+  if (form.matches('.evidence-ask') && app.snapshot) {
+    const answer = String(values.get('answer') || '').trim()
+    if (!answer) return
+    app.snapshot = await api.answerEvidence(app.snapshot.project.id, {
+      slideId: form.dataset.evidenceSlide || '',
+      what: form.dataset.evidenceWhat || '',
+      answer
+    })
+    app.render()
+  }
   if (form.id === 'chat' && app.snapshot) {
     const instruction = String(values.get('instruction') || '').trim()
     const slideId = app.snapshot.project.slides[app.selected]?.id
@@ -125,6 +135,24 @@ export const clickSlides = async (
       target.disabled = false
       app.render()
     }
+  }
+  if (action === 'add-beat' && target.dataset.beat) {
+    // A page for a beat no wireframe carries, drawn from what it must say.
+    const beat = target.dataset.beat
+    app.snapshot = await api.slide(id, { action: 'add', beat })
+    const slides = app.snapshot.project.slides
+    const added = slides.findIndex(
+      (slide) =>
+        !slide.svg && slide.beats?.length === 1 && slide.beats[0] === beat
+    )
+    if (added >= 0) {
+      app.selected = added
+      app.snapshot = await api.chat(id, {
+        anchor: { stage: 'presentation', slideId: slides[added].id },
+        instruction: `A page for the beat "${slides[added].title}": the viewer comes away knowing ${(slides[added].idea || '').toLowerCase()} Draw on the source for its evidence.`
+      })
+    }
+    app.render()
   }
   if (action === 'export') await downloadPresentation(id, target)
   if (action === 'slide-menu') {

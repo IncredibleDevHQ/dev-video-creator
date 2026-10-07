@@ -11,19 +11,26 @@ import { clickVideo } from './video-controller'
 /** Where the gallery returns to, and what it may do there. */
 export const galleryContext = (app: AppContext) => {
   const project = app.snapshot?.project
-  const settings = project?.video?.settings
+  // Before any wireframe, a template plans them; after, it shapes the video.
+  const planning =
+    !!project &&
+    !project.slides.length &&
+    ['draft', 'failed'].includes(app.snapshot!.status)
+  const told = project?.video?.settings ?? (planning ? project : undefined)
   return {
     look: project?.branding,
     use: !project
       ? null
       : project.video
         ? ('settings' as const)
-        : project.slides.length && project.slides.every((slide) => slide.svg)
-          ? ('make' as const)
-          : null,
+        : planning
+          ? ('notebook' as const)
+          : project.slides.length && project.slides.every((slide) => slide.svg)
+            ? ('make' as const)
+            : null,
     current: {
-      narrative: settings?.narrative,
-      preset: settings?.direction?.preset
+      narrative: told?.narrative,
+      preset: told?.direction?.preset
     },
     back: project ? 'Back to notebook' : 'Back home'
   }
@@ -48,6 +55,17 @@ export const useTemplate = async (
 ) => {
   const narrative = narrativeById(id)
   if (!narrative || !app.snapshot) return app.render()
+  if (galleryContext(app).use === 'notebook') {
+    const project = app.snapshot.project
+    app.snapshot = await api.setTemplate(project.id, {
+      narrative: narrative.id,
+      direction:
+        project.narrative === id && project.direction?.preset === preset
+          ? project.direction
+          : { preset }
+    })
+    return app.render()
+  }
   const video = app.snapshot.project.video
   const direction =
     video?.settings.narrative === id &&

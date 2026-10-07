@@ -13,7 +13,7 @@ import {
   showHowItWorks
 } from './start-controller'
 import { openAgentMenu } from './agent-menu'
-import { openLengthMenu } from './notebook-choices'
+import { openDirectionMenu, openLengthMenu } from './notebook-choices'
 import { closeLookPanel, openLookPanel } from './look-panel'
 import { closePopover } from './popover'
 import { openPresenter } from './presenter-view'
@@ -166,6 +166,10 @@ export const installAppActions = (app: AppContext) => {
       }
       if (action === 'length-menu') {
         openLengthMenu(app, target)
+        return
+      }
+      if (action === 'direction-menu') {
+        openDirectionMenu(app, target)
         return
       }
       if (action === 'look-panel') {

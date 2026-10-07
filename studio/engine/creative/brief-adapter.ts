@@ -284,6 +284,8 @@ export type ScenePacketInput = {
     layoutGuidance: string
     narration: string
     sourcePassages: string[]
+    // What the creator supplied where the source held no evidence.
+    creatorEvidence?: string[]
     wireframe: string | null
   }>
   script: string
@@ -420,6 +422,13 @@ export const renderScenePacket = (input: ScenePacketInput) => {
             '',
             'Source passages it rests on:',
             bullet(page.sourcePassages.map((passage) => `"${passage}"`))
+          ]
+        : []),
+      ...(page.creatorEvidence?.length
+        ? [
+            '',
+            "Evidence the creator supplied (theirs, not the source's; basis `creator`):",
+            bullet(page.creatorEvidence)
           ]
         : []),
       page.wireframe

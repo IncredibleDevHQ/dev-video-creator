@@ -26,23 +26,32 @@ type NarrativeSettings = { narrative?: string; direction?: Direction }
 
 /**
  * The video's narrative, its direction, and the beats the scene at one
- * place carries: the creator's choice for it, else its share in order.
+ * place carries: the creator's choice for it, else the beats its page was
+ * planned with, else its share in order.
  */
 export const narrativeAt = (
   settings: NarrativeSettings,
   index: number,
   count: number,
-  chosen?: string[] | null
+  chosen?: string[] | null,
+  pages?: Array<string[] | null | undefined>
 ) => {
   const narrative = narrativeById(settings.narrative)
   if (!narrative || index < 0 || index >= count) return null
   const direction = directionSettings(narrative, settings.direction)
   const plans = allocateBeats(narrative, direction)
+  const valid = (list?: string[] | null) =>
+    (list || []).filter((id) => plans.some((plan) => plan.beat.id === id))
   const assigned = assignBeats(plans, count)
-  const own = (chosen || []).filter((id) =>
-    plans.some((plan) => plan.beat.id === id)
-  )
-  const ids = own.length ? own : assigned[index]
+  // Pages planned from the beats keep them; a page added without any takes
+  // its share in order.
+  const layout = pages?.some((page) => valid(page).length)
+    ? assigned.map((share, at) =>
+        valid(pages[at]).length ? valid(pages[at]) : share
+      )
+    : assigned
+  const own = valid(chosen)
+  const ids = own.length ? own : layout[index]
   const planOf = (id: string) => plans.find((plan) => plan.beat.id === id)!
   // A beat split over several scenes gives each its part of the time; a
   // chosen beat this telling leaves out takes the scene's own share.
@@ -53,7 +62,7 @@ export const narrativeAt = (
           (sum, id) =>
             sum +
             planOf(id).seconds[end] /
-              Math.max(1, assigned.filter((item) => item.includes(id)).length),
+              Math.max(1, layout.filter((item) => item.includes(id)).length),
           0
         )
       )
@@ -65,9 +74,10 @@ export const narrativeAt = (
     settings: direction,
     plans,
     beats: ids.map(planOf),
-    seconds: seconds[1] ? seconds : timeOf(assigned[index]),
+    seconds: seconds[1] ? seconds : timeOf(layout[index]),
     index,
-    count
+    count,
+    layout
   }
 }
 
@@ -80,7 +90,8 @@ export const sceneNarrative = (
       }
     | null
     | undefined,
-  sceneId: string
+  sceneId: string,
+  pages?: Array<string[] | null | undefined>
 ) => {
   const index = video?.scenes.findIndex((scene) => scene.id === sceneId) ?? -1
   return video && index >= 0
@@ -88,7 +99,8 @@ export const sceneNarrative = (
         video.settings,
         index,
         video.scenes.length,
-        video.scenes[index].beats
+        video.scenes[index].beats,
+        pages
       )
     : null
 }

@@ -24,8 +24,11 @@ The product provides `source`, `slide`, its zero-based `index` and the creator's
 using the retained source as evidence. Keep unrelated claims and wording.
 Write `story/slide.json` using the outline contract from workflows/plan-story.md,
 with exactly one scene. Keep its title, kind, idea, duration, parts, relationships,
-natural spoken draft and verbatim source passages complete. Do not generate the
-full deck or draw SVG. Call story_submit_slide with this run directory; fix
+natural spoken draft and verbatim source passages complete. A slide with no
+picture yet is new: write its scene from the instruction, its `idea` and the
+beats it carries. When the slide has `answers`, they are evidence the creator
+supplied for it: use them in the narration and the parts as the creator's own,
+never in `source`. Do not generate the full deck or draw SVG. Call story_submit_slide with this run directory; fix
 refusals within six submissions, then stop after acceptance.
 
 

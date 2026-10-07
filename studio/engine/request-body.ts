@@ -63,7 +63,10 @@ export const slideRequest = (body: Record<string, unknown>): SlideEdit => {
     ...(body.slideId === undefined
       ? {}
       : { slideId: stringField(body, 'slideId') }),
-    ...(body.index === undefined ? {} : { index: numberField(body, 'index') })
+    ...(body.index === undefined ? {} : { index: numberField(body, 'index') }),
+    ...(body.beat === undefined
+      ? {}
+      : { beat: stringField(body, 'beat').slice(0, 40) })
   }
 }
 export const extensionRequest = (body: Record<string, unknown>) => ({

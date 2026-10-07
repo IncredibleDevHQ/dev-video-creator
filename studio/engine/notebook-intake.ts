@@ -1,4 +1,5 @@
 import type { HarnessSelection, StoryLength } from '../shared/model'
+import { narrativeById, validDirection } from '../shared/narratives'
 import {
   changeProject,
   loadProject,
@@ -190,6 +191,39 @@ export const setNotebookLength = (id: string, raw: unknown) => {
       throw new Error('Choose the length before the wireframes are drawn')
     current.project.length = raw as StoryLength
   })
+}
+
+/**
+ * The template the wireframes are planned from, and how it is told: chosen,
+ * like the length, before any wireframe is drawn. An outline planned for
+ * another story is dropped, so the next attempt plans from the new beats.
+ */
+export const setNotebookTemplate = async (id: string, raw: unknown) => {
+  const value = (raw ?? {}) as { narrative?: unknown; direction?: unknown }
+  const narrative = value.narrative
+    ? narrativeById(String(value.narrative))
+    : undefined
+  if (value.narrative && !narrative)
+    throw new Error('Choose one of the templates, or none')
+  const direction = narrative
+    ? validDirection(narrative, value.direction ?? { preset: narrative.preset })
+    : undefined
+  const snapshot = await changeProject(id, (current) => {
+    if (
+      !['draft', 'failed'].includes(current.status) ||
+      current.project.slides.length
+    )
+      throw new Error('Choose the template before the wireframes are drawn')
+    if (narrative) {
+      current.project.narrative = narrative.id
+      current.project.direction = direction
+    } else {
+      delete current.project.narrative
+      delete current.project.direction
+    }
+  })
+  await deleteRow('outlines', id)
+  return snapshot
 }
 
 /**
