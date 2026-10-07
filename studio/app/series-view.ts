@@ -16,7 +16,7 @@ export type SeriesPageData = {
 /** The creator's series, under their notebooks. */
 export const seriesSection = (list: SeriesSummary[]) =>
   list.length
-    ? `<section class="saved-series" aria-labelledby="series-heading">
+    ? `<section class="saved-notebooks saved-series" aria-labelledby="series-heading">
 <div class="saved-notebooks-heading"><h2 id="series-heading">Your series</h2></div>
 <div class="series-tiles">${list
         .map(
@@ -83,7 +83,7 @@ export const seriesPageView = (page: SeriesPageData) => {
       ? `<ol class="series-episodes">${page.episodes
           .map(
             (item) =>
-              `<li><button type="button" class="quiet" data-notebook="${escape(item.notebookId)}">${item.number}. ${escape(item.title)}</button><small>${escape(narrativeById(item.narrative ?? undefined)?.name || 'No template yet')}</small></li>`
+              `<li><button type="button" class="quiet" data-notebook="${escape(item.notebookId)}">${escape(item.title)}</button><small>${escape(narrativeById(item.narrative ?? undefined)?.name || 'No template yet')}</small></li>`
           )
           .join('')}</ol>`
       : '<p class="series-none">No episode yet.</p>'

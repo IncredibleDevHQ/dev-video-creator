@@ -58,11 +58,7 @@
 }
 
 /* A series: its tiles on the home page, its page, the switch to start one. */
-.series-switch {
-  margin-left: auto;
-  font-size: 12.5px;
-}
-.saved-series {
+.start .saved-series {
   margin-top: 28px;
 }
 .series-tiles {
@@ -384,9 +380,16 @@
 }
 .campaign-edit {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  align-items: start;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
   gap: 6px;
+}
+.campaign-edit textarea {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+.campaign-edit button {
+  justify-self: start;
 }
 .campaign-edit input {
   width: 5.5em;
@@ -395,14 +398,6 @@
   display: flex;
   gap: 6px;
   justify-content: flex-end;
-}
-@media (max-width: 700px) {
-  .campaign-edit {
-    grid-template-columns: 1fr 1fr auto;
-  }
-  .campaign-edit textarea {
-    grid-column: 1 / -1;
-  }
 }
 .youtube-publish-form {
   display: flex;
@@ -418,4 +413,74 @@
 }
 .youtube-publish-form small {
   color: var(--muted);
+}
+.link-repo {
+  margin: 0 0 6px;
+  padding: 3px 8px;
+  font-size: 12.5px;
+}
+.capture-form label {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.capture-form input,
+.capture-form textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.capture-form button {
+  justify-self: start;
+}
+
+/* In a dialog, the one-line forms stay on one line. */
+.dialog-body
+  :is(
+    .release-when,
+    .teaser-form,
+    .numbers-video,
+    .hand-numbers,
+    .account-app,
+    .x-prices,
+    .youtube-publish-form
+  )
+  label {
+  margin: 0;
+}
+.dialog-body
+  :is(.release-when, .teaser-form, .numbers-video)
+  :is(input, select) {
+  flex: 1 1 140px;
+  width: auto;
+  margin: 0;
+  padding: 8px 10px;
+}
+.dialog-body
+  :is(.account-app, .x-prices, .hand-numbers, .youtube-publish-form)
+  input {
+  margin-top: 4px;
+  padding: 8px 10px;
+}
+.dialog-body .campaign-edit input {
+  width: 5.5em;
+  margin: 0;
+  padding: 6px 8px;
+}
+.dialog-body
+  :is(.posts-form, .repo-form, .series-form, .episode-form, .threads-form)
+  label {
+  margin: 8px 0 0;
+}
+.dialog-body :is(.campaign-edit, .posts-form, .threads-form) textarea {
+  min-height: 0;
+  height: auto;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.45;
 }

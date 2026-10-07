@@ -479,3 +479,18 @@ it('offers publishing from the studio, and says what YouTube kept', async () => 
   expect(uploaded).toContain('YouTube kept it private')
   expect(uploaded).not.toContain('Upload to YouTube')
 })
+
+it('offers to link a repo beside requests one could answer', async () => {
+  const { linkRepoAsk } = await import('../app/repo-view')
+  const code = [{ kind: 'code' as const, what: 'the setting', source: null }]
+  expect(linkRepoAsk(snapshot(), code, true)).toContain('Link a repo to ask it')
+  expect(linkRepoAsk(snapshot(), code, false)).toBe('')
+  expect(linkRepoAsk(snapshot({}, { repos: [link] }), code, true)).toBe('')
+  expect(
+    linkRepoAsk(
+      snapshot(),
+      [{ kind: 'creator', what: 'you on camera', source: null }],
+      true
+    )
+  ).toBe('')
+})

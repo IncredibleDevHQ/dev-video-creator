@@ -11,7 +11,7 @@ import {
   openRequests
 } from '../shared/narratives'
 import { escape, html } from './ui'
-import { givenAnswer, repoAsk } from './repo-view'
+import { givenAnswer, linkRepoAsk, repoAsk } from './repo-view'
 import { captureBlock } from './capture-view'
 
 const dot = (fn: string) => `<i class="tpl-beat-dot" data-function="${fn}"></i>`
@@ -66,6 +66,11 @@ export const pageStory = (
               >Not in your source. The page is redrawn with what you add.</small
             >
           </h3>
+          ${linkRepoAsk(
+            snapshot,
+            asks.map(({ need }) => need),
+            editable
+          )}
           ${asks
             .map(
               ({ need }) =>

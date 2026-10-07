@@ -108,14 +108,13 @@ ${rollingHeadline()}
 ${sourceComposer(app.pending)}
 <div class="source-meta">
 <small id="source-hint" class="source-hint" aria-live="polite"></small>
-<button type="button" class="quiet series-switch" data-action="new-series">A series instead</button>
 </div>
 </form>
 ${
   firstVisit
     ? brandStory()
     : `<section class="saved-notebooks" aria-labelledby="recent-heading">
-<div class="saved-notebooks-heading"><h2 id="recent-heading">Your notebooks</h2><button type="button" class="quiet how-it-works" data-action="how-it-works">How it works</button></div>
+<div class="saved-notebooks-heading"><h2 id="recent-heading">Your notebooks</h2><span><button type="button" class="quiet how-it-works" data-action="new-series">Start a series</button><button type="button" class="quiet how-it-works" data-action="how-it-works">How it works</button></span></div>
 <div class="notebook-tiles">
 ${recent.map((item) => notebookTile(app, item)).join('')}
 </div>${

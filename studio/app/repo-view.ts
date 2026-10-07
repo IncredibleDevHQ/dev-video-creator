@@ -99,3 +99,15 @@ ${
     : `<form class="ask-again" data-evidence-slide="${escape(slide.id)}" data-evidence-what="${escape(item.what)}"><input name="prompt" placeholder="Not right? Say what to look for" aria-label="What to look for instead" autocomplete="off" ${editable ? '' : 'disabled'}><button ${editable ? '' : 'disabled'}>Ask again</button></form>`
 }</div>`
 }
+
+/** Beside a page's requests: link a repo when one could answer them. */
+export const linkRepoAsk = (
+  snapshot: Snapshot,
+  needs: EvidenceNeed[],
+  editable: boolean
+) =>
+  !editable ||
+  snapshot.project.repos?.length ||
+  !needs.some((need) => (REPO_KINDS as readonly string[]).includes(need.kind))
+    ? ''
+    : '<button type="button" class="quiet link-repo" data-action="repo-dialog">Link a repo to ask it</button>'
