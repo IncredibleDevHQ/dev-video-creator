@@ -13,6 +13,7 @@ import { changeProject, loadProject } from './projects'
 import {
   branchHead,
   linesAt,
+  repoChanges,
   repoDiff,
   repoFiles,
   repoLog,
@@ -232,7 +233,7 @@ const answerFromRepo = async (
         '## The branch’s commits',
         await repoLog(repo),
         '## What it changes',
-        await repoDiff(repo, { stat: true }),
+        await repoChanges(repo, { top: 40 }),
         '## Files',
         files.slice(0, 1500).join('\n')
       ].join('\n\n')
@@ -271,6 +272,6 @@ const answerFromRepo = async (
   })
   return chatSlide(id, {
     anchor: { stage: 'presentation', slideId },
-    instruction: `Show the evidence the agent found in ${repo.name} (${repo.branch}) for this page. ${what}: ${answer.text} From ${cited.map((file) => file.path).join(', ')}. It is the creator's own, not the article's: put it in the narration and the parts, never in source.`
+    instruction: `Show the evidence the agent found in ${repo.name} (${repo.branch}) for this page. ${what}: ${answer.text} From ${cited.map((file) => file.path).join(', ')}. It is the creator's own, not the article's: put it in the parts and the narration, never in source. The narration is spoken: say what the code does in plain words, never read a file path, an identifier or code aloud; any code or path belongs on the page itself.`
   })
 }

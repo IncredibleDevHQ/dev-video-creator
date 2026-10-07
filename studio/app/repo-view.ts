@@ -74,6 +74,30 @@ export const repoAsk = (
   }<button type="button" class="quiet" data-action="ask-repo" data-evidence-slide="${escape(slide.id)}" data-evidence-what="${escape(need.what)}" ${editable ? '' : 'disabled'}>${ask?.state === 'failed' ? 'Try again' : `Ask ${escape(repo.name)}`}</button></p>`
 }
 
+/** The answer's opening, said in one line. */
+const firstSentence = (text: string) => {
+  const plain = text.replace(/```[\s\S]*?```/g, ' ').replace(/`/g, '')
+  const sentence = plain.match(/^[\s\S]*?[.!?](\s|$)/)?.[0] || plain
+  const line = sentence.replace(/\s+/g, ' ').trim()
+  return line.length > 160 ? `${line.slice(0, 157)}…` : line
+}
+
+/** The whole answer: its paragraphs, and its code as code. */
+const answerBody = (text: string) =>
+  text
+    .split(/(```[a-z]*\n[\s\S]*?```)/)
+    .map((part) => {
+      const code = part.match(/^```[a-z]*\n([\s\S]*?)```$/)
+      if (code) return `<pre><code>${escape(code[1].trimEnd())}</code></pre>`
+      return part
+        .split(/\n{2,}/)
+        .map((paragraph) => paragraph.trim())
+        .filter(Boolean)
+        .map((paragraph) => `<p>${escape(paragraph)}</p>`)
+        .join('')
+    })
+    .join('')
+
 /** An answer, with where it came from; one from a repo can be asked again. */
 export const givenAnswer = (
   snapshot: Snapshot,
@@ -96,7 +120,7 @@ export const givenAnswer = (
         `<code>${escape(file.path)}${file.lines ? `:${file.lines[0]}–${file.lines[1]}` : ''}</code>`
     )
     .join(' ')
-  return `<div class="evidence-given from-repo"><p><b>${escape(item.what)}</b> ${escape(item.answer)}</p>
+  return `<div class="evidence-given from-repo"><details><summary><b>${escape(item.what)}</b> ${escape(firstSentence(item.answer))}</summary>${answerBody(item.answer)}</details>
 <p class="provenance">From ${escape(item.from.repo)} · ${escape(item.from.branch)} @ <code>${shortCommit(item.from.commit)}</code> ${files}</p>
 ${
   asking

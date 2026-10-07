@@ -21,7 +21,7 @@ import { listRows, readRow, writeRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, createProject, loadProject } from './projects'
 import { Refusal } from './refusal'
-import { branchHead, repoDiff, repoLog, validateRepoLink } from './repo-git'
+import { branchHead, repoChanges, repoLog, validateRepoLink } from './repo-git'
 
 const origin = () =>
   process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
@@ -184,10 +184,8 @@ const branchStory = async (
   const sections: string[] = []
   for (const repo of repos) {
     const from = since?.[repo.path]
-    const log = await repoLog(repo, from).catch(() => '')
-    const stat = await repoDiff(repo, { stat: true, since: from }).catch(
-      () => ''
-    )
+    const log = await repoLog(repo, from, 30).catch(() => '')
+    const stat = await repoChanges(repo, { since: from }).catch(() => '')
     sections.push(
       `## ${repo.name}, ${repo.branch}${from ? ` since ${from.slice(0, 7)}` : ` against ${repo.base}`}\n\n${log.trim() || 'No new commits.'}\n\n${stat.trim()}`
     )

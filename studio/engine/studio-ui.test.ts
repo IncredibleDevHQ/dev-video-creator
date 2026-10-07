@@ -109,6 +109,26 @@ it('shows where an answer came from, and asks again', () => {
     }
   }
   const given = doc(givenAnswer(snapshot(), slide, answer, true))
+  // Long answers fold: the first sentence shows; code shows as code.
+  const folded = doc(
+    givenAnswer(
+      snapshot(),
+      slide,
+      {
+        ...answer,
+        answer:
+          'It seeks the frame. Then it measures:\n\n```ts\nawait seek(at)\n```\n\nEach box is checked.'
+      },
+      true
+    )
+  )
+  expect(folded.querySelector('summary')?.textContent).toBe(
+    'the setting It seeks the frame.'
+  )
+  expect(folded.querySelector('pre code')?.textContent).toBe('await seek(at)')
+  expect(
+    [...folded.querySelectorAll('details > p')].map((p) => p.textContent)
+  ).toEqual(['It seeks the frame. Then it measures:', 'Each box is checked.'])
   expect(given.querySelector('.provenance')?.textContent).toBe(
     'From limiter · fix-burst @ abcdef1 bucket.ts:2–2'
   )

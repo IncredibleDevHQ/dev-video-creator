@@ -106,13 +106,13 @@ export const branchHead = async (link: RepoLink) =>
     .toLowerCase()
 
 /** The branch's own commits: those on it and not on its base, or since one. */
-export const repoLog = (link: RepoLink, since?: string) =>
+export const repoLog = (link: RepoLink, since?: string, limit = 60) =>
   git(link.path, [
     'log',
     '--format=%h %ad %s',
     '--date=short',
     '-n',
-    '60',
+    String(limit),
     `${since && /^[0-9a-f]{7,40}$/.test(since) ? since : link.base}..${link.branch}`
   ])
 
@@ -135,6 +135,43 @@ export const repoDiff = (
     from,
     ...(options.file ? ['--', options.file] : [])
   ])
+}
+
+/**
+ * What the branch changes, in short: the totals, then the files that
+ * changed most. A long-lived branch touches hundreds; a summary that lists
+ * them all buries the story.
+ */
+export const repoChanges = async (
+  link: RepoLink,
+  options: { since?: string; top?: number } = {}
+) => {
+  const from =
+    options.since && /^[0-9a-f]{7,40}$/.test(options.since)
+      ? `${options.since}..${link.branch}`
+      : `${link.base}...${link.branch}`
+  const rows = (await git(link.path, ['diff', '--numstat', from], 2e6))
+    .split('\n')
+    .flatMap((line) => {
+      const [added, removed, path] = line.split('\t')
+      return path
+        ? [{ path, added: Number(added) || 0, removed: Number(removed) || 0 }]
+        : []
+    })
+  if (!rows.length) return 'No changes.'
+  const top = options.top ?? 20
+  const total = rows.reduce(
+    (sum, row) => [sum[0] + row.added, sum[1] + row.removed],
+    [0, 0]
+  )
+  const most = [...rows]
+    .sort((a, b) => b.added + b.removed - (a.added + a.removed))
+    .slice(0, top)
+  return [
+    `${rows.length} files changed, ${total[0]} lines added, ${total[1]} removed.`,
+    ...most.map((row) => `${row.path} +${row.added} −${row.removed}`),
+    ...(rows.length > top ? [`… and ${rows.length - top} more files`] : [])
+  ].join('\n')
 }
 
 /** A file at the branch head, with line numbers, or a range of its lines. */
