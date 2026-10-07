@@ -454,3 +454,28 @@ it('lists the campaign by day, with what is due and what went out', async () => 
   // YouTube's goes out with the upload: no "Post now".
   expect(page.querySelectorAll('[data-action="campaign-post"]')).toHaveLength(2)
 })
+
+it('offers publishing from the studio, and says what YouTube kept', async () => {
+  const { youtubeSection } = await import('../app/release-view')
+  expect(youtubeSection(snapshot())).toContain('Upload to YouTube')
+  const uploaded = youtubeSection(
+    snapshot(
+      {},
+      {
+        release: {
+          teasers: [],
+          campaign: [],
+          youtube: {
+            state: 'uploaded',
+            videoId: 'vid123',
+            notes: ['YouTube kept it private'],
+            at: ''
+          }
+        }
+      }
+    )
+  )
+  expect(uploaded).toContain('https://www.youtube.com/watch?v=vid123')
+  expect(uploaded).toContain('YouTube kept it private')
+  expect(uploaded).not.toContain('Upload to YouTube')
+})

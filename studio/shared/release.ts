@@ -58,6 +58,8 @@ export type YouTubeUpload = {
   videoId?: string
   publishAt?: string
   error?: string
+  /** What YouTube did not do: kept it private, no custom thumbnail. */
+  notes?: string[]
   at: string
 }
 

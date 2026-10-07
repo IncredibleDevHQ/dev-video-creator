@@ -156,7 +156,7 @@ export const updateRelease = (id: string, raw: unknown) => {
 
 const thumbnail = async (objectKey: string, posterKey?: string) => {
   if (posterKey)
-    return { name: 'thumbnail.png', bytes: await readAsset(posterKey) }
+    return { name: 'thumbnail.jpg', bytes: await readAsset(posterKey) }
   const dir = await mkdtemp(join(tmpdir(), 'studio-thumbnail-'))
   try {
     await writeFile(join(dir, 'video.mp4'), await readAsset(objectKey))

@@ -105,6 +105,25 @@ export const submitRelease = async (
       })
     )
   }
+  if (form.id === 'youtube-publish-form') {
+    const at = String(values.get('publishAt') || '')
+    const privacy = String(values.get('privacy') || 'private')
+    const sure = await confirmAction({
+      title: 'Upload to YouTube?',
+      detail: at
+        ? `It goes up private, and YouTube publishes it at ${new Date(at).toLocaleString()}.`
+        : `It goes up ${privacy} on your channel.`,
+      action: 'Upload'
+    })
+    if (!sure) return
+    update(
+      app,
+      await studioApi.notebook(id, 'youtube', {
+        privacy,
+        ...(at ? { publishAt: new Date(at).toISOString() } : {})
+      })
+    )
+  }
   if (form.matches('.campaign-edit'))
     update(
       app,

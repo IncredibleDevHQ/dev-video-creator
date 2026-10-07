@@ -76,12 +76,38 @@ ${
 }</section>`
 }
 
+const uploadState = (snapshot: Snapshot) => {
+  const upload = snapshot.project.release?.youtube
+  if (!upload) return ''
+  if (upload.state === 'uploading')
+    return '<p class="release-state" role="status">Uploading to YouTube…</p>'
+  if (upload.state === 'failed')
+    return `<p class="release-failed">${escape(upload.error || 'The upload did not finish')}</p>`
+  return `<p class="release-state">On YouTube: <a href="https://www.youtube.com/watch?v=${escape(upload.videoId || '')}" target="_blank" rel="noopener">${escape(upload.videoId || '')}</a>${
+    upload.publishAt
+      ? ` · publishes ${escape(new Date(upload.publishAt).toLocaleString())}`
+      : ''
+  }</p>${(upload.notes || []).map((note) => `<p class="release-note">${escape(note)}</p>`).join('')}`
+}
+
 export const youtubeSection = (snapshot: Snapshot) => {
   const marks = chapters(snapshot.project)
+  const upload = snapshot.project.release?.youtube
   return `<section class="release-section"><h3>YouTube</h3>
 <p class="release-state">${marks.length ? `${marks.length} chapters from the beats` : 'No chapters: YouTube needs three or more, ten seconds each'}</p>
 <a class="button" href="/api/projects/${encodeURIComponent(snapshot.project.id)}/bundle" download>Download the upload bundle</a>
-<p class="release-note">The video, title, description with chapters, thumbnail${snapshot.project.episode ? ' and playlist' : ''}, to upload in YouTube Studio.</p></section>`
+<p class="release-note">The video, title, description with chapters, thumbnail${snapshot.project.episode ? ' and playlist' : ''}, to upload in YouTube Studio.</p>
+${uploadState(snapshot)}
+${
+  upload?.state === 'uploading' || upload?.state === 'uploaded'
+    ? ''
+    : `<details class="youtube-publish"><summary>Publish from the studio</summary>
+<form id="youtube-publish-form" class="youtube-publish-form">
+<label>Who sees it<select name="privacy"><option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label>
+<label>Publish at <small>optional; YouTube publishes it then</small><input name="publishAt" type="datetime-local" value="${localTime(snapshot.project.release?.at)}"></label>
+<button>Upload to YouTube</button></form>
+<p class="release-note">Needs YouTube connected (Accounts). Until the studio’s Google project passes verification and YouTube’s audit, YouTube keeps these uploads private.</p></details>`
+}</section>`
 }
 
 export const releaseDialog = (snapshot: Snapshot, more = '') => {

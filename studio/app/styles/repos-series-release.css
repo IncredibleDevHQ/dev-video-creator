@@ -404,3 +404,18 @@
     grid-column: 1 / -1;
   }
 }
+.youtube-publish-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.youtube-publish-form label {
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+}
+.youtube-publish-form small {
+  color: var(--muted);
+}

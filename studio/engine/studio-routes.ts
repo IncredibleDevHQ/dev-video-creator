@@ -16,6 +16,7 @@ import { changeItem, planCampaignFor, postItem } from './campaign'
 import { captureDemo } from './product-capture'
 import { draftPosts, updateRelease, uploadBundle } from './release'
 import { makeTeaser } from './teasers'
+import { publishToYouTube } from './youtube-publish'
 import { askRepo, setNotebookRepos } from './repo-answers'
 import { inspectRepo } from './repo-git'
 import { Refusal } from './refusal'
@@ -32,7 +33,7 @@ type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle|numbers|campaign)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle|numbers|campaign|youtube)$/
 
 export const studioRoute = (
   url: URL,
@@ -132,6 +133,8 @@ const route = async (
             ? await changeItem(id, body)
             : await planCampaignFor(id)
       )
+    if (action === 'youtube' && method === 'POST')
+      return ok(await publishToYouTube(id, body))
     if (action === 'teasers' && method === 'POST')
       return ok(await makeTeaser(id, body))
     if (action === 'posts' && method === 'POST') return ok(await draftPosts(id))
