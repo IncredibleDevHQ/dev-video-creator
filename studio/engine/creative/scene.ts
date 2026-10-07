@@ -164,6 +164,7 @@ export const planCreativeScene = async (
     sourceText: retained?.text || project.source,
     previous: scene.moments,
     instructions: scene.instructions || [],
+    evidence: (slide.answers || []).map((item) => item.answer).join('\n'),
     editMomentId: scene.editMomentId,
     selection,
     origin

@@ -1,6 +1,7 @@
 import { scriptEditProblems } from '../moment-edit-scope'
 import type { Moment, Presence } from '../../shared/model'
 import { normalizeMoments } from '../moment-plan'
+import { unsupportedFigures } from './figures'
 import { fingerprintOf } from '../planning/fingerprint'
 import type { ExplanationBriefV1 } from './explanation-brief'
 import type { SceneTreatmentV1 } from './scene-treatment'
@@ -14,6 +15,10 @@ export const validateCreativeScript = (
     role: string
     previous?: Moment[]
     editMomentId?: string
+    /** What figures may be said: the source, its brief, the creator's own. */
+    sourceText?: string
+    brief?: unknown
+    evidence?: string
   }
 ) => {
   try {
@@ -61,6 +66,20 @@ export const validateCreativeScript = (
           `Moment ${moment.id} must share the frame with the explanation`
         )
     }
+    if (input.sourceText) {
+      const stated = [
+        input.sourceText,
+        JSON.stringify(input.brief ?? ''),
+        input.evidence || ''
+      ].join('\n')
+      for (const moment of moments) {
+        const said = unsupportedFigures(moment.lines, stated)
+        if (said.length)
+          throw new Error(
+            `Moment ${moment.id} says ${said.join(', ')}, which the source does not give: say only figures the source states, or say an example as one ("Say a moment runs six seconds…")`
+          )
+      }
+    }
     return { ok: true, problems: [], warnings: [], value: moments }
   } catch (error) {
     return {
@@ -85,6 +104,8 @@ export const prepareCreativeScript = async (input: {
   previous: Moment[]
   editMomentId?: string
   instructions: unknown
+  /** The creator's own evidence for the page: its figures may be said. */
+  evidence?: string
   selection: CreativeSelection
   origin: string
   onEvent?: (event: HarnessEvent) => Promise<void> | void
