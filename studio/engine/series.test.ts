@@ -190,6 +190,25 @@ it('adds one episode at a time, never two as the same number', async () => {
   expect((await series.loadSeries(started.id))!.episodes).toHaveLength(1)
 })
 
+it('plans the arc afresh when asked again', async () => {
+  stage.mockReset()
+  stage.mockImplementation(async (input) => input.validate(arc).value)
+  const started = await series.createSeries({
+    title: 'Again',
+    about: 'Twice',
+    growth: 'arc'
+  })
+  await vi.waitFor(async () =>
+    expect((await series.loadSeries(started.id))!.arc).toBeDefined()
+  )
+  await new Promise((done) => setTimeout(done, 5))
+  await series.planArc(started.id)
+  await vi.waitFor(() => expect(stage).toHaveBeenCalledTimes(2))
+  expect(stage.mock.calls[0][0].inputKey).not.toBe(
+    stage.mock.calls[1][0].inputKey
+  )
+})
+
 it('says when the arc could not be planned', async () => {
   stage.mockRejectedValue(new Error('The agent stopped'))
   const started = await series.createSeries({
