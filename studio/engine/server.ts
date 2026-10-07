@@ -2,6 +2,7 @@ import { saveLibraryBrand, redetectBrand } from './brand-library'
 import { answerEvidence, chatSlide, scheduleChanges } from './slide-changes'
 import { applyLook } from './look-apply'
 import { setNotebookLength, setNotebookTemplate } from './notebook-intake'
+import { checkCoverage, suggestTemplate } from './template-suggest'
 import {
   startPresentation,
   refreshNotebookSource,
@@ -356,7 +357,7 @@ export const createStudioServer = (
         )
       }
       const match = url.pathname.match(
-        /^\/api\/projects\/([a-zA-Z0-9_-]+)(?:\/(events|slides|export|chat|video|produce|download|transitions|retry|stop|artifacts|source|brand-detection|look|length|template|answers))?$/
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)(?:\/(events|slides|export|chat|video|produce|download|transitions|retry|stop|artifacts|source|brand-detection|look|length|template|answers|suggest|coverage))?$/
       )
       if (match) {
         const [, id, action] = match
@@ -442,6 +443,10 @@ export const createStudioServer = (
           return send(response, 200, await setNotebookTemplate(id, body))
         if (action === 'answers' && request.method === 'POST')
           return send(response, 200, await answerEvidence(id, body))
+        if (action === 'suggest' && request.method === 'POST')
+          return send(response, 200, await suggestTemplate(id))
+        if (action === 'coverage' && request.method === 'POST')
+          return send(response, 200, await checkCoverage(id))
         if (action === 'brand-detection' && request.method === 'POST')
           return send(response, 200, await redetectBrand(id))
         if (action === 'source' && request.method === 'GET')

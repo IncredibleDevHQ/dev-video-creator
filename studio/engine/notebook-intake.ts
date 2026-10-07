@@ -1,5 +1,6 @@
 import type { HarnessSelection, StoryLength } from '../shared/model'
 import { narrativeById, validDirection } from '../shared/narratives'
+import { suggestQuietly } from './template-suggest'
 import {
   changeProject,
   loadProject,
@@ -59,6 +60,7 @@ export const editNotebookSource = async (
     await writeRow('sources', id, source)
     current.project.source = source.text
     current.project.title = source.title
+    delete current.suggestion
     current.status = 'draft'
     current.sourceOnly = true
     current.error = null
@@ -104,6 +106,8 @@ export const readNotebookSource = async (id: string) => {
         'Source ready. Create a presentation when you’re ready.'
       )
     })
+    // Jev, when set up, suggests the template the source tells.
+    suggestQuietly(id)
   } catch (reason) {
     await changeProject(id, (current) => {
       current.status = 'failed'

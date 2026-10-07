@@ -699,3 +699,14 @@ dialog[data-story] .brand-story {
     overflow-y: auto;
   }
 }
+
+/* Jev's suggestion, when it is unsure: the top few, one click each. */
+.suggest-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}

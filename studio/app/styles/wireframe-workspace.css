@@ -574,3 +574,13 @@
 .thumbnail .tile-badge.is-draft {
   border-style: dashed;
 }
+
+/* Jev reads the page as carrying another beat: worth a look. */
+.page-check {
+  margin: 0;
+  color: var(--warn);
+  font-size: 12.5px;
+}
+.page-check small {
+  color: var(--muted);
+}

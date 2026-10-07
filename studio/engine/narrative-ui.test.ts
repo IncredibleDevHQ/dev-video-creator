@@ -501,3 +501,74 @@ it('names a scene’s shot, offers the others, and follows the direction', async
     'Following the template’s direction · Off'
   )
 })
+
+it('says what Jev suggests once, and where it reads a page differently', async () => {
+  const { choicesRow } = await import('../app/notebook-choices')
+  const { pageStory } = await import('../app/wireframe-story')
+  const suggestion = {
+    at: 'now',
+    narratives: [
+      { id: 'incident', p: 0.52 },
+      { id: 'debugging', p: 0.31 }
+    ],
+    confidence: 0.52,
+    preset: 'briefing',
+    length: null,
+    audience: null,
+    evidence: {},
+    elaboration: 'standard',
+    drama: 'calm',
+    preselected: false
+  }
+  const snapshot = (project: object, extra: object = {}) =>
+    ({
+      project: {
+        id: 'n',
+        title: 'T',
+        source: '',
+        slides: [],
+        video: null,
+        ...project
+      },
+      status: 'draft',
+      error: null,
+      events: [],
+      suggestion,
+      ...extra
+    }) as never
+  const unsure = parseHTML(
+    `<div>${choicesRow(snapshot({}), true)}</div>`
+  ).document
+  expect(
+    [...unsure.querySelectorAll('[data-action="take-suggestion"]')].map(
+      (item) => item.getAttribute('data-narrative')
+    )
+  ).toEqual(['incident', 'debugging'])
+  expect(choicesRow(snapshot({}), false)).not.toContain('take-suggestion')
+  // A template Jev set says so in its chip, and the row is gone.
+  const sure = choicesRow(
+    snapshot(
+      { narrative: 'incident' },
+      { suggestion: { ...suggestion, preselected: true } }
+    ),
+    true
+  )
+  expect(sure).toContain('Incident walkthrough <small>suggested</small>')
+  expect(sure).not.toContain('take-suggestion')
+  // A page Jev reads as another beat than it was given.
+  const slide = { id: 'a', title: 'Why', svg: '<svg/>', beats: ['cause'] }
+  const read = (beat: string, confidence: number) =>
+    snapshot(
+      { narrative: 'incident', slides: [slide] },
+      {
+        status: 'ready',
+        coverageReading: { at: 'now', pages: { a: { beat, confidence } } }
+      }
+    )
+  expect(pageStory(read('fix', 0.8), slide, true)).toContain('Reads as “Fix”')
+  expect(pageStory(read('none', 0.8), slide, true)).toContain(
+    'Reads as none of the story’s beats'
+  )
+  expect(pageStory(read('cause', 0.9), slide, true)).not.toContain('page-check')
+  expect(pageStory(read('fix', 0.4), slide, true)).not.toContain('page-check')
+})

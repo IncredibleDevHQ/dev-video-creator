@@ -14,6 +14,7 @@ import {
 } from './start-controller'
 import { openAgentMenu } from './agent-menu'
 import { openDirectionMenu, openLengthMenu } from './notebook-choices'
+import { suggestedDirection } from '../shared/narratives'
 import { closeLookPanel, openLookPanel } from './look-panel'
 import { closePopover } from './popover'
 import { openPresenter } from './presenter-view'
@@ -162,6 +163,26 @@ export const installAppActions = (app: AppContext) => {
     try {
       if (action === 'agent-menu') {
         openAgentMenu(app, target)
+        return
+      }
+      if (
+        action === 'take-suggestion' &&
+        app.snapshot &&
+        target.dataset.narrative
+      ) {
+        const suggestion = app.snapshot.suggestion
+        app.snapshot = await api.setTemplate(app.snapshot.project.id, {
+          narrative: target.dataset.narrative,
+          ...(suggestion
+            ? {
+                direction: suggestedDirection(
+                  target.dataset.narrative,
+                  suggestion
+                )
+              }
+            : {})
+        })
+        app.render()
         return
       }
       if (action === 'length-menu') {

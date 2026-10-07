@@ -51,13 +51,30 @@ export const choicesRow = (snapshot: Snapshot, editable: boolean) => {
   // With a template, its direction sets the length; without, the count does.
   return `<p class="choice-row"><span>With</span>
 <button type="button" class="choice" data-action="agent-menu" data-popover="agent">${escape(agent)}</button><span aria-hidden="true">·</span>
-<button type="button" class="choice" data-action="open-templates" ${off}>${escape(told ? told.narrative.name : 'No template')}</button><span aria-hidden="true">·</span>
+<button type="button" class="choice" data-action="open-templates" ${off}>${escape(told ? told.narrative.name : 'No template')}${told && snapshot.suggestion?.preselected && snapshot.suggestion.narratives[0]?.id === told.narrative.id ? ' <small>suggested</small>' : ''}</button><span aria-hidden="true">·</span>
 ${
   told
     ? `<button type="button" class="choice" data-action="direction-menu" data-popover="direction" ${off}>${escape(told.label)}</button>`
     : `<button type="button" class="choice" data-action="length-menu" data-popover="length" ${off}>about ${scenes} wireframes</button>`
 }<span aria-hidden="true">·</span>
-<button type="button" class="choice" data-action="look-panel">${escape(lookName(snapshot))} look</button></p>`
+<button type="button" class="choice" data-action="look-panel">${escape(lookName(snapshot))} look</button></p>${editable ? suggestionRow(snapshot) : ''}`
+}
+
+/**
+ * What Jev suggests, said once: a template it set says so in its chip; an
+ * unsure suggestion offers its top few, one click each.
+ */
+const suggestionRow = (snapshot: Snapshot) => {
+  const suggestion = snapshot.suggestion
+  if (!suggestion || snapshot.project.narrative) return ''
+  return `<p class="suggest-row"><span>Suggested</span>${suggestion.narratives
+    .map(({ id, p }) => {
+      const narrative = narrativeById(id)
+      return narrative
+        ? `<button type="button" class="choice" data-action="take-suggestion" data-narrative="${id}">${escape(narrative.name)} <small>${Math.round(p * 100)}%</small></button>`
+        : ''
+    })
+    .join('')}</p>`
 }
 
 /**

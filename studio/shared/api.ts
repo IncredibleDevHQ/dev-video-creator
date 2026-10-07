@@ -32,6 +32,10 @@ export type Snapshot = {
   /** Outline indexes of the pages the checks have kept: done, while the
    * rest of the deck is drawn. */
   kept?: number[]
+  /** What Jev suggests from the source, when it is set up. */
+  suggestion?: import('./narratives').TemplateSuggestion
+  /** Which beat Jev reads each wireframe as carrying. */
+  coverageReading?: import('./narratives').CoverageReading
   /** Wireframe changes waiting for, or with, the agent. */
   changes?: SlideChange[]
   progress?: { label: string; startedAt: string }

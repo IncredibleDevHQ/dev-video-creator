@@ -4,6 +4,7 @@
 import type { Snapshot } from '../shared/api'
 import type { Slide } from '../shared/model'
 import {
+  SUGGEST_CONFIDENCE,
   EVIDENCE_LABELS,
   coverage,
   narrativeById,
@@ -12,6 +13,20 @@ import {
 import { escape, html } from './ui'
 
 const dot = (fn: string) => `<i class="tpl-beat-dot" data-function="${fn}"></i>`
+
+/** Where Jev reads a page as carrying another beat than it was given. */
+const misread = (snapshot: Snapshot, slide: Slide) => {
+  const narrative = narrativeById(snapshot.project.narrative)
+  const read = snapshot.coverageReading?.pages[slide.id]
+  if (!narrative || !read || read.confidence < SUGGEST_CONFIDENCE) return ''
+  if (slide.beats?.includes(read.beat)) return ''
+  const beat = narrative.beats.find((item) => item.id === read.beat)
+  return `<p class="page-check">${
+    beat
+      ? `Reads as “${escape(beat.name)}”`
+      : 'Reads as none of the story’s beats'
+  } <small>${Math.round(read.confidence * 100)}% sure, by Jev</small></p>`
+}
 
 /** A page's beats and its open requests, under its caption. */
 export const pageStory = (
@@ -26,7 +41,8 @@ export const pageStory = (
     .filter((beat) => beat !== undefined)
   const asks = openRequests([slide])
   const answered = slide.answers || []
-  if (!beats.length && !asks.length && !answered.length) return ''
+  const reading = misread(snapshot, slide)
+  if (!beats.length && !asks.length && !answered.length && !reading) return ''
   return html`<section class="page-story" aria-label="This wireframe's story">
     ${beats.length
       ? html`<p class="page-beats">
@@ -37,7 +53,7 @@ export const pageStory = (
             )
             .join('')}
         </p>`
-      : ''}
+      : ''}${reading}
     ${asks.length
       ? html`<div class="evidence-asks">
           <h3>

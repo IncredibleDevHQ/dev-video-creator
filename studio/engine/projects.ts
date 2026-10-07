@@ -536,6 +536,11 @@ const buildSlides = async (id: string) => {
     }
   })
   await planStarted()
+  // Jev, when set up, reads which beat each page carries.
+  if ((await loadProject(id))?.project.narrative)
+    void import('./template-suggest')
+      .then(({ checkCoverage }) => checkCoverage(id))
+      .catch(() => {})
 }
 /**
  * A blank wireframe at the end, or, for a beat of the notebook's narrative,

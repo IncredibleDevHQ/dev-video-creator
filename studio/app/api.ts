@@ -31,6 +31,10 @@ export const api = {
       direction?: import('../shared/narratives').Direction
     }
   ) => request<Snapshot>(`/projects/${id}/template`, 'POST', choice),
+  suggestTemplate: (id: string) =>
+    request<Snapshot>(`/projects/${id}/suggest`, 'POST', {}),
+  checkCoverage: (id: string) =>
+    request<Snapshot>(`/projects/${id}/coverage`, 'POST', {}),
   answerEvidence: (
     id: string,
     body: { slideId: string; what: string; answer: string }
