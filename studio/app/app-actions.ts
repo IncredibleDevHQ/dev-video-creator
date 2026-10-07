@@ -8,6 +8,7 @@ import { clickRecording } from './recording-controller'
 import { clickRepos, submitRepos } from './repo-controller'
 import { clickSeries, submitSeries } from './series-controller'
 import { clickRelease, submitRelease } from './release-controller'
+import { clickAccounts, submitAccounts } from './accounts-controller'
 import { clickSlides, submitSlides } from './slides-controller'
 import {
   clickStart,
@@ -40,6 +41,7 @@ export const installAppActions = (app: AppContext) => {
       await submitRepos(app, form, values)
       await submitSeries(app, form, values)
       await submitRelease(app, form, values)
+      await submitAccounts(app, form, values)
     } catch (reason) {
       app.error(reason)
     } finally {
@@ -250,6 +252,7 @@ export const installAppActions = (app: AppContext) => {
         return
       }
       if (await clickSeries(app, target, action)) return
+      if (await clickAccounts(app, target, action)) return
       if (action === 'open-templates') {
         if (app.capture.phase !== 'idle')
           throw new Error(

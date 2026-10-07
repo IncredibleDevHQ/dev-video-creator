@@ -206,6 +206,9 @@ export const episodeBrief = (
     episode.previously ? `Previously: ${episode.previously}` : '',
     episode.threads?.length
       ? `Threads carried through the series:\n${episode.threads.map((item) => `- ${item}`).join('\n')}`
+      : '',
+    episode.lessons?.length
+      ? `What the last episode's numbers suggest:\n${episode.lessons.map((item) => `- ${item}`).join('\n')}`
       : ''
   ]
     .filter(Boolean)

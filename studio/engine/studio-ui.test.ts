@@ -290,3 +290,117 @@ it('lays out a release: when, teasers, words and the YouTube bundle', async () =
   expect(releaseBusy(made)).toBe(true)
   expect(releaseBusy(snapshot())).toBe(false)
 })
+
+it('shows each account’s app and who is connected, never a secret', async () => {
+  const { accountsDialog } = await import('../app/accounts-view')
+  const account = (provider: 'google' | 'x' | 'linkedin', extra = {}) => ({
+    provider,
+    clientId: null,
+    hasSecret: false,
+    fromEnvironment: false,
+    redirectUri: `http://127.0.0.1:4320/api/accounts/${provider}/callback`,
+    connected: null,
+    ...extra
+  })
+  const page = doc(
+    accountsDialog({
+      accounts: [
+        account('google', {
+          clientId: 'g-app',
+          hasSecret: true,
+          connected: { name: 'Acme Engineering', at: '' }
+        }),
+        account('x', { fromEnvironment: true, clientId: 'x-app' }),
+        account('linkedin', {
+          clientId: 'li',
+          connected: {
+            name: 'Ada',
+            at: '',
+            expiresAt: new Date(Date.now() + 86_400_000).toISOString()
+          }
+        })
+      ],
+      xPrices: { post: 0.015, postWithLink: 0.2 }
+    })
+  )
+  expect(page.querySelector('.account-row h3 small')?.textContent).toBe(
+    'Acme Engineering'
+  )
+  expect(
+    page.querySelector<HTMLInputElement>('[name="clientSecret"]')?.placeholder
+  ).toBe('Kept by the studio')
+  expect(page.querySelectorAll('form.account-app')).toHaveLength(2)
+  expect(page.querySelector('.account-warn')?.textContent).toContain(
+    'sign in again'
+  )
+  expect(
+    page.querySelector<HTMLInputElement>('#x-prices [name="postWithLink"]')
+      ?.value
+  ).toBe('0.2')
+})
+
+it('draws retention against the beats in the release', async () => {
+  const { numbersSection } = await import('../app/numbers-view')
+  const empty = doc(numbersSection(snapshot()))
+  expect(empty.querySelector('.retention')).toBeNull()
+  expect(empty.querySelector('[data-action="read-numbers"]')).not.toBeNull()
+  const project = {
+    slides: [
+      { id: 'a', title: 'a', svg: '' },
+      { id: 'b', title: 'b', svg: '' }
+    ],
+    video: {
+      settings: {
+        presence: 'off',
+        voice: { kind: 'record' },
+        narrative: 'incident',
+        direction: { preset: 'briefing' }
+      },
+      scenes: ['impact', 'timeline'].map((beat, index) => ({
+        id: `s${index}`,
+        slideId: ['a', 'b'][index],
+        beats: [beat],
+        moments: []
+      })),
+      transitions: [],
+      inputKey: '',
+      produced: {
+        inputKey: '',
+        objectKey: 'k',
+        clock: [
+          { sceneId: 's0', start: 0, duration: 10 },
+          { sceneId: 's1', start: 10, duration: 10 }
+        ]
+      }
+    },
+    release: {
+      teasers: [],
+      campaign: [],
+      youtube: { state: 'uploaded', videoId: 'dQw4w9WgXcQ', at: '' },
+      numbers: [
+        {
+          at: '2026-10-07T10:00:00.000Z',
+          source: 'youtube',
+          views: 1200,
+          watchMinutes: 340,
+          retention: [1, 0.95, 0.9, 0.5, 0.4]
+        }
+      ]
+    }
+  }
+  const page = doc(numbersSection(snapshot({}, project)))
+  expect(page.querySelector('.numbers-totals')?.textContent).toBe(
+    '1,200 views · 340 minutes watched'
+  )
+  expect(
+    [...page.querySelectorAll('.retention li span')].map(
+      (item) => item.textContent
+    )
+  ).toEqual(['Impact', 'Timeline'])
+  expect(page.querySelector('.numbers-drop')?.textContent).toBe(
+    'People left during timeline: 50 of every hundred'
+  )
+  expect(page.querySelector<HTMLInputElement>('#youtube-video')?.value).toBe(
+    'https://youtu.be/dQw4w9WgXcQ'
+  )
+})

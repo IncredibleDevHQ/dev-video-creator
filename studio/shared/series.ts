@@ -48,6 +48,8 @@ export type EpisodeRef = {
   previously?: string
   threads?: string[]
   part?: SeriesPart
+  /** What the last episode's numbers suggest for this one. */
+  lessons?: string[]
 }
 
 export type SeriesSummary = {

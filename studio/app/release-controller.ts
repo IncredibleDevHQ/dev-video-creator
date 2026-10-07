@@ -1,13 +1,12 @@
 // The release dialog: teasers, words, the bundle, and what follows it.
 import type { Snapshot } from '../shared/api'
 import type { AppContext } from './app-context'
+import { numbersSection } from './numbers-view'
 import { releaseBusy, releaseDialog } from './release-view'
 import { studioApi } from './studio-api'
 
-/** Extra sections the later phases add (campaign, numbers, publishing). */
-const extras: Array<(snapshot: Snapshot) => string> = []
-export const addReleaseSection = (section: (snapshot: Snapshot) => string) =>
-  extras.push(section)
+/** The sections after the bundle: the numbers, then the campaign. */
+const extras: Array<(snapshot: Snapshot) => string> = [numbersSection]
 
 let following: ReturnType<typeof setTimeout> | null = null
 /** Shows the release, and follows it while a teaser or the words are made. */

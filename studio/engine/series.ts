@@ -12,6 +12,7 @@ import {
   type SeriesPart,
   type SeriesSummary
 } from '../shared/series'
+import { latest, numberLessons, retentionByBeat } from '../shared/numbers'
 import type { RepoLink } from '../shared/repos'
 import { addEvent } from './activity'
 import { runValidatedJsonStage } from './creative/stage'
@@ -294,13 +295,20 @@ export const addEpisode = async (id: string, raw: unknown) => {
   const created = await createProject(source, undefined, true)
   const number = series.episodes.length + 1
   const previously = previouslyOf(lastNotebook)
+  // Where people left last time shapes this one's plan.
+  const curve = latest(lastNotebook?.project.release?.numbers, 'youtube')
+  const lessons =
+    lastNotebook && curve?.retention
+      ? numberLessons(retentionByBeat(lastNotebook.project, curve.retention))
+      : []
   const notebook = await changeProject(created.project.id, (current) => {
     current.project.episode = {
       series: id,
       number,
       ...(previously ? { previously } : {}),
       ...(series.threads.length ? { threads: series.threads } : {}),
-      ...(chosen ? { part: chosen.part } : {})
+      ...(chosen ? { part: chosen.part } : {}),
+      ...(lessons.length ? { lessons } : {})
     }
     if (series.repos.length) current.project.repos = series.repos
     const look = series.branding || first?.project.branding
