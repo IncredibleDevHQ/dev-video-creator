@@ -77,7 +77,11 @@ export const planCreativeScene = async (
   const presence = scenePresence(video, scene.id)
   const shape = sceneNarrative(video, scene.id, plannedPages(project))
   const story = shape ? narrativeBrief(shape, presence) : null
-  const orchestration = await sceneOrchestration(project, scene.id)
+  const orchestration = await sceneOrchestration(
+    project,
+    scene.id,
+    cast.assetKeys
+  )
   const retained = await readRow<{ text: string }>('sources', project.id)
   await onProgress?.('Planning the scene', 'planning')
   const treatment = await prepareCreativeTreatment({

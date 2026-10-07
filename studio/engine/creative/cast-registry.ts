@@ -18,7 +18,12 @@ export type CastEntry = {
 /** The cast established by the video's other scenes, their plans current. */
 export const castRegistry = async (
   project: Project,
-  sceneId: string
+  sceneId: string,
+  /**
+   * This scene's asset library: an actor whose artwork is not in it is
+   * built native to match, never named by an asset the scene cannot use.
+   */
+  library?: string[]
 ): Promise<CastEntry[]> => {
   const video = project.video
   if (!video) return []
@@ -33,14 +38,17 @@ export const castRegistry = async (
     if (!record || record.inputKey !== scene.planKey) continue
     for (const object of record.treatment.objects || []) {
       if (object.asset?.status === 'omit') continue
+      const ref = object.asset?.ref
+      const usable = ref && (!library || library.includes(ref))
       const entry = cast.get(object.entity) || {
         entity: object.entity,
         role: object.role,
         appearance: object.appearance,
-        asset: {
-          status: object.asset?.status || 'undecided',
-          ...(object.asset?.ref ? { ref: object.asset.ref } : {})
-        },
+        asset: usable
+          ? { status: object.asset?.status || 'undecided', ref }
+          : ref
+            ? { status: 'native' }
+            : { status: object.asset?.status || 'undecided' },
         scenes: []
       }
       entry.scenes.push({

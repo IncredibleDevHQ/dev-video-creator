@@ -12,7 +12,11 @@ import { castProblems, castRegistry, type CastEntry } from './cast-registry'
 import type { SceneTreatmentV1 } from './scene-treatment'
 
 /** The orchestration a scene is planned with, or null without a narrative. */
-export const sceneOrchestration = async (project: Project, sceneId: string) => {
+export const sceneOrchestration = async (
+  project: Project,
+  sceneId: string,
+  library?: string[]
+) => {
   const shots = orchestrate(project)
   const index = shots?.findIndex((scene) => scene.sceneId === sceneId) ?? -1
   if (!shots || index < 0) return null
@@ -25,7 +29,7 @@ export const sceneOrchestration = async (project: Project, sceneId: string) => {
         inCut(project.video!.scenes.find((scene) => scene.id === item.sceneId))
       )
     ),
-    cast: await castRegistry(project, sceneId)
+    cast: await castRegistry(project, sceneId, library)
   }
 }
 

@@ -256,6 +256,16 @@ it('holds a plan to its shot, and its actors to the cast', async () => {
   expect(
     castProblems({ objects: [object('limiter', 'lib:limiter')] } as never, cast)
   ).toEqual([])
+  // Seen live: an actor's artwork from another page's library is not this
+  // scene's to name; it comes through as native, matching its appearance.
+  const elsewhere = await castRegistry(video, 'scene-c', ['lib:queue'])
+  expect(elsewhere[0].asset).toEqual({ status: 'native' })
+  expect(
+    castProblems(
+      { objects: [object('limiter', 'lib:other')] } as never,
+      elsewhere
+    )
+  ).toEqual([])
   expect(
     castProblems(
       { objects: [object('limiter', 'lib:other')] } as never,
