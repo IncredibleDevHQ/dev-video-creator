@@ -112,6 +112,8 @@ type ShotInput = {
   intro: boolean
   /** A demo was captured for the page: the capture is there to be shown. */
   captured?: boolean
+  /** The page is drawn: what it shows outranks how its beat usually looks. */
+  drawn?: boolean
 }
 
 /** How well a shot serves a scene, and the reasons that count most. */
@@ -128,12 +130,17 @@ const score = (shot: Shot, input: ShotInput) => {
   // shot can serve.
   const kinds = shot.serves.map((kind) => {
     const parts: Array<[number, string | undefined]> = []
-    if (fromKind.includes(kind)) parts.push([3, KIND_WORDS[input.kind || '']])
+    // A drawn page is the real picture; the beat's evidence is a habit.
+    if (fromKind.includes(kind))
+      parts.push([input.drawn ? 4 : 3, KIND_WORDS[input.kind || '']])
     if (input.needs.includes(kind))
       parts.push([2, `it needs ${EVIDENCE_WORDS[kind]}`])
     const leading = beats.find((beat) => beat.evidence[0] === kind)
     if (leading)
-      parts.push([2, `${named(leading.name)} rests on ${EVIDENCE_WORDS[kind]}`])
+      parts.push([
+        input.drawn && !fromKind.includes(kind) ? 1 : 2,
+        `${named(leading.name)} rests on ${EVIDENCE_WORDS[kind]}`
+      ])
     else if (beats.some((beat) => beat.evidence.includes(kind)))
       parts.push([1, undefined])
     if (input.settings.leads.includes(kind))
@@ -149,7 +156,14 @@ const score = (shot: Shot, input: ShotInput) => {
   )
   // The way the narrative says the beat could look names a shot.
   const pictured = beats.find((beat) => sketchShot(beat.example) === shot.id)
-  if (pictured) add(2.5, `${named(pictured.name)} is pictured this way`)
+  // The beat's usual picture counts in full when the drawn page agrees with
+  // it, and less when the page was drawn as something else.
+  const agrees = fromKind.some((kind) => shot.serves.includes(kind))
+  if (pictured)
+    add(
+      input.drawn && !agrees ? 1.5 : 2.5,
+      `${named(pictured.name)} is pictured this way`
+    )
   const suited = beats.find((beat) => shot.suits.includes(beat.function))
   if (suited)
     add(
@@ -238,6 +252,7 @@ export const orchestrate = (project: Project): SceneShot[] | null => {
         (index === 0 ? 'title' : index === count - 1 ? 'close' : undefined),
       needs: (slide.needs || []).map((need) => need.kind),
       captured: Boolean(readyCapture(slide.capture)),
+      drawn: Boolean(slide.pageKind),
       place,
       previous,
       intro: index === 0

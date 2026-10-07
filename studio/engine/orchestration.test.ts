@@ -301,3 +301,31 @@ it('tells the planner its shot, its seams and the cast so far', () => {
   expect(text).toContain('It hands over with a push forward, to the next beat.')
   expect(text).toContain('packet/CAST.json lists the 2 actors')
 })
+
+it('lets a drawn page lead when its beat usually looks like something else', async () => {
+  const { rankShots } = await import('../shared/orchestration')
+  const { narrativeById, directionSettings } =
+    await import('../shared/narratives')
+  // A build log's "Progress" is usually a montage resting on a timeline;
+  // this page was drawn as a diagram, with code.
+  const narrative = narrativeById('devlog')!
+  const beat = narrative.beats.find((item) => item.id === 'progress')!
+  const settings = directionSettings(narrative, { preset: 'faceless' })
+  const shape = {
+    narrative,
+    settings,
+    beats: [{ beat, share: 1 }]
+  } as never
+  const rank = (drawn: boolean) =>
+    rankShots({
+      shape,
+      settings,
+      kind: 'diagram',
+      needs: ['code'],
+      place: 'off',
+      intro: false,
+      drawn
+    })[0].shot.id
+  expect(rank(false)).toBe('timeline-scrub')
+  expect(rank(true)).toBe('flow-trace')
+})
