@@ -1,6 +1,8 @@
 import { themeControl } from './appearance'
 import { agentNames } from './agent-setup'
 import type { Snapshot } from '../shared/api'
+import { doneCount } from './wireframe-progress'
+import { videoOpens } from '../shared/state'
 import { escape, button } from './ui'
 import { gear } from './camera-settings'
 import { stageStatus } from './stage-status'
@@ -32,7 +34,8 @@ export const agentActivity = (snapshot: Snapshot) => {
   if (snapshot.status === 'building') {
     if (snapshot.stopping) return 'stopping'
     const total = snapshot.plannedSlides || 0
-    const drawn = project.slides.filter((slide) => slide.svg).length
+    // Drafts are shown as they arrive; only pages the checks kept are done.
+    const done = doneCount(snapshot)
     if (!total) {
       const last = [...snapshot.events]
         .reverse()
@@ -43,10 +46,10 @@ export const agentActivity = (snapshot: Snapshot) => {
     }
     const now = (snapshot.drawing || []).map((index) => index + 1)
     if (now.length)
-      return `drawing ${now.length > 1 ? `${now.slice(0, -1).join(', ')} and ${now.at(-1)}` : now[0]} of ${total}`
-    return drawn >= total
+      return `drawing ${now.length > 1 ? `${now.slice(0, -1).join(', ')} and ${now.at(-1)}` : now[0]} of ${total}${done ? ` · ${done} done` : ''}`
+    return done >= total
       ? 'checking the wireframes'
-      : `drawing ${drawn + 1} of ${total}`
+      : `drawing ${done + 1} of ${total}`
   }
   const working = snapshot.changes?.find((change) => change.state === 'working')
   if (working) {
@@ -83,7 +86,11 @@ const lockedReason = (snapshot: Snapshot, name: string) => {
   if (status === 'reading') return 'Waiting for the article'
   if (snapshot.sourceOnly && status === 'failed')
     return 'The article needs another try'
-  if (name === 'video' && status !== 'ready') return 'Make the wireframes first'
+  // While the deck is drawn, the video opens once every page has a draft.
+  if (name === 'video' && !videoOpens(snapshot))
+    return status === 'building'
+      ? 'The video opens once every wireframe has a first draft'
+      : 'Make the wireframes first'
   return ''
 }
 
@@ -125,7 +132,7 @@ export const workspaceHeader = (
             project.video ? 'Continue video →' : 'Make the video →',
             'make-video',
             true,
-            status !== 'ready'
+            !videoOpens(snapshot)
           )
         : stage === 'video'
           ? videoHeader(snapshot)

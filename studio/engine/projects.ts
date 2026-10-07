@@ -35,7 +35,11 @@ import {
   listRows,
   listNotebookRows
 } from './persistence'
-import { reconcileVideo, refreshVideoKeys } from './scene-model'
+import {
+  reconcileVideo,
+  refreshVideoKeys,
+  startWaitingScenes
+} from './scene-model'
 import {
   projectViews,
   videoDisplay,
@@ -217,12 +221,13 @@ export const retrySlides = async (id: string) => {
     current.stopping = false
     current.status = 'building'
     current.error = null
-    const drawn = current.project.slides.filter((slide) => slide.svg).length
+    // Drafts are not done: the checks have kept only some of them.
+    const done = current.kept?.length || 0
     addEvent(
       current,
       'slide',
-      current.plannedSlides && drawn
-        ? `Trying again from wireframe ${Math.min(drawn + 1, current.plannedSlides)}`
+      current.plannedSlides && done
+        ? `Trying again: ${done} of ${current.plannedSlides} wireframes are done and kept; the rest are drawn again`
         : 'Trying again'
     )
   })
@@ -441,10 +446,17 @@ const buildSlides = async (id: string) => {
         addEvent(
           current,
           'slide',
-          `Wireframe ${index + 1} of ${outline.scenes.length} drawn`
+          `First draft of wireframe ${index + 1} of ${outline.scenes.length}`
         )
     }).then(() => {})
   await requireSlidesRunning(id)
+  let started = false
+  const planStarted = async () => {
+    if (!started) return
+    started = false
+    const { schedulePlanning } = await import('./video')
+    schedulePlanning(id)
+  }
   const designed = await prepareCreativePages({
     projectId: id,
     source,
@@ -454,6 +466,12 @@ const buildSlides = async (id: string) => {
       changeProject(id, (current) => {
         current.drawing = indexes
       }).then(() => {}),
+    onKept: (indexes) =>
+      changeProject(id, (current) => {
+        current.kept = indexes
+        // A scene asked for while its page was drawn starts once it is done.
+        started ||= startWaitingScenes(current, current)
+      }).then(planStarted),
     brief: sourceBrief?.brief,
     brand: designBrand,
     selection: snapshot.project.harness,
@@ -509,8 +527,15 @@ const buildSlides = async (id: string) => {
     current.error = null
     delete current.plan
     delete current.drawing
+    delete current.kept
     addEvent(current, 'slide', 'Wireframes ready')
+    // A video made while the deck was drawn: its waiting scenes start now.
+    if (current.project.video) {
+      reconcileVideo(current.project, current)
+      started ||= startWaitingScenes(current, current)
+    }
   })
+  await planStarted()
 }
 /**
  * A blank wireframe at the end, or, for a beat of the notebook's narrative,

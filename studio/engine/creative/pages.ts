@@ -101,6 +101,8 @@ export const prepareCreativePages = async (input: {
   onDraft?: (index: number, svg: string) => Promise<void>
   /** The outline indexes of the pages in a call right now, as they change. */
   onDrawing?: (indexes: number[]) => Promise<void>
+  /** The outline indexes of the pages the checks have kept, as they grow. */
+  onKept?: (indexes: number[]) => Promise<void>
   brief?: import('./explanation-brief').ExplanationBriefV1
   /** A creator's change to one drawn page, optionally pinned to a part of it. */
   edit?: {
@@ -150,8 +152,14 @@ export const prepareCreativePages = async (input: {
       published.set(number, svg)
       await input.onDraft(number - 1 - offset, svg)
     }
+    // Kept pages are done: what a stopped run already finished stays done.
+    const reportKept = () =>
+      input.onKept?.(
+        numbers.filter((number) => meta[number]).map((n) => n - 1 - offset)
+      )
     for (const number of numbers)
       if (meta[number]) await show(number, text(deck[meta[number].file]))
+    await reportKept()
     let saving = Promise.resolve()
     const persist = () =>
       (saving = saving.then(async () => {
@@ -278,6 +286,7 @@ export const prepareCreativePages = async (input: {
       meta[number] = { file, form, topology }
       await persist()
       await show(number, svg)
+      await reportKept()
       return { accepted: true, page: number }
     }
     const inFlight = new Set<number>()

@@ -663,7 +663,13 @@ export const makeVideoDialog = (
   settings: StudioSettings,
   current?: VideoSettings,
   /** For a new video: its wireframes, the one in view, and whether only it. */
-  choice?: { slides: Slide[]; selected: number | null; only: boolean },
+  choice?: {
+    slides: Slide[]
+    selected: number | null
+    only: boolean
+    /** While the deck is drawn: the wireframes that are done. */
+    done?: Set<string>
+  },
   look?: Branding,
   /** The template the wireframes were planned from, chosen by default. */
   planned?: { narrative?: string; direction?: VideoSettings['direction'] }
@@ -701,7 +707,9 @@ ${templatePicker(story, look)}${onCameraChoice(story)}
 </label><p class="two-voices" ${
     voice.kind !== 'ai' || presence === 'off' ? 'hidden' : ''
   }>Your voice on camera and an AI voice elsewhere will sound different.</p>${
-    choice ? sceneChoice(choice.slides, choice.selected, choice.only) : ''
+    choice
+      ? sceneChoice(choice.slides, choice.selected, choice.only, choice.done)
+      : ''
   }
 <button type="submit" class="primary">Make the video →</button>
 

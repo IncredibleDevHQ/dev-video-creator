@@ -88,6 +88,8 @@ export type Scene = {
   beats?: string[] | null
   /** The shot the creator chose for this scene; else the orchestrator's. */
   shot?: string | null
+  /** Asked for while its wireframe was still drawn: it starts once done. */
+  afterDrawing?: true
   moments: Moment[]
   inputKey: string
   animationKey?: string

@@ -3,6 +3,7 @@ import { transitionScene } from './autopilot'
 import type { Project, Scene, Moment, Voice } from '../shared/model'
 import { fingerprintOf } from './planning/fingerprint'
 import { narrativeAt, plannedPages } from '../shared/narratives'
+import { donePages } from '../shared/state'
 import { orchestrate, presenceAt } from '../shared/orchestration'
 export const roleOf = (index: number, count: number) =>
   index === 0 ? 'title' : index === count - 1 ? 'ending' : 'body'
@@ -17,9 +18,11 @@ export const scenePlanKey = (project: Project, scene: Scene) => {
     scene.beats,
     plannedPages(project)
   )
+  // A page leaving its draft for its final is the same page.
+  const { draft: _draft, ...slide } = project.slides[index] || {}
   return fingerprintOf({
     harness: project.video!.settings.harness,
-    slide: project.slides[index],
+    slide: project.slides[index] ? slide : undefined,
     title: project.title,
     role: roleOf(index, project.slides.length),
     // With a narrative, the direction gives each scene its presence.
@@ -199,4 +202,31 @@ export const synchronizeClock = (scene: Scene) => {
     moment.end = Math.round((clock + seconds) * 1000) / 1000
     clock = moment.end
   }
+}
+
+/**
+ * Scenes asked for while their wireframe was still drawn start once it is
+ * done. True when one started, for the caller to schedule the planning.
+ */
+export const startWaitingScenes = (
+  snapshot: Parameters<typeof donePages>[0] & {
+    project: Project
+  },
+  ledger: ActivityLedger
+) => {
+  const video = snapshot.project.video
+  if (!video) return false
+  const done = donePages(snapshot)
+  let started = false
+  for (const scene of video.scenes)
+    if (
+      scene.afterDrawing &&
+      scene.phase === 'idle' &&
+      done.has(scene.slideId)
+    ) {
+      delete scene.afterDrawing
+      transitionScene(scene, 'make', ledger)
+      started = true
+    }
+  return started
 }

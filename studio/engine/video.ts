@@ -1,4 +1,5 @@
 import type { SceneStage } from '../shared/model'
+import { donePages, videoOpens } from '../shared/state'
 import {
   directionSettings,
   narrativeById,
@@ -85,14 +86,15 @@ export const makeVideo = async (id: string, settings: unknown) => {
   const valid = validateVideoSettings(settings)
   await resolveVoice(valid.voice)
   const snapshot = await changeProject(id, (current) => {
-    if (
-      current.status !== 'ready' ||
-      !current.project.slides.length ||
-      current.project.slides.some((slide) => !slide.svg)
-    )
-      throw new Error('Finish your slides first')
     if (current.project.video)
       throw new Error('This project already has a video')
+    // While the deck is drawn, a video opens once every page has a draft.
+    if (!videoOpens(current))
+      throw new Error(
+        current.status === 'building'
+          ? 'The video opens once every wireframe has a first draft'
+          : 'Finish your slides first'
+      )
     current.project.video = {
       settings: {
         ...valid,
@@ -109,7 +111,17 @@ export const makeVideo = async (id: string, settings: unknown) => {
       settings,
       current.project.slides.map((slide) => slide.id)
     )
-    reconcileVideo(current.project, current, make)
+    // A scene whose wireframe is still drawn waits for it, then starts.
+    const done = donePages(current)
+    const wanted = make || new Set(current.project.slides.map((s) => s.id))
+    reconcileVideo(
+      current.project,
+      current,
+      new Set([...wanted].filter((slideId) => done.has(slideId)))
+    )
+    for (const scene of current.project.video.scenes)
+      if (wanted.has(scene.slideId) && !done.has(scene.slideId))
+        scene.afterDrawing = true
     // With a narrative, the orchestrator plans the seams in one direction.
     const shots = orchestrate(current.project)
     if (shots) {

@@ -199,3 +199,10 @@
   margin-top: 22px;
   font-size: 16px;
 }
+
+/* A scene whose wireframe is still drawn: it starts once that is done. */
+.scene-choice-later {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}

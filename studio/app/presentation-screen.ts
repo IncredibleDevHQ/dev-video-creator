@@ -7,6 +7,7 @@ import { presentationProgress } from './progress'
 import { wireframeStatus } from './wireframe-copy'
 import { sceneBadge, sceneLink } from './scene-link'
 import { pageStory, storyGaps } from './wireframe-story'
+import { doneCount, pageWork } from './wireframe-progress'
 
 /** A rail entry: a drawn wireframe, or an outline scene not drawn yet. */
 export type WireframeTile =
@@ -62,6 +63,25 @@ const changeBadge = (change?: SlideChange) =>
     ? ''
     : `<span class="tile-badge is-${change.state}">${change.state === 'working' ? 'changing' : change.state === 'queued' ? 'queued' : 'not changed'}</span>`
 
+/** While the deck is drawn: a page being drawn now, or a draft waiting. */
+const workBadge = (snapshot: Snapshot, slideId: string) => {
+  const work = pageWork(snapshot, slideId)
+  return work === 'drawing'
+    ? '<span class="tile-badge is-drawing">drawing</span>'
+    : work === 'draft'
+      ? '<span class="tile-badge is-draft">draft</span>'
+      : ''
+}
+/** The selected page's state, after its number under the stage. */
+const workWords = (snapshot: Snapshot, slideId?: string) => {
+  const work = slideId ? pageWork(snapshot, slideId) : null
+  return work === 'drawing'
+    ? ' · being drawn now'
+    : work === 'draft'
+      ? ' · draft, drawn again before it is done'
+      : ''
+}
+
 const changeChip = (snapshot: Snapshot, change?: SlideChange) => {
   if (!change) return ''
   const agent = snapshot.project.harness
@@ -69,8 +89,12 @@ const changeChip = (snapshot: Snapshot, change?: SlideChange) => {
     : 'The agent'
   if (change.state === 'working')
     return `<div class="change-chip is-working" role="status"><i class="activity-orbit" aria-hidden="true"></i><span>${escape(agent)} is changing this wireframe: “${escape(change.instruction.slice(0, 90))}”</span></div>`
+  const total = Math.max(
+    snapshot.plannedSlides || 0,
+    snapshot.project.slides.length
+  )
   if (change.state === 'queued')
-    return `<div class="change-chip" role="status"><span>Waiting: “${escape(change.instruction.slice(0, 90))}”. ${snapshot.status === 'ready' ? 'Next in line.' : `${escape(agent)} changes it once every wireframe is drawn.`}</span></div>`
+    return `<div class="change-chip" role="status"><span>Waiting: “${escape(change.instruction.slice(0, 90))}”. ${snapshot.status === 'ready' ? 'Next in line.' : `${escape(agent)} changes it once all ${total} wireframes are done (${doneCount(snapshot)} so far).`}</span></div>`
   return `<div class="change-chip is-failed" role="status"><span>${escape(change.message || 'This change did not finish.')}</span>${button('Send again', `resend-change:${change.id}`)}</div>`
 }
 
@@ -209,10 +233,9 @@ export const presentationScreen = (
           >
             <span class="thumb-number" aria-hidden="true">${number}</span>
             <div>${tile.svg || '<span>Blank wireframe</span>'}</div>
-            ${changeBadge(changeFor(snapshot, tile.id))}${sceneBadge(
-              snapshot,
-              tile.id
-            )}
+            ${workBadge(snapshot, tile.id)}${changeBadge(
+              changeFor(snapshot, tile.id)
+            )}${sceneBadge(snapshot, tile.id)}
           </button>`
         })
         .join('')}
@@ -257,7 +280,9 @@ export const presentationScreen = (
       </div>
       <div class="slide-caption">
         <span
-          >${position >= 0 ? `Wireframe ${position + 1} of ${total}` : ''}</span
+          >${position >= 0
+            ? `Wireframe ${position + 1} of ${total}${workWords(snapshot, slide?.id)}`
+            : ''}</span
         >${link.line}${slide
           ? html`<button
               type="button"

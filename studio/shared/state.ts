@@ -40,8 +40,11 @@ export const sceneView = (
   const latest = events
     .filter((event) => event.kind === 'scene' && event.sceneId === scene.id)
     .at(-1)
-  const label =
-    active && latest && latest.activity !== 'complete'
+  // Asked for while its wireframe was still drawn: in the video, waiting.
+  const waiting = scene.phase === 'idle' && Boolean(scene.afterDrawing)
+  const label = waiting
+    ? 'Waiting for its wireframe'
+    : active && latest && latest.activity !== 'complete'
       ? latest.message
       : scene.phase === 'producing'
         ? 'Producing the scene'
@@ -65,9 +68,10 @@ export const sceneView = (
       canRecord: ['waiting', 'produced'].includes(scene.phase),
       needsAnimation,
       label,
-      inVideo: scene.phase !== 'idle',
-      actionLabel:
-        action === 'make'
+      inVideo: scene.phase !== 'idle' || waiting,
+      actionLabel: waiting
+        ? 'Starts once drawn'
+        : action === 'make'
           ? 'Make this scene'
           : action === 'record'
             ? 'Record moment'
@@ -78,8 +82,9 @@ export const sceneView = (
                 ? 'Prepare scene'
                 : 'Finish scene',
       // A scene left out says nothing: its dimmed picture says it.
-      railLabel:
-        scene.phase === 'idle'
+      railLabel: waiting
+        ? label
+        : scene.phase === 'idle'
           ? ''
           : scene.phase === 'failed'
             ? 'Needs attention'
@@ -94,6 +99,7 @@ export const sceneView = (
                   : state
     }
   })
+  if (waiting) return view('Starts once its wireframe is done', 'wait')
   if (scene.phase === 'idle') return view('Not in the video yet', 'make')
   if (scene.phase === 'failed')
     return view(scene.error || 'Needs attention', 'retry')
@@ -290,3 +296,46 @@ export const presentationDisplay = (
               : 'Processing',
     active: snapshot.status === 'building' && !snapshot.stopping
   }
+
+type DeckState = {
+  status: string
+  plannedSlides?: number
+  plan?: Array<{ id: string }>
+  kept?: number[]
+  project: Pick<Project, 'slides' | 'video'>
+}
+/**
+ * The wireframes that are done: every one once the deck is ready; while it
+ * is drawn, the pages its checks kept.
+ */
+export const donePages = (snapshot: DeckState) =>
+  new Set(
+    snapshot.status === 'building' || snapshot.status === 'failed'
+      ? [
+          ...(snapshot.kept || []).flatMap((index) =>
+            snapshot.plan?.[index] ? [snapshot.plan[index].id] : []
+          ),
+          ...snapshot.project.slides
+            .filter((slide) => slide.svg && !slide.draft)
+            .map((slide) => slide.id)
+        ]
+      : snapshot.project.slides
+          .filter((slide) => slide.svg)
+          .map((slide) => slide.id)
+  )
+/**
+ * Whether a video can be made: the deck ready, or, while it is still drawn
+ * (or stopped), every planned page with at least a first draft, so each
+ * scene keeps its place. Scenes for pages not done yet wait for them.
+ */
+export const videoOpens = (snapshot: DeckState) => {
+  const { slides } = snapshot.project
+  if (snapshot.project.video) return true
+  if (!slides.length || slides.some((slide) => !slide.svg)) return false
+  if (snapshot.status === 'ready') return true
+  return (
+    (snapshot.status === 'building' || snapshot.status === 'failed') &&
+    !!snapshot.plannedSlides &&
+    slides.length >= snapshot.plannedSlides
+  )
+}

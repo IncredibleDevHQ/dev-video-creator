@@ -1,6 +1,7 @@
 import { dialogueBoundary } from '../shared/dialogue'
 import type { Presence, Transition } from '../shared/model'
 import { templateFromForm } from './template-picker'
+import { donePages } from '../shared/state'
 import { momentViewKey } from '../shared/model'
 import { animationSecond } from '../shared/scene-time'
 import { sceneDisplay } from '../shared/state'
@@ -419,7 +420,11 @@ ${button('Try again', 'video-settings', true)}`
           {
             slides: app.snapshot.project.slides,
             selected: onWireframe ? app.selected : null,
-            only: action === 'make-video-one'
+            only: action === 'make-video-one',
+            // While the deck is drawn, the others start once done.
+            ...(app.snapshot.status === 'ready'
+              ? {}
+              : { done: donePages(app.snapshot) })
           },
           app.snapshot.project.branding,
           {

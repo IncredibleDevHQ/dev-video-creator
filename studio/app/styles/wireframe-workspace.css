@@ -559,3 +559,18 @@
   font-size: 12.5px;
   font-weight: 600;
 }
+
+/* While the deck is drawn: a page being drawn now, or a draft waiting;
+   at the top, so a change's badge below stays readable. */
+.thumbnail .tile-badge.is-drawing,
+.thumbnail .tile-badge.is-draft {
+  top: 10px;
+  bottom: auto;
+}
+.thumbnail .tile-badge.is-drawing {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+}
+.thumbnail .tile-badge.is-draft {
+  border-style: dashed;
+}

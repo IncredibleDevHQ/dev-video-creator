@@ -29,6 +29,9 @@ export type Snapshot = {
   plan?: Array<{ id: string; title: string; narration: string }>
   /** Outline indexes of the pages the agent is drawing right now. */
   drawing?: number[]
+  /** Outline indexes of the pages the checks have kept: done, while the
+   * rest of the deck is drawn. */
+  kept?: number[]
   /** Wireframe changes waiting for, or with, the agent. */
   changes?: SlideChange[]
   progress?: { label: string; startedAt: string }

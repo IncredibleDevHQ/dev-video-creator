@@ -116,7 +116,9 @@ export const sceneLink = (
 export const sceneChoice = (
   slides: Slide[],
   selected: number | null,
-  only: boolean
+  only: boolean,
+  /** The wireframes that are done; the others' scenes start once drawn. */
+  done?: Set<string>
 ) => {
   const ticked = only && selected !== null ? 1 : slides.length
   return `<fieldset class="scene-choice">
@@ -136,7 +138,11 @@ export const sceneChoice = (
         }><span class="scene-choice-number">${String(index + 1).padStart(
           2,
           '0'
-        )}</span>${escape(slide.title || 'Wireframe')}</label></li>`
+        )}</span>${escape(slide.title || 'Wireframe')}${
+          done && !done.has(slide.id)
+            ? '<small class="scene-choice-later">starts once drawn</small>'
+            : ''
+        }</label></li>`
     )
     .join('')}</ul>
 <small>Scenes you leave out can be made later, from their wireframe or the Video page.</small>
