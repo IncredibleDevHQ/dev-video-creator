@@ -350,3 +350,57 @@
   padding-left: 18px;
   font-size: 12.5px;
 }
+
+/* The campaign: each item's day, words and what to do with it. */
+.campaign-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.campaign-item {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.campaign-item.is-due {
+  border-color: var(--accent, #e11d48);
+}
+.campaign-item.is-dropped {
+  opacity: 0.55;
+}
+.campaign-when,
+.campaign-words {
+  margin: 0;
+  font-size: 13px;
+}
+.campaign-when small {
+  margin-left: 6px;
+  color: var(--accent, #e11d48);
+  font-weight: 600;
+}
+.campaign-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: start;
+  gap: 6px;
+}
+.campaign-edit input {
+  width: 5.5em;
+}
+.campaign-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+@media (max-width: 700px) {
+  .campaign-edit {
+    grid-template-columns: 1fr 1fr auto;
+  }
+  .campaign-edit textarea {
+    grid-column: 1 / -1;
+  }
+}

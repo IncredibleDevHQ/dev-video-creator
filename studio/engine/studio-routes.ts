@@ -12,6 +12,7 @@ import {
   validProvider
 } from './accounts'
 import { enterNumbers, readNumbers, setYouTubeVideo } from './numbers'
+import { changeItem, planCampaignFor, postItem } from './campaign'
 import { captureDemo } from './product-capture'
 import { draftPosts, updateRelease, uploadBundle } from './release'
 import { makeTeaser } from './teasers'
@@ -31,7 +32,7 @@ type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle|numbers)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle|numbers|campaign)$/
 
 export const studioRoute = (
   url: URL,
@@ -122,6 +123,14 @@ const route = async (
           : body.action === 'enter'
             ? await enterNumbers(id, body)
             : await readNumbers(id)
+      )
+    if (action === 'campaign' && method === 'POST')
+      return ok(
+        body.action === 'post'
+          ? await postItem(id, body)
+          : body.action === 'change'
+            ? await changeItem(id, body)
+            : await planCampaignFor(id)
       )
     if (action === 'teasers' && method === 'POST')
       return ok(await makeTeaser(id, body))

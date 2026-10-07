@@ -11,6 +11,7 @@ const cameraToggle = (on: boolean) =>
 <path d="m15 10 6-3v10l-6-3z"/>${on ? '' : '<path d="m2 2 20 20"/>'}</svg>
 <span>${on ? 'Camera on' : 'Camera off'}</span>
 </button>`
+import { dueCount } from './campaign-view'
 import { transcriptWords } from './transcript-follow'
 import { standInControls } from './stand-in-playback'
 import { layeredControls } from './layered-playback'
@@ -99,7 +100,14 @@ export const videoHeader = (snapshot: Snapshot) => {
     )
   const view = snapshot.views?.video
   return `${
-    video.produced ? button('Release', 'release-dialog') : ''
+    video.produced
+      ? button(
+          dueCount(snapshot)
+            ? `Release · ${dueCount(snapshot)} due`
+            : 'Release',
+          'release-dialog'
+        )
+      : ''
   }${button(videoDisplay(snapshot).actionLabel, 'produce-video', true, !view?.enabled)}`
 }
 export const videoScreen = (

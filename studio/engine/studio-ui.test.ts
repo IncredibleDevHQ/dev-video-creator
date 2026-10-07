@@ -404,3 +404,53 @@ it('draws retention against the beats in the release', async () => {
     'https://youtu.be/dQw4w9WgXcQ'
   )
 })
+
+it('lists the campaign by day, with what is due and what went out', async () => {
+  const { campaignSection, dueCount } = await import('../app/campaign-view')
+  expect(campaignSection(snapshot())).toContain('Set when it goes out')
+  const item = {
+    channel: 'x' as const,
+    asset: 'episode',
+    kind: 'launch' as const,
+    words: 'Out now {link}',
+    time: '09:00'
+  }
+  const made = snapshot(
+    {},
+    {
+      release: {
+        at: new Date(Date.now() - 86_400_000).toISOString(),
+        teasers: [],
+        campaign: [
+          { ...item, id: 'a', offsetDays: 0, state: 'approved' },
+          { ...item, id: 'b', offsetDays: 3, state: 'draft' },
+          {
+            ...item,
+            id: 'c',
+            offsetDays: -1,
+            state: 'posted',
+            postUrl: 'https://x.com/i/web/status/1'
+          },
+          {
+            ...item,
+            id: 'd',
+            channel: 'youtube',
+            offsetDays: 0,
+            state: 'approved'
+          }
+        ]
+      }
+    }
+  )
+  const page = doc(campaignSection(made))
+  expect(page.querySelectorAll('.campaign-item.is-due')).toHaveLength(1)
+  expect(dueCount(made)).toBe(1)
+  expect(
+    page.querySelector('.is-due [data-action="campaign-post"]')?.className
+  ).toBe('primary')
+  expect(page.querySelector('.is-posted a')?.getAttribute('href')).toBe(
+    'https://x.com/i/web/status/1'
+  )
+  // YouTube's goes out with the upload: no "Post now".
+  expect(page.querySelectorAll('[data-action="campaign-post"]')).toHaveLength(2)
+})
