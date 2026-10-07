@@ -59,3 +59,41 @@ it('refuses a script that changes the treatment presenter layout', () => {
     ).problems
   ).toContain('Moment explain requires the planned full-screen presenter')
 })
+
+it('closes the video on its ending, and says only the source’s figures', () => {
+  const said = (lines: string, extra: object = {}) =>
+    validateCreativeScript(
+      {
+        moments: [
+          {
+            ...moment,
+            lines,
+            segments: [{ lines, camera: false, seconds: 4 }]
+          }
+        ]
+      },
+      { ...context, ...extra }
+    ).problems
+  // Seen live: the last scene in the cut pointed at a part left out.
+  expect(
+    said('The false alarms stopped. What we learned comes next.', {
+      role: 'ending'
+    })
+  ).toEqual([
+    'Moment explain closes the video: land what the viewer now understands, and do not point at a part to come'
+  ])
+  expect(said('What we learned comes next.')).toEqual([])
+  // Seen live: figures no source gave, said as measurements.
+  expect(
+    said('This frame reads four percent of the title.', {
+      sourceText: 'We flag when 12% of the text is covered.'
+    })
+  ).toEqual([
+    'Moment explain says four percent, which the source does not give: say only figures the source states, or say an example as one ("Say a moment runs six seconds…")'
+  ])
+  expect(
+    said('We flag when twelve percent of the text is covered.', {
+      sourceText: 'We flag when 12% of the text is covered.'
+    })
+  ).toEqual([])
+})

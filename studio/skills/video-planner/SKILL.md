@@ -233,7 +233,9 @@ at High, a full-screen presenter. An ending with a presenter closes full screen
 with an end card. Preserve unchanged IDs and spoken words from the previous
 script when applying anchored creator changes. Use retained source evidence;
 illustrative examples must remain clearly illustrative. No new source claims.
-Say only figures the source states: a number with a unit ("four percent",
+The ending scene's last moment closes the video: it lands what the viewer
+now understands and never points at a part to come ("comes next"). Rewrite
+a previous closing line that does. Say only figures the source states: a number with a unit ("four percent",
 "ninety seconds") or over ten must be the source's own. An example says it
 is one ("Say a moment runs six seconds…"); a measurement the source does not
 give is never said as fact. The product refuses such a figure.

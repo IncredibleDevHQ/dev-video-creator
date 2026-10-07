@@ -66,6 +66,17 @@ export const validateCreativeScript = (
           `Moment ${moment.id} must share the frame with the explanation`
         )
     }
+    // The video's close never points at a scene or part to come.
+    const closing = moments.at(-1)?.lines || ''
+    if (
+      input.role === 'ending' &&
+      /\b(comes next|coming up|up next|next (scene|section|part|chapter)|in a moment)\b/i.test(
+        closing
+      )
+    )
+      throw new Error(
+        `Moment ${moments.at(-1)!.id} closes the video: land what the viewer now understands, and do not point at a part to come`
+      )
     if (input.sourceText) {
       const stated = [
         input.sourceText,

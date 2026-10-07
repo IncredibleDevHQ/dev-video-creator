@@ -145,6 +145,9 @@ export const planCreativeScene = async (
       delivery: video.settings.voice.kind === 'record' ? 'human' : 'generated',
       presence: { value: presence, from: scene.presence ? 'scene' : 'video' },
       intro: index === 0,
+      ...(sceneRole(project, index) === 'ending' && index > 0
+        ? { ending: true }
+        : {}),
       ...(story ? { story } : {}),
       ...(orchestration
         ? { shot: orchestration.shot, castSize: orchestration.cast.length }

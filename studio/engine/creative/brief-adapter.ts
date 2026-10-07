@@ -314,6 +314,8 @@ export type ScenePacketInput = {
     from: 'scene' | 'video' | null
   }
   intro?: boolean
+  /** The last scene in the video's cut: it closes the video. */
+  ending?: boolean
   // The story the video tells and the beats this scene carries, when chosen.
   story?: NarrativeBrief
   // The orchestrator's shot for the scene, and how many actors the rest of
@@ -360,6 +362,14 @@ const introSection = (title: string) => [
   ]),
   '',
   `Show the video's title, exactly "${title}", as on-screen text (text.role "exact") in the first or second moment. Plan its entrance, where it sits against the presenter and the graphics, and a readable hold of at least 2.5 seconds with strong contrast — in every on-camera presence, Off, Low or High.`,
+  ''
+]
+
+// The video's close: the last scene in the cut lands the point and ends.
+const endingSection = () => [
+  "## This scene's role: the video's close",
+  '',
+  'This is the last scene of the video as it is cut. Its last moment lands what the viewer now understands and closes the video: it never points at a scene, a section or a part to come ("comes next", "coming up"). A series may name its next episode.',
   ''
 ]
 
@@ -502,6 +512,7 @@ export const renderScenePacket = (input: ScenePacketInput) => {
     "NEIGHBORS.json says the same as data. State `continuity.incoming` and `continuity.outgoing` as self-contained, agreed or proposed; never write a neighbour's image as fact when its plan does not promise it.",
     '',
     ...(input.intro ? introSection(input.videoTitle) : []),
+    ...(input.ending ? endingSection() : []),
     ...(input.story ? storySection(input.story) : []),
     ...(input.shot ? shotSection(input.shot, input.castSize || 0) : []),
     '## Decisions already made',
