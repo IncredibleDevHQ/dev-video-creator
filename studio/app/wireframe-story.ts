@@ -12,6 +12,7 @@ import {
 } from '../shared/narratives'
 import { escape, html } from './ui'
 import { givenAnswer, repoAsk } from './repo-view'
+import { captureBlock } from './capture-view'
 
 const dot = (fn: string) => `<i class="tpl-beat-dot" data-function="${fn}"></i>`
 
@@ -43,7 +44,9 @@ export const pageStory = (
   const asks = openRequests([slide])
   const answered = slide.answers || []
   const reading = misread(snapshot, slide)
-  if (!beats.length && !asks.length && !answered.length && !reading) return ''
+  const demo = captureBlock(snapshot, slide, editable)
+  if (!beats.length && !asks.length && !answered.length && !reading && !demo)
+    return ''
   return html`<section class="page-story" aria-label="This wireframe's story">
     ${beats.length
       ? html`<p class="page-beats">
@@ -94,7 +97,7 @@ export const pageStory = (
       : ''}
     ${answered
       .map((item) => givenAnswer(snapshot, slide, item, editable))
-      .join('')}
+      .join('')}${demo}
   </section>`
 }
 

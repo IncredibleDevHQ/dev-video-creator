@@ -193,3 +193,48 @@ it('lists the series, and shows one’s arc, episodes and the next', async () =>
   ).toContain('Episode 2')
   expect(episodeChip(snapshot())).toBe('')
 })
+
+it('offers a page’s demo where one is wanted, and shows it once captured', async () => {
+  const { captureBlock } = await import('../app/capture-view')
+  expect(captureBlock(snapshot(), slide, true)).toBe('')
+  const wants = {
+    ...slide,
+    needs: [{ kind: 'demo' as const, what: 'signing up', source: null }]
+  }
+  const offered = doc(
+    captureBlock(
+      snapshot({}, { productUrls: ['https://acme.example/'] }),
+      wants,
+      true
+    )
+  )
+  expect(offered.querySelector<HTMLInputElement>('[name="url"]')?.value).toBe(
+    'https://acme.example/'
+  )
+  expect(offered.querySelector('button')?.textContent).toBe('Capture the demo')
+  const at = (capture: object) =>
+    captureBlock(snapshot(), { ...slide, capture } as never, true)
+  const base = { url: 'https://acme.example/', steps: [], at: '' }
+  expect(at({ ...base, state: 'planning' })).toContain(
+    'Drafting the steps from acme.example…'
+  )
+  expect(at({ ...base, state: 'capturing' })).toContain(
+    'Capturing acme.example…'
+  )
+  const ready = doc(
+    at({
+      ...base,
+      steps: [{ do: 'click', target: 'Sign up' }],
+      state: 'ready',
+      objectKey: 'n/product-capture/x.mp4',
+      seconds: 6.2
+    })
+  )
+  expect(ready.querySelector('video')?.getAttribute('src')).toBe(
+    '/objects/n/product-capture/x.mp4'
+  )
+  expect(ready.querySelector('textarea')?.textContent).toBe('click Sign up')
+  expect(at({ ...base, state: 'failed', error: 'No page' })).toContain(
+    'No page'
+  )
+})

@@ -1,4 +1,5 @@
-// Linking a repo, and asking it for a page's evidence (again, when wrong).
+// Linking a repo, asking it for a page's evidence (again, when wrong), and
+// capturing a page's product demo.
 import type { AppContext } from './app-context'
 import { repoDialog } from './repo-view'
 import { studioApi } from './studio-api'
@@ -58,6 +59,14 @@ export const submitRepos = async (
       }
     ])
     app.dialog.close()
+    app.render()
+  }
+  if (form.matches('.capture-form')) {
+    app.snapshot = await studioApi.captureDemo(id, {
+      slideId: form.dataset.captureSlide || '',
+      url: String(values.get('url') || '').trim(),
+      steps: String(values.get('steps') || '')
+    })
     app.render()
   }
   if (form.matches('.ask-again')) {

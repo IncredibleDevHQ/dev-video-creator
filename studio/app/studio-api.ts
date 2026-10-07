@@ -22,5 +22,9 @@ export const studioApi = {
   askRepo: (
     id: string,
     body: { slideId: string; what: string; prompt?: string }
-  ) => notebook(id, 'repo-answers', body)
+  ) => notebook(id, 'repo-answers', body),
+  captureDemo: (
+    id: string,
+    body: { slideId: string; url: string; steps?: string }
+  ) => notebook(id, 'captures', body)
 }

@@ -137,3 +137,45 @@
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
+
+/* A page's product demo: the form, the state, the capture. */
+.capture-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.capture-block h3 {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.capture-form {
+  display: grid;
+  gap: 6px;
+}
+.capture-form small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.capture-video {
+  width: 100%;
+  max-width: 480px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #000;
+}
+.capture-state {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.capture-failed {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger, #b91c1c);
+}

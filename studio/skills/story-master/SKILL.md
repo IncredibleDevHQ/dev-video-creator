@@ -79,3 +79,18 @@ Write `story/arc.json` as
 Call story_submit_arc with this run directory; fix refusals within six
 submissions, then stop after acceptance.
 
+
+## Plan Capture
+
+A page shows the product in use. Read `packet/DEMO.json` (the product page's
+address, the page's title, idea and narration, what demo it needs) and
+`packet/ELEMENTS.json` (the visible buttons, links and fields on the product
+page: their text, ids and links). Draft the shortest sequence that shows what
+the page says, at most twelve steps, one a line:
+`click <the words on it, or #id>`, `type <#id> <text>`, `scroll <pixels>`,
+`wait <ms>`, `goto <path on the same site>`. Use only elements listed (or
+reached by a step before), never a password field, never real personal data:
+type made-up examples. Write `story/capture.json` as `{ "steps": "click Pricing\nscroll 600" }`.
+Call story_submit_capture with this run directory; fix refusals within six
+submissions, then stop after acceptance.
+

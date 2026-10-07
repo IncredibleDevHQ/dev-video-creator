@@ -2,6 +2,7 @@
 // the episodes it belongs with, and what goes out once it is made. Each
 // returns null when the path is not its own, so the server falls through.
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { captureDemo } from './product-capture'
 import { askRepo, setNotebookRepos } from './repo-answers'
 import { inspectRepo } from './repo-git'
 import { Refusal } from './refusal'
@@ -17,7 +18,8 @@ import {
 type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
-const projectRoute = /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers)$/
+const projectRoute =
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures)$/
 
 export const studioRoute = (
   url: URL,
@@ -69,6 +71,8 @@ const route = async (
       return ok(await setNotebookRepos(id, body))
     if (action === 'repo-answers' && method === 'POST')
       return ok(await askRepo(id, body))
+    if (action === 'captures' && method === 'POST')
+      return ok(await captureDemo(id, body))
   }
   return null
 }

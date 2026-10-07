@@ -1,3 +1,4 @@
+import { captureNote } from '../../shared/capture'
 import { HarnessStageError } from '../generation-errors'
 import { prepareCastPacket } from './cast-packet'
 import {
@@ -80,6 +81,10 @@ export const buildCreativeProduction = async (
     assetKeys: cast.assetKeys
   }
   const slide = project.slides.find((item) => item.id === scene.slideId)
+  // A captured demo plays as supplied media in the product-capture shot.
+  const capture = slide?.capture?.state === 'ready' ? slide.capture : null
+  if (capture?.objectKey)
+    supplied['media/product-capture.mp4'] = await readAsset(capture.objectKey)
   const preview = await readRow<{
     planRecord: string
     manifest: unknown
@@ -290,7 +295,7 @@ export const buildCreativeProduction = async (
       'packet/PRODUCTION.md': `${contentOnlyInstructions}Produce the accepted treatment. Composition ID: ${context.compositionId}. Plan record: ${record.id}, revision 1.
 Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106.
 The app has placed supplied media in production/media/. Reference these files unchanged; do not copy, generate, or edit them. Sound plays once from scene start.
-${mediaBindingInstructions(contentOnly)} Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.${
+${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-capture.mp4 is the product demo (${captureNote(capture)}): play it muted in a browser frame where the treatment shows the product, zooming on what each moment points at.` : ''} Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.${
         drawn.length
           ? `\nThe app drew ${drawn.filter((item) => item.objectKey).length} of the plan's objects as layered artwork: packet/ARTWORK.json says which files and parts, and how to use them.`
           : ''

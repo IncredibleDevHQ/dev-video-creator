@@ -91,8 +91,9 @@ export type Release = {
 /** A product demo, captured from a page by following steps. */
 export type CaptureStep =
   | { do: 'goto'; url: string }
-  | { do: 'click'; selector: string }
-  | { do: 'type'; selector: string; text: string }
+  /** `target` is a CSS selector, or the words on the element. */
+  | { do: 'click'; target: string }
+  | { do: 'type'; target: string; text: string }
   | { do: 'scroll'; y: number }
   | { do: 'wait'; ms: number }
 

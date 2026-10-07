@@ -109,6 +109,8 @@ type ShotInput = {
   place: SpeakerPlace
   previous?: ShotId
   intro: boolean
+  /** A demo was captured for the page: the capture is there to be shown. */
+  captured?: boolean
 }
 
 /** How well a shot serves a scene, and the reasons that count most. */
@@ -162,6 +164,10 @@ const score = (shot: Shot, input: ShotInput) => {
           ? -0.5
           : 0
     )
+  // Capturing a demo is the creator's own act: it outweighs the page's kind
+  // (a shot the creator picks still wins over it).
+  if (input.captured && shot.serves.includes('demo'))
+    add(10, 'a demo was captured for it')
   if (shot.id === input.previous) add(-2.5)
   if (shot.id === 'title-reveal')
     add(input.intro ? 3 : -10, 'it opens the video')
@@ -230,6 +236,7 @@ export const orchestrate = (project: Project): SceneShot[] | null => {
         slide.pageKind ||
         (index === 0 ? 'title' : index === count - 1 ? 'close' : undefined),
       needs: (slide.needs || []).map((need) => need.kind),
+      captured: slide.capture?.state === 'ready',
       place,
       previous,
       intro: index === 0

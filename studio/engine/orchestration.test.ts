@@ -161,6 +161,20 @@ it('chooses a shot for every scene from its page, its beats and the direction', 
   expect(chosen.map((scene) => scene.suggested.id)).toEqual(
     shots.map((scene) => scene.shot.id)
   )
+  // A captured demo is evidence: the side-by-side page becomes a capture.
+  const demo = project()
+  demo.slides[3].capture = {
+    url: 'https://acme.example/',
+    steps: [],
+    state: 'ready',
+    objectKey: 'n/product-capture/x.mp4',
+    seconds: 6,
+    at: ''
+  }
+  expect(orchestrate(demo)![3]).toMatchObject({
+    shot: { id: 'product-capture' },
+    why: expect.stringContaining('a demo was captured for it')
+  })
   // Without a template there is nothing to orchestrate.
   const plain = project()
   delete plain.video!.settings.narrative
