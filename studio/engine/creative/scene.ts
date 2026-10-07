@@ -95,12 +95,6 @@ export const planCreativeScene = async (
       neighbors,
       // Absent without a narrative, so those plans keep their fingerprint.
       ...(story ? { story } : {}),
-      ...(orchestration
-        ? {
-            shot: orchestration.shot,
-            castSize: orchestration.cast.length
-          }
-        : {}),
       ...(orchestration ? { shot: orchestration.shot } : {})
     },
     scenePacket: {
@@ -142,6 +136,9 @@ export const planCreativeScene = async (
       presence: { value: presence, from: scene.presence ? 'scene' : 'video' },
       intro: index === 0,
       ...(story ? { story } : {}),
+      ...(orchestration
+        ? { shot: orchestration.shot, castSize: orchestration.cast.length }
+        : {}),
       reviewed: previous?.treatment || null,
       assets: cast.assets
     },
