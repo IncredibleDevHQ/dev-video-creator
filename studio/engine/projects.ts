@@ -357,7 +357,8 @@ const buildSlides = async (id: string) => {
         STORY_SCENES[snapshot.project.length || 'medium'],
         narrative
           ? storyPlanBrief(narrative, snapshot.project.direction)
-          : undefined
+          : undefined,
+        snapshot.project.episode
       )
     }
     if (!outline.scenes.length) throw new Error('No slides generated')

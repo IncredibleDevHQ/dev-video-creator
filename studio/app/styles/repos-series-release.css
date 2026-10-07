@@ -56,3 +56,84 @@
   font: inherit;
   font-size: 13px;
 }
+
+/* A series: its tiles on the home page, its page, the switch to start one. */
+.series-switch {
+  margin-left: auto;
+  font-size: 12.5px;
+}
+.saved-series {
+  margin-top: 28px;
+}
+.series-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.series-tile {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: inherit;
+  text-align: left;
+}
+.series-form,
+.episode-form,
+.threads-form {
+  display: grid;
+  gap: 8px;
+}
+.series-form small,
+.threads-form small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.series-growth {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0;
+  padding: 0;
+  border: 0;
+}
+.series-about {
+  color: var(--muted);
+}
+.series-arc,
+.series-episodes {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+.series-arc p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.series-arc li.is-made b {
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+}
+.series-arc small,
+.series-episodes small {
+  margin-left: 6px;
+  color: var(--muted);
+}
+.series-planning,
+.series-range,
+.series-none {
+  font-size: 13px;
+  color: var(--muted);
+}
+.series-failed {
+  color: var(--danger, #b91c1c);
+}
+.episode-form {
+  margin: 12px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}

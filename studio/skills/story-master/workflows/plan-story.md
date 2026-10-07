@@ -12,6 +12,8 @@ creator's wording policy.
 - `wordingPolicy`: `preserve` | `assist` | `draft`.
 - `targetSeconds` (optional): the runtime the creator asked for.
 
+When `packet/SERIES.md` is supplied, this notebook is an episode of a series. Plan this episode's part only. Open with a short "previously" (one or two sentences, on the title page or the first page) only when the episode builds on what came before; never re-explain the earlier episodes. Carry the listed threads where the source touches them, and name the next step at the close when the series continues.
+
 When `brief` or `packet/BRIEF.json` is supplied, it is the accepted source explanation brief. Use its question, evidence, entities, explanatory units and proposed arc to structure the story; retain its stable entity identities. Check every factual claim against the full source. Do not treat suggestions as creator requirements.
 
 ## The wording policy is the law of the narration field

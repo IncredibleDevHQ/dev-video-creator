@@ -63,3 +63,19 @@ not hold the answer, say so in `text` and cite where you looked. Call
 story_submit_answer with this run directory; fix refusals within six
 submissions, then stop after acceptance.
 
+
+## Plan Arc
+
+A series' arc, before its episodes are planned. Read `packet/SERIES.json`
+(title, what it is about, the range of episodes, episodes made so far,
+threads), `packet/BRANCH.md` (the linked branch's commits and what they
+change) and `packet/CATALOG.md` (the templates). Propose a range of episodes,
+within `range` unless the material clearly needs fewer, and one part for each
+up to the most: a working title and what the part carries (the question it
+answers, the evidence it shows). An episode already made keeps its place.
+Choose a template from the catalog for a part only when one plainly fits.
+Write `story/arc.json` as
+`{ "episodes": [3, 5], "parts": [{ "title": "…", "carries": "…", "narrative": "build-log" }] }`.
+Call story_submit_arc with this run directory; fix refusals within six
+submissions, then stop after acceptance.
+

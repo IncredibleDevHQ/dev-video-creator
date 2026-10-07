@@ -53,6 +53,7 @@ app.root = document.querySelector<HTMLDivElement>('#app')!
 app.syncMediaRecovery = savedMediaRecovery(app.root)
 app.snapshot = null
 app.notebooks = []
+app.series = []
 app.refreshNotebooks = createRefreshNotebooks(app)
 app.selected = 0
 app.selectedPlan = null

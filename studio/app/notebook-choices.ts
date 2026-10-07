@@ -9,6 +9,7 @@ import { api } from './api'
 import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
 import { repoChip } from './repo-view'
+import { episodeChip } from './series-view'
 import { escape } from './ui'
 import {
   LENGTHS,
@@ -59,7 +60,7 @@ ${
     : `<button type="button" class="choice" data-action="length-menu" data-popover="length" ${off}>about ${scenes} wireframes</button>`
 }<span aria-hidden="true">·</span>
 <button type="button" class="choice" data-action="look-panel">${escape(lookName(snapshot))} look</button><span aria-hidden="true">·</span>
-${repoChip(snapshot, editable)}</p>${editable ? suggestionRow(snapshot) : ''}`
+${repoChip(snapshot, editable)}${episodeChip(snapshot)}</p>${editable ? suggestionRow(snapshot) : ''}`
 }
 
 /**

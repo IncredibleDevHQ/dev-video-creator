@@ -10,10 +10,15 @@ import { sourceComposer, updateSourceComposer } from './source-composer'
 import { rollingHeadline } from './rolling-headline'
 import { replacePlayerView } from './player-view'
 import { button, escape } from './ui'
+import { seriesApi } from './series-controller'
+import { seriesSection } from './series-view'
 import { installNotebookEditor, flushNotebookEdits } from './notebook-editor'
 
 export const createRefreshNotebooks = (app: AppContext) => async () => {
-  app.notebooks = await api.notebooks()
+  ;[app.notebooks, app.series] = await Promise.all([
+    api.notebooks(),
+    seriesApi.list().catch(() => app.series)
+  ])
   if (!app.snapshot && !app.settingsScreen.isOpen) app.render()
 }
 
@@ -103,6 +108,7 @@ ${rollingHeadline()}
 ${sourceComposer(app.pending)}
 <div class="source-meta">
 <small id="source-hint" class="source-hint" aria-live="polite"></small>
+<button type="button" class="quiet series-switch" data-action="new-series">A series instead</button>
 </div>
 </form>
 ${
@@ -117,7 +123,7 @@ ${recent.map((item) => notebookTile(app, item)).join('')}
           ? `<button type="button" class="quiet show-all" data-action="all-recent">Show all ${app.notebooks.length}</button>`
           : ''
       }</section>`
-}</main>`,
+}${seriesSection(app.series)}</main>`,
     previousPlayer
   )
 }

@@ -117,3 +117,79 @@ it('shows where an answer came from, and asks again', () => {
     '<p class="evidence-given"><b>x</b> y</p>'
   )
 })
+
+it('lists the series, and shows one’s arc, episodes and the next', async () => {
+  const { episodeChip, newSeriesDialog, seriesPageView, seriesSection } =
+    await import('../app/series-view')
+  expect(seriesSection([])).toBe('')
+  expect(
+    seriesSection([
+      { id: 's', title: 'Rate limits', episodes: 1, planned: 4, updatedAt: '' }
+    ])
+  ).toContain('1 episode of 4 planned')
+  expect(
+    doc(newSeriesDialog()).querySelector<HTMLInputElement>(
+      'input[name="growth"][checked]'
+    )?.value
+  ).toBe('one')
+  const series = {
+    id: 's',
+    title: 'Rate limits',
+    about: 'How we limit requests',
+    createdAt: '',
+    growth: 'arc' as const,
+    episodes: [{ notebookId: 'n1', number: 1, part: 0 }],
+    repos: [link],
+    threads: ['The outage'],
+    arc: {
+      episodes: [3, 4] as [number, number],
+      at: '',
+      parts: [
+        { title: 'Why limits', carries: 'The outage', narrative: 'incident' },
+        { title: 'The bucket', carries: 'How it works' }
+      ]
+    }
+  }
+  const page = doc(
+    seriesPageView({
+      series,
+      episodes: [
+        {
+          ...series.episodes[0],
+          title: 'The outage',
+          status: 'ready',
+          narrative: 'incident'
+        }
+      ]
+    })
+  )
+  expect(
+    [...page.querySelectorAll('.series-arc li')].map((item) =>
+      item.classList.contains('is-made')
+    )
+  ).toEqual([true, false])
+  expect(page.querySelector('.series-arc small')?.textContent).toBe(
+    'Incident walkthrough'
+  )
+  expect(page.querySelector('#episode-form label')?.textContent).toBe(
+    'Next: The bucket'
+  )
+  expect(
+    page.querySelector<HTMLInputElement>('#episode-form [name="part"]')?.value
+  ).toBe('1')
+  expect(page.querySelector('#series-threads')?.textContent).toBe('The outage')
+  const planning = seriesPageView({
+    series: {
+      ...series,
+      arc: undefined,
+      planning: { state: 'planning', at: '' }
+    },
+    episodes: []
+  })
+  expect(planning).toContain('Planning the arc…')
+  expect(planning).toContain('No episode yet.')
+  expect(
+    episodeChip(snapshot({}, { episode: { series: 's', number: 2 } }))
+  ).toContain('Episode 2')
+  expect(episodeChip(snapshot())).toBe('')
+})

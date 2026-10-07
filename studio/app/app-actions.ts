@@ -6,6 +6,7 @@ import type { AppContext } from './app-context'
 import { seekSavedMedia } from './media-seek'
 import { clickRecording } from './recording-controller'
 import { clickRepos, submitRepos } from './repo-controller'
+import { clickSeries, submitSeries } from './series-controller'
 import { clickSlides, submitSlides } from './slides-controller'
 import {
   clickStart,
@@ -36,6 +37,7 @@ export const installAppActions = (app: AppContext) => {
       await submitSlides(app, form, values)
       await submitVideo(app, form, values)
       await submitRepos(app, form, values)
+      await submitSeries(app, form, values)
     } catch (reason) {
       app.error(reason)
     } finally {
@@ -213,6 +215,7 @@ export const installAppActions = (app: AppContext) => {
         app.selected = 0
         app.momentIndex = 0
         app.second = 0
+        if (app.dialog.open) app.dialog.close()
         await app.openNotebook(target.dataset.notebook, true)
         return
       }
@@ -244,6 +247,7 @@ export const installAppActions = (app: AppContext) => {
         await app.openNotebook(app.opening.state.id, app.openingAutoStage)
         return
       }
+      if (await clickSeries(app, target, action)) return
       if (action === 'open-templates') {
         if (app.capture.phase !== 'idle')
           throw new Error(

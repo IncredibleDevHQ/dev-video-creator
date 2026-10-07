@@ -11,6 +11,7 @@ export interface AppContext {
   syncMediaRecovery: () => void
   snapshot: Snapshot | null
   notebooks: NotebookSummary[]
+  series: import('../shared/series').SeriesSummary[]
   refreshNotebooks: () => Promise<void>
   selected: number
   /** An outline scene shown on the canvas before it is drawn. */

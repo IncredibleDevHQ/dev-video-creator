@@ -158,7 +158,9 @@ export const prepareCreativeStory = (
   brief?: import('./explanation-brief').ExplanationBriefV1,
   targetScenes?: number,
   // With a narrative the pages come from its beats, not a target count.
-  story?: StoryPlanBrief
+  story?: StoryPlanBrief,
+  // An episode of a series: what came before and what carries over.
+  episode?: import('../../shared/series').EpisodeRef
 ) =>
   runValidatedJsonStage({
     projectId,
@@ -167,7 +169,8 @@ export const prepareCreativeStory = (
       brief,
       targetScenes: story ? undefined : targetScenes,
       // Absent without a narrative, so those outlines keep their key.
-      ...(story ? { story } : {})
+      ...(story ? { story } : {}),
+      ...(episode ? { episode } : {})
     }),
     checkpoint: 'creative-story',
     stage: 'story',
@@ -183,9 +186,27 @@ export const prepareCreativeStory = (
     packet: {
       'packet/SOURCE.md': source.text,
       ...(brief ? { 'packet/BRIEF.json': JSON.stringify(brief) } : {}),
-      ...(story ? { 'packet/STORY.json': JSON.stringify(story, null, 1) } : {})
+      ...(story ? { 'packet/STORY.json': JSON.stringify(story, null, 1) } : {}),
+      ...(episode ? { 'packet/SERIES.md': episodeBrief(episode) } : {})
     },
     selection,
     origin,
     validate: (raw) => validateCreativeStory(raw, source, story)
   })
+
+/** What an episode carries from its series, for the story planner. */
+export const episodeBrief = (
+  episode: import('../../shared/series').EpisodeRef
+) =>
+  [
+    `# Episode ${episode.number}`,
+    episode.part
+      ? `This episode is "${episode.part.title}": ${episode.part.carries}`
+      : '',
+    episode.previously ? `Previously: ${episode.previously}` : '',
+    episode.threads?.length
+      ? `Threads carried through the series:\n${episode.threads.map((item) => `- ${item}`).join('\n')}`
+      : ''
+  ]
+    .filter(Boolean)
+    .join('\n\n')
