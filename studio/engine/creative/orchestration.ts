@@ -1,6 +1,7 @@
 // The orchestrator, for one scene's planner: the shot it was given, the
 // seams it meets, and the cast the rest of the video already established;
 // and the checks that hold its plan to them.
+import { inCut } from '../../shared/orchestration'
 import type { Project } from '../../shared/model'
 import {
   orchestrate,
@@ -16,7 +17,14 @@ export const sceneOrchestration = async (project: Project, sceneId: string) => {
   const index = shots?.findIndex((scene) => scene.sceneId === sceneId) ?? -1
   if (!shots || index < 0) return null
   return {
-    shot: shotBrief(shots, index, project.video!.transitions),
+    shot: shotBrief(
+      shots,
+      index,
+      project.video!.transitions,
+      shots.map((item) =>
+        inCut(project.video!.scenes.find((scene) => scene.id === item.sceneId))
+      )
+    ),
     cast: await castRegistry(project, sceneId)
   }
 }

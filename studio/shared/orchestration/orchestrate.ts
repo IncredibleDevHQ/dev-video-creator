@@ -3,7 +3,13 @@
 // scenes in one direction, so the video reads as one piece. It runs for a
 // video that tells a narrative; each scene's planner develops its shot.
 import { readyCapture } from '../capture'
-import type { Presence, Project, Transition, VideoSettings } from '../model'
+import type {
+  Presence,
+  Project,
+  Scene,
+  Transition,
+  VideoSettings
+} from '../model'
 import {
   FUNCTION_LABELS,
   SPEAKER_LABELS,
@@ -19,6 +25,23 @@ import {
   type SpeakerPlace
 } from '../narratives'
 import { SHOTS, shotById, sketchShot, type Shot, type ShotId } from './shots'
+
+/**
+ * Whether a scene is in the video's cut: made, being made, or waiting for
+ * its page. A scene left out is joined across with a cut, so it is never a
+ * neighbour, a seam or the shot before.
+ */
+export const inCut = (scene?: Scene) =>
+  Boolean(scene && (scene.phase !== 'idle' || scene.afterDrawing))
+
+/** The nearest positions in the cut before and after one, or -1. */
+export const cutNeighbours = (inVideo: boolean[], index: number) => {
+  let before = index - 1
+  while (before >= 0 && !inVideo[before]) before--
+  let after = index + 1
+  while (after < inVideo.length && !inVideo[after]) after++
+  return { before, after: after < inVideo.length ? after : -1 }
+}
 
 /** What a page's kind says it shows. */
 const KIND_EVIDENCE: Record<string, EvidenceKind[]> = {
@@ -224,6 +247,7 @@ export const orchestrate = (project: Project): SceneShot[] | null => {
   // By the wireframes' order: while the video reconciles, its scenes are
   // still being rebuilt, and scenes follow the wireframes one to one.
   const count = project.slides.length
+  const cutting = video.scenes.some(inCut)
   let previous: ShotId | undefined
   return project.slides.map((slide, index) => {
     const scene = video.scenes.find((item) => item.slideId === slide.id)
@@ -257,7 +281,9 @@ export const orchestrate = (project: Project): SceneShot[] | null => {
       previous,
       intro: index === 0
     })
-    previous = best.shot.id
+    // Variety is judged against the shot before in the cut; before any
+    // scene is made, every page counts.
+    if (!cutting || inCut(scene)) previous = best.shot.id
     const own = shotById(scene?.shot)
     return {
       sceneId: scene?.id || `scene-${slide.id}`,
@@ -306,9 +332,12 @@ export type ShotBrief = {
 export const shotBrief = (
   scenes: SceneShot[],
   index: number,
-  transitions: Transition[]
+  transitions: Transition[],
+  /** Which pages are in the video's cut: across a gap, the seam is a cut. */
+  inVideo: boolean[] = scenes.map(() => true)
 ): ShotBrief => {
   const scene = scenes[index]
+  const { before, after } = cutNeighbours(inVideo, index)
   return {
     id: scene.shot.id,
     name: scene.shot.name,
@@ -318,7 +347,17 @@ export const shotBrief = (
     why: scene.why,
     chosenBy: scene.chosenBy,
     speaker: SPEAKER_LABELS[scene.speaker],
-    entry: index > 0 ? (transitions[index - 1] ?? null) : null,
-    exit: index < scenes.length - 1 ? (transitions[index] ?? null) : null
+    entry:
+      before < 0
+        ? null
+        : before === index - 1
+          ? (transitions[index - 1] ?? null)
+          : 'none',
+    exit:
+      after < 0
+        ? null
+        : after === index + 1
+          ? (transitions[index] ?? null)
+          : 'none'
   }
 }

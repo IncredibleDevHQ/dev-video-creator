@@ -329,3 +329,30 @@ it('lets a drawn page lead when its beat usually looks like something else', asy
   expect(rank(false)).toBe('timeline-scrub')
   expect(rank(true)).toBe('flow-trace')
 })
+
+it('plans over the video’s cut: across a page left out, a cut', async () => {
+  const { cutNeighbours, shotBrief } = await import('../shared/orchestration')
+  // Pages 1, 3 and 5 are made; 2 and 4 are left out.
+  const inVideo = [true, false, true, false, true]
+  expect(cutNeighbours(inVideo, 2)).toEqual({ before: 0, after: 4 })
+  expect(cutNeighbours(inVideo, 0)).toEqual({ before: -1, after: 2 })
+  const shots = orchestrate(project())!
+  const transitions = [
+    'crossfade',
+    'push-left',
+    'push-left',
+    'crossfade'
+  ] as never
+  expect(shotBrief(shots, 2, transitions, inVideo)).toMatchObject({
+    entry: 'none',
+    exit: 'none'
+  })
+  expect(shotBrief(shots, 2, transitions)).toMatchObject({
+    entry: 'push-left',
+    exit: 'push-left'
+  })
+  expect(shotBrief(shots, 0, transitions, inVideo)).toMatchObject({
+    entry: null,
+    exit: 'none'
+  })
+})

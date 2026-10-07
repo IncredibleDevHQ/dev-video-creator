@@ -7,7 +7,7 @@ import {
 import { captureNote, readyCapture } from '../../shared/capture'
 import { prepareCastPacket } from './cast-packet'
 import { sceneOrchestration } from './orchestration'
-import { scenePresence } from '../../shared/orchestration'
+import { cutNeighbours, inCut, scenePresence } from '../../shared/orchestration'
 import { randomUUID } from 'node:crypto'
 import type { Project, Scene, Moment } from '../../shared/model'
 import { readRow, writeRow } from '../persistence'
@@ -49,8 +49,10 @@ export const planCreativeScene = async (
   const brief = await prepareCreativeBrief(project, selection, origin)
   const units =
     brief.coverage.find((item) => item.scene === slide.id)?.units || []
+  // The neighbours in the video's cut: a page left out is not one.
+  const near = cutNeighbours(video.scenes.map(inCut), index)
   const adjacent = video.scenes.flatMap((other, position) =>
-    Math.abs(position - index) === 1
+    position === near.before || position === near.after
       ? [
           {
             position:

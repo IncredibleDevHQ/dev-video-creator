@@ -508,7 +508,7 @@ export const renderScenePacket = (input: ScenePacketInput) => {
     '',
     bullet([
       input.delivery
-        ? `Delivery for this scene: ${input.delivery} (the creator's choice — keep it).`
+        ? `Delivery for this scene: ${input.delivery}, the creator's choice. Write \`delivery.voice: "${input.delivery}"\` exactly.`
         : 'Delivery for this scene is undecided: suggest a presenter treatment if it helps, but keep delivery.voice "undecided".',
       presenceLine(input.presence, input.delivery),
 
