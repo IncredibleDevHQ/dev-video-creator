@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { codexCatalogFrom } from './models'
+import { claudeModels, codexCatalogFrom } from './models'
 it('lists visible cached models, merges the configured choice and exposes no account fields', () => {
   const result = codexCatalogFrom('model = "custom-model"', {
     identity: 'private fixture',
@@ -28,4 +28,19 @@ it('falls back to configured models when the cache is missing or malformed', () 
     codexCatalogFrom('model = "configured-model"', null).options[0].id
   ).toBe('configured-model')
   expect(codexCatalogFrom('', { models: 'invalid' }).options).toEqual([])
+})
+
+it('offers Opus 5.5 by name, and only on a Claude Code that runs it', () => {
+  // Seen live: 2.1.278 refused claude-opus-5-5, and its opus alias ran Opus 5.
+  const old = claudeModels('2.1.278 (Claude Code)').options[0]
+  expect(old).toEqual({
+    id: 'claude-opus-5-5',
+    label: 'Opus 5.5',
+    unavailable:
+      'needs Claude Code 2.1.280 or newer (found 2.1.278 (Claude Code))'
+  })
+  expect(claudeModels('2.1.293 (Claude Code)').options[0]).toEqual({
+    id: 'claude-opus-5-5',
+    label: 'Opus 5.5'
+  })
 })
