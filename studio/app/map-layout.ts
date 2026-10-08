@@ -216,19 +216,25 @@ export const mapLayout = (
     }
     ly += LANEH + LGAP
   }
-  const sw = SP * 2 + widest
-  layout.series = { x: sx, y: MY, w: sw, h: Math.max(ly - MY + SP - LGAP, 180) }
+  // What a made episode was cut into sits right after its own lane.
   for (const episode of view.episodes) {
     if (!episode.teasers.length && !episode.posts) continue
     const lane = layout.lanes[episode.notebook]
     const rows = episode.teasers.length + (episode.posts ? 1 : 0)
-    layout.derived.push({
-      episode: episode.notebook,
-      x: sx + sw + 80,
+    const cut = {
+      x: lane.x + lane.w + 40,
       y: lane.y + 8,
       w: 280,
       h: 52 + rows * 30
-    })
+    }
+    layout.derived.push({ episode: episode.notebook, ...cut })
+    widest = Math.max(widest, lane.w + 40 + cut.w)
+  }
+  layout.series = {
+    x: sx,
+    y: MY,
+    w: SP * 2 + widest,
+    h: Math.max(ly - MY + SP - LGAP, 180)
   }
   return layout
 }

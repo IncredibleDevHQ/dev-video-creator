@@ -169,6 +169,21 @@ export const installMapInput = (map: MapCanvas) => {
       return map.fit(map.layout.map)
     if (key === 'B:series' && map.layout.series)
       return map.fit(map.layout.series)
+    // What a made episode was cut into: framed with its episode's lane.
+    if (key.startsWith('D:')) {
+      const lane = map.layout.lanes[key.slice(2)]
+      const cut = map.layout.derived.find((d) => d.episode === key.slice(2))
+      if (lane && cut)
+        return map.fit(
+          pad({
+            x: lane.x,
+            y: Math.min(lane.y, cut.y),
+            w: cut.x + cut.w - lane.x,
+            h:
+              Math.max(lane.y + lane.h, cut.y + cut.h) - Math.min(lane.y, cut.y)
+          })
+        )
+    }
     const sel = selectionOf(key)
     const lane =
       sel?.t === 'lane'
