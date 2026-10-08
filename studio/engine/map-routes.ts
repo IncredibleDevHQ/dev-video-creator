@@ -6,6 +6,7 @@ import {
   addMapEpisode,
   changeCopies,
   mapView,
+  moveEpisode,
   setAside,
   startMapSeries
 } from './map-episodes'
@@ -20,7 +21,8 @@ const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues)$/
-const seriesRoute = /^\/api\/series\/([a-zA-Z0-9_-]+)\/map-episodes$/
+const seriesRoute =
+  /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order)$/
 
 export const mapRoute = (
   url: URL,
@@ -40,7 +42,11 @@ const route = async (
 ): Promise<Reply> => {
   const series = url.pathname.match(seriesRoute)
   if (series && method === 'POST')
-    return ok(await addMapEpisode(series[1], body))
+    return ok(
+      series[2] === 'episode-order'
+        ? await moveEpisode(series[1], body)
+        : await addMapEpisode(series[1], body)
+    )
   const project = url.pathname.match(projectRoute)
   if (!project) return null
   const [, id, action] = project

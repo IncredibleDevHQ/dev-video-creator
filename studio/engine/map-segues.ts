@@ -68,6 +68,10 @@ export const scheduleSegues = (id: string) => {
   writing.set(id, job)
   void job.catch(() => {})
 }
+/** Resolves when no episode's segues are being written (tests and checks). */
+export const settledAllSegues = async () => {
+  while (writing.size) await Promise.all([...writing.values()])
+}
 /** Resolves when the episode's segues are written (tests and checks). */
 export const settledSegues = async (id: string) => {
   while (writing.has(id)) await writing.get(id)!.catch(() => {})

@@ -13,8 +13,13 @@ const SEP = '<i class="map-sep"></i>'
 const content = (map: MapCanvas) => {
   const { snapshot, view, sel, clip } = map
   if (!snapshot) return ''
-  if (map.naming)
-    return `<form class="map-ask" data-map-form="episode"><label>New episode${map.naming.slides.length ? ` with ${map.naming.slides.length} page${map.naming.slides.length === 1 ? '' : 's'}` : ''}<input name="title" maxlength="120" placeholder="What is it about?" autocomplete="off"></label><button type="submit" class="primary">Add episode</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
+  if (map.naming) {
+    const chosen = map.naming.slides.length
+    // With pages chosen it only needs a title; else the agent picks pages.
+    return chosen
+      ? `<form class="map-ask" data-map-form="episode"><label>New episode with ${chosen} page${chosen === 1 ? '' : 's'}<input name="title" maxlength="120" placeholder="Its title" autocomplete="off"></label><button type="submit" class="primary">Add episode</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
+      : `<form class="map-ask" data-map-form="episode"><label>New episode<input name="title" maxlength="400" placeholder="What is it about? The agent picks the pages" autocomplete="off"></label><button type="submit" class="primary">Pick pages</button><button type="button" class="quiet" data-map="empty-episode">Empty episode</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
+  }
   if (map.changing) {
     const slide = snapshot.project.slides.find((s) => s.id === map.changing)
     return `<form class="map-ask" data-map-form="change"><label>Change “${escape(slide?.title || 'this page')}”<input name="instruction" maxlength="4000" placeholder="Say what to add, cut or fix" autocomplete="off"></label><button type="submit" class="primary">Send</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
@@ -79,7 +84,9 @@ const content = (map: MapCanvas) => {
     if (!episode) return ''
     return `<div class="map-info"><b style="color:${colorOf(view, episode.notebook)}">Ep ${episode.number}</b> · ${escape(episode.title)}<small>${episode.copies.length} page${episode.copies.length === 1 ? '' : 's'}${episode.segues === 'failed' ? ' · segues failed' : ''}</small>${clipped}</div>${
       clip ? act('paste', 'Paste', '⌘V', true) : ''
-    }${act(`open:${episode.notebook}`, episode.video ? 'Open episode' : 'Make…')}${episode.copies.length ? act(`segues:${episode.notebook}`, 'Write segues again') : ''}`
+    }${act(`open:${episode.notebook}`, episode.video ? 'Open episode' : 'Make…')}${episode.copies.length ? act(`segues:${episode.notebook}`, 'Write segues again') : ''}${
+      view.episodes.length > 1 ? SEP : ''
+    }${episode.number > 1 ? act('order:-1', 'Move up') : ''}${episode.number < view.episodes.length ? act('order:1', 'Move down') : ''}`
   }
   if (clip)
     return `<div class="map-info">${clipped.replace(/<\/?small>/g, '')} · select an episode</div>${act('clear-clip', 'Clear')}`

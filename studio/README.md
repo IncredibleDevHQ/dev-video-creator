@@ -130,8 +130,11 @@ notes brought them; By topic groups them (Group by topic asks the agent, and a
 later page joins a topic when its note's sorting finds one). All, Unused and
 New filter what is lit.
 
-Start a series makes the series for the map, and + Episode adds an episode,
-empty or with the selected pages. An episode is a notebook of copies: drag a
+Start a series makes the series for the map. + Episode asks what the episode
+is about, and the agent picks the map's pages that tell it, in order,
+preferring pages no other episode uses; an empty episode takes pages later,
+and Copy to… → New episode starts one from a page you chose. Episodes can be
+moved up or down the series. An episode is a notebook of copies: drag a
 page into an episode's lane to copy it (hold ⌥ to cut it, so it belongs to
 that episode only), drag a copy to reorder it or into another lane to move
 it, or use ⌘C, ⌘X and ⌘V. Each page says which episodes use it, or that it is

@@ -24,7 +24,10 @@ const episodes = await import('./map-episodes')
 const segues = await import('./map-segues')
 const topics = await import('./map-topics')
 const { loadSeries } = await import('./series')
-afterAll(() => rm(root, { recursive: true, force: true }))
+afterAll(async () => {
+  await segues.settledAllSegues()
+  await rm(root, { recursive: true, force: true })
+})
 
 stage.mockImplementation(async (input: Record<string, unknown>) => {
   const reply = replies[input.route as string]
@@ -487,4 +490,80 @@ it('waits for a page being redrawn before a note moves the pages', async () => {
     'Preview by relay',
     'Security'
   ])
+})
+
+it('reorders episodes, numbers them again and rewrites their segues', async () => {
+  await drawnMap('m10')
+  const series = await episodes.startMapSeries('m10', {})
+  const a = (
+    await episodes.addMapEpisode(series.id, { title: 'A', slides: ['m10-1'] })
+  ).notebook.project.id
+  const b = (
+    await episodes.addMapEpisode(series.id, { title: 'B', slides: ['m10-2'] })
+  ).notebook.project.id
+  await segues.settledSegues(a)
+  await segues.settledSegues(b)
+  expect((await loadProject(a))!.project.slides[0].outro).toBe('Next time: B.')
+  await episodes.moveEpisode(series.id, { episode: b, by: -1 })
+  await segues.settledSegues(a)
+  await segues.settledSegues(b)
+  const view = await episodes.mapView('m10')
+  expect(view.episodes.map((e) => [e.title, e.number])).toEqual([
+    ['B', 1],
+    ['A', 2]
+  ])
+  expect((await loadProject(b))!.project.slides[0].outro).toBe('Next time: A.')
+  expect((await loadProject(a))!.project.slides[0].outro).toBe(
+    'That is the series.'
+  )
+})
+
+it('picks an episode’s pages from what it is about', async () => {
+  const picking = await import('./map-picking')
+  expect(
+    picking.validatePick({ title: 'T', pages: ['a', 'a'] }, ['a']).problems
+  ).toContain('Choose each page once')
+  expect(
+    picking.validatePick({ title: 'T', pages: ['z'] }, ['a']).problems
+  ).toContain('z is not a drawn page of the map')
+  await drawnMap('m11')
+  const series = await episodes.startMapSeries('m11', {})
+  replies['Plan Episode'] = (input) => {
+    const pages = JSON.parse(
+      (input.packet as Record<string, string>)['packet/PAGES.json']
+    )
+    expect((input.packet as Record<string, string>)['packet/REQUEST.md']).toBe(
+      'how it stays safe'
+    )
+    return { title: 'Staying safe', pages: [pages[3].id, pages[2].id] }
+  }
+  const { notebook } = await episodes.addMapEpisode(series.id, {
+    about: 'how it stays safe',
+    slides: []
+  })
+  const id = notebook.project.id
+  expect(notebook.project.picking).toMatchObject({
+    state: 'picking',
+    about: 'how it stays safe'
+  })
+  expect((await episodes.mapView('m11')).episodes[0].picking?.state).toBe(
+    'picking'
+  )
+  await picking.settledPick(id)
+  await segues.settledSegues(id)
+  const picked = (await loadProject(id))!.project
+  expect(picked.title).toBe('Staying safe')
+  expect(picked.picking).toBeUndefined()
+  expect(picked.slides.map((s) => s.copyOf?.slide)).toEqual(['m11-4', 'm11-3'])
+  expect(picked.slides[0].bridge).toBe('Here is the question.')
+  // A title the creator gave stays theirs.
+  const named = await episodes.addMapEpisode(series.id, {
+    title: 'My title',
+    about: 'how it stays safe',
+    slides: []
+  })
+  await picking.settledPick(named.notebook.project.id)
+  expect((await loadProject(named.notebook.project.id))!.project.title).toBe(
+    'My title'
+  )
 })

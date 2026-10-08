@@ -54,6 +54,8 @@ export type MapEpisode = {
   status: Snapshot['status']
   /** Writing the segues between its pages. */
   segues?: 'writing' | 'failed'
+  /** Choosing its pages from what the creator said it is about. */
+  picking?: { state: 'picking' | 'failed'; about: string }
   copies: MapCopy[]
   video: { scenes: number; made: number; joined: boolean } | null
   teasers: Array<{ id: string; channel: string; state: string }>

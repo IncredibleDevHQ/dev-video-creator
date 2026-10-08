@@ -192,6 +192,14 @@ export type Project = {
   grouping?: { state: 'grouping' | 'failed'; error?: string }
   /** An episode's segues: being written, or why they could not be. */
   segues?: { state: 'writing' | 'failed'; error?: string }
+  /** An episode whose pages the agent is choosing from what it is about. */
+  picking?: {
+    state: 'picking' | 'failed'
+    about: string
+    /** The creator named it: the agent's title does not replace theirs. */
+    titled?: boolean
+    error?: string
+  }
   id: string
   title: string
   source: string

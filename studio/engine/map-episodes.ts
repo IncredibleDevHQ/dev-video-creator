@@ -11,30 +11,14 @@ import type { Slide } from '../shared/model'
 import type { Series } from '../shared/series'
 import { addEvent } from './activity'
 import { readRow, writeRow } from './persistence'
-import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
 import { changeSeries, loadSeries, previouslyOf } from './series'
 import { composeNarration, scheduleSegues } from './map-segues'
-
-/** A page's version: what a copy of it shows and says. */
-export const pageHash = (slide: Slide) =>
-  fingerprintOf([slide.title, slide.svg, slide.narration, slide.idea])
-
-const MAP_ONLY = ['fromNote', 'topic', 'aside', 'onlyIn'] as const
-/** A copy of a map page for an episode: its own id, the map's script kept. */
-export const copyOf = (map: string, slide: Slide): Slide => {
-  const copy: Slide = JSON.parse(JSON.stringify(slide))
-  for (const key of MAP_ONLY) delete copy[key]
-  delete copy.draft
-  return {
-    ...copy,
-    id: randomUUID(),
-    copyOf: { notebook: map, slide: slide.id, hash: pageHash(slide) },
-    base: slide.narration || ''
-  }
-}
+import { copyOf, pageHash } from './map-copy'
+import { schedulePick } from './map-picking'
+export { copyOf, pageHash } from './map-copy'
 
 const words = (value: unknown, limit: number) =>
   String(value ?? '')
@@ -142,7 +126,11 @@ const addOne = async (seriesId: string, raw: unknown) => {
   if (new Set(ids).size !== ids.length)
     throw new Refusal('Copy each page into an episode once')
   const number = series.episodes.length + 1
-  const title = words(value.title, 120) || `${series.title}, episode ${number}`
+  // Said what it is about, with no pages: the agent picks them.
+  const about = ids.length ? '' : words(value.about, 400)
+  const named = words(value.title, 120)
+  const title =
+    named || words(about, 80) || `${series.title}, episode ${number}`
   const copies = pages.map((page) => copyOf(map.project.id, page))
   const last = series.episodes.at(-1)
   const previously = previouslyOf(
@@ -168,7 +156,16 @@ const addOne = async (seriesId: string, raw: unknown) => {
         ...(previously ? { previously } : {})
       },
       slides: copies,
-      video: null
+      video: null,
+      ...(about
+        ? {
+            picking: {
+              state: 'picking' as const,
+              about,
+              ...(named ? { titled: true } : {})
+            }
+          }
+        : {})
     },
     status: 'ready',
     error: null,
@@ -187,9 +184,10 @@ const addOne = async (seriesId: string, raw: unknown) => {
     current.episodes.push({ notebookId: id, number })
   })
   if (value.only === true) await claimPages(map.project.id, ids, id)
-  scheduleSegues(id)
+  if (about) schedulePick(id)
+  else scheduleSegues(id)
   // The episode before now leads into this one.
-  if (last) scheduleSegues(last.notebookId)
+  if (last && !about) scheduleSegues(last.notebookId)
   return { series: saved, notebook }
 }
 
@@ -344,6 +342,36 @@ export const changeCopies = async (id: string, raw: unknown) => {
   throw new Refusal('Choose add, move, remove, update or keep')
 }
 
+/**
+ * Moves an episode up or down the series: the episodes are numbered again,
+ * and every episode whose neighbours changed has its segues written again.
+ */
+export const moveEpisode = async (seriesId: string, raw: unknown) => {
+  const value = (raw ?? {}) as Record<string, unknown>
+  const notebook = String(value.episode || '')
+  const by = value.by === -1 || value.by === 1 ? value.by : 0
+  if (!by) throw new Refusal('Move an episode up or down')
+  const before = await loadSeries(seriesId)
+  if (!before?.map) throw new Refusal('This series has no content map')
+  const at = before.episodes.findIndex((item) => item.notebookId === notebook)
+  if (at < 0) throw new Refusal('Choose an episode of this series')
+  const to = at + by
+  if (to < 0 || to >= before.episodes.length) return before
+  const saved = await changeSeries(seriesId, (series) => {
+    const [moved] = series.episodes.splice(at, 1)
+    series.episodes.splice(to, 0, moved)
+    series.episodes.forEach((item, index) => {
+      item.number = index + 1
+    })
+  })
+  for (const item of saved.episodes)
+    await changeProject(item.notebookId, (current) => {
+      if (current.project.episode) current.project.episode.number = item.number
+    })
+  for (const item of saved.episodes) scheduleSegues(item.notebookId)
+  return saved
+}
+
 /** Sets a map page aside: it is not to be used, so it is not "unused". */
 export const setAside = (mapId: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
@@ -422,6 +450,14 @@ export const mapView = async (mapId: string): Promise<MapView> => {
       title: ep.project.title,
       status: ep.status,
       ...(ep.project.segues ? { segues: ep.project.segues.state } : {}),
+      ...(ep.project.picking
+        ? {
+            picking: {
+              state: ep.project.picking.state,
+              about: ep.project.picking.about
+            }
+          }
+        : {}),
       copies,
       video: video
         ? {

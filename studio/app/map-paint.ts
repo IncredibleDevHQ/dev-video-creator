@@ -104,7 +104,10 @@ export const paintWorld = (map: MapCanvas) => {
           key: `Z:${episode.notebook}`,
           cls: 'map-empty',
           box: empty,
-          html: 'Drop pages here, or select this lane and paste. Nothing is made until you press Make.',
+          html:
+            episode.picking?.state === 'picking'
+              ? `Choosing pages for “${escape(episode.picking.about)}”…`
+              : 'Drop pages here, or select this lane and paste. Nothing is made until you press Make.',
           data: { lane: episode.notebook }
         })
       episode.copies.forEach((copy, index) => {

@@ -377,6 +377,12 @@ const dispatch = async (
       return map.startSeries()
     case 'new-episode':
       return map.newEpisode()
+    case 'empty-episode': {
+      const input = map.root.querySelector<HTMLInputElement>(
+        '[data-map-form="episode"] input'
+      )
+      return map.addEpisode(input?.value || '', true)
+    }
     case 'cancel':
       map.naming = null
       map.changing = null
@@ -447,6 +453,14 @@ const dispatch = async (
       return map.paint()
     case 'open':
       return map.hooks.openEpisode(arg)
+    case 'order': {
+      const series = map.view?.series
+      if (!series || sel?.t !== 'lane') return
+      return map.run(
+        () => mapApi.moveEpisode(series.id, sel.id, arg === '-1' ? -1 : 1),
+        'Episodes reordered: every “last time” and “next time” is rewritten'
+      )
+    }
     case 'segues':
       return map.run(() => mapApi.segues(arg), 'Writing the segues again')
     case 'teaser':

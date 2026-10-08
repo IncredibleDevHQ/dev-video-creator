@@ -186,13 +186,17 @@ export const segueCard = (episode: MapEpisode, end: boolean, last: boolean) => {
 export const laneHead = (view: MapView, episode: MapEpisode) => {
   const video = episode.video
   const state =
-    episode.segues === 'writing'
-      ? '<span class="map-state is-busy">writing segues…</span>'
-      : video?.joined
-        ? '<span class="map-state is-made">made</span>'
-        : video && video.scenes
-          ? `<span class="map-state is-busy">making ${video.made} of ${video.scenes}</span>`
-          : `<span class="map-state">${plural(episode.copies.length, 'page')}</span>`
+    episode.picking?.state === 'picking'
+      ? '<span class="map-state is-busy">choosing pages…</span>'
+      : episode.picking?.state === 'failed'
+        ? '<span class="map-state is-failed">could not choose pages</span>'
+        : episode.segues === 'writing'
+          ? '<span class="map-state is-busy">writing segues…</span>'
+          : video?.joined
+            ? '<span class="map-state is-made">made</span>'
+            : video && video.scenes
+              ? `<span class="map-state is-busy">making ${video.made} of ${video.scenes}</span>`
+              : `<span class="map-state">${plural(episode.copies.length, 'page')}</span>`
   const derive = video?.joined
     ? `${episode.teasers.length ? '' : `<button type="button" class="quiet" data-map="teaser:${episode.notebook}">Teaser</button>`}${episode.posts ? '' : `<button type="button" class="quiet" data-map="posts:${episode.notebook}">Posts</button>`}`
     : ''

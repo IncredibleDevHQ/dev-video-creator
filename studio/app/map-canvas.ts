@@ -215,7 +215,8 @@ export class MapCanvas {
   copyInto(slide: string, episode: string, index?: number, only = false) {
     const from = this.layout?.cards[slide]
     const ep = this.view?.episodes.find((e) => e.notebook === episode)
-    if (from) this.fly[`pending:${episode}`] = { x: from.x, y: from.y }
+    // A drop flies in from where it was let go; the bar's copy, from the page.
+    if (from) this.fly[`pending:${episode}`] ||= { x: from.x, y: from.y }
     return this.run(
       async () => {
         const result = await mapApi.copies(episode, {
@@ -287,20 +288,25 @@ export class MapCanvas {
       ?.focus()
   }
   /** A new episode: the pages chosen, else an empty one to drop pages in. */
-  async addEpisode(title: string) {
+  async addEpisode(text: string, empty = false) {
     const series = this.view?.series
     const slides = this.naming?.slides || []
     this.naming = null
     if (!series) return
+    const said = text.trim()
+    // Said what it is about and no pages: the agent picks them.
+    const about = !slides.length && !empty && said ? said : undefined
     await this.run(
       () =>
         mapApi.addEpisode(series.id, {
-          title: title.trim() || undefined,
+          ...(about ? { about } : { title: said || undefined }),
           slides
         }),
       slides.length
         ? 'Episode added. Its segues are being written.'
-        : 'Empty episode added: drop pages into it.'
+        : about
+          ? 'Episode added: the agent is picking its pages from the map.'
+          : 'Empty episode added: drop pages into it.'
     )
     this.fitted = false
     this.paint()

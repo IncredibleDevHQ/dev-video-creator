@@ -475,6 +475,9 @@
 .map-state.is-made {
   color: var(--accent);
 }
+.map-state.is-failed {
+  color: var(--danger, #b91c1c);
+}
 .map-lane-acts {
   margin-left: auto;
   display: flex;

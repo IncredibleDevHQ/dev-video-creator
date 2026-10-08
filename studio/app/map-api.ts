@@ -21,7 +21,7 @@ export const mapApi = {
     ),
   addEpisode: (
     series: string,
-    body: { title?: string; slides: string[]; only?: boolean }
+    body: { title?: string; about?: string; slides: string[]; only?: boolean }
   ) =>
     request<{ series: Series; notebook: Snapshot }>(
       `/series/${series}/map-episodes`,
@@ -34,6 +34,11 @@ export const mapApi = {
       'POST',
       body
     ),
+  moveEpisode: (series: string, episode: string, by: -1 | 1) =>
+    request<Series>(`/series/${series}/episode-order`, 'POST', {
+      episode,
+      by
+    }),
   aside: (id: string, slide: string, aside: boolean) =>
     request<Snapshot>(`/projects/${id}/aside`, 'POST', { slide, aside }),
   segues: (episode: string) =>
