@@ -159,3 +159,29 @@ it('preserves in-place edits across autosave renders and replaces refreshed sour
     vi.restoreAllMocks()
   }
 })
+
+it('opens a scene’s activity when it starts, unless the creator closed it', () => {
+  const { document, Element, Event } = parseHTML(
+    '<html><body><div id="app"></div></body></html>'
+  )
+  vi.stubGlobal('document', document)
+  vi.stubGlobal('Element', Element)
+  try {
+    const root = document.querySelector('#app') as unknown as HTMLElement
+    const panel = (open: boolean) =>
+      `<details data-activity-key="scene-7"${open ? ' open' : ''}><summary>Scene activity</summary><p>Planning the scene</p></details>`
+    const details = () => root.querySelector('details')!
+    // Drawn closed while queued, then open once it starts: it opens.
+    replacePlayerView(root, panel(false), null)
+    replacePlayerView(root, panel(true), null)
+    expect(details().hasAttribute('open')).toBe(true)
+    // The creator closes it: it stays closed as updates arrive.
+    root
+      .querySelector('summary')!
+      .dispatchEvent(new Event('click', { bubbles: true }))
+    replacePlayerView(root, panel(true), null)
+    expect(details().hasAttribute('open')).toBe(false)
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})

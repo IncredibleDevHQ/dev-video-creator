@@ -66,23 +66,41 @@ function replaceView(
   return true
 }
 
+// A scene's activity stays as the creator opened or closed it, across
+// renders. Only their click on its summary is a choice: the state a panel
+// was drawn in is not (seen live: a panel drawn closed before its scene
+// started stayed closed while it planned, so the scene looked stuck).
 const activityOpen = new Map<string, boolean>()
+const watched = new WeakSet<HTMLElement>()
+const watchActivity = (root: HTMLElement) => {
+  if (watched.has(root)) return
+  watched.add(root)
+  root.addEventListener('click', (event) => {
+    const summary = (event.target as Element | null)?.closest?.(
+      '[data-activity-key] > summary'
+    )
+    const details = summary?.parentElement
+    // The click toggles the panel after this: keep the state it moves to.
+    if (details?.dataset.activityKey)
+      activityOpen.set(
+        details.dataset.activityKey,
+        !details.hasAttribute('open')
+      )
+  })
+}
 export function replacePlayerView(
   root: HTMLElement,
   html: string,
   player: HTMLMediaElement | null
 ) {
-  root
-    .querySelectorAll<HTMLDetailsElement>('[data-activity-key]')
-    .forEach((el) => activityOpen.set(el.dataset.activityKey!, el.open))
+  watchActivity(root)
   const scroll = root.querySelector('.transcript-scroll')?.scrollTop || 0
   const result = replaceView(root, html, player)
-  root
-    .querySelectorAll<HTMLDetailsElement>('[data-activity-key]')
-    .forEach((el) => {
-      const value = activityOpen.get(el.dataset.activityKey!)
-      if (value !== undefined) el.open = value
-    })
+  root.querySelectorAll<HTMLElement>('[data-activity-key]').forEach((el) => {
+    const value = activityOpen.get(el.dataset.activityKey!)
+    if (value === true) el.setAttribute('open', '')
+    if (value === false) el.removeAttribute('open')
+  })
   const transcript = root.querySelector('.transcript-scroll')
   if (transcript) transcript.scrollTop = scroll
   return result
