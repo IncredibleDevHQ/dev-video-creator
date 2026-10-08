@@ -4,7 +4,15 @@
 // thinking effort and its limit on one response. Their global setting is
 // untouched. Kimi reports no token use over ACP; it writes a usage record for
 // every model turn to the session's wire log, which this reads back.
-import { mkdir, readFile, readdir, symlink, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import {
+  cp,
+  mkdir,
+  readFile,
+  readdir,
+  symlink,
+  writeFile
+} from 'node:fs/promises'
 import { basename, join } from 'node:path'
 import { homedir } from 'node:os'
 import type { TokenUsage } from '../../../shared/usage'
@@ -100,10 +108,16 @@ export const kimiRunHome = async (
   // Keep this run's CLI sessions so a retry can resume its actual context.
   await mkdir(home, { recursive: true })
   for (const entry of await readdir(real)) {
-    if (entry === 'config.toml' || entry === 'mcp.json') continue
+    if (['config.toml', 'mcp.json', 'skills'].includes(entry)) continue
     await symlink(join(real, entry), join(home, entry)).catch(() => {})
   }
   await writeFile(join(home, 'config.toml'), config, { mode: 0o600 })
+  // Kimi registers skills from $KIMI_CODE_HOME/skills, not from a project's
+  // .claude/skills, and an ACP session ignores --skills-dir: copied here,
+  // the run's skills are real skills the agent can load, not just paths.
+  const installed = join(projectDir, '.claude', 'skills')
+  if (existsSync(installed))
+    await cp(installed, join(home, 'skills'), { recursive: true, force: true })
   return { home, effort }
 }
 

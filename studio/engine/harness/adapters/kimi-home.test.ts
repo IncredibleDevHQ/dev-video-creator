@@ -1,8 +1,13 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { lstat, mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterAll, expect, it } from 'vitest'
-import { kimiSessionUsage, runConfig, supportedEffort } from './kimi-home'
+import {
+  kimiRunHome,
+  kimiSessionUsage,
+  runConfig,
+  supportedEffort
+} from './kimi-home'
 
 const root = await mkdtemp(join(tmpdir(), 'studio-kimi-home-'))
 afterAll(() => rm(root, { recursive: true, force: true }))
@@ -105,4 +110,36 @@ it("sums the turns this run's session spent, from its wire log", async () => {
       since: 0
     })
   ).toBeNull()
+})
+
+it("registers the run's installed skills in its own Kimi home", async () => {
+  // A synthetic real home with a config and a skills folder of its own.
+  const real = join(root, 'real-home')
+  await mkdir(join(real, 'skills', 'users-own'), { recursive: true })
+  await writeFile(join(real, 'config.toml'), config)
+  await mkdir(join(real, 'sessions'), { recursive: true })
+  const project = join(root, 'run')
+  await mkdir(join(project, '.claude', 'skills', 'scene-producer'), {
+    recursive: true
+  })
+  await writeFile(
+    join(project, '.claude', 'skills', 'scene-producer', 'SKILL.md'),
+    '---\nname: scene-producer\n---\n'
+  )
+  const previous = process.env.KIMI_CODE_HOME
+  process.env.KIMI_CODE_HOME = real
+  try {
+    const { home, effort } = await kimiRunHome(project, { effort: 'medium' })
+    // Kimi reads skills from $KIMI_CODE_HOME/skills (an ACP session ignores
+    // --skills-dir): the run's own skills, a real folder, not the user's.
+    const skills = await readdir(join(home, 'skills'))
+    expect(skills).toEqual(['scene-producer'])
+    expect((await lstat(join(home, 'skills'))).isSymbolicLink()).toBe(false)
+    // Sessions still go to the real home, so a retry can resume.
+    expect((await lstat(join(home, 'sessions'))).isSymbolicLink()).toBe(true)
+    expect(effort).toBe('low')
+  } finally {
+    if (previous === undefined) delete process.env.KIMI_CODE_HOME
+    else process.env.KIMI_CODE_HOME = previous
+  }
 })

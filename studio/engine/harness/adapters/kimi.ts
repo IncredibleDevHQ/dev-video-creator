@@ -40,12 +40,9 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
   models: kimiModels,
   async run(run, onEvent, signal) {
     const mcpConfig = await writeMcpConfig(run, context)
-    // Skills discovery reads the project's installed copy when present
-    // (--skills-dir names the directory that CONTAINS the skill folders).
-    const installedRoot = join(run.projectDir, '.claude', 'skills')
-    const skillsRoot = existsSync(join(installedRoot, run.skill))
-      ? installedRoot
-      : context.skillsDir
+    // The run's skills are registered through its own Kimi home (see
+    // kimiRunHome): an ACP session ignores --skills-dir, and that flag also
+    // turns off the discovery that finds them.
     const started = Date.now()
     const effort =
       typeof run.inputs.effort === 'string' && run.inputs.effort
@@ -84,7 +81,7 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
       await writeFile(join(home, 'mcp.json'), mcpConfig, { mode: 0o600 })
     const result = await runAcp({
       command: 'kimi',
-      args: ['--skills-dir', skillsRoot, 'acp'],
+      args: ['acp'],
       cwd: run.projectDir,
       env: {
         SKILL_DIR: resolveSkillDir(

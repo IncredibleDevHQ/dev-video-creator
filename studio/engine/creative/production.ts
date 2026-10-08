@@ -1,4 +1,5 @@
 import { captureNote, readyCapture } from '../../shared/capture'
+import { planRecipes, recipeBodies } from './recipe-bodies'
 import { HarnessStageError } from '../generation-errors'
 import { prepareCastPacket } from './cast-packet'
 import {
@@ -81,6 +82,8 @@ export const buildCreativeProduction = async (
     assetKeys: cast.assetKeys
   }
   const slide = project.slides.find((item) => item.id === scene.slideId)
+  // The bodies of the recipes the plan names: built from, not guessed.
+  const recipes = await recipeBodies(planRecipes(record.treatment))
   // A captured demo plays as supplied media in the product-capture shot.
   const capture = readyCapture(slide?.capture)
   if (capture?.objectKey)
@@ -271,6 +274,7 @@ export const buildCreativeProduction = async (
     stageContext: { inputKey: scene.inputKey, planRecord: record.id },
     packet: {
       'packet/PLAN.json': JSON.stringify(record.treatment, null, 2),
+      ...recipes.files,
       'packet/VISUAL_CAST.json': JSON.stringify(cast.visualCast),
       ...cast.media,
       'packet/CLOCK.json': JSON.stringify(
@@ -293,7 +297,11 @@ export const buildCreativeProduction = async (
         2
       ),
       'packet/PRODUCTION.md': `${contentOnlyInstructions}Produce the accepted treatment. Composition ID: ${context.compositionId}. Plan record: ${record.id}, revision 1.
-Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106.
+Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106.${
+        Object.keys(recipes.files).length
+          ? `\npacket/recipes/ holds the recipes the plan names (${[...recipes.bodies, ...recipes.missing].join(', ')}) and CONTRACT.md: read each one before you build its moment, and build the moment from it.${recipes.missing.length ? ` Only the index entry is here for ${recipes.missing.join(', ')}.` : ''}`
+          : ''
+      }
 The app has placed supplied media in production/media/. Reference these files unchanged; do not copy, generate, or edit them. Sound plays once from scene start.
 ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-capture.mp4 is the product demo (${captureNote(capture)}): play it muted in a browser frame where the treatment shows the product, zooming on what each moment points at.` : ''} Read the production contract. The creator requested autopilot production: stop after validated submission; no extra acceptance gate.${
         drawn.length
