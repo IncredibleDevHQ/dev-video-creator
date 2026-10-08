@@ -3,10 +3,18 @@
 // runtime and measured. Words on an object, two labels on each other,
 // anything visible cut by the frame's edge, and a box with nothing in it are
 // refused before a build is accepted, each with what to move.
-import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile
+} from 'node:fs/promises'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { dirname, extname, join, normalize, sep } from 'node:path'
 import { RUNTIME_PATHS } from '../../render/runtime'
 import type { SketchFiles } from '../../render/types'
 import {
@@ -308,6 +316,72 @@ export const settledProblems = (
     )
 }
 
+const TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.mp4': 'video/mp4',
+  '.wav': 'audio/wav',
+  '.mp3': 'audio/mpeg',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf'
+}
+
+/**
+ * The build's folder over HTTP on loopback, as the renderer and the studio
+ * serve it: a vendored block or component mounts by fetching its file
+ * (data-composition-src), which a file:// page may not do, so the check
+ * would measure an empty mount.
+ */
+const serveFolder = async (dir: string) => {
+  const server = createServer(async (request, response) => {
+    const path = normalize(
+      join(
+        dir,
+        decodeURIComponent(new URL(request.url || '/', 'http://x').pathname)
+      )
+    )
+    if (!path.startsWith(dir + sep)) return void response.writeHead(403).end()
+    const body = await readFile(path).catch(() => null)
+    if (!body) return void response.writeHead(404).end()
+    const type =
+      TYPES[extname(path).toLowerCase()] || 'application/octet-stream'
+    // Media seeks by range.
+    const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range || '')
+    if (range) {
+      const start = range[1] ? Number(range[1]) : 0
+      const end = range[2]
+        ? Math.min(Number(range[2]), body.length - 1)
+        : body.length - 1
+      response.writeHead(206, {
+        'Content-Type': type,
+        'Content-Range': `bytes ${start}-${end}/${body.length}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': end - start + 1
+      })
+      return void response.end(body.subarray(start, end + 1))
+    }
+    response.writeHead(200, {
+      'Content-Type': type,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': body.length
+    })
+    response.end(body)
+  })
+  await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
+  const { port } = server.address() as AddressInfo
+  return {
+    url: `http://127.0.0.1:${port}/index.html`,
+    close: () => new Promise<void>((done) => server.close(() => done()))
+  }
+}
+
 /**
  * Plays the composition to each moment's settled frame (a moment's last
  * fifth of a second, after its motion lands) and measures it; with
@@ -320,6 +394,7 @@ export const measureSettledFrames = async (
   size = { width: 1920, height: 1080 }
 ) => {
   const dir = await mkdtemp(join(tmpdir(), 'studio-settled-frames-'))
+  let served: Awaited<ReturnType<typeof serveFolder>> | null = null
   const { default: puppeteer } = await import('puppeteer')
   // The host app owns SIGTERM/SIGINT, as for the cast extraction.
   const browser = await puppeteer.launch({
@@ -347,7 +422,8 @@ export const measureSettledFrames = async (
       await copyFile(source, join(dir, url.replace(/^\//, '')))
     const page = await browser.newPage()
     await page.setViewport({ ...size, deviceScaleFactor: 1 })
-    await page.goto(pathToFileURL(join(dir, 'index.html')).href, {
+    served = await serveFolder(dir)
+    await page.goto(served.url, {
       waitUntil: 'load',
       timeout: 30_000
     })
@@ -383,6 +459,7 @@ export const measureSettledFrames = async (
     return { frames, poses }
   } finally {
     await browser.close()
+    await served?.close()
     await rm(dir, { recursive: true, force: true })
   }
 }

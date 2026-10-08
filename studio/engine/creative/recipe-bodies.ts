@@ -90,10 +90,15 @@ export const recipeBodies = async (ids: string[]) => {
   return { files, bodies, missing }
 }
 
-/** Every recipe id the plan's moments name. */
+/** Every recipe id the plan's moments name (components are installed). */
 export const planRecipes = (plan: {
-  moments?: Array<{ recipes?: Array<{ id?: string }> }>
+  moments?: Array<{ recipes?: Array<{ id?: string; catalog?: string }> }>
 }) =>
   (plan.moments || []).flatMap((moment) =>
-    (moment.recipes || []).map((recipe) => recipe.id || '').filter(Boolean)
+    (moment.recipes || [])
+      .filter(
+        (recipe) => recipe.catalog !== 'component' && recipe.catalog !== 'block'
+      )
+      .map((recipe) => recipe.id || '')
+      .filter(Boolean)
   )

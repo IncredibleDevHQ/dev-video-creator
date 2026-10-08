@@ -60,8 +60,11 @@ As for a sketch: one standalone root in `<body>` with `data-composition-id`
 (the id in `PRODUCTION.md`), `data-start="0"`, `data-width`, `data-height`
 and `data-duration` equal to the manifest's duration; one paused GSAP
 timeline registered after `window.__timelines = window.__timelines || {}`;
-only `/runtime/gsap.min.js` and `/runtime/hyperframes.iife.js`. Nothing from
-the network, no storage, no clock, no randomness, no infinite repeat. Never
+only `/runtime/gsap.min.js` and `/runtime/hyperframes.iife.js`, with GSAP's
+`/runtime/CustomEase.min.js` and `/runtime/MotionPathPlugin.min.js` when a
+motion needs them, and the components and blocks the app installed under
+`compositions/`. Nothing from the network, no storage, no clock, no
+randomness, no infinite repeat. Never
 tween `display`, `visibility` or `autoAlpha` on a `.clip`, and never pair a
 CSS `transform` with a GSAP tween of the same property. Mark what draws each
 layer with `data-sketch-layer="<layer id>"`, naming an object's layer by its

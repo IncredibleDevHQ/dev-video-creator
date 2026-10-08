@@ -12,7 +12,15 @@
 // in the installed runtime, it is listed as unverified, and a plan that uses
 // it carries that as an open construction risk.
 
-export type CapabilityKind = 'rule' | 'blueprint' | 'technique'
+// Components and blocks are the registry's ready-made motion graphics
+// (a count, a chart, a code run, a diagram hub, a transition): the product
+// installs the ones a plan names into its build, to mount, not to rebuild.
+export type CapabilityKind =
+  | 'rule'
+  | 'blueprint'
+  | 'technique'
+  | 'component'
+  | 'block'
 
 export type CapabilityEntry = {
   id: string
@@ -25,6 +33,12 @@ export type CapabilityEntry = {
   bodyVendored: boolean
   // Proven to work in the installed Hyperframes runtime (H0), or not yet.
   verifiedInInstalledRuntime: boolean
+  // A component's or block's own guidance: when to use it, when not, the
+  // variables it takes, and a block's length.
+  use?: string
+  avoid?: string
+  variables?: string[]
+  duration?: number
 }
 
 export type CapabilityCatalog = {

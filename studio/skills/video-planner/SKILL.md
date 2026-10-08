@@ -195,6 +195,16 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   moments move. Every actor then shares one drawn style. Keep `native` for
   what must be exact: charts, counts, code, labels, connector paths and the
   dots that travel along them.
+- The registry's components and blocks are ready-made motion graphics:
+  `capabilities.json` entries of kind `component` and `block` (their `use`,
+  `avoid` and `variables`), with the curated shelf in
+  `hyperframes/registry/components/CATALOG.md` — a count that lands, a chart
+  that builds, a code or terminal run, a hub whose nodes light in order, a
+  comparison split, a hand-drawn arrow, circle or underline, a transition.
+  When a moment's mechanic matches one's `use` (and not its `avoid`), name it
+  as that moment's recipe with `catalog` `component` or `block`: the product
+  installs it into the build, which mounts it with its variables. Plan by
+  hand only what none of them serves.
 - The page is a wireframe: it says what exists and how it relates, not how
   the video looks. A `VISUAL_CAST.json` entry with `box: true` is the page's
   plain box around a node — never `reuse` it as an actor. Decide how the

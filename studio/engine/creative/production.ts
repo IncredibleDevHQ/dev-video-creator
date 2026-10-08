@@ -1,6 +1,7 @@
 import { captureNote, readyCapture } from '../../shared/capture'
 import { planRecipes, recipeBodies } from './recipe-bodies'
 import { spokenCues } from './cues'
+import { planBlocks, registryInstall } from './registry-install'
 import { HarnessStageError } from '../generation-errors'
 import { prepareCastPacket } from './cast-packet'
 import {
@@ -154,6 +155,9 @@ export const buildCreativeProduction = async (
     Object.assign(productionSeed, resumed.seed)
     previewPacket['packet/DRAFT.json'] = resumed.note
   }
+  // The components and blocks the plan names, installed to mount.
+  const blocks = await registryInstall(planBlocks(record.treatment))
+  Object.assign(productionSeed, blocks.seed)
   // The app owns media binding; every run starts with immutable clock media.
   for (const [name, bytes] of Object.entries(supplied))
     productionSeed[`production/${name}`] = bytes
@@ -300,6 +304,7 @@ export const buildCreativeProduction = async (
     packet: {
       'packet/PLAN.json': JSON.stringify(record.treatment, null, 2),
       ...recipes.files,
+      ...blocks.docs,
       'packet/VISUAL_CAST.json': JSON.stringify(cast.visualCast),
       ...cast.media,
       'packet/CLOCK.json': JSON.stringify(
@@ -333,6 +338,10 @@ export const buildCreativeProduction = async (
 Duration: ${prepared.clock.duration}s. Pinned Hyperframes 0.7.106.${
         Object.keys(recipes.files).length
           ? `\npacket/recipes/ holds the recipes the plan names (${[...recipes.bodies, ...recipes.missing].join(', ')}) and CONTRACT.md: read each one before you build its moment, and build the moment from it.${recipes.missing.length ? ` Only the index entry is here for ${recipes.missing.join(', ')}.` : ''}`
+          : ''
+      }${
+        blocks.installed.length
+          ? `\nThe app installed the components and blocks the plan names (${blocks.installed.join(', ')}) under production/compositions/: packet/recipes/<id>.md says how to mount each one. Mount them; do not rebuild them by hand.`
           : ''
       }
 The app has placed supplied media in production/media/. Reference these files unchanged; do not copy, generate, or edit them. Sound plays once from scene start.
@@ -419,7 +428,9 @@ export const keepDraft = async (
       (file) =>
         ['production/index.html', 'production/manifest.json'].includes(
           file.name
-        ) || file.name.startsWith('production/assets/')
+        ) ||
+        file.name.startsWith('production/assets/') ||
+        file.name.startsWith('production/compositions/')
     )
     .map((file) => ({ ...file, name: file.name.slice('production/'.length) }))
   if (!files.some((file) => file.name === 'index.html')) return

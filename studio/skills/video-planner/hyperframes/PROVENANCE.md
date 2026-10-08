@@ -6,7 +6,8 @@
   verbatim.
 - **Vendored:** 24 September 2026, for the planning-only milestone (M0);
   the animation skill's recipe and blueprint bodies on 8 October 2026, for
-  construction.
+  construction; a curated set of the registry's components and blocks later
+  the same day.
 
 ## What is here, and how it is verified
 
@@ -36,10 +37,26 @@ names in `packet/recipes/` and builds each moment from its body. Before
 this, construction had only the index lines and built every recipe from its
 name.
 
+## The registry's components and blocks
+
+Since 8 October 2026, 94 of the registry's 224 components and 23 of its 164
+blocks are here under `registry/` (386 files, about 3.7 MB, with
+`registry/components/CATALOG.md` and the `hyperframes-registry` skill's
+references): the ones a technical explainer uses — kinetic type, counts and
+charts, code and terminal runs, diagram hubs and paths, hand-drawn marks,
+comparisons, camera moves, transitions and textures. Left out: WebGL and
+three.js items, phone and social-app scenes, and items heavy with media.
+They are catalogued in `../capabilities.json` as kinds `component` and
+`block`. When a plan names one, the product installs its files into the
+build at their registry targets, made to run offline: GSAP from the pinned
+runtime, the bundled fonts instead of Google's, and no address left in a
+comment (`engine/creative/registry-install.ts`). The files here stay
+upstream's bytes.
+
 ## What is not here
 
-Frame presets, templates, fonts and scripts, and the upstream skills not
-listed in `manifest.json`.
+Frame presets, templates, fonts and scripts, the rest of the registry, and
+the upstream skills not listed in `manifest.json`.
 
 ## Local adaptations
 

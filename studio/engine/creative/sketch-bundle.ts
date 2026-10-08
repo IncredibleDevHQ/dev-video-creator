@@ -22,6 +22,8 @@ export const SKETCH_RUNTIME = { hyperframes: '0.7.106' } as const
 // The only scripts a sketch may load: the Studio's own pinned runtime.
 export const SKETCH_RUNTIME_SCRIPTS = [
   '/runtime/gsap.min.js',
+  '/runtime/CustomEase.min.js',
+  '/runtime/MotionPathPlugin.min.js',
   '/runtime/hyperframes.iife.js'
 ] as const
 export const SKETCH_LAYER_KINDS = [

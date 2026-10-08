@@ -116,6 +116,9 @@ Use only the channels a moment needs; `null` means the channel is unused.
     `skills/hyperframes-animation/rules-index.md`, `blueprints-index.md` or
     `techniques.md` (a technique's id is its title in kebab case, as listed in
     `capabilities.json`);
+  - `component` or `block`: a ready-made motion graphic from the registry,
+    by its id in `capabilities.json` (kinds `component` and `block`); the
+    product installs it into the build to be mounted;
   - `reference`: a file path of the pinned bundle (such as
     `skills/hyperframes-creative/references/typography.md`);
   - `adapted`: something no index covers, described in `purpose`.

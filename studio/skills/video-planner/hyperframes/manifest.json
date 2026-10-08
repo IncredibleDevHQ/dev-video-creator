@@ -10,6 +10,1881 @@
       "bytes": 10763
     },
     {
+      "path": "registry/blocks/bar-chart-race/bar-chart-race.html",
+      "blob": "e602348a94fb4aa2227db5ceb89a3ebe26a0ad9d",
+      "bytes": 21705
+    },
+    {
+      "path": "registry/blocks/bar-chart-race/registry-item.json",
+      "blob": "0f72285095ce4e6af8f86d68a203cb601b8cbc63",
+      "bytes": 4036
+    },
+    {
+      "path": "registry/blocks/camera-dolly-zoom/camera-dolly-zoom.html",
+      "blob": "3e61b0ab14a4a1cea17f893e5f30f170a3c2ae48",
+      "bytes": 11870
+    },
+    {
+      "path": "registry/blocks/camera-dolly-zoom/registry-item.json",
+      "blob": "8d21f57b38208d4ebc66a650f8b2e155e77235ad",
+      "bytes": 2195
+    },
+    {
+      "path": "registry/blocks/code-diff/code-diff.html",
+      "blob": "03c5a940c36dc39153e8fa4739cc65e9a8a21af4",
+      "bytes": 26936
+    },
+    {
+      "path": "registry/blocks/code-diff/registry-item.json",
+      "blob": "00c456be9a8f883ef30e20f1fc800510b3d409c6",
+      "bytes": 772
+    },
+    {
+      "path": "registry/blocks/code-highlight/code-highlight.html",
+      "blob": "1d6dd76e942d80966658ca033896588bd3e72f62",
+      "bytes": 24362
+    },
+    {
+      "path": "registry/blocks/code-highlight/registry-item.json",
+      "blob": "2c37e034075db0b6ce88725b592e161858fb6206",
+      "bytes": 828
+    },
+    {
+      "path": "registry/blocks/code-morph/code-morph.html",
+      "blob": "b79c584392802262b2d4064a199becbcc372c7fd",
+      "bytes": 41338
+    },
+    {
+      "path": "registry/blocks/code-morph/registry-item.json",
+      "blob": "9807525d635c7d539834cf200c379eb4dcc10634",
+      "bytes": 857
+    },
+    {
+      "path": "registry/blocks/code-scroll/code-scroll.html",
+      "blob": "55517a332cb7d4d99fbc87c0a7624d6a5b747f10",
+      "bytes": 53845
+    },
+    {
+      "path": "registry/blocks/code-scroll/registry-item.json",
+      "blob": "de7557544f508cd882ec1cc8b61bfafd54826252",
+      "bytes": 818
+    },
+    {
+      "path": "registry/blocks/code-typing/code-typing.html",
+      "blob": "5a30750005b0475e0a7db8815a7cdf8be625a863",
+      "bytes": 25476
+    },
+    {
+      "path": "registry/blocks/code-typing/registry-item.json",
+      "blob": "f48938a4a86f948fcf9ff887d73d467eea3c44bc",
+      "bytes": 794
+    },
+    {
+      "path": "registry/blocks/data-chart/data-chart.html",
+      "blob": "328576615db0588f77202adf791595a59acdee3c",
+      "bytes": 13870
+    },
+    {
+      "path": "registry/blocks/data-chart/registry-item.json",
+      "blob": "cfbabd74e85702cee7aec5407b9cb3dae0cf85ab",
+      "bytes": 1013
+    },
+    {
+      "path": "registry/blocks/flowchart/flowchart.html",
+      "blob": "88cd257d372bf3c1f279870277694d4f85450153",
+      "bytes": 13886
+    },
+    {
+      "path": "registry/blocks/flowchart/registry-item.json",
+      "blob": "a43bbe93118222f36d6b18a5e63aa49bc31abbf0",
+      "bytes": 774
+    },
+    {
+      "path": "registry/blocks/hw-path-text/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/blocks/hw-path-text/demo.html",
+      "blob": "954f2efdec5f3932b014f98a0bcd07ef18a8f6dc",
+      "bytes": 6699
+    },
+    {
+      "path": "registry/blocks/hw-path-text/hw-path-text.html",
+      "blob": "4b3a1ed36faf8289d481b4ec4d6b695939db38bc",
+      "bytes": 6448
+    },
+    {
+      "path": "registry/blocks/hw-path-text/registry-item.json",
+      "blob": "d2a0db5c73687438ab6839148a380b543fa07bfd",
+      "bytes": 737
+    },
+    {
+      "path": "registry/blocks/hw-pipeline/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/blocks/hw-pipeline/demo.html",
+      "blob": "41555efcc8d5734a7614f21e18f956b2efc05d6f",
+      "bytes": 11338
+    },
+    {
+      "path": "registry/blocks/hw-pipeline/hw-pipeline.html",
+      "blob": "376e4439409be51ec7a7df9e344ace582ca9102f",
+      "bytes": 11089
+    },
+    {
+      "path": "registry/blocks/hw-pipeline/registry-item.json",
+      "blob": "56cf716be8a51ca7ed62be7e8502e6afdba3632b",
+      "bytes": 741
+    },
+    {
+      "path": "registry/blocks/hw-scribble-transition/hw-scribble-transition.html",
+      "blob": "6cf993833f035b3b01724e63197849ed6536496b",
+      "bytes": 5131
+    },
+    {
+      "path": "registry/blocks/hw-scribble-transition/registry-item.json",
+      "blob": "4a196713283a0f5b0ddfc90216b1d338f2641f5a",
+      "bytes": 636
+    },
+    {
+      "path": "registry/blocks/hw-text-cloud/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/blocks/hw-text-cloud/hw-text-cloud.html",
+      "blob": "b3892549a8e312d9fc1fa17ea5bcf462fdffd514",
+      "bytes": 9301
+    },
+    {
+      "path": "registry/blocks/hw-text-cloud/registry-item.json",
+      "blob": "ecd31b7824fd501387a68e7080f06f788eb663d6",
+      "bytes": 761
+    },
+    {
+      "path": "registry/blocks/hw-title/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/blocks/hw-title/demo.html",
+      "blob": "9a0cfa02345a6e49b3113fbb80ba2f33e05c6862",
+      "bytes": 9116
+    },
+    {
+      "path": "registry/blocks/hw-title/hw-title.html",
+      "blob": "9dd74677f5eb7c4ac20d438769d0e848dfce000c",
+      "bytes": 8873
+    },
+    {
+      "path": "registry/blocks/hw-title/registry-item.json",
+      "blob": "147987c725d5d9e9b182ad34c3de627a62d64cf0",
+      "bytes": 759
+    },
+    {
+      "path": "registry/blocks/mk-callout-highlight/mk-callout-highlight.html",
+      "blob": "f1176a4629d5984e5d0075fb16ab8f3b2881dd04",
+      "bytes": 5373
+    },
+    {
+      "path": "registry/blocks/mk-callout-highlight/registry-item.json",
+      "blob": "9d4d2452a1218c8c91d513a7f25a5612e3019785",
+      "bytes": 628
+    },
+    {
+      "path": "registry/blocks/mk-line-graph/mk-line-graph.html",
+      "blob": "6ff9487b3b9f755bda680e7fba3dd627e399de04",
+      "bytes": 10237
+    },
+    {
+      "path": "registry/blocks/mk-line-graph/registry-item.json",
+      "blob": "fa86a35915b3b674bb6681f8c54c023fc6ac5735",
+      "bytes": 609
+    },
+    {
+      "path": "registry/blocks/mk-progress-stat/mk-progress-stat.html",
+      "blob": "a1c0852a7ef0d85832867fe9911cb456f488babe",
+      "bytes": 5644
+    },
+    {
+      "path": "registry/blocks/mk-progress-stat/registry-item.json",
+      "blob": "14117871d3492fa6769d06d7e5a45dc12e25720c",
+      "bytes": 596
+    },
+    {
+      "path": "registry/blocks/mk-specs-list/mk-specs-list.html",
+      "blob": "b0af58c46ddca97ae487b89f34bb332d8a062ba8",
+      "bytes": 7012
+    },
+    {
+      "path": "registry/blocks/mk-specs-list/registry-item.json",
+      "blob": "30732b4c58e8f6a95b37e369cfd3c781187fa6dc",
+      "bytes": 618
+    },
+    {
+      "path": "registry/blocks/oscilloscope-trace/oscilloscope-trace.html",
+      "blob": "720d7b009f7a4c62da0945bdc205b16258fc715f",
+      "bytes": 20506
+    },
+    {
+      "path": "registry/blocks/oscilloscope-trace/registry-item.json",
+      "blob": "b2236d002c20e158981cebccbfeec2d9d78157ec",
+      "bytes": 2342
+    },
+    {
+      "path": "registry/blocks/split-flap-board/registry-item.json",
+      "blob": "c9a5e3b279e83d874cce9aa7bb9e7554ed3b512b",
+      "bytes": 1669
+    },
+    {
+      "path": "registry/blocks/split-flap-board/split-flap-board.html",
+      "blob": "082640b28523a8fc422b0a3ed83c022f4bfa9a5b",
+      "bytes": 13216
+    },
+    {
+      "path": "registry/blocks/transitions-cover/registry-item.json",
+      "blob": "e57554883a0d0194d4214b0380fa6d5d4f0a64ec",
+      "bytes": 748
+    },
+    {
+      "path": "registry/blocks/transitions-cover/transitions-cover.html",
+      "blob": "7a551e09573b38060bf9f40a0528dce37f784523",
+      "bytes": 11320
+    },
+    {
+      "path": "registry/blocks/transitions-push/registry-item.json",
+      "blob": "1c7748e7ee3fb87afc84ec8f9f57f0d9640c5ff8",
+      "bytes": 737
+    },
+    {
+      "path": "registry/blocks/transitions-push/transitions-push.html",
+      "blob": "bb96cb3fa8c6e0d03b21a2db94c0d9a78ff89c9f",
+      "bytes": 10775
+    },
+    {
+      "path": "registry/blocks/transitions-scale/registry-item.json",
+      "blob": "1af8d1649b53987be8fd7e78e24568674d187d80",
+      "bytes": 743
+    },
+    {
+      "path": "registry/blocks/transitions-scale/transitions-scale.html",
+      "blob": "797c6b7edf3cf33530e74cab6c569ff7fa5b5ab0",
+      "bytes": 9333
+    },
+    {
+      "path": "registry/components/CATALOG.md",
+      "blob": "88d048eec045e8567d077b84719414c8bab201da",
+      "bytes": 20892
+    },
+    {
+      "path": "registry/components/animated-bar-chart/animated-bar-chart.html",
+      "blob": "71b5b93ac6ed265070fd3e150ae93529c02e4698",
+      "bytes": 2778
+    },
+    {
+      "path": "registry/components/animated-bar-chart/demo.html",
+      "blob": "16e60148f25c78e8802c1a9fbb132c3dead4eb10",
+      "bytes": 5386
+    },
+    {
+      "path": "registry/components/animated-bar-chart/registry-item.json",
+      "blob": "88073a825d899ffa1ec38fa6aea9846e1e1372fc",
+      "bytes": 591
+    },
+    {
+      "path": "registry/components/arc-motion-path/arc-motion-path.html",
+      "blob": "bd0b84a9f22813838e4e54460414204b935f0417",
+      "bytes": 3221
+    },
+    {
+      "path": "registry/components/arc-motion-path/demo.html",
+      "blob": "4a22cf995744417106c199fb448689f1df2e1dc7",
+      "bytes": 4762
+    },
+    {
+      "path": "registry/components/arc-motion-path/registry-item.json",
+      "blob": "5b367235f98c3390ce3f66216fdb34763288e782",
+      "bytes": 655
+    },
+    {
+      "path": "registry/components/aurora-drift/aurora-drift.html",
+      "blob": "49ce87c21199ba36d7e208dcf80b47a97c99ef6f",
+      "bytes": 8269
+    },
+    {
+      "path": "registry/components/aurora-drift/demo.html",
+      "blob": "7a39db7e39a869b44f77389e098c442a4b62f707",
+      "bytes": 2226
+    },
+    {
+      "path": "registry/components/aurora-drift/registry-item.json",
+      "blob": "199c75b20d712d1612a7c1ce50431b4c7ebe2ee7",
+      "bytes": 1385
+    },
+    {
+      "path": "registry/components/badge-pop/badge-pop.html",
+      "blob": "335dfb37df5be420873d6a4086c0a379ae1f1f5f",
+      "bytes": 5894
+    },
+    {
+      "path": "registry/components/badge-pop/demo.html",
+      "blob": "22ecd04aed2285d8ddd68ee584ad76432e35addd",
+      "bytes": 7859
+    },
+    {
+      "path": "registry/components/badge-pop/registry-item.json",
+      "blob": "614ed8a03081ae7fa5dfcca41b6c1eb91ed84bea",
+      "bytes": 1858
+    },
+    {
+      "path": "registry/components/beat-timeline/beat-timeline.html",
+      "blob": "40b1aab09f4c7ed43ceda3f34319df6a6d999d3d",
+      "bytes": 12426
+    },
+    {
+      "path": "registry/components/beat-timeline/demo.html",
+      "blob": "e57327d9d96662bf6192f0637e0a86f44bc722af",
+      "bytes": 3063
+    },
+    {
+      "path": "registry/components/beat-timeline/registry-item.json",
+      "blob": "1541bd92cbc5c09b7f8844b52ddad461d9753ad7",
+      "bytes": 1637
+    },
+    {
+      "path": "registry/components/before-after-wipe/README.md",
+      "blob": "5f5cafed9632ab28aeaeca170806264517dc5040",
+      "bytes": 3967
+    },
+    {
+      "path": "registry/components/before-after-wipe/before-after-wipe.html",
+      "blob": "7efe185bfd096b1d0330b5e6ec9e577faf997949",
+      "bytes": 19440
+    },
+    {
+      "path": "registry/components/before-after-wipe/demo.html",
+      "blob": "4803d7312ddf6dcbd9d457dccf5505439bf80e75",
+      "bytes": 2218
+    },
+    {
+      "path": "registry/components/before-after-wipe/registry-item.json",
+      "blob": "9daf70acddf05fb616642aab26df1d2f76f046f2",
+      "bytes": 2728
+    },
+    {
+      "path": "registry/components/browser-device-stage/README.md",
+      "blob": "f747dbab5bb8497062da711d26e255324d937c74",
+      "bytes": 5528
+    },
+    {
+      "path": "registry/components/browser-device-stage/browser-device-stage.html",
+      "blob": "5f37f6ed1716ae1c2bdc2361b254ad9a1983452a",
+      "bytes": 24680
+    },
+    {
+      "path": "registry/components/browser-device-stage/demo.html",
+      "blob": "a42dd1c69d85028107800c71c9c6cf4364bfad11",
+      "bytes": 2240
+    },
+    {
+      "path": "registry/components/browser-device-stage/registry-item.json",
+      "blob": "05b2552d58e4205300494136811f93d69d94a4c5",
+      "bytes": 2532
+    },
+    {
+      "path": "registry/components/card-resize/card-resize.html",
+      "blob": "f5437aa97c2fd2dc44db687d95eccfd2f4b0b672",
+      "bytes": 7513
+    },
+    {
+      "path": "registry/components/card-resize/demo.html",
+      "blob": "59afd7663263864b7cdb71397d0053ed98afe2c9",
+      "bytes": 9545
+    },
+    {
+      "path": "registry/components/card-resize/registry-item.json",
+      "blob": "8d52d7f2fb1892d7eff68278a0e1f069bbce2a96",
+      "bytes": 2128
+    },
+    {
+      "path": "registry/components/chart-story/README.md",
+      "blob": "a1382436cbc7510c650d6b6ee3ca043d84280658",
+      "bytes": 3898
+    },
+    {
+      "path": "registry/components/chart-story/chart-story.html",
+      "blob": "4ae5fa38737107a00f3ac37fd5445907b5f85912",
+      "bytes": 30464
+    },
+    {
+      "path": "registry/components/chart-story/demo.html",
+      "blob": "6ac2c5ac146aceb0b3fa4f61c0f137bb3427eabc",
+      "bytes": 2192
+    },
+    {
+      "path": "registry/components/chart-story/registry-item.json",
+      "blob": "f0c83431bcdbb414993d742d353e45e10f6817e0",
+      "bytes": 3090
+    },
+    {
+      "path": "registry/components/chat-message/chat-message.html",
+      "blob": "db4e573602a5adaa2cf17324f9af0af5e15ac377",
+      "bytes": 11681
+    },
+    {
+      "path": "registry/components/chat-message/demo.html",
+      "blob": "ae7c16ddb86fb32ac89d6d0269b2fa6b801a7180",
+      "bytes": 12376
+    },
+    {
+      "path": "registry/components/chat-message/registry-item.json",
+      "blob": "f3edb7c127358455cda437af336912d1e16721ab",
+      "bytes": 2784
+    },
+    {
+      "path": "registry/components/code-terminal-run/README.md",
+      "blob": "11b77b390bbd9c2dcdec0c31f0d33b81d62c67d8",
+      "bytes": 5152
+    },
+    {
+      "path": "registry/components/code-terminal-run/code-terminal-run.html",
+      "blob": "f876f377b41e7d4bc0da5f459e1f80e4a72e94e4",
+      "bytes": 24348
+    },
+    {
+      "path": "registry/components/code-terminal-run/demo.html",
+      "blob": "7f1840df6bb5c402101238f8eff425db1d5b28ac",
+      "bytes": 2364
+    },
+    {
+      "path": "registry/components/code-terminal-run/registry-item.json",
+      "blob": "ca0eb2ba65acbc7ae571a275541ebbdfc36bd52d",
+      "bytes": 2630
+    },
+    {
+      "path": "registry/components/comparison-split/comparison-split.html",
+      "blob": "080021976e793b4df339de46dc6f315c1a353f50",
+      "bytes": 16869
+    },
+    {
+      "path": "registry/components/comparison-split/demo.html",
+      "blob": "9881ddc1466415991e49e7c6e7af9f5746e171ab",
+      "bytes": 3142
+    },
+    {
+      "path": "registry/components/comparison-split/registry-item.json",
+      "blob": "8b6c6f2b152740de82b9fd28c6d1f210bf79b521",
+      "bytes": 1881
+    },
+    {
+      "path": "registry/components/conic-progress-ring/conic-progress-ring.html",
+      "blob": "ae76cee16c20911ec934b57e5f4562426f7ef219",
+      "bytes": 9034
+    },
+    {
+      "path": "registry/components/conic-progress-ring/demo.html",
+      "blob": "d54e62599e66b9b8b96ad88bfb354654048fa485",
+      "bytes": 2551
+    },
+    {
+      "path": "registry/components/conic-progress-ring/registry-item.json",
+      "blob": "7e5cbeb88b744424be49e5090f91e8abe37762fc",
+      "bytes": 1659
+    },
+    {
+      "path": "registry/components/constellation-hub/README.md",
+      "blob": "0038d6eae3f7d62aaa780fbd6c6e7f8168e1fe81",
+      "bytes": 2802
+    },
+    {
+      "path": "registry/components/constellation-hub/constellation-hub.html",
+      "blob": "856a4fc9ff87d999e786f486ce07e978fe4320f0",
+      "bytes": 17591
+    },
+    {
+      "path": "registry/components/constellation-hub/demo.html",
+      "blob": "e8f75c7c5d77099c5b2b45d544bdae7bd44fa9e1",
+      "bytes": 3017
+    },
+    {
+      "path": "registry/components/constellation-hub/registry-item.json",
+      "blob": "6d39d6a08ad05c6d44bee7f01b45295f90548da3",
+      "bytes": 2387
+    },
+    {
+      "path": "registry/components/count-up/README.md",
+      "blob": "3c84bcc24695ce96cd6291bee962e0044da85ee3",
+      "bytes": 2244
+    },
+    {
+      "path": "registry/components/count-up/count-up.html",
+      "blob": "b1861253939312f93449811124e00dcddafbb601",
+      "bytes": 12389
+    },
+    {
+      "path": "registry/components/count-up/demo.html",
+      "blob": "3510ee3f376b84b9646a3c588383e87cef90a1b6",
+      "bytes": 2914
+    },
+    {
+      "path": "registry/components/count-up/registry-item.json",
+      "blob": "fc8c9489711bd19eb57be57793b7d1c32ca52c2f",
+      "bytes": 2535
+    },
+    {
+      "path": "registry/components/cut-the-curve/README.md",
+      "blob": "4138a3fcb0d05b3251aa00bd031c37bd61d622ff",
+      "bytes": 2348
+    },
+    {
+      "path": "registry/components/cut-the-curve/cut-the-curve.html",
+      "blob": "b470b6966c385e77bb06ddeb919df43cc92399af",
+      "bytes": 20339
+    },
+    {
+      "path": "registry/components/cut-the-curve/demo.html",
+      "blob": "80143bad7f81b6db73ae125d3fc8e662b4e43464",
+      "bytes": 2819
+    },
+    {
+      "path": "registry/components/cut-the-curve/registry-item.json",
+      "blob": "310e416f67064007dcb3be3b6b5617dd31de0acf",
+      "bytes": 2733
+    },
+    {
+      "path": "registry/components/decline-chart/decline-chart.html",
+      "blob": "11dd62a58e496325f49ae97fb081fd0a597aa5ee",
+      "bytes": 9420
+    },
+    {
+      "path": "registry/components/decline-chart/demo.html",
+      "blob": "3e6da008667d7448630369f859736aec835dc797",
+      "bytes": 2094
+    },
+    {
+      "path": "registry/components/decline-chart/registry-item.json",
+      "blob": "a9321a3d5649c3ec915d18831f012e8d2dd26137",
+      "bytes": 1379
+    },
+    {
+      "path": "registry/components/device-frame-stage/demo.html",
+      "blob": "ab996cd7ba20a85aedcd30acbd9c63280897186e",
+      "bytes": 3700
+    },
+    {
+      "path": "registry/components/device-frame-stage/device-frame-stage.html",
+      "blob": "a81cf78aad06e6f073dc5baa6e04397f2c83859c",
+      "bytes": 19228
+    },
+    {
+      "path": "registry/components/device-frame-stage/registry-item.json",
+      "blob": "b6b525d2f59950bcf0a4a5460f64e320ca713d53",
+      "bytes": 1616
+    },
+    {
+      "path": "registry/components/directional-wipe/demo.html",
+      "blob": "4f291295291c1f6a7d885558e0f7013abf7d823a",
+      "bytes": 9989
+    },
+    {
+      "path": "registry/components/directional-wipe/directional-wipe.html",
+      "blob": "63c495fc81a3c0a18987159b3df4f311954dd570",
+      "bytes": 6148
+    },
+    {
+      "path": "registry/components/directional-wipe/registry-item.json",
+      "blob": "a03be0590ffa83a7f0783b058d3bda4ad6cc3c88",
+      "bytes": 1617
+    },
+    {
+      "path": "registry/components/dynamic-grid/demo.html",
+      "blob": "deb892675e829e05d0873d3f9cd5ac7416f6cc13",
+      "bytes": 6154
+    },
+    {
+      "path": "registry/components/dynamic-grid/dynamic-grid.html",
+      "blob": "dff7d3ad055a39b60eeee798a5f50980361432e8",
+      "bytes": 4430
+    },
+    {
+      "path": "registry/components/dynamic-grid/registry-item.json",
+      "blob": "2b87b907a7ddbe8dfaf3634b6e1a954f909ce26b",
+      "bytes": 2277
+    },
+    {
+      "path": "registry/components/echo-trail/README.md",
+      "blob": "ed93bc9ef5e9a0d7ddb0106b9ab7226e78dfa10e",
+      "bytes": 3385
+    },
+    {
+      "path": "registry/components/echo-trail/demo.html",
+      "blob": "e2161d708ae9f21cfcf2ed461cb2395beebe1d09",
+      "bytes": 2258
+    },
+    {
+      "path": "registry/components/echo-trail/echo-trail.html",
+      "blob": "50d057ff9e30a9b0570203981c188eeeedfe9997",
+      "bytes": 14701
+    },
+    {
+      "path": "registry/components/echo-trail/registry-item.json",
+      "blob": "cfcab2d0f705ae93e1f91886b0bb4d9c81479a0e",
+      "bytes": 2437
+    },
+    {
+      "path": "registry/components/fade-through/demo.html",
+      "blob": "e0d58d5f0944f69deaeb5a913a55477bceed5a64",
+      "bytes": 8353
+    },
+    {
+      "path": "registry/components/fade-through/fade-through.html",
+      "blob": "800c8d6011321599ab7dc12a47c9b5ac937c71a2",
+      "bytes": 4139
+    },
+    {
+      "path": "registry/components/fade-through/registry-item.json",
+      "blob": "57b71aedd4bab87fd0856c4c9165139a70ff6fe3",
+      "bytes": 1758
+    },
+    {
+      "path": "registry/components/focus-rack/demo.html",
+      "blob": "09f3e46c8cb44c0fb68e1521097d8790a01a492f",
+      "bytes": 2436
+    },
+    {
+      "path": "registry/components/focus-rack/focus-rack.html",
+      "blob": "eba8bfae301c2987881f2f8a85bafdd005054a5a",
+      "bytes": 11130
+    },
+    {
+      "path": "registry/components/focus-rack/registry-item.json",
+      "blob": "f5b96f705b38873a396011aa096d226fef823eef",
+      "bytes": 1480
+    },
+    {
+      "path": "registry/components/focus-swap/demo.html",
+      "blob": "8b8df8e1a632aad4ec0fef1c55ee7757112c74f9",
+      "bytes": 2709
+    },
+    {
+      "path": "registry/components/focus-swap/focus-swap.html",
+      "blob": "4794462d7297febee04fa9785679700cc57ed77f",
+      "bytes": 10408
+    },
+    {
+      "path": "registry/components/focus-swap/registry-item.json",
+      "blob": "f65c762a4e091b53372971ac73a4c18111cb5215",
+      "bytes": 1806
+    },
+    {
+      "path": "registry/components/gloss-sweep/demo.html",
+      "blob": "900df2725cc738c0c45d2a31fb99ef0b0c51ebbc",
+      "bytes": 1878
+    },
+    {
+      "path": "registry/components/gloss-sweep/gloss-sweep.html",
+      "blob": "b0e7408eaae2777598903fed68d349ffdec6b31e",
+      "bytes": 7833
+    },
+    {
+      "path": "registry/components/gloss-sweep/registry-item.json",
+      "blob": "d5f6290e6097b9ee6585e6577f5a879f30f4ae54",
+      "bytes": 1556
+    },
+    {
+      "path": "registry/components/grain-field/demo.html",
+      "blob": "b30cbec12d301daba249e52c30b5e6f0fec4a68f",
+      "bytes": 2290
+    },
+    {
+      "path": "registry/components/grain-field/grain-field.html",
+      "blob": "b1354192b7f361fa13f56858db52887beaf72c5e",
+      "bytes": 5988
+    },
+    {
+      "path": "registry/components/grain-field/registry-item.json",
+      "blob": "5b48ae2db87031e2cff1bde6adb1239b4508c34d",
+      "bytes": 1406
+    },
+    {
+      "path": "registry/components/grain-overlay/demo.html",
+      "blob": "c4d1aeccf68e470e1d8b7b4fc2bb933cb3365184",
+      "bytes": 3979
+    },
+    {
+      "path": "registry/components/grain-overlay/grain-overlay.html",
+      "blob": "8cdc707bd217290808c179b485aeea644ee9cacc",
+      "bytes": 1818
+    },
+    {
+      "path": "registry/components/grain-overlay/registry-item.json",
+      "blob": "92be5d564620e5ccdecfe994d47d1914d0e480f2",
+      "bytes": 639
+    },
+    {
+      "path": "registry/components/grid-card-assemble/README.md",
+      "blob": "26e4923f63d32ad2a29a50b6715a4a6bc583323b",
+      "bytes": 5379
+    },
+    {
+      "path": "registry/components/grid-card-assemble/demo.html",
+      "blob": "4a9e1f66ad898b8d6aa61a1aad273f8b8eed1ff7",
+      "bytes": 2227
+    },
+    {
+      "path": "registry/components/grid-card-assemble/grid-card-assemble.html",
+      "blob": "ec4949691bf553cd183aa64e517086106149b05a",
+      "bytes": 21457
+    },
+    {
+      "path": "registry/components/grid-card-assemble/registry-item.json",
+      "blob": "b40f95e5dc74f7aad6147c370b2cafe021f21ce7",
+      "bytes": 2841
+    },
+    {
+      "path": "registry/components/halftone-dissolve/README.md",
+      "blob": "4395db13722f2a09804f179f2f9d881121d5229f",
+      "bytes": 3276
+    },
+    {
+      "path": "registry/components/halftone-dissolve/demo.html",
+      "blob": "236bc926c7f757c184781666332d99515803e5d6",
+      "bytes": 4011
+    },
+    {
+      "path": "registry/components/halftone-dissolve/halftone-dissolve.html",
+      "blob": "30e5dc063d4c87b288007ff4cbc0c7e01e9f0d59",
+      "bytes": 17896
+    },
+    {
+      "path": "registry/components/halftone-dissolve/registry-item.json",
+      "blob": "3faca8bba730d4b86dce543760f06b9d15fcff7d",
+      "bytes": 3190
+    },
+    {
+      "path": "registry/components/headline-slam/demo.html",
+      "blob": "c0fe63fa5760c3c29ca21aa8a9adc6140cd41094",
+      "bytes": 2293
+    },
+    {
+      "path": "registry/components/headline-slam/headline-slam.html",
+      "blob": "154c54f52b7e0b698a00c8f88750aa9ac229d537",
+      "bytes": 8784
+    },
+    {
+      "path": "registry/components/headline-slam/registry-item.json",
+      "blob": "0df853a6869714d66784c004081321bdd6beceb9",
+      "bytes": 1863
+    },
+    {
+      "path": "registry/components/hw-arrow/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/components/hw-arrow/demo.html",
+      "blob": "f6135b68b69d9381c85a8427bb093483f606dbf5",
+      "bytes": 29243
+    },
+    {
+      "path": "registry/components/hw-arrow/hw-arrow.html",
+      "blob": "a4a43e7cf944952c66bd34b857c01693c0c3b57e",
+      "bytes": 28276
+    },
+    {
+      "path": "registry/components/hw-arrow/registry-item.json",
+      "blob": "57f8d44163755c6b439fea7255a66165997707ea",
+      "bytes": 1568
+    },
+    {
+      "path": "registry/components/hw-boil/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/components/hw-boil/demo.html",
+      "blob": "cf1288334195b832efa99fe492ad0b4662125608",
+      "bytes": 20438
+    },
+    {
+      "path": "registry/components/hw-boil/hw-boil.html",
+      "blob": "b66e6fd8480e97c917b295f2a1450718303c08d6",
+      "bytes": 21614
+    },
+    {
+      "path": "registry/components/hw-boil/registry-item.json",
+      "blob": "bedbbd6575fd89cfebba6091a7e3c796334b0e71",
+      "bytes": 1623
+    },
+    {
+      "path": "registry/components/hw-box-label/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/components/hw-box-label/demo.html",
+      "blob": "90e3f5a2e5236966492cbdca4dc757bf8d339351",
+      "bytes": 26454
+    },
+    {
+      "path": "registry/components/hw-box-label/hw-box-label.html",
+      "blob": "911d196addb61a3803cd97d9b35e40b46bf8f614",
+      "bytes": 24572
+    },
+    {
+      "path": "registry/components/hw-box-label/registry-item.json",
+      "blob": "2c1799230429e7275fdecc2565fb577a987264c3",
+      "bytes": 1920
+    },
+    {
+      "path": "registry/components/hw-callout-circle/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/components/hw-callout-circle/demo.html",
+      "blob": "07abf669fb2e71c75e5e5c1144f3e6c57a66dafa",
+      "bytes": 27562
+    },
+    {
+      "path": "registry/components/hw-callout-circle/hw-callout-circle.html",
+      "blob": "802948c0514edd1f4215feb622ff372613b0e863",
+      "bytes": 26606
+    },
+    {
+      "path": "registry/components/hw-callout-circle/registry-item.json",
+      "blob": "304c3242846b572a95fa9613c58824de9493d32b",
+      "bytes": 1770
+    },
+    {
+      "path": "registry/components/hw-underline/assets/fonts/Caveat-700-latin.woff2",
+      "blob": "5a3423426fccb5d10e0a1cb1ba523e33b95c51bf",
+      "bytes": 74932
+    },
+    {
+      "path": "registry/components/hw-underline/demo.html",
+      "blob": "2968cc0508d022db554870fc83fcf6127b26cff1",
+      "bytes": 8634
+    },
+    {
+      "path": "registry/components/hw-underline/hw-underline.html",
+      "blob": "628003f8b628c9895deb5ce1b07b0b50b4bc5f6f",
+      "bytes": 8383
+    },
+    {
+      "path": "registry/components/hw-underline/registry-item.json",
+      "blob": "5f844a47834bcdd7bf3854d25ed331e3c275b43b",
+      "bytes": 651
+    },
+    {
+      "path": "registry/components/icon-morph-beat/demo.html",
+      "blob": "821eafb74164ceff40dedda9c29969ff2c97925a",
+      "bytes": 2233
+    },
+    {
+      "path": "registry/components/icon-morph-beat/icon-morph-beat.html",
+      "blob": "92060994a565c490064fce3a5a795d6e9cd3e61c",
+      "bytes": 10037
+    },
+    {
+      "path": "registry/components/icon-morph-beat/registry-item.json",
+      "blob": "13fb3def345df0919d6274f9f3a8d86aa72854bc",
+      "bytes": 1628
+    },
+    {
+      "path": "registry/components/icon-swap/demo.html",
+      "blob": "87cf5b3dbe010c7daee29aff41b440f8d76dcdae",
+      "bytes": 7230
+    },
+    {
+      "path": "registry/components/icon-swap/icon-swap.html",
+      "blob": "29e2fe71223e3db5d45f8bbbf5d816b958096ade",
+      "bytes": 5511
+    },
+    {
+      "path": "registry/components/icon-swap/registry-item.json",
+      "blob": "3d61449276995cd4ad400379b6fabec5f2b55a9d",
+      "bytes": 2544
+    },
+    {
+      "path": "registry/components/inline-highlight/demo.html",
+      "blob": "acfcbaac1e022adb1cef17474ef03db6f2e70c2e",
+      "bytes": 6232
+    },
+    {
+      "path": "registry/components/inline-highlight/inline-highlight.html",
+      "blob": "0bc7fe9957333fd6f10086bcf1410a408cf8ba6d",
+      "bytes": 3909
+    },
+    {
+      "path": "registry/components/inline-highlight/registry-item.json",
+      "blob": "f9839ac4ee91bca5829586bcd08415f82c9a9680",
+      "bytes": 1920
+    },
+    {
+      "path": "registry/components/iris-reveal/README.md",
+      "blob": "5049f44f7ecd9c7969ee1207c6f375c4c85277a4",
+      "bytes": 4154
+    },
+    {
+      "path": "registry/components/iris-reveal/demo.html",
+      "blob": "e801fb0fb29c3d43abb20b16ac25213f65c39f7c",
+      "bytes": 2398
+    },
+    {
+      "path": "registry/components/iris-reveal/iris-reveal.html",
+      "blob": "d2e06c6706e7d74b5b4ffce603afa5b220da2f8f",
+      "bytes": 19964
+    },
+    {
+      "path": "registry/components/iris-reveal/registry-item.json",
+      "blob": "2d0481c6fc444258ec7db3832a86d8338d40094a",
+      "bytes": 3108
+    },
+    {
+      "path": "registry/components/kinetic-center-build/demo.html",
+      "blob": "9cd36d3d2dbe20c109bc531d7abc9d08dc092c22",
+      "bytes": 2093
+    },
+    {
+      "path": "registry/components/kinetic-center-build/kinetic-center-build.html",
+      "blob": "809e8467f77f37ec9c0892c700c6d03b7464cecd",
+      "bytes": 11084
+    },
+    {
+      "path": "registry/components/kinetic-center-build/registry-item.json",
+      "blob": "fe2d37d954ddbb141c28787a0a489e7e445ec2f6",
+      "bytes": 2383
+    },
+    {
+      "path": "registry/components/kinetic-type-swap/README.md",
+      "blob": "c0e4c7caca32c152916a9fbd5e6ae661be11430c",
+      "bytes": 3027
+    },
+    {
+      "path": "registry/components/kinetic-type-swap/demo.html",
+      "blob": "84412dab11aa14305179248d214b562216466c07",
+      "bytes": 2999
+    },
+    {
+      "path": "registry/components/kinetic-type-swap/kinetic-type-swap.html",
+      "blob": "80f8243d105b66d5262c33f991f0d2f184e8a167",
+      "bytes": 16223
+    },
+    {
+      "path": "registry/components/kinetic-type-swap/registry-item.json",
+      "blob": "bb785a4c85b8004e6f15af7474de3315eb2daebc",
+      "bytes": 2524
+    },
+    {
+      "path": "registry/components/light-sweep-pass/README.md",
+      "blob": "05fdfa96f1dda5bc4725a042ec426b344871052c",
+      "bytes": 4335
+    },
+    {
+      "path": "registry/components/light-sweep-pass/demo.html",
+      "blob": "44e5f9340813c5feceba0c20c02a9cd7e661b4c2",
+      "bytes": 2361
+    },
+    {
+      "path": "registry/components/light-sweep-pass/light-sweep-pass.html",
+      "blob": "6f313d37f2824553db309d5c47e39039fafcbad2",
+      "bytes": 19555
+    },
+    {
+      "path": "registry/components/light-sweep-pass/registry-item.json",
+      "blob": "319b56cd5ee755c986b099c47a76baf575b905be",
+      "bytes": 2790
+    },
+    {
+      "path": "registry/components/line-swap/README.md",
+      "blob": "07d00ca0c36be24d3e77d65552c7ced89eddf128",
+      "bytes": 2859
+    },
+    {
+      "path": "registry/components/line-swap/demo.html",
+      "blob": "bd0e7a5217fbbaca0efa221bf077afb20c6b65fd",
+      "bytes": 2062
+    },
+    {
+      "path": "registry/components/line-swap/line-swap.html",
+      "blob": "811162d4a24c91bc2142817aae7bc386f0dff530",
+      "bytes": 13565
+    },
+    {
+      "path": "registry/components/line-swap/registry-item.json",
+      "blob": "6f9a06a647d71b6b1b9b759f83e43a606a49459b",
+      "bytes": 2835
+    },
+    {
+      "path": "registry/components/locked-nucleus-orbit/demo.html",
+      "blob": "f6e3da3074b83b9492de5326eda0461303a0e7ea",
+      "bytes": 2303
+    },
+    {
+      "path": "registry/components/locked-nucleus-orbit/locked-nucleus-orbit.html",
+      "blob": "05ca372d79f2589f7577911a6dc7f25f14658503",
+      "bytes": 12785
+    },
+    {
+      "path": "registry/components/locked-nucleus-orbit/registry-item.json",
+      "blob": "742305c8793448218978aa1003bb908e07f8a884",
+      "bytes": 1574
+    },
+    {
+      "path": "registry/components/marker-highlight/README.md",
+      "blob": "c67397ddd8b47620d236e4ec39fe273035dc10c8",
+      "bytes": 3081
+    },
+    {
+      "path": "registry/components/marker-highlight/demo.html",
+      "blob": "547de1c38dc0604f081b5db0dff6a5286a54c1d4",
+      "bytes": 2072
+    },
+    {
+      "path": "registry/components/marker-highlight/marker-highlight.html",
+      "blob": "07b6bdfd395dd145c9b763c2a9843f786f32eb33",
+      "bytes": 15209
+    },
+    {
+      "path": "registry/components/marker-highlight/registry-item.json",
+      "blob": "98a24ad9befb36c6206677db6e5ed85ff75712ba",
+      "bytes": 2864
+    },
+    {
+      "path": "registry/components/match-cut/demo.html",
+      "blob": "4ac074a86a8ca62242020453c1ea7b769b4e9c46",
+      "bytes": 2060
+    },
+    {
+      "path": "registry/components/match-cut/match-cut.html",
+      "blob": "42ed3db86fff0b614f85f3102db9bbbed188c54a",
+      "bytes": 11127
+    },
+    {
+      "path": "registry/components/match-cut/registry-item.json",
+      "blob": "21b442e0a62d7801d79aa5b9661d0ae013305886",
+      "bytes": 1551
+    },
+    {
+      "path": "registry/components/mesh-gradient-bg/demo.html",
+      "blob": "3c7c0b90eb476a125c01e40690989470e2a558f8",
+      "bytes": 5666
+    },
+    {
+      "path": "registry/components/mesh-gradient-bg/mesh-gradient-bg.html",
+      "blob": "3b46a82b967052ec36005582d08a1298752b830e",
+      "bytes": 3622
+    },
+    {
+      "path": "registry/components/mesh-gradient-bg/registry-item.json",
+      "blob": "c3db9f31e7084d895f033b597003474d66977053",
+      "bytes": 579
+    },
+    {
+      "path": "registry/components/mk-emphasis-type/demo.html",
+      "blob": "dd55374ab33427c05fc535c8024c8efab7906c0e",
+      "bytes": 3608
+    },
+    {
+      "path": "registry/components/mk-emphasis-type/mk-emphasis-type.html",
+      "blob": "35c30fab98194f1fc7aca9654761d26e0eb462bf",
+      "bytes": 3349
+    },
+    {
+      "path": "registry/components/mk-emphasis-type/registry-item.json",
+      "blob": "19626188d39fc13169e0535325f0a8ef59aecb5a",
+      "bytes": 528
+    },
+    {
+      "path": "registry/components/mk-usage-arc/demo.html",
+      "blob": "91572b8962ad03be7544fe302bdfc0e9aaa9b1ec",
+      "bytes": 5172
+    },
+    {
+      "path": "registry/components/mk-usage-arc/mk-usage-arc.html",
+      "blob": "08f4a537bacf3629aacfee6bf3e24d836a7d0daa",
+      "bytes": 4921
+    },
+    {
+      "path": "registry/components/mk-usage-arc/registry-item.json",
+      "blob": "5a73fc1fd559cce37f86e6d6048bcb8969c3e0da",
+      "bytes": 490
+    },
+    {
+      "path": "registry/components/modal-morph/README.md",
+      "blob": "d41dda171da956a81086cbf94fb81d08d252ac4e",
+      "bytes": 3693
+    },
+    {
+      "path": "registry/components/modal-morph/demo.html",
+      "blob": "09d3c2c800e4766461f140a295fd2ee459011617",
+      "bytes": 2287
+    },
+    {
+      "path": "registry/components/modal-morph/modal-morph.html",
+      "blob": "9d6bb7d6ab5464cefd5ee0d42de4e040c387f63b",
+      "bytes": 21298
+    },
+    {
+      "path": "registry/components/modal-morph/registry-item.json",
+      "blob": "d66ac0ae185cca57bacb7a20eb8bcd56b26e7e9b",
+      "bytes": 2614
+    },
+    {
+      "path": "registry/components/morph-swap/README.md",
+      "blob": "e8d80028c0b7699c25fa900a02561eb17577d26f",
+      "bytes": 3932
+    },
+    {
+      "path": "registry/components/morph-swap/demo.html",
+      "blob": "0f9681c9d0e5aa31800db601ab99bf7b38dddec9",
+      "bytes": 2493
+    },
+    {
+      "path": "registry/components/morph-swap/morph-swap.html",
+      "blob": "baed6c1d144378622e847dc7c000e4cbaad8a724",
+      "bytes": 15619
+    },
+    {
+      "path": "registry/components/morph-swap/registry-item.json",
+      "blob": "e49e546ca68bd37869f69c12ad8cf5053c07c590",
+      "bytes": 2437
+    },
+    {
+      "path": "registry/components/notification-stack/README.md",
+      "blob": "dc6f34c0112bf24255906dce80cfde613769d538",
+      "bytes": 4290
+    },
+    {
+      "path": "registry/components/notification-stack/demo.html",
+      "blob": "834d6ef6e4a63b436b988f21df32180467e2e08f",
+      "bytes": 2819
+    },
+    {
+      "path": "registry/components/notification-stack/notification-stack.html",
+      "blob": "b28e407250c0a8130c919a6eab30ce037d30c990",
+      "bytes": 16821
+    },
+    {
+      "path": "registry/components/notification-stack/registry-item.json",
+      "blob": "57bfae331f81f79ae36b7e57f8981974aa834465",
+      "bytes": 2723
+    },
+    {
+      "path": "registry/components/number-pop-in/demo.html",
+      "blob": "a199b89b83c53ba1d08aa762c52dcec0abc32a2e",
+      "bytes": 6777
+    },
+    {
+      "path": "registry/components/number-pop-in/number-pop-in.html",
+      "blob": "11e05f30a169bf5a5ec829f723938833f54436a0",
+      "bytes": 5481
+    },
+    {
+      "path": "registry/components/number-pop-in/registry-item.json",
+      "blob": "37ce6548116f5f98a42c2531a6c841bd9e0ca51b",
+      "bytes": 2158
+    },
+    {
+      "path": "registry/components/number-wheel/demo.html",
+      "blob": "de8972a2deea178a12b9d7cc6eeccb8ec09b0f06",
+      "bytes": 8493
+    },
+    {
+      "path": "registry/components/number-wheel/number-wheel.html",
+      "blob": "482120c8a631279ebf3ef5456a31cedf8ce2755e",
+      "bytes": 5136
+    },
+    {
+      "path": "registry/components/number-wheel/registry-item.json",
+      "blob": "c56340a0ca8a9416a1f9b4840361b4e43dad09db",
+      "bytes": 2244
+    },
+    {
+      "path": "registry/components/offset-path-traveler/demo.html",
+      "blob": "db60b03d042f9fd31441f0218fbd035b68e187a9",
+      "bytes": 3085
+    },
+    {
+      "path": "registry/components/offset-path-traveler/offset-path-traveler.html",
+      "blob": "1097f781f1f631c27a374de57c7fe348cf8fb456",
+      "bytes": 10917
+    },
+    {
+      "path": "registry/components/offset-path-traveler/registry-item.json",
+      "blob": "df1a5e850c4029ecc5dad0d74e9bfb7fb5b0ff58",
+      "bytes": 1740
+    },
+    {
+      "path": "registry/components/outline-draw/demo.html",
+      "blob": "5ef55429065d44a525660abde6e0c8c1b446a32c",
+      "bytes": 2798
+    },
+    {
+      "path": "registry/components/outline-draw/outline-draw.html",
+      "blob": "538d6168f91a2c9baeeaf5520b632aea2088b3bf",
+      "bytes": 7191
+    },
+    {
+      "path": "registry/components/outline-draw/registry-item.json",
+      "blob": "4a575e0da4c4b72d61f5cb7b5e012348baa2ea63",
+      "bytes": 1668
+    },
+    {
+      "path": "registry/components/pan-stations/demo.html",
+      "blob": "0cc097bd64a0cbfc1d8ba83999733342b10a12b5",
+      "bytes": 2229
+    },
+    {
+      "path": "registry/components/pan-stations/pan-stations.html",
+      "blob": "c36926b518b76119c59b3488945cd930e2a512e3",
+      "bytes": 13513
+    },
+    {
+      "path": "registry/components/pan-stations/pan-stations.test.mjs",
+      "blob": "99fce30fd103d839bba446205f50c8cc520580bd",
+      "bytes": 1982
+    },
+    {
+      "path": "registry/components/pan-stations/registry-item.json",
+      "blob": "dbd4d5d57f3cb1691f74114556996af9582112ba",
+      "bytes": 1663
+    },
+    {
+      "path": "registry/components/per-word-rise/README.md",
+      "blob": "498ca9e255da2508a8441a1cd34ed24e3966d464",
+      "bytes": 2543
+    },
+    {
+      "path": "registry/components/per-word-rise/demo.html",
+      "blob": "b520bd5b1e0d53425e2fc5a07fcebd45c569404f",
+      "bytes": 2946
+    },
+    {
+      "path": "registry/components/per-word-rise/per-word-rise.html",
+      "blob": "009cc6288b91e0ed87c72f023cf4b05c2ee6f290",
+      "bytes": 13419
+    },
+    {
+      "path": "registry/components/per-word-rise/registry-item.json",
+      "blob": "fc7d4d3dcf68db08060ee71d08b30e3fbabaf462",
+      "bytes": 2414
+    },
+    {
+      "path": "registry/components/physical-exit/demo.html",
+      "blob": "a70111d1dfa572b85d91e3d09f90ef1ad2b5b0c2",
+      "bytes": 2351
+    },
+    {
+      "path": "registry/components/physical-exit/physical-exit.html",
+      "blob": "e17aa7c0749cf205d0c7fcbb2524391271666129",
+      "bytes": 8506
+    },
+    {
+      "path": "registry/components/physical-exit/registry-item.json",
+      "blob": "9f6d369199f7a267be69ff89e73cba0e339c939c",
+      "bytes": 1664
+    },
+    {
+      "path": "registry/components/press-ripple/README.md",
+      "blob": "e66a8851656b33d6d094905a6ab34df46e1a23f7",
+      "bytes": 4575
+    },
+    {
+      "path": "registry/components/press-ripple/demo.html",
+      "blob": "8d33add162cab25d2d9ff72fb9060bcd3db8495b",
+      "bytes": 2307
+    },
+    {
+      "path": "registry/components/press-ripple/press-ripple.html",
+      "blob": "e4a7d8a1b6f9623775737c0c820296445329c123",
+      "bytes": 15774
+    },
+    {
+      "path": "registry/components/press-ripple/registry-item.json",
+      "blob": "0fe7aeb80cd4bad3279738f48e84dafcabf41e86",
+      "bytes": 3020
+    },
+    {
+      "path": "registry/components/pull-back-reveal/demo.html",
+      "blob": "d83a8b052eb6b9db5d232aa0857705b013ec1099",
+      "bytes": 2356
+    },
+    {
+      "path": "registry/components/pull-back-reveal/pull-back-reveal.html",
+      "blob": "124b520db9562c9c3244c4f285dda400e31086b0",
+      "bytes": 12082
+    },
+    {
+      "path": "registry/components/pull-back-reveal/registry-item.json",
+      "blob": "433b39523c047c9c817ac1a7a98d8e4b90d5a7bd",
+      "bytes": 1535
+    },
+    {
+      "path": "registry/components/push-in/demo.html",
+      "blob": "7cc71b96c74b75840c6e38b8357f26f5038aa76b",
+      "bytes": 2129
+    },
+    {
+      "path": "registry/components/push-in/push-in.html",
+      "blob": "371797f9b3d8e331cf55bfb1094b24b2a9e998cd",
+      "bytes": 6331
+    },
+    {
+      "path": "registry/components/push-in/registry-item.json",
+      "blob": "0904c2b25aa48342640205c675b49ed99de85062",
+      "bytes": 1230
+    },
+    {
+      "path": "registry/components/radial-surround/README.md",
+      "blob": "c81e89795a32414c03fc96d8e93ff8d7420bcd82",
+      "bytes": 4421
+    },
+    {
+      "path": "registry/components/radial-surround/demo.html",
+      "blob": "f533b5c0d2dfb53dce763e2e30c04f67486185aa",
+      "bytes": 2684
+    },
+    {
+      "path": "registry/components/radial-surround/radial-surround.html",
+      "blob": "680aec0078aaa113f9556f4c2d21bae7b86158b7",
+      "bytes": 18629
+    },
+    {
+      "path": "registry/components/radial-surround/registry-item.json",
+      "blob": "d5c47824d98f224520cb9508113c5f81992d060d",
+      "bytes": 2759
+    },
+    {
+      "path": "registry/components/scramble-reveal/README.md",
+      "blob": "56be6d555ab7564a365c2acfba3bb08a833a57db",
+      "bytes": 2018
+    },
+    {
+      "path": "registry/components/scramble-reveal/demo.html",
+      "blob": "15153cc38a01fc5f36a1f009693a272888b0a4f1",
+      "bytes": 2515
+    },
+    {
+      "path": "registry/components/scramble-reveal/registry-item.json",
+      "blob": "49bfb29bd4371d3f655a46ae8e4c976a72d3ace0",
+      "bytes": 2172
+    },
+    {
+      "path": "registry/components/scramble-reveal/scramble-reveal.html",
+      "blob": "e78385dd99587b66056f78994cb9db6a5ded94c0",
+      "bytes": 12410
+    },
+    {
+      "path": "registry/components/separator/demo.html",
+      "blob": "69612389a1f1e4f2c3d76979d55f9726114b711a",
+      "bytes": 20516
+    },
+    {
+      "path": "registry/components/separator/registry-item.json",
+      "blob": "f4ff9aa37f191a6fd63a3109b1e5062038bd73a3",
+      "bytes": 2058
+    },
+    {
+      "path": "registry/components/separator/separator.html",
+      "blob": "cb886ce2862b184306d9d6710ae00f8836f1c4e7",
+      "bytes": 11362
+    },
+    {
+      "path": "registry/components/shared-axis-y/demo.html",
+      "blob": "b55ec2107bcec2aa7738a1a92a4306cc5f02bfc3",
+      "bytes": 6728
+    },
+    {
+      "path": "registry/components/shared-axis-y/registry-item.json",
+      "blob": "c1224d0dcd49719a857e8b8061abf47f7be18f87",
+      "bytes": 1980
+    },
+    {
+      "path": "registry/components/shared-axis-y/shared-axis-y.html",
+      "blob": "ba34f70695ec1d8fa1c99cdc72b4d73dc6025940",
+      "bytes": 4120
+    },
+    {
+      "path": "registry/components/shared-axis-z/demo.html",
+      "blob": "a6ada0fd2a5eedb87223e1ce65dc7bf95ea65444",
+      "bytes": 11377
+    },
+    {
+      "path": "registry/components/shared-axis-z/registry-item.json",
+      "blob": "122202e39c37a4f1d1713a1d6c33d0245430f414",
+      "bytes": 2053
+    },
+    {
+      "path": "registry/components/shared-axis-z/shared-axis-z.html",
+      "blob": "bdb2ea845775d3662bd6cb1da918b913f63ec91d",
+      "bytes": 4273
+    },
+    {
+      "path": "registry/components/simulated-cursor/demo.html",
+      "blob": "0e17077584161235e23202ca7e8c0d4c568f2201",
+      "bytes": 8657
+    },
+    {
+      "path": "registry/components/simulated-cursor/registry-item.json",
+      "blob": "1ff68b70fd4d46e7683be779bd1e9b2239330a9b",
+      "bytes": 2231
+    },
+    {
+      "path": "registry/components/simulated-cursor/simulated-cursor.html",
+      "blob": "c1c74ac877757b5583c540223c3984b732994942",
+      "bytes": 6555
+    },
+    {
+      "path": "registry/components/slot-machine-roll/demo.html",
+      "blob": "cc536e73a16aa74acc86aa57a1f24d26adc9e870",
+      "bytes": 7793
+    },
+    {
+      "path": "registry/components/slot-machine-roll/registry-item.json",
+      "blob": "5deee51dcfd55716b872d4659ce88c72d0cc8a27",
+      "bytes": 2353
+    },
+    {
+      "path": "registry/components/slot-machine-roll/slot-machine-roll.html",
+      "blob": "24f5ee2acf4ff7b35d77d4c4dfaaf292a2ffedaf",
+      "bytes": 5896
+    },
+    {
+      "path": "registry/components/split-tilt-cards/README.md",
+      "blob": "4b9acf7279448d49657aa0db0e0cba49232a2521",
+      "bytes": 4569
+    },
+    {
+      "path": "registry/components/split-tilt-cards/demo.html",
+      "blob": "fb9510f8f6b8709a480399e873b8e50007029850",
+      "bytes": 2591
+    },
+    {
+      "path": "registry/components/split-tilt-cards/registry-item.json",
+      "blob": "4cc90639d445f1a790fdef2377c637e3dd7a2724",
+      "bytes": 2774
+    },
+    {
+      "path": "registry/components/split-tilt-cards/split-tilt-cards.html",
+      "blob": "3fb959fe53b12ac9087f9d6e40788028bb0cb20b",
+      "bytes": 23291
+    },
+    {
+      "path": "registry/components/spring-pop/demo.html",
+      "blob": "1a5bfa3d341775495baf14c9b27d53e31830ce69",
+      "bytes": 2905
+    },
+    {
+      "path": "registry/components/spring-pop/registry-item.json",
+      "blob": "4346156fb676d1d95598d8fe99819eb2af6b4f06",
+      "bytes": 1564
+    },
+    {
+      "path": "registry/components/spring-pop/spring-pop.html",
+      "blob": "63f4ccc850a24f87b0496277a4d082a34fd9cca6",
+      "bytes": 7415
+    },
+    {
+      "path": "registry/components/spring-stack-shuffle/README.md",
+      "blob": "9bc972d17374185ae64b53cf3575721b9ad3c0c9",
+      "bytes": 4472
+    },
+    {
+      "path": "registry/components/spring-stack-shuffle/demo.html",
+      "blob": "3243997629c8ef529df5af9ae5f3534ce4f412dd",
+      "bytes": 2417
+    },
+    {
+      "path": "registry/components/spring-stack-shuffle/registry-item.json",
+      "blob": "6d08cf66907c5906cbde520e1870e50f96592eb8",
+      "bytes": 2385
+    },
+    {
+      "path": "registry/components/spring-stack-shuffle/spring-stack-shuffle.html",
+      "blob": "950a87bd9f98d5e79509ba5f381bf3c939aba99a",
+      "bytes": 25518
+    },
+    {
+      "path": "registry/components/stagger-cascade/demo.html",
+      "blob": "41c76563a06b0435bef0deb65e344be565a3128b",
+      "bytes": 2993
+    },
+    {
+      "path": "registry/components/stagger-cascade/registry-item.json",
+      "blob": "5460371dc6ff64d18245792bf674c2b5543f4ed5",
+      "bytes": 1677
+    },
+    {
+      "path": "registry/components/stagger-cascade/stagger-cascade.html",
+      "blob": "7cc12807343f95791baa6585e18258a5c768d3bd",
+      "bytes": 10500
+    },
+    {
+      "path": "registry/components/state-chip-rail/README.md",
+      "blob": "19acbc6db793979de83694c803b6985e009a353c",
+      "bytes": 4326
+    },
+    {
+      "path": "registry/components/state-chip-rail/demo.html",
+      "blob": "cec81ab064570abb9f65c5c0eb8e5802ab288775",
+      "bytes": 2637
+    },
+    {
+      "path": "registry/components/state-chip-rail/registry-item.json",
+      "blob": "08572083f602f67087199636046ca9c9f40797b7",
+      "bytes": 2702
+    },
+    {
+      "path": "registry/components/state-chip-rail/state-chip-rail.html",
+      "blob": "bf48003f87e2f388bc85159ecd18c6bf23c51c69",
+      "bytes": 16283
+    },
+    {
+      "path": "registry/components/streaming-text/demo.html",
+      "blob": "8fb2d8272fa97db7b195101c1f6a4d7f0448fa2f",
+      "bytes": 15746
+    },
+    {
+      "path": "registry/components/streaming-text/registry-item.json",
+      "blob": "32ec2ece2eb12805a1219ad97070300e27e6ae2c",
+      "bytes": 1279
+    },
+    {
+      "path": "registry/components/streaming-text/streaming-text.html",
+      "blob": "9f446602602177b5f13195dcd91ae6ae7a8a139e",
+      "bytes": 11529
+    },
+    {
+      "path": "registry/components/strikethrough-replace/demo.html",
+      "blob": "d8699023f6762654e0a087d3fc8036d7e38a2914",
+      "bytes": 6679
+    },
+    {
+      "path": "registry/components/strikethrough-replace/registry-item.json",
+      "blob": "5b0aeb2948085008b8e6001d1716184a9af4b8b6",
+      "bytes": 2204
+    },
+    {
+      "path": "registry/components/strikethrough-replace/strikethrough-replace.html",
+      "blob": "33b5657c96989c28b1f444a9a6a56d87bbd0966b",
+      "bytes": 5493
+    },
+    {
+      "path": "registry/components/success-check/demo.html",
+      "blob": "d60318c06e592b5fde12f800ac824921fc3dffc1",
+      "bytes": 8051
+    },
+    {
+      "path": "registry/components/success-check/registry-item.json",
+      "blob": "19bc4128f69bec73ba810a83e1ef2016e59b4a10",
+      "bytes": 2717
+    },
+    {
+      "path": "registry/components/success-check/success-check.html",
+      "blob": "92913d6944ecb90033f9779bd314448dacce154a",
+      "bytes": 6937
+    },
+    {
+      "path": "registry/components/svg-stroke-trace/README.md",
+      "blob": "a9f89f09912070969ef9364c9f9cc860802e27c0",
+      "bytes": 2020
+    },
+    {
+      "path": "registry/components/svg-stroke-trace/demo.html",
+      "blob": "dd572a7b3c3bf6083491f613edd81467460b8ce8",
+      "bytes": 3077
+    },
+    {
+      "path": "registry/components/svg-stroke-trace/registry-item.json",
+      "blob": "746d71eae272cbeae1529162803d5117c12f3f67",
+      "bytes": 2131
+    },
+    {
+      "path": "registry/components/svg-stroke-trace/svg-stroke-trace.html",
+      "blob": "a650ea83de7c7542791c4eee92bc208c54583555",
+      "bytes": 9029
+    },
+    {
+      "path": "registry/components/telemetry-hud/README.md",
+      "blob": "b76bf1de8060a87371703ff9ce13af2ad1a37ad7",
+      "bytes": 4154
+    },
+    {
+      "path": "registry/components/telemetry-hud/demo.html",
+      "blob": "eed3e16bd2d39a241e6a2442ab1323b8f1eed31a",
+      "bytes": 2666
+    },
+    {
+      "path": "registry/components/telemetry-hud/registry-item.json",
+      "blob": "85cc8a475e729fcdf8a779a38f288296993015b0",
+      "bytes": 2583
+    },
+    {
+      "path": "registry/components/telemetry-hud/telemetry-hud.html",
+      "blob": "5776ee6b146c508cb168ebfe3d25d1f4a1059d46",
+      "bytes": 21763
+    },
+    {
+      "path": "registry/components/terminal-simulator/demo.html",
+      "blob": "741ddddff7c7a15db0d245a60432e54e3dbef425",
+      "bytes": 4714
+    },
+    {
+      "path": "registry/components/terminal-simulator/registry-item.json",
+      "blob": "01fb4a91c85bfc99f2dddcc5200bc7b03b7fcda3",
+      "bytes": 588
+    },
+    {
+      "path": "registry/components/terminal-simulator/terminal-simulator.html",
+      "blob": "08a17ec747474a1ae7c9faa36957fac486fc8a4d",
+      "bytes": 2880
+    },
+    {
+      "path": "registry/components/text-match-cut/demo.html",
+      "blob": "07629b75dddffbdfc32f0731903ecb437d428415",
+      "bytes": 3445
+    },
+    {
+      "path": "registry/components/text-match-cut/registry-item.json",
+      "blob": "73f15a87c92635e014fd96047bcee760cc9e53cc",
+      "bytes": 2731
+    },
+    {
+      "path": "registry/components/text-match-cut/text-match-cut.html",
+      "blob": "c8c116a7afe8a96e699e87a5cad625664ade1214",
+      "bytes": 14513
+    },
+    {
+      "path": "registry/components/text-state-swap/demo.html",
+      "blob": "71b0f5e7ac8a1dd3724a8909a9a01362684e0a81",
+      "bytes": 7978
+    },
+    {
+      "path": "registry/components/text-state-swap/registry-item.json",
+      "blob": "3be7612b163f9a1d7f7b694b33b029b1b3cc3635",
+      "bytes": 2148
+    },
+    {
+      "path": "registry/components/text-state-swap/text-state-swap.html",
+      "blob": "7bea605895ca2bf9554be6a09a893b3850dfe18d",
+      "bytes": 5155
+    },
+    {
+      "path": "registry/components/titlecard-calm/demo.html",
+      "blob": "d5397e99586632e3ab6e67fad1d68be684ac614b",
+      "bytes": 2430
+    },
+    {
+      "path": "registry/components/titlecard-calm/registry-item.json",
+      "blob": "8e2aa187ddec2e6aa86e239dd73303e6576e6496",
+      "bytes": 1145
+    },
+    {
+      "path": "registry/components/titlecard-calm/titlecard-calm.html",
+      "blob": "5048bdc8803f98e27b3e9ce92def65062ae1e324",
+      "bytes": 6577
+    },
+    {
+      "path": "registry/components/titlecard-lockup/README.md",
+      "blob": "ea1d92425a24c135ea061101daea154fdc93e16b",
+      "bytes": 3156
+    },
+    {
+      "path": "registry/components/titlecard-lockup/demo.html",
+      "blob": "0533a2c7b135c187207ce1b80b05c954cfcd5759",
+      "bytes": 2205
+    },
+    {
+      "path": "registry/components/titlecard-lockup/registry-item.json",
+      "blob": "4d0bffeddd781d693a37c8985ec01a6fab6e7de5",
+      "bytes": 2625
+    },
+    {
+      "path": "registry/components/titlecard-lockup/titlecard-lockup.html",
+      "blob": "2fc8ecbb8210f9e5c71b89a34c015dcdcb31850c",
+      "bytes": 13484
+    },
+    {
+      "path": "registry/components/tracing-beam/demo.html",
+      "blob": "2dae3af34693314e5f4202155d910733a782ba4e",
+      "bytes": 2598
+    },
+    {
+      "path": "registry/components/tracing-beam/registry-item.json",
+      "blob": "323a62f15c939691d8b78e8143ff7eab9bde18f4",
+      "bytes": 1347
+    },
+    {
+      "path": "registry/components/tracing-beam/tracing-beam.html",
+      "blob": "9614bfb59aa809f50c7dfc4ad95a2215655b8959",
+      "bytes": 14266
+    },
+    {
+      "path": "registry/components/typed-prompt/README.md",
+      "blob": "85fe7fd64928f0bf0a658f566448c21da5903657",
+      "bytes": 3211
+    },
+    {
+      "path": "registry/components/typed-prompt/demo.html",
+      "blob": "deb6b2afcdab3952d9430919f4258ecb64e7dd65",
+      "bytes": 2347
+    },
+    {
+      "path": "registry/components/typed-prompt/registry-item.json",
+      "blob": "2e53e47fe93fe7d6c8ed49557d9a1ec3964bb608",
+      "bytes": 3336
+    },
+    {
+      "path": "registry/components/typed-prompt/typed-prompt.html",
+      "blob": "60f339572fb6e585d0a053a533d8a9a39eab8ce0",
+      "bytes": 17024
+    },
+    {
+      "path": "registry/components/typewriter/demo.html",
+      "blob": "c8ca3323e46fe74886382a862ef711f84cc7e1ed",
+      "bytes": 6116
+    },
+    {
+      "path": "registry/components/typewriter/registry-item.json",
+      "blob": "0f557a828d85ab985938e9b0d49ae8d4903c9349",
+      "bytes": 1818
+    },
+    {
+      "path": "registry/components/typewriter/typewriter.html",
+      "blob": "08dfbe93083f0c4cb02465fd3a963926e78d1c41",
+      "bytes": 4853
+    },
+    {
+      "path": "registry/components/ui-focus-zoom/README.md",
+      "blob": "a0497da021820b3f8c7cf90cda01d9f7d42b9aec",
+      "bytes": 5284
+    },
+    {
+      "path": "registry/components/ui-focus-zoom/demo.html",
+      "blob": "d309ae58763b407c86d2d8892ce456a6a7c8953d",
+      "bytes": 2527
+    },
+    {
+      "path": "registry/components/ui-focus-zoom/registry-item.json",
+      "blob": "84778d1264b4370ecade19e5953e888e683f50c0",
+      "bytes": 3188
+    },
+    {
+      "path": "registry/components/ui-focus-zoom/ui-focus-zoom.html",
+      "blob": "e69320d406761a5076e850faeefe3afc41aaaba1",
+      "bytes": 22678
+    },
+    {
+      "path": "registry/components/variable-axis-type/demo.html",
+      "blob": "a9c1b60cd380508ab3c0d7ee1ec994d70e093b68",
+      "bytes": 2229
+    },
+    {
+      "path": "registry/components/variable-axis-type/registry-item.json",
+      "blob": "46d1f90f35975d6b7e99c199fd8b9bdfa9339008",
+      "bytes": 1824
+    },
+    {
+      "path": "registry/components/variable-axis-type/variable-axis-type.html",
+      "blob": "4d1cd68ba908e63309aab792dd4927934aa0c0ec",
+      "bytes": 7840
+    },
+    {
+      "path": "registry/components/vignette/demo.html",
+      "blob": "1b61df0ceeee93831a679c877fc7a12fc12c7632",
+      "bytes": 8214
+    },
+    {
+      "path": "registry/components/vignette/registry-item.json",
+      "blob": "2addc518eafd496cef23b48af175283a1c5f9724",
+      "bytes": 623
+    },
+    {
+      "path": "registry/components/vignette/vignette.html",
+      "blob": "18ba2d0d509f2c62b27ca00f1a8539df2cae0dc3",
+      "bytes": 1491
+    },
+    {
+      "path": "registry/components/vox-annotate/README.md",
+      "blob": "d186ee2140e9330cbb34490d6768d2b712257e6a",
+      "bytes": 3684
+    },
+    {
+      "path": "registry/components/vox-annotate/demo.html",
+      "blob": "bd47147bf5a2418305eadd3c1f4b907b15a84b8b",
+      "bytes": 2415
+    },
+    {
+      "path": "registry/components/vox-annotate/registry-item.json",
+      "blob": "1be3699ca9f4bb4042e0bf06b78ec10a0e10c525",
+      "bytes": 3218
+    },
+    {
+      "path": "registry/components/vox-annotate/vox-annotate.html",
+      "blob": "d0d0ea63412c45b606171f6d20aa4547db9af6a0",
+      "bytes": 20029
+    },
+    {
+      "path": "registry/components/whip-pan-cut/README.md",
+      "blob": "3d01245df5cbb375cc6ae46468d7bf25505f8c94",
+      "bytes": 4192
+    },
+    {
+      "path": "registry/components/whip-pan-cut/demo.html",
+      "blob": "d8302dbf8b31a40de2243322664a19489c4ab639",
+      "bytes": 2393
+    },
+    {
+      "path": "registry/components/whip-pan-cut/registry-item.json",
+      "blob": "321017e54e0ca074a537fc78f42435977cb9ff3e",
+      "bytes": 2618
+    },
+    {
+      "path": "registry/components/whip-pan-cut/whip-pan-cut.html",
+      "blob": "e0d0b4ff5ce7597390bf033e7d953aa7190e2ae6",
+      "bytes": 19602
+    },
+    {
+      "path": "registry/components/whiteboard-ink/README.md",
+      "blob": "ee223b003ce4bd6bfed63acdb1f043c787c44c70",
+      "bytes": 4859
+    },
+    {
+      "path": "registry/components/whiteboard-ink/demo.html",
+      "blob": "284c013b1b09efdde4f05d06eb9bbb34975738ae",
+      "bytes": 2519
+    },
+    {
+      "path": "registry/components/whiteboard-ink/registry-item.json",
+      "blob": "f9fdeaeeaf2647050f30e635b854135834210d7a",
+      "bytes": 2657
+    },
+    {
+      "path": "registry/components/whiteboard-ink/whiteboard-ink.html",
+      "blob": "4472e9fc342b9222eee0ee480919fd8e2faa9e8e",
+      "bytes": 23158
+    },
+    {
+      "path": "registry/components/zoom-through-transition/demo.html",
+      "blob": "01c5959ab7eaf6e4b1e4c15b72544438d21fc8a0",
+      "bytes": 5467
+    },
+    {
+      "path": "registry/components/zoom-through-transition/registry-item.json",
+      "blob": "d5aaa200b1838849cb248d4a53899cf26f2c19a0",
+      "bytes": 2257
+    },
+    {
+      "path": "registry/components/zoom-through-transition/zoom-through-transition.html",
+      "blob": "545a290604cb41d609b94b81c1056af63800e832",
+      "bytes": 12129
+    },
+    {
       "path": "skills/faceless-explainer/references/motion-language.md",
       "blob": "904bfaf486795f19d4beb599810323bbbd71a999",
       "bytes": 15760
@@ -718,6 +2593,61 @@
       "path": "skills/hyperframes-registry/SKILL.md",
       "blob": "5a5096f3dab750feb0a710771a8ad5604f51fed7",
       "bytes": 9643
+    },
+    {
+      "path": "skills/hyperframes-registry/examples/add-block.md",
+      "blob": "95bee6ff87928db0f6b3d39008e4f0913600ea79",
+      "bytes": 1232
+    },
+    {
+      "path": "skills/hyperframes-registry/examples/add-component.md",
+      "blob": "1371289ddfa21b27ec461947686c840f02e3d956",
+      "bytes": 1473
+    },
+    {
+      "path": "skills/hyperframes-registry/references/component-quality-bar.md",
+      "blob": "c34ec97847059002b7a115b937ab6dfa67495dd3",
+      "bytes": 16390
+    },
+    {
+      "path": "skills/hyperframes-registry/references/contributing.md",
+      "blob": "d21c1d103aaed39821b6de6fecde61741b592842",
+      "bytes": 6684
+    },
+    {
+      "path": "skills/hyperframes-registry/references/demo-html-pattern.md",
+      "blob": "3e53838c10b91dbf5fb196c95cde64bc385d2bc7",
+      "bytes": 1884
+    },
+    {
+      "path": "skills/hyperframes-registry/references/discovery.md",
+      "blob": "3ee9c1795c2883c17d93b2639f70dcc242d2a97e",
+      "bytes": 16643
+    },
+    {
+      "path": "skills/hyperframes-registry/references/install-locations.md",
+      "blob": "65e3d34e57f1e509f82476992c8d72c05a7106ee",
+      "bytes": 1519
+    },
+    {
+      "path": "skills/hyperframes-registry/references/placeholder-material.md",
+      "blob": "d6648aafc463a378dd851c36d6cabd8804b476e4",
+      "bytes": 9006
+    },
+    {
+      "path": "skills/hyperframes-registry/references/templates.md",
+      "blob": "8834c959e2d1d02d30e44e0c72d5960619a31c3a",
+      "bytes": 11451
+    },
+    {
+      "path": "skills/hyperframes-registry/references/wiring-blocks.md",
+      "blob": "d3f4474cfa7af80e157c44c51dd6cb0ce6d1d076",
+      "bytes": 2641
+    },
+    {
+      "path": "skills/hyperframes-registry/references/wiring-components.md",
+      "blob": "9521a2174a37734efb3de8370224e21647a5655c",
+      "bytes": 1723
     },
     {
       "path": "skills/hyperframes/SKILL.md",

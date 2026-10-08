@@ -383,7 +383,9 @@ export const validateTreatment = (
       if (
         recipe.catalog === 'rule' ||
         recipe.catalog === 'blueprint' ||
-        recipe.catalog === 'technique'
+        recipe.catalog === 'technique' ||
+        recipe.catalog === 'component' ||
+        recipe.catalog === 'block'
       ) {
         const entry = findCapability(
           context.catalog,

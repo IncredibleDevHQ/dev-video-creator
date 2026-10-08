@@ -63,6 +63,14 @@ Before you write `production/index.html`, read:
 Load any other reference when its condition applies (camera, SVG, data in
 motion), and do not read the whole library.
 
+The components and blocks the plan names (recipes of catalog `component` or
+`block`) are already installed under `production/compositions/`, with any
+assets they need; `packet/recipes/<id>.md` says what each does, its
+variables and how its demo mounts it. Mount each one where its moment needs
+it — a `class="clip"` element with `data-composition-src`, timed to the
+moment's cue — pass only the variables you change, and theme it with the
+scene's tokens. Do not rebuild one by hand; build by hand what none serves.
+
 Never veil, dim or blur the whole frame to place text on it, and add no
 closing card the plan does not ask for.
 

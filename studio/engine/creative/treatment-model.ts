@@ -17,6 +17,8 @@ export const RECIPE_SOURCES = [
   'rule',
   'blueprint',
   'technique',
+  'component',
+  'block',
   'reference',
   'adapted'
 ] as const
