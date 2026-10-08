@@ -153,7 +153,8 @@ export const copyCard = (
   episode: MapEpisode,
   copy: MapCopy,
   index: number,
-  page: number
+  page: number,
+  mapSvg: string | null = null
 ) => {
   const repeat = copy.copyOf && (view.usage[copy.copyOf.slide] || []).length > 1
   const badge = copy.orphan
@@ -164,7 +165,8 @@ export const copyCard = (
         ? '<span class="map-badge is-repeat">repeat</span>'
         : ''
   const made = copy.scene?.made
-  return `${thumb(copy.svg, 'Blank page')}${badge}<span class="map-num${made ? ' is-made' : ''}" style="--ep:${colorOf(view, episode.notebook)}">${made ? '✓' : index + 1}</span><div class="map-card-title">${escape(copy.title)}</div><div class="map-card-meta">${page ? `from page ${page}` : 'its own page'}</div>`
+  const svg = copy.svg === undefined ? mapSvg : copy.svg
+  return `${thumb(svg, 'Blank page')}${badge}<span class="map-num${made ? ' is-made' : ''}" style="--ep:${colorOf(view, episode.notebook)}">${made ? '✓' : index + 1}</span><div class="map-card-title">${escape(copy.title)}</div><div class="map-card-meta">${page ? `from page ${page}` : 'its own page'}</div>`
 }
 
 /** The episode's first line in, or its last line out. */

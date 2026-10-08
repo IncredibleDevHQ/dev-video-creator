@@ -687,3 +687,21 @@ it('keeps a made scene made when a page far from it changes', async () => {
   expect(scene.phase).toBe('produced')
   expect(scene.produced).not.toBeNull()
 })
+
+it('sends a copy’s drawing only when it differs from its map page', async () => {
+  await drawnMap('m15')
+  const series = await episodes.startMapSeries('m15', {})
+  const { notebook } = await episodes.addMapEpisode(series.id, {
+    slides: ['m15-1', 'm15-2']
+  })
+  const ep = notebook.project.id
+  await segues.settledSegues(ep)
+  let copies = (await episodes.mapView('m15')).episodes[0].copies
+  expect(copies.map((c) => c.svg)).toEqual([undefined, undefined])
+  // The episode redrew its own copy: the canvas needs that drawing.
+  await changeProject(ep, (current) => {
+    current.project.slides[1].svg = '<svg>episode’s own</svg>'
+  })
+  copies = (await episodes.mapView('m15')).episodes[0].copies
+  expect(copies[1].svg).toBe('<svg>episode’s own</svg>')
+})

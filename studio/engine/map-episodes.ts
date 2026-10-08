@@ -440,7 +440,7 @@ export const mapView = async (mapId: string): Promise<MapView> => {
       return {
         id: slide.id,
         title: slide.title,
-        svg: slide.svg,
+        ...(original && original.svg === slide.svg ? {} : { svg: slide.svg }),
         ...(slide.copyOf ? { copyOf: slide.copyOf } : {}),
         ...(slide.bridge ? { bridge: slide.bridge } : {}),
         ...(slide.outro ? { outro: slide.outro } : {}),

@@ -88,6 +88,7 @@ export const paintWorld = (map: MapCanvas) => {
       html: `<div class="map-block-head"><h2>Series · ${escape(view.series.title)}</h2><p>${view.episodes.length ? `${view.episodes.length} episode${view.episodes.length === 1 ? '' : 's'} · ${copies} cop${copies === 1 ? 'y' : 'ies'} of map pages` : 'No episodes yet: add one with + Episode'}</p></div>`
     })
     const pageNo = new Map(pages.map((slide, index) => [slide.id, index + 1]))
+    const pageSvg = new Map(pages.map((slide) => [slide.id, slide.svg]))
     view.episodes.forEach((episode, at) => {
       const lane = layout.lanes[episode.notebook]
       const over = map.drag?.over === episode.notebook
@@ -120,7 +121,8 @@ export const paintWorld = (map: MapCanvas) => {
             episode,
             copy,
             index,
-            copy.copyOf ? pageNo.get(copy.copyOf.slide) || 0 : 0
+            copy.copyOf ? pageNo.get(copy.copyOf.slide) || 0 : 0,
+            copy.copyOf ? (pageSvg.get(copy.copyOf.slide) ?? null) : null
           ),
           data: { copy: copy.id }
         })

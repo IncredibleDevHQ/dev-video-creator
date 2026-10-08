@@ -34,7 +34,8 @@ export type SlideCopy = {
 export type MapCopy = {
   id: string
   title: string
-  svg: string | null
+  /** Left out when it is the map page's own drawing: the canvas has it. */
+  svg?: string | null
   copyOf?: SlideCopy
   /** The episode's line into this page, and out of the last one. */
   bridge?: string
