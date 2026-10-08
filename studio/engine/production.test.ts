@@ -198,6 +198,39 @@ it('does not publish a join made for old transitions', async () => {
   expect((await loadProject('join-race'))!.project.video!.produced).toBeNull()
 })
 
+it('joins again when a scene was made again from the same inputs', async () => {
+  await seed('remade-scene', true)
+  joinVideo.mockImplementation(async (_keys, _transitions, onClock) => {
+    onClock?.([
+      { start: 0, end: 2 },
+      { start: 2, end: 4 }
+    ])
+    return Buffer.from('Synthetic join fixture')
+  })
+  const produced = async () =>
+    (await loadProject('remade-scene'))!.project.video!.produced
+  await produceVideo('remade-scene')
+  await vi.waitFor(async () => expect(await produced()).not.toBeNull())
+  const first = (await produced())!.objectKey
+  // The same inputs, a new render: the old join must not be served.
+  await changeProject('remade-scene', (current) => {
+    current.project.video!.scenes[1].produced!.objectKey = 'remade-b.mp4'
+    current.project.video!.produced = null
+  })
+  await produceVideo('remade-scene')
+  await vi.waitFor(async () => expect(await produced()).not.toBeNull())
+  expect(joinVideo).toHaveBeenCalledTimes(2)
+  expect(joinVideo.mock.calls[1][0]).toEqual(['scene-a.mp4', 'remade-b.mp4'])
+  expect((await produced())!.objectKey).not.toBe(first)
+  // Asked again with nothing changed, the saved join is served as it is.
+  await changeProject('remade-scene', (current) => {
+    current.project.video!.produced = null
+  })
+  await produceVideo('remade-scene')
+  await vi.waitFor(async () => expect(await produced()).not.toBeNull())
+  expect(joinVideo).toHaveBeenCalledTimes(2)
+})
+
 it('resumes a saved composition and render without rebuilding or rendering them', async () => {
   await seed('render-checkpoint')
   render.mockResolvedValue(Buffer.from('Synthetic checkpoint bytes'))

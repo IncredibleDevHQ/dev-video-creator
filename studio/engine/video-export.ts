@@ -137,27 +137,27 @@ export const produceVideo = async (id: string) => {
   const work = (async () => {
     try {
       let clock: SceneInterval[] = []
+      // A saved join serves only the renders it joined: a scene made again
+      // from the same inputs must not play its old picture.
+      const sources = made.map(({ scene }) => scene.produced!.objectKey)
       const saved = await loadStageCheckpoint<{
         objectKey: string
         posterKey?: string
         clock: SceneInterval[]
+        sources?: string[]
       }>(id, undefined, 'join', expected)
       let asset: { objectKey: string; posterKey?: string }
-      if (saved) {
+      if (saved && saved.data.sources?.join('\n') === sources.join('\n')) {
         await readAsset(saved.data.objectKey)
         asset = saved.data
         clock = saved.data.clock
       } else {
-        const bytes = await joinScenes(
-          made.map(({ scene }) => scene.produced!.objectKey),
-          seams,
-          (intervals) => {
-            clock = intervals.map((interval, index) => ({
-              ...interval,
-              sceneId: made[index].scene.id
-            }))
-          }
-        )
+        const bytes = await joinScenes(sources, seams, (intervals) => {
+          clock = intervals.map((interval, index) => ({
+            ...interval,
+            sceneId: made[index].scene.id
+          }))
+        })
         asset = await storeAsset({
           body: bytes,
           contentType: 'video/mp4',
@@ -167,7 +167,8 @@ export const produceVideo = async (id: string) => {
         })
         await saveStageCheckpoint(id, undefined, 'join', expected, {
           objectKey: asset.objectKey,
-          clock
+          clock,
+          sources
         })
       }
       asset = await ensureVideoCover(
@@ -181,7 +182,8 @@ export const produceVideo = async (id: string) => {
       )
       await saveStageCheckpoint(id, undefined, 'join', expected, {
         ...asset,
-        clock
+        clock,
+        sources
       })
       await changeProject(id, (current) => {
         const target = current.project.video
