@@ -135,43 +135,25 @@ const writeSegues = async (id: string) => {
   )
   const endKey = outroKey(slides, after?.project.title ?? null)
   const last = slides[slides.length - 1]
-  // A line written before lines kept what they were for is kept as it is.
   const stale = slides.map(
     (slide, index) =>
       slide.base !== undefined &&
-      (!slide.bridge ||
-        (slide.bridgeFor !== undefined && slide.bridgeFor !== keys[index]))
+      (!slide.bridge || slide.bridgeFor !== keys[index])
   )
   const outroStale =
-    last.base !== undefined &&
-    (!last.outro || (last.outroFor !== undefined && last.outroFor !== endKey))
+    last.base !== undefined && (!last.outro || last.outroFor !== endKey)
   const ids = slides.map((slide) => slide.id)
   // Nothing around any page changed: only a stray "next time" goes.
   if (!stale.some(Boolean) && !outroStale) {
-    const unkept = slides.some(
-      (slide, index) =>
-        slide.base !== undefined &&
-        (slide.bridgeFor !== keys[index] ||
-          (index === slides.length - 1 && slide.outroFor !== endKey))
-    )
-    if (
-      unkept ||
-      snapshot.project.segues ||
-      slides.slice(0, -1).some((s) => s.outro)
-    )
+    if (snapshot.project.segues || slides.slice(0, -1).some((s) => s.outro))
       await changeProject(id, (current) => {
         const now = current.project.slides
         if (now.map((s) => s.id).join() !== ids.join()) return
-        now.forEach((slide, index) => {
-          if (slide.base === undefined) return
-          // The lines stay; what they were written for is kept from now on.
-          slide.bridgeFor = keys[index]
-          if (index === now.length - 1) slide.outroFor = endKey
-          else if (slide.outro) {
-            delete slide.outro
-            delete slide.outroFor
-            slide.narration = composeNarration(slide)
-          }
+        now.slice(0, -1).forEach((slide) => {
+          if (!slide.outro) return
+          delete slide.outro
+          delete slide.outroFor
+          slide.narration = composeNarration(slide)
         })
         delete current.project.segues
         reconcileVideo(current.project, current, new Set())
@@ -224,11 +206,15 @@ const writeSegues = async (id: string) => {
       now.forEach((slide, index) => {
         // A script the creator wrote is theirs: it keeps no segue.
         if (slide.base === undefined) return
-        if (stale[index]) slide.bridge = segues.pages[index].bridge
-        slide.bridgeFor = keys[index]
+        if (stale[index]) {
+          slide.bridge = segues.pages[index].bridge
+          slide.bridgeFor = keys[index]
+        }
         if (index === now.length - 1) {
-          if (outroStale) slide.outro = segues.outro
-          slide.outroFor = endKey
+          if (outroStale) {
+            slide.outro = segues.outro
+            slide.outroFor = endKey
+          }
         } else {
           delete slide.outro
           delete slide.outroFor

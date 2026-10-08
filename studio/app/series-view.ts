@@ -77,7 +77,7 @@ export const seriesPageView = (page: SeriesPageData) => {
   const repo = series.repos[0]
   return `<h2>${escape(series.title)}</h2>
 <p class="series-about">${escape(series.about)}${repo ? ` <small>${escape(repo.name)} · ${escape(repo.branch)}</small>` : ''}</p>
-<h3>Arc</h3>${arcView(page)}
+${series.map ? '' : `<h3>Arc</h3>${arcView(page)}`}
 <h3>Episodes</h3>${
     page.episodes.length
       ? `<ol class="series-episodes">${page.episodes
