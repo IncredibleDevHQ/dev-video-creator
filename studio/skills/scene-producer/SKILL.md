@@ -141,7 +141,14 @@ The app enforces the run limits; do not restart a run or launch another model.
    redraw accepted assets, or rewrite working animation code. Change more
    only when measured timing, final media or a concrete validation failure
    requires it. Read only references needed for those changes.
-   Without an accepted preview, build `production/index.html` from the plan.
+   When `packet/DRAFT.json` exists, an earlier run of this scene stopped
+   before its build was accepted, and the app has put that run's
+   `production/index.html`, manifest and assets back in place. Continue from
+   them: read them, fix what its `lastCheck` lists (some may be fixed
+   already), keep what works and submit. Rebuild a part only where it cannot
+   be fixed; reread only the recipes and references those fixes need.
+   Without an accepted preview or a draft, build `production/index.html` from
+   the plan.
    Realize every moment of the plan inside its
    interval: what the viewer sees changes when the voice says it, the plan's
    objects perform what the plan says they do, the camera and attention go

@@ -78,11 +78,12 @@ const BASE: Record<HarnessOperation, StageLimits> = {
     maxOutputTokens: 64_000
   },
   // The settled-frame check made composition a loop: build, measure, fix.
-  // Seen live: K3 took 11.7 min to its first build and had no time to fix.
   // High effort: it builds what the viewer sees. Asked "medium", K3 (low,
-  // high, max) ran every composition at low.
+  // high, max) ran every composition at low. Seen live at high: K3 read the
+  // recipes, thought 32k tokens (13½ min), built by 18½ min and ran out of
+  // its 25 mid-fix. A build and two fixes fit in 40.
   composition: {
-    timeoutMs: minutes(10),
+    timeoutMs: minutes(16),
     idleTimeoutMs: minutes(3),
     maxToolCalls: 60,
     effort: 'high',

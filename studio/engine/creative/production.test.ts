@@ -13,9 +13,13 @@ import { tmpdir } from 'node:os'
 import { afterAll, expect, it } from 'vitest'
 import {
   collectProduction,
+  draftSeed,
+  keepDraft,
   mediaBindingInstructions,
   retainedContentSeed
 } from './production'
+import { archiveFiles } from '../artifacts'
+import { writeRow } from '../persistence'
 const root = await mkdtemp(join(tmpdir(), 'studio-production-input-'))
 afterAll(() => rm(root, { recursive: true, force: true }))
 const supplied = {
@@ -97,4 +101,47 @@ it('reuses accepted code and artwork without loading previous presenter or sound
     'object-0',
     'object-1'
   ])
+})
+
+it('continues a stopped build from its own files, not from the start', async () => {
+  // A synthetic stopped run: the files its workspace held when it stopped.
+  const artifacts = await archiveFiles('notebook-draft', 'scene-1', 'run', {
+    'production/index.html': '<p>Synthetic draft</p>',
+    'production/manifest.json': '{}',
+    'production/assets/marker.svg': '<svg/>',
+    'production/media/scene-audio.wav': 'synthetic sound',
+    'packet/PLAN.json': '{}'
+  })
+  await writeRow('engine-artifacts', 'run-1', { artifacts })
+  const scene = { id: 'scene-1', inputKey: 'animation-1' }
+  const found = ['the title is cut by the left edge']
+  await keepDraft('notebook-draft', scene, 'run-1', 'plan-1', found)
+  const resumed = await draftSeed('notebook-draft', scene, 'plan-1')
+  // The page, its manifest and its artwork come back; the app's own media
+  // and the packet are supplied fresh by the next run.
+  expect(Object.keys(resumed!.seed).sort()).toEqual([
+    'production/assets/marker.svg',
+    'production/index.html',
+    'production/manifest.json'
+  ])
+  expect(resumed!.seed['production/index.html'].toString()).toBe(
+    '<p>Synthetic draft</p>'
+  )
+  expect(JSON.parse(resumed!.note).lastCheck).toEqual(found)
+  // A new plan or new inputs start again.
+  expect(await draftSeed('notebook-draft', scene, 'plan-2')).toBeNull()
+  expect(
+    await draftSeed(
+      'notebook-draft',
+      { id: 'scene-1', inputKey: 'animation-2' },
+      'plan-1'
+    )
+  ).toBeNull()
+  // A run that stopped before writing a page leaves nothing to continue.
+  await writeRow('engine-artifacts', 'run-2', {
+    artifacts: artifacts.filter((file) => !file.name.endsWith('index.html'))
+  })
+  const other = { id: 'scene-2', inputKey: 'animation-1' }
+  await keepDraft('notebook-draft', other, 'run-2', 'plan-1', [])
+  expect(await draftSeed('notebook-draft', other, 'plan-1')).toBeNull()
 })
