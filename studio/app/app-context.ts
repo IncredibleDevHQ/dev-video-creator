@@ -74,6 +74,7 @@ export interface AppContext {
   dialog: HTMLDialogElement
   settingsScreen: Settings
   templateGallery: import('./template-gallery').TemplateGallery
+  mapCanvas: import('./map-canvas').MapCanvas
   pendingChats: Set<string>
   liveConnected: boolean
   openingAutoStage: boolean

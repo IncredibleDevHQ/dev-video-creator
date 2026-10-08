@@ -32,7 +32,12 @@ export const installAppActions = (app: AppContext) => {
     const form = event.target as HTMLFormElement
     if (form.closest('[data-confirm]')) return
     event.preventDefault()
-    if (app.settingsScreen.isOpen || app.templateGallery.isOpen) return
+    if (
+      app.settingsScreen.isOpen ||
+      app.templateGallery.isOpen ||
+      app.mapCanvas.isOpen
+    )
+      return
     const values = new FormData(form)
     try {
       await submitStart(app, form, values)
@@ -55,6 +60,7 @@ export const installAppActions = (app: AppContext) => {
       closePopover()
       closeLookPanel(app)
       app.templateGallery.dismiss()
+      app.mapCanvas.dismiss()
       try {
         await flushNotebookEdits(app)
       } catch (reason) {
@@ -72,6 +78,9 @@ export const installAppActions = (app: AppContext) => {
       void app.refreshNotebooks().catch(app.error)
       return
     }
+    // The content map handles its own page.
+    if (app.mapCanvas.isOpen && (event.target as Element).closest('.map-page'))
+      return
     const target = (event.target as Element).closest<HTMLButtonElement>(
       'button'
     )
@@ -207,6 +216,17 @@ export const installAppActions = (app: AppContext) => {
       }
       if (action === 'rehearse') {
         openPresenter(app)
+        return
+      }
+      if (action === 'open-map-of' && target.dataset.map) {
+        app.dialog.close()
+        void app.mapCanvas.open(target.dataset.map)
+        return
+      }
+      if (action === 'open-map' && app.snapshot) {
+        app.stopPractice()
+        const { project } = app.snapshot
+        void app.mapCanvas.open(project.copyOfMap || project.id)
         return
       }
       if (action === 'how-it-works') {

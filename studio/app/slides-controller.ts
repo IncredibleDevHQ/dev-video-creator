@@ -7,9 +7,11 @@ import { closePopover, openPopover } from './popover'
 
 export const installSlidesController = (app: AppContext) => {
   app.root.addEventListener('keydown', (event) => {
+    // The content map, open over the wireframes, has keys of its own.
     if (
       !app.snapshot ||
       app.stage !== 'presentation' ||
+      app.mapCanvas.isOpen ||
       /INPUT|TEXTAREA/.test((event.target as Element).tagName)
     )
       return

@@ -1,4 +1,5 @@
 import { TemplateGallery } from './template-gallery'
+import { MapCanvas } from './map-canvas'
 import { useTemplate } from './template-controller'
 import { installAppearance } from './appearance'
 import { showError } from './error-surface'
@@ -127,6 +128,19 @@ app.templateGallery = new TemplateGallery(
   (narrative, preset) =>
     void useTemplate(app, narrative, preset).catch(app.error)
 )
+app.mapCanvas = new MapCanvas(app.root, {
+  close: () => {
+    app.stage = 'presentation'
+    if (app.snapshot?.project.id === app.mapCanvas.mapId) app.render()
+    else void app.openNotebook(app.mapCanvas.mapId)
+  },
+  openEpisode: (id) => {
+    app.mapCanvas.dismiss()
+    app.stage = 'presentation'
+    void app.openNotebook(id)
+  },
+  error: showError
+})
 app.pendingChats = new Set<string>()
 app.liveConnected = true
 app.openingAutoStage = false
@@ -224,7 +238,9 @@ app.saved =
   app.parameters.get('notebook') ||
   app.parameters.get('project') ||
   localStorage.getItem('minimal-studio-project')
-if (app.saved) void app.openNotebook(app.saved)
+const mapParameter = app.parameters.get('map')
+if (mapParameter) void app.mapCanvas.open(mapParameter)
+else if (app.saved) void app.openNotebook(app.saved)
 else void app.refreshNotebooks().catch(app.error)
 window.addEventListener('pagehide', () => {
   app.stopPractice()

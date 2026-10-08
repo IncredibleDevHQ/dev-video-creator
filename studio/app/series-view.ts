@@ -88,12 +88,17 @@ export const seriesPageView = (page: SeriesPageData) => {
           .join('')}</ol>`
       : '<p class="series-none">No episode yet.</p>'
   }
-<form id="episode-form" class="episode-form" data-series="${escape(series.id)}">
+${
+  // A map's series takes its episodes from the map's pages, on the canvas.
+  series.map
+    ? `<p class="series-about">Its episodes are copies of the pages of a content map. <button type="button" class="primary" data-action="open-map-of" data-map="${escape(series.map)}">Open the map</button></p>`
+    : `<form id="episode-form" class="episode-form" data-series="${escape(series.id)}">
 <label for="episode-source">${next ? `Next: ${escape(next.part.title)}` : `Episode ${page.episodes.length + 1}`}</label>
 <textarea id="episode-source" name="source" rows="3" placeholder="${repo ? 'Paste its blog or notes, or leave empty to start from what changed on the branch' : 'Paste its blog, notes or a link'}"></textarea>
 ${next ? `<input type="hidden" name="part" value="${next.index}">` : ''}
 <button class="primary">Add the episode</button>
-</form>
+</form>`
+}
 <form id="threads-form" class="threads-form" data-series="${escape(series.id)}">
 <label for="series-threads">Threads <small>carried from one episode to the next, one a line</small></label>
 <textarea id="series-threads" name="threads" rows="3">${escape(series.threads.join('\n'))}</textarea>

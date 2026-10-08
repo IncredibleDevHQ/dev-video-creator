@@ -118,6 +118,32 @@ live in Settings. The
 presenter stand-in is for rehearsal/testing; actual capture and clone quality
 still require the acceptance checks below.
 
+## The content map
+
+Map, beside Look on the Wireframe stage, opens the notebook's wireframes as a
+content map: a canvas of its pages, the series made from them, and what each
+made episode was cut into. Keep adding notes in its rail: the agent sorts each
+note into the map as a new page drawn from it, an addition queued as a change
+to the page it extends, or already covered, and the note joins the notebook's
+source as evidence. By order shows the pages in the order the source and the
+notes brought them; By topic groups them (Group by topic asks the agent, and a
+later page joins a topic when its note's sorting finds one). All, Unused and
+New filter what is lit.
+
+Start a series makes the series for the map, and + Episode adds an episode,
+empty or with the selected pages. An episode is a notebook of copies: drag a
+page into an episode's lane to copy it (hold ⌥ to cut it, so it belongs to
+that episode only), drag a copy to reorder it or into another lane to move
+it, or use ⌘C, ⌘X and ⌘V. Each page says which episodes use it, or that it is
+unused; set aside a page you will not use. The map never changes because an
+episode did. When a page of the map changes, its copies say "source changed"
+and offer Update copy or Keep this version. An episode's segues are its own:
+the cold open or "last time", a line into each page and "next time", written
+by the agent and again when its pages change; a script you write yourself
+keeps no segue. Make opens the episode, ready for Make the video; once it is
+made, Teaser cuts a teaser from its scenes and Posts drafts the words.
+`?map=<notebook id>` opens a map directly.
+
 ## Storage and checks
 
 Local files default to `.minimal-studio-data`; override with
