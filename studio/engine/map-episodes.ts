@@ -15,7 +15,7 @@ import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
 import { changeSeries, loadSeries, previouslyOf } from './series'
-import { composeNarration, scheduleSegues } from './map-segues'
+import { composeNarration, planScenes, scheduleSegues } from './map-segues'
 import { copyOf, pageHash } from './map-copy'
 import { schedulePick } from './map-picking'
 export { copyOf, pageHash } from './map-copy'
@@ -233,6 +233,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
       reconcileVideo(current.project, current, new Set())
       addEvent(current, 'slide', `Copied “${page.title}” from the map`)
     })
+    await planScenes(id)
     if (cut) await claimPages(mapId, [page.id], id)
     else if (page.onlyIn && page.onlyIn !== id)
       await changeProject(mapId, (current) => {
@@ -255,6 +256,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
         slides.splice(position(slides.length), 0, moved)
         reconcileVideo(current.project, current, new Set())
       })
+      await planScenes(id)
       scheduleSegues(id)
       return { moved: true }
     }
@@ -277,6 +279,8 @@ export const changeCopies = async (id: string, raw: unknown) => {
       const moved = { ...copy, id: randomUUID() }
       delete moved.bridge
       delete moved.outro
+      delete moved.bridgeFor
+      delete moved.outroFor
       moved.narration = composeNarration(moved) || copy.narration
       slides.splice(position(slides.length), 0, moved)
       reconcileVideo(current.project, current, new Set())
@@ -288,6 +292,8 @@ export const changeCopies = async (id: string, raw: unknown) => {
         )
         if (original?.onlyIn === id) original.onlyIn = to
       })
+    await planScenes(id)
+    await planScenes(to)
     scheduleSegues(id)
     scheduleSegues(to)
     return { moved: true }
@@ -307,6 +313,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
         )
         if (original?.onlyIn === id) delete original.onlyIn
       })
+    await planScenes(id)
     scheduleSegues(id)
     return { removed: true }
   }
@@ -336,7 +343,10 @@ export const changeCopies = async (id: string, raw: unknown) => {
       reconcileVideo(current.project, current, new Set())
       addEvent(current, 'slide', `Updated “${original.title}” from the map`)
     })
-    if (action === 'update') scheduleSegues(id)
+    if (action === 'update') {
+      await planScenes(id)
+      scheduleSegues(id)
+    }
     return { [action === 'keep' ? 'kept' : 'updated']: true }
   }
   throw new Refusal('Choose add, move, remove, update or keep')

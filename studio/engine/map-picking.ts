@@ -6,7 +6,7 @@ import type { Snapshot } from '../shared/api'
 import { addEvent } from './activity'
 import { runValidatedJsonStage } from './creative/stage'
 import { copyOf } from './map-copy'
-import { scheduleSegues } from './map-segues'
+import { planScenes, scheduleSegues } from './map-segues'
 import { detectedHarness } from './notebook-intake'
 import { readRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
@@ -155,6 +155,7 @@ const pick = async (id: string) => {
         `Picked ${chosen.pages.length} page${chosen.pages.length === 1 ? '' : 's'} from the map`
       )
     })
+    await planScenes(id)
     scheduleSegues(id)
     const at =
       series?.episodes.findIndex((item) => item.notebookId === id) ?? -1

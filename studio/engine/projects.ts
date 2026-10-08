@@ -589,6 +589,8 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       delete slide.base
       delete slide.bridge
       delete slide.outro
+      delete slide.bridgeFor
+      delete slide.outroFor
       reconcileVideo(snapshot.project, snapshot)
       return
     }

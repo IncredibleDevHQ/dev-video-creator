@@ -180,8 +180,10 @@ already speaks). Write the episode's own lines, said around those scripts:
 - an `outro` said after the last page's script: next time, the next
   episode's title in a line; for the last episode, a short wrap-up.
 
-Never repeat the script's own first sentence, add no facts beyond the pages,
-and keep it plain and spoken. Write `story/segues.json` as
+A page given `keep` keeps that line, and `keepOutro` keeps the outro: write
+them back unchanged and let the new lines lead into and out of them. Never
+repeat the script's own first sentence, add no facts beyond the pages, and
+keep it plain and spoken. Write `story/segues.json` as
 `{ "pages": [{ "id": "<page id>", "bridge": "…" }], "outro": "…" }`, one
 entry per page in the same order. Call story_submit_segues with this run
 directory; fix refusals within six submissions, then stop after acceptance.

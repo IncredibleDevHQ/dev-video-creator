@@ -148,6 +148,10 @@ export type Slide = {
   base?: string
   bridge?: string
   outro?: string
+  /** What the line in and the line out were written for: kept until a
+   * neighbouring page, or the episode before or after, changes. */
+  bridgeFor?: string
+  outroFor?: string
 }
 export type Transition =
   | 'none'

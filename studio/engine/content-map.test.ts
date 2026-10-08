@@ -607,3 +607,83 @@ it('marks map work a restart cut off, and sorts a note again', async () => {
     'could not be sorted'
   )
 })
+
+it('rewrites only the segues around what changed, so made scenes keep their script', async () => {
+  await drawnMap('m13')
+  const series = await episodes.startMapSeries('m13', {})
+  const { notebook } = await episodes.addMapEpisode(series.id, {
+    slides: ['m13-1', 'm13-2', 'm13-3']
+  })
+  const ep = notebook.project.id
+  await segues.settledSegues(ep)
+  const first = (await loadProject(ep))!.project.slides.map((s) => s.bridge)
+  // The agent would now word every line differently.
+  replies['Write Segues'] = (input) => {
+    const brief = JSON.parse(
+      (input.packet as Record<string, string>)['packet/EPISODE.json']
+    )
+    return {
+      pages: brief.pages.map((p: { id: string; keep?: string }) => ({
+        id: p.id,
+        bridge: p.keep || 'A new line.'
+      })),
+      outro: 'A new ending.'
+    }
+  }
+  const slides = (await loadProject(ep))!.project.slides
+  await episodes.changeCopies(ep, { action: 'remove', slide: slides[2].id })
+  await segues.settledSegues(ep)
+  const now = (await loadProject(ep))!.project.slides
+  // The two pages that stayed keep their lines; only the ending is new.
+  expect(now.map((s) => s.bridge)).toEqual(first.slice(0, 2))
+  expect(now[1].outro).toBe('A new ending.')
+  // Nothing changed around any page: no call at all.
+  stage.mockClear()
+  segues.scheduleSegues(ep)
+  await segues.settledSegues(ep)
+  expect(stage).not.toHaveBeenCalled()
+})
+
+it('keeps a made scene made when a page far from it changes', async () => {
+  vi.doMock('./video', () => ({ schedulePlanning: vi.fn() }))
+  const { reconcileVideo } = await import('./scene-model')
+  await drawnMap('m14')
+  const series = await episodes.startMapSeries('m14', {})
+  const { notebook } = await episodes.addMapEpisode(series.id, {
+    slides: ['m14-1', 'm14-2', 'm14-3']
+  })
+  const ep = notebook.project.id
+  await segues.settledSegues(ep)
+  // A video whose first scene is made.
+  await changeProject(ep, (current) => {
+    current.project.video = {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: null
+    }
+    reconcileVideo(current.project, current, new Set())
+    const first = current.project.video.scenes[0]
+    first.phase = 'produced'
+    first.produced = { inputKey: 'k', objectKey: 'scene.mp4' }
+  })
+  replies['Write Segues'] = (input) => {
+    const brief = JSON.parse(
+      (input.packet as Record<string, string>)['packet/EPISODE.json']
+    )
+    return {
+      pages: brief.pages.map((p: { id: string; keep?: string }) => ({
+        id: p.id,
+        bridge: p.keep || 'A new line.'
+      })),
+      outro: 'A new ending.'
+    }
+  }
+  const slides = (await loadProject(ep))!.project.slides
+  await episodes.changeCopies(ep, { action: 'remove', slide: slides[2].id })
+  await segues.settledSegues(ep)
+  const scene = (await loadProject(ep))!.project.video!.scenes[0]
+  expect(scene.phase).toBe('produced')
+  expect(scene.produced).not.toBeNull()
+})

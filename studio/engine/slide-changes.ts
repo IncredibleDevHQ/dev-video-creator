@@ -18,7 +18,7 @@ import { readRow, storeAsset, writeRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { reconcileVideo } from './scene-model'
-import { composeNarration, scheduleSegues } from './map-segues'
+import { composeNarration, planScenes, scheduleSegues } from './map-segues'
 import type { readSourceNarrative } from './source-document'
 import {
   outlineSchema,
@@ -358,6 +358,8 @@ const reviseSlide = async (id: string, change: SlideChange) => {
       activity: 'complete'
     })
   })
+  // A redrawn page invalidated its scene: plan it again, if there is a video.
+  await planScenes(id)
   if (snapshot.project.copyOfMap) scheduleSegues(id)
 }
 
