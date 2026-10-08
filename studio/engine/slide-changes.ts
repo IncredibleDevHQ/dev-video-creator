@@ -4,6 +4,7 @@
 import { randomUUID } from 'node:crypto'
 import type { ChatRequest, Snapshot } from '../shared/api'
 import type { Slide, SlideChange } from '../shared/model'
+import { pageContent } from '../shared/content-map'
 import { addEvent } from './activity'
 import { prepareCreativePages } from './creative/pages'
 import { prepareCreativeSlideRevision } from './creative/slide-revision'
@@ -196,17 +197,9 @@ export const recoverChanges = (snapshot: Snapshot) => {
     }
 }
 
-/**
- * What a change redraws from: the page without the map's notes on it (its
- * topic, set aside, cut into an episode), which grouping the map or using a
- * page in an episode may change meanwhile without changing the page.
- */
-const drawingOf = (slide: Slide | undefined) => {
-  if (!slide) return slide
-  const { topic, aside, onlyIn, fromNote, ...drawing } = slide
-  void [topic, aside, onlyIn, fromNote]
-  return drawing
-}
+/** What a change redraws from: the page without the map's bookkeeping. */
+const drawingOf = (slide: Slide | undefined) =>
+  slide ? pageContent(slide) : slide
 
 const origin = () =>
   process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||

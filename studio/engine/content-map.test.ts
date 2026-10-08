@@ -705,3 +705,50 @@ it('sends a copy’s drawing only when it differs from its map page', async () =
   copies = (await episodes.mapView('m15')).episodes[0].copies
   expect(copies[1].svg).toBe('<svg>episode’s own</svg>')
 })
+
+it('keeps made scenes made when only the map’s bookkeeping changes', async () => {
+  const { reconcileVideo } = await import('./scene-model')
+  const made = (current: Snapshot) => {
+    current.project.video = {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: null
+    }
+    reconcileVideo(current.project, current, new Set())
+    for (const scene of current.project.video.scenes) {
+      scene.phase = 'produced'
+      scene.produced = { inputKey: 'k', objectKey: 'scene.mp4' }
+    }
+  }
+  // The map's own video: grouping its pages by topic changes no scene.
+  await drawnMap('m16')
+  await changeProject('m16', made)
+  replies['Group Topics'] = () => ({
+    topics: [
+      { name: 'Why', pages: ['m16-1', 'm16-2'] },
+      { name: 'How', pages: ['m16-3', 'm16-4'] }
+    ]
+  })
+  await topics.groupTopics('m16')
+  await topics.settledTopics('m16')
+  await episodes.setAside('m16', { slide: 'm16-4', aside: true })
+  expect(
+    (await loadProject('m16'))!.project.video!.scenes.map((s) => s.phase)
+  ).toEqual(['produced', 'produced', 'produced', 'produced'])
+  // An episode's video: keeping a copy's version changes no scene.
+  const series = await episodes.startMapSeries('m16', {})
+  const ep = (await episodes.addMapEpisode(series.id, { slides: ['m16-1'] }))
+    .notebook.project.id
+  await segues.settledSegues(ep)
+  await changeProject(ep, made)
+  await changeProject('m16', (current) => {
+    current.project.slides[0].narration = 'A newer script.'
+  })
+  const copy = (await loadProject(ep))!.project.slides[0]
+  await episodes.changeCopies(ep, { action: 'keep', slide: copy.id })
+  expect((await loadProject(ep))!.project.video!.scenes[0].phase).toBe(
+    'produced'
+  )
+})

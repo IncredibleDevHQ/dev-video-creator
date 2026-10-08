@@ -3,6 +3,7 @@
 // page with the map: it holds a copy that remembers where it came from, so
 // the map can say which episodes use each page and when an original changed.
 import type { Snapshot } from './api'
+import type { Slide } from './model'
 
 /** A note added after the wireframes, and what it became in the map. */
 export type MapNote = {
@@ -71,6 +72,31 @@ export type MapView = {
   episodes: MapEpisode[]
   /** For each page of the map, the episodes that hold a copy of it. */
   usage: Record<string, string[]>
+}
+
+/**
+ * A page without the map's and the episode's bookkeeping: what a scene is
+ * planned from, and what a redraw checks. Grouping, setting aside, cutting,
+ * keeping a copy's version or noting what a segue was written for changes
+ * none of what the page shows or says (a segue's words are in its script).
+ */
+export const pageContent = <T extends Slide>(slide: T) => {
+  const {
+    fromNote,
+    topic,
+    aside,
+    onlyIn,
+    copyOf,
+    base,
+    bridge,
+    outro,
+    bridgeFor,
+    outroFor,
+    ...content
+  } = slide
+  void [fromNote, topic, aside, onlyIn, copyOf, base, bridge, outro]
+  void [bridgeFor, outroFor]
+  return content
 }
 
 /** The topics the map's pages are grouped by, in order, with their pages. */

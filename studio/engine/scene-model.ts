@@ -2,7 +2,8 @@ import { readyCapture } from '../shared/capture'
 import { inCut } from '../shared/orchestration'
 import type { ActivityLedger } from './activity'
 import { transitionScene } from './autopilot'
-import type { Project, Scene, Moment, Voice } from '../shared/model'
+import type { Project, Scene, Moment, Slide, Voice } from '../shared/model'
+import { pageContent } from '../shared/content-map'
 import { fingerprintOf } from './planning/fingerprint'
 import { narrativeAt, plannedPages } from '../shared/narratives'
 import { donePages } from '../shared/state'
@@ -35,7 +36,11 @@ export const scenePlanKey = (project: Project, scene: Scene) => {
   )
   // A page leaving its draft for its final is the same page; a demo counts
   // once it is captured, not while it is planned or recorded.
-  const { draft: _draft, capture, ...rest } = project.slides[index] || {}
+  const {
+    draft: _draft,
+    capture,
+    ...rest
+  } = pageContent(project.slides[index] || ({} as Slide))
   const used = readyCapture(capture)
   const slide = used ? { ...rest, capture: used.objectKey } : rest
   return fingerprintOf({
