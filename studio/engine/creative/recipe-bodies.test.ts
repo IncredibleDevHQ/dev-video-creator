@@ -41,13 +41,23 @@ await writeFile(
   join(animation, 'rules', 'spring-pop-entrance.md'),
   '# Spring pop entrance\n\nfromTo scale 0 → 1 with back.out.\n'
 )
+await writeFile(
+  join(animation, 'techniques.md'),
+  '# Techniques\n\n## Contents\n\n- one\n\n## 9. GSAP MotionPathPlugin\n\nAnimate along a path with motionPath.\n\n## 10. Velocity-Matched Transitions\n\nMatch the velocity.\n'
+)
 const { indexEntry, planRecipes, recipeBodies } =
   await import('./recipe-bodies')
 
 it('puts the bodies of the recipes a plan names in front of the producer', async () => {
   const ids = planRecipes({
     moments: [
-      { recipes: [{ id: 'spring-pop-entrance' }, { id: 'comparison-split' }] },
+      {
+        recipes: [
+          { id: 'spring-pop-entrance' },
+          { id: 'comparison-split' },
+          { id: 'gsap-motionpathplugin' }
+        ]
+      },
       {
         recipes: [
           { id: 'spring-pop-entrance' },
@@ -58,7 +68,11 @@ it('puts the bodies of the recipes a plan names in front of the producer', async
     ]
   })
   const { files, bodies, missing } = await recipeBodies(ids)
-  expect(bodies).toEqual(['spring-pop-entrance'])
+  expect(bodies).toEqual(['spring-pop-entrance', 'gsap-motionpathplugin'])
+  // A technique's body is its section of techniques.md.
+  expect(files['packet/recipes/gsap-motionpathplugin.md']).toBe(
+    '## 9. GSAP MotionPathPlugin\n\nAnimate along a path with motionPath.'
+  )
   expect(missing).toEqual(['comparison-split'])
   expect(files['packet/recipes/spring-pop-entrance.md']).toContain('back.out')
   expect(files['packet/recipes/comparison-split.md']).toContain(
@@ -70,6 +84,6 @@ it('puts the bodies of the recipes a plan names in front of the producer', async
   expect(files['packet/recipes/CONTRACT.md']).toContain(
     'ONE paused GSAP timeline'
   )
-  expect(Object.keys(files)).toHaveLength(3)
+  expect(Object.keys(files)).toHaveLength(4)
   expect(indexEntry('<x path="a">X does</x>', 'x')).toBe('X does')
 })

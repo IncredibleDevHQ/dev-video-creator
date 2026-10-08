@@ -27,6 +27,19 @@ export const indexEntry = (index: string, id: string) => {
   return (rule || blueprint)?.[1].trim() || ''
 }
 
+/** A technique's section of techniques.md, by its catalog id (its title). */
+export const techniqueSection = (techniques: string, id: string) => {
+  for (const section of techniques.split(/\n(?=## )/)) {
+    const title = /^## (?:\d+\.\s*)?(.+)/.exec(section)?.[1] || ''
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+    if (slug === id) return section.trim()
+  }
+  return ''
+}
+
 /** The rules' shared contract: what every recipe body assumes. */
 const contractOf = (rulesIndex: string) => {
   const start = rulesIndex.indexOf('## The contract')
@@ -44,6 +57,9 @@ export const recipeBodies = async (ids: string[]) => {
     join(root, 'blueprints-index.md'),
     'utf8'
   ).catch(() => '')
+  const techniques = await readFile(join(root, 'techniques.md'), 'utf8').catch(
+    () => ''
+  )
   const files: Record<string, string> = {}
   const bodies: string[] = []
   const missing: string[] = []
@@ -56,6 +72,7 @@ export const recipeBodies = async (ids: string[]) => {
       )
       if (body) break
     }
+    body ||= techniqueSection(techniques, id)
     if (body) {
       files[`packet/recipes/${id}.md`] = body
       bodies.push(id)
