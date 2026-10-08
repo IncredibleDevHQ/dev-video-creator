@@ -167,7 +167,10 @@ export const presentationScreen = (
   // A blank wireframe is drawn from what the creator says it shows.
   const describable =
     !!slide && !drawn && status === 'ready' && !snapshot.readOnly
-  const script = planTile ? planTile.narration : slide?.narration || ''
+  // An episode's copy: its own words; the episode's lines around it show apart.
+  const script = planTile
+    ? planTile.narration
+    : (slide?.base ?? slide?.narration) || ''
   const pin = view.pin && slide && canChange ? view.pin : null
   const link = slide
     ? sceneLink(snapshot, selected, view.pipOpen !== false)
@@ -306,6 +309,11 @@ export const presentationScreen = (
                   : 'From the story. You can edit it once the wireframes are ready.'}</small
               >
             </h3>
+            ${slide?.bridge
+              ? html`<p class="script-segue">
+                  Said before it: “${escape(slide.bridge)}”
+                </p>`
+              : ''}
             <textarea
               id="script-${escape(slide?.id || planTile?.id || '')}"
               data-script-slide="${escape(slide?.id || '')}"
@@ -315,6 +323,11 @@ export const presentationScreen = (
             >
 ${escape(script)}</textarea
             >
+            ${slide?.outro
+              ? html`<p class="script-segue">
+                  Said after it: “${escape(slide.outro)}”
+                </p>`
+              : ''}
           </section>`
         : ''}
       <form id="chat" class="chat ${pin ? 'has-pin' : ''}">

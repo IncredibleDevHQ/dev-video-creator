@@ -214,3 +214,21 @@ it('finishes a change when the map only grouped the page meanwhile', async () =>
     topic: 'Canvas'
   })
 })
+it('revises an episode’s copy from its own words and puts its segues back once', async () => {
+  await seed('episode-copy')
+  await changeProject('episode-copy', (current) => {
+    current.project.copyOfMap = 'some-map'
+    Object.assign(current.project.slides[1], {
+      base: 'The page’s own words.',
+      bridge: 'Into it.',
+      outro: 'Out of it.',
+      narration: 'Into it. The page’s own words. Out of it.'
+    })
+  })
+  await chatSlide('episode-copy', request)
+  await settledChanges('episode-copy')
+  expect(revise.mock.calls[0][0].slide.narration).toBe('The page’s own words.')
+  const copy = (await loadProject('episode-copy'))!.project.slides[1]
+  expect(copy.base).toBe(revised.narration)
+  expect(copy.narration).toBe(`Into it. ${revised.narration} Out of it.`)
+})

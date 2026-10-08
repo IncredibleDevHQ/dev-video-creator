@@ -361,7 +361,7 @@ it('copies, cuts, moves and removes pages between episodes', async () => {
   expect((await loadProject('m6'))!.project.slides[3].aside).toBe(true)
 })
 
-it('keeps a script the creator wrote out of the segues', async () => {
+it('edits a copy’s own words and keeps the episode’s lines around them', async () => {
   await drawnMap('m7')
   const series = await episodes.startMapSeries('m7', {})
   const ep = (
@@ -369,16 +369,18 @@ it('keeps a script the creator wrote out of the segues', async () => {
   ).notebook.project.id
   await segues.settledSegues(ep)
   const second = (await loadProject(ep))!.project.slides[1]
-  await editSlide(ep, {
+  const edited = await editSlide(ep, {
     action: 'script',
     slideId: second.id,
     narration: 'My own words.'
   })
-  segues.scheduleSegues(ep)
+  await episodes.afterEpisodeEdit(ep, edited)
   await segues.settledSegues(ep)
   const kept = (await loadProject(ep))!.project.slides[1]
-  expect(kept.narration).toBe('My own words.')
-  expect(kept.bridge).toBeUndefined()
+  expect(kept.base).toBe('My own words.')
+  expect(kept.narration).toBe(
+    'So, the parts. My own words. That is the series.'
+  )
 })
 
 it('checks segues and topics before accepting them', () => {
@@ -751,4 +753,93 @@ it('keeps made scenes made when only the map’s bookkeeping changes', async () 
   expect((await loadProject(ep))!.project.video!.scenes[0].phase).toBe(
     'produced'
   )
+})
+
+it('follows the review: evidence, neighbours, double adds, long lines, forced rewrites', async () => {
+  await drawnMap('m17')
+  const series = await episodes.startMapSeries('m17', {})
+  const a = (await episodes.addMapEpisode(series.id, { slides: ['m17-1'] }))
+    .notebook.project.id
+  const b = (await episodes.addMapEpisode(series.id, { slides: ['m17-2'] }))
+    .notebook.project.id
+  await segues.settledAllSegues()
+  // A note added later reaches the episodes' evidence.
+  replies['Sort Note'] = () => ({
+    items: [{ kind: 'covered', line: 'x', page: 'm17-1' }]
+  })
+  await notes.addNote('m17', { text: 'A note about latency budgets.' })
+  await notes.settledNotes()
+  expect(
+    (await readRow<{ source: { text: string } }>('outlines', a))!.source.text
+  ).toContain('latency budgets')
+  // Two quick notes both stay in the evidence.
+  await Promise.all([
+    notes.addNote('m17', { text: 'First quick note.' }),
+    notes.addNote('m17', { text: 'Second quick note.' })
+  ])
+  await notes.settledNotes()
+  const text = (await readRow<{ source: { text: string } }>('outlines', 'm17'))!
+    .source.text
+  expect(text).toContain('First quick note.')
+  expect(text).toContain('Second quick note.')
+  // The episode after hears about the one before's pages.
+  replies['Write Segues'] = (input) => {
+    const brief = JSON.parse(
+      (input.packet as Record<string, string>)['packet/EPISODE.json']
+    )
+    return {
+      pages: brief.pages.map((p: { id: string; keep?: string }, i: number) => ({
+        id: p.id,
+        bridge:
+          p.keep ||
+          (i === 0 && brief.previous
+            ? `Last time, ${brief.previous.pages.length} pages.`
+            : 'A line.')
+      })),
+      outro: brief.keepOutro || 'An ending.'
+    }
+  }
+  segues.scheduleSegues(b, true)
+  await segues.settledSegues(b)
+  expect((await loadProject(b))!.project.slides[0].bridge).toBe(
+    'Last time, 1 pages.'
+  )
+  await episodes.changeCopies(a, { action: 'add', slide: 'm17-3' })
+  await segues.settledAllSegues()
+  expect((await loadProject(b))!.project.slides[0].bridge).toBe(
+    'Last time, 2 pages.'
+  )
+  // Two quick adds of one page: one copy.
+  const both = await Promise.allSettled([
+    episodes.changeCopies(a, { action: 'add', slide: 'm17-4' }),
+    episodes.changeCopies(a, { action: 'add', slide: 'm17-4' })
+  ])
+  expect(both.filter((r) => r.status === 'rejected')).toHaveLength(1)
+  expect(
+    (await loadProject(a))!.project.slides.filter(
+      (s) => s.copyOf?.slide === 'm17-4'
+    )
+  ).toHaveLength(1)
+  await segues.settledAllSegues()
+  // A spoken line too long is refused, not cut.
+  expect(
+    segues.validateSegues(
+      { pages: [{ id: 'x', bridge: 'w'.repeat(400) }], outro: 'ok' },
+      ['x']
+    ).problems
+  ).toContain('Keep every line under 320 characters')
+})
+
+it('clears a cut when its copy is deleted on the Wireframe stage', async () => {
+  await drawnMap('m18')
+  const series = await episodes.startMapSeries('m18', {})
+  const ep = (await episodes.addMapEpisode(series.id, { slides: ['m18-1'] }))
+    .notebook.project.id
+  await episodes.changeCopies(ep, { action: 'add', slide: 'm18-2', only: true })
+  expect((await loadProject('m18'))!.project.slides[1].onlyIn).toBe(ep)
+  const copy = (await loadProject(ep))!.project.slides[1]
+  const edited = await editSlide(ep, { action: 'delete', slideId: copy.id })
+  await episodes.afterEpisodeEdit(ep, edited)
+  expect((await loadProject('m18'))!.project.slides[1].onlyIn).toBeUndefined()
+  await segues.settledAllSegues()
 })

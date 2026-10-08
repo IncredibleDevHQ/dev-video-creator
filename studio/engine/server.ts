@@ -5,6 +5,7 @@ import { setNotebookLength, setNotebookTemplate } from './notebook-intake'
 import { checkCoverage, suggestTemplate } from './template-suggest'
 import { studioRoute } from './studio-routes'
 import { mapRoute } from './map-routes'
+import { afterEpisodeEdit } from './map-episodes'
 import { settleInterruptedWork } from './studio-recovery'
 import {
   startPresentation,
@@ -487,6 +488,8 @@ export const createStudioServer = (
         if (action === 'slides' && request.method === 'PATCH') {
           const changed = await editSlide(id, slideRequest(body))
           schedulePlanning(id)
+          // An episode of a content map: its segues follow the edit.
+          await afterEpisodeEdit(id, changed)
           return send(response, 200, changed)
         }
         if (action === 'export' && request.method === 'GET') {

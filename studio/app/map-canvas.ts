@@ -51,6 +51,7 @@ export class MapCanvas {
   fly: Record<string, { x: number; y: number }> = {}
   drag: DragState | null = null
   naming: { slides: string[] } | null = null
+  from = ''
   changing: string | null = null
   private fitted = false
   private poll: ReturnType<typeof setInterval> | null = null
@@ -72,10 +73,12 @@ export class MapCanvas {
     return this.root.querySelector<HTMLElement>('[data-map-canvas]')
   }
   /** Opens the map of a notebook: an episode opens the map it copies. */
-  async open(id: string): Promise<void> {
+  async open(id: string, from = id): Promise<void> {
     this.stop()
     this.isOpen = true
     this.mapId = id
+    // An episode opens its map; closing the map goes back to the episode.
+    this.from = from
     this.snapshot = null
     this.view = null
     this.sel = null
@@ -88,10 +91,13 @@ export class MapCanvas {
     history.replaceState(null, '', url)
     try {
       const snapshot = await api.load(id)
+      // Closed, or another map opened, while this one loaded.
+      if (!this.isOpen || this.mapId !== id) return
       if (snapshot.project.copyOfMap)
-        return this.open(snapshot.project.copyOfMap)
+        return this.open(snapshot.project.copyOfMap, from)
       this.snapshot = snapshot
       await this.refresh()
+      if (!this.isOpen || this.mapId !== id) return
       this.unsubscribe = api.subscribe(
         id,
         (update) => {
@@ -198,10 +204,10 @@ export class MapCanvas {
     }, 3200)
   }
   /** Runs a change, then shows the map as it is now. */
-  async run(work: () => Promise<unknown>, said?: string) {
+  async run(work: () => Promise<unknown>, said?: string | (() => string)) {
     try {
       await work()
-      if (said) this.toast(said)
+      if (said) this.toast(typeof said === 'function' ? said() : said)
       this.snapshot = await api.load(this.mapId)
       await this.refresh()
     } catch (reason) {
@@ -217,6 +223,7 @@ export class MapCanvas {
     const ep = this.view?.episodes.find((e) => e.notebook === episode)
     // A drop flies in from where it was let go; the bar's copy, from the page.
     if (from) this.fly[`pending:${episode}`] ||= { x: from.x, y: from.y }
+    let said = `${only ? 'Cut' : 'Copied'} into Ep ${ep?.number ?? ''}. The map keeps the original.`
     return this.run(
       async () => {
         const result = await mapApi.copies(episode, {
@@ -226,11 +233,9 @@ export class MapCanvas {
           only
         })
         if (only && result.shared)
-          this.toast(
-            `Another episode uses this page, so it was copied, not cut`
-          )
+          said = 'Another episode uses this page, so it was copied, not cut'
       },
-      `${only ? 'Cut' : 'Copied'} into Ep ${ep?.number ?? ''}. The map keeps the original.`
+      () => said
     )
   }
   moveCopy(copy: string, to: string, index?: number) {
@@ -273,6 +278,10 @@ export class MapCanvas {
     if (!episode) return this.toast('Select an episode to paste into')
     if (clip.mode === 'move') {
       this.clip = null
+      // In its own lane, the copy leaves first: places after it move up one.
+      const lane = this.view?.episodes.find((e) => e.notebook === episode)
+      const was = lane?.copies.findIndex((c) => c.id === clip.copy) ?? -1
+      if (index !== undefined && was >= 0 && was < index) index -= 1
       return this.moveCopy(clip.copy, episode, index)
     }
     if (clip.mode === 'cut') this.clip = null

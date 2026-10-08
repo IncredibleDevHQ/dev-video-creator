@@ -67,7 +67,8 @@ const route = async (
   if (action === 'segues') {
     if (!(await loadProject(id))?.project.copyOfMap)
       throw new Refusal('Choose an episode')
-    scheduleSegues(id)
+    // Asked for by the creator: every line is written anew.
+    scheduleSegues(id, true)
     return ok({ writing: true })
   }
   return null

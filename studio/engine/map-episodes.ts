@@ -15,10 +15,15 @@ import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
 import { changeSeries, loadSeries, previouslyOf } from './series'
-import { composeNarration, planScenes, scheduleSegues } from './map-segues'
-import { copyOf, pageHash } from './map-copy'
+import {
+  composeNarration,
+  planScenes,
+  scheduleAround,
+  scheduleSegues
+} from './map-segues'
+import { copyOf, pageHash, syncEvidence } from './map-copy'
 import { schedulePick } from './map-picking'
-export { copyOf, pageHash } from './map-copy'
+export { copyOf, pageHash, syncEvidence } from './map-copy'
 
 const words = (value: unknown, limit: number) =>
   String(value ?? '')
@@ -63,37 +68,6 @@ export const startMapSeries = async (mapId: string, raw: unknown) => {
     addEvent(current, 'slide', `Started the series ${series.title}`)
   })
   return series
-}
-
-/** What the map's evidence and outline are, for an episode's own changes. */
-const copyRetained = async (map: string, episode: string, copies: Slide[]) => {
-  const retained = await readRow<{
-    source: unknown
-    brand: unknown
-    outline?: { scenes: unknown[] } & Record<string, unknown>
-    slideIds?: string[]
-  }>('outlines', map)
-  if (retained) {
-    const at = (copy: Slide) =>
-      retained.slideIds?.indexOf(copy.copyOf!.slide) ?? -1
-    const kept = copies.filter((copy) => at(copy) >= 0)
-    await writeRow('outlines', episode, {
-      ...retained,
-      ...(retained.outline
-        ? {
-            outline: {
-              ...retained.outline,
-              scenes: kept.map((copy) => retained.outline!.scenes[at(copy)])
-            }
-          }
-        : {}),
-      slideIds: kept.map((copy) => copy.id)
-    })
-  }
-  for (const table of ['sources', 'source-briefs']) {
-    const row = await readRow<object>(table, map)
-    if (row) await writeRow(table, episode, row)
-  }
 }
 
 const adding = new Set<string>()
@@ -171,8 +145,8 @@ const addOne = async (seriesId: string, raw: unknown) => {
     error: null,
     events: []
   }
-  await copyRetained(map.project.id, id, copies)
   await writeRow('projects', id, snapshot)
+  await syncEvidence(map.project.id, id)
   const notebook = await changeProject(id, (current) =>
     addEvent(
       current,
@@ -204,10 +178,38 @@ const episodeOf = async (id: string) => {
   return snapshot
 }
 
+/** The map page a copy shows, without its episode's lines around it. */
+const movedCopy = (copy: Slide): Slide => {
+  const moved = { ...copy, id: randomUUID() }
+  delete moved.bridge
+  delete moved.outro
+  delete moved.bridgeFor
+  delete moved.outroFor
+  moved.narration = composeNarration(moved) || copy.narration
+  return moved
+}
+const clearOnly = (
+  map: string,
+  page: string | undefined,
+  from: string,
+  to?: string
+) =>
+  page
+    ? changeProject(map, (current) => {
+        const original = current.project.slides.find((s) => s.id === page)
+        if (original?.onlyIn !== from) return
+        if (to) original.onlyIn = to
+        else delete original.onlyIn
+      })
+    : Promise.resolve()
+const gone = () => new Refusal('That page is no longer in this episode')
+
 /**
  * Changes an episode's copies: add a copy of a map page (or cut it in, so
  * it is this episode's only), move one within or to another episode,
  * remove one, bring one up to date with its original, or keep it as it is.
+ * Each write checks again what it changes, so two quick requests cannot add
+ * a page twice or move one that was just removed.
  */
 export const changeCopies = async (id: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
@@ -223,98 +225,93 @@ export const changeCopies = async (id: string, raw: unknown) => {
     const page = map.project.slides.find((s) => s.id === String(value.slide))
     if (!page) throw new Refusal('Choose a page of the map')
     if (!page.svg) throw new Refusal('Wait for this page to be drawn')
-    if (episode.project.slides.some((s) => s.copyOf?.slide === page.id))
-      throw new Refusal('This episode already has a copy of that page')
     const used = await usersOf(mapId, page.id)
     const cut = value.only === true && !used.some((other) => other !== id)
     await changeProject(id, (current) => {
       const slides = current.project.slides
+      if (slides.some((s) => s.copyOf?.slide === page.id))
+        throw new Refusal('This episode already has a copy of that page')
       slides.splice(position(slides.length), 0, copyOf(mapId, page))
       reconcileVideo(current.project, current, new Set())
       addEvent(current, 'slide', `Copied “${page.title}” from the map`)
     })
+    await syncEvidence(mapId, id)
     await planScenes(id)
     if (cut) await claimPages(mapId, [page.id], id)
     else if (page.onlyIn && page.onlyIn !== id)
-      await changeProject(mapId, (current) => {
-        const original = current.project.slides.find((s) => s.id === page.id)
-        if (original) delete original.onlyIn
-      })
-    scheduleSegues(id)
+      await clearOnly(mapId, page.id, page.onlyIn)
+    await scheduleAround(id)
     return { cut, shared: !cut && value.only === true }
   }
   const slideId = String(value.slide || '')
   const copy = episode.project.slides.find((s) => s.id === slideId)
-  if (!copy) throw new Refusal('Choose a page of this episode')
+  if (!copy) throw gone()
   if (action === 'move') {
     const to = value.to ? String(value.to) : id
     if (to === id) {
       await changeProject(id, (current) => {
         const slides = current.project.slides
         const from = slides.findIndex((s) => s.id === slideId)
+        if (from < 0) throw gone()
         const [moved] = slides.splice(from, 1)
         slides.splice(position(slides.length), 0, moved)
         reconcileVideo(current.project, current, new Set())
       })
       await planScenes(id)
-      scheduleSegues(id)
+      await scheduleAround(id)
       return { moved: true }
     }
     const target = await episodeOf(to)
     if (target.project.copyOfMap !== mapId)
       throw new Refusal('Move it to an episode of the same map')
-    if (
-      copy.copyOf &&
-      target.project.slides.some((s) => s.copyOf?.slide === copy.copyOf!.slide)
-    )
-      throw new Refusal('That episode already has a copy of this page')
-    await changeProject(id, (current) => {
-      current.project.slides = current.project.slides.filter(
-        (s) => s.id !== slideId
-      )
-      reconcileVideo(current.project, current, new Set())
-    })
+    const page = copy.copyOf?.slide
+    const moved = movedCopy(copy)
+    // Into the other episode first, then out of this one; put back if it
+    // had already left this one.
     await changeProject(to, (current) => {
       const slides = current.project.slides
-      const moved = { ...copy, id: randomUUID() }
-      delete moved.bridge
-      delete moved.outro
-      delete moved.bridgeFor
-      delete moved.outroFor
-      moved.narration = composeNarration(moved) || copy.narration
+      if (page && slides.some((s) => s.copyOf?.slide === page))
+        throw new Refusal('That episode already has a copy of this page')
       slides.splice(position(slides.length), 0, moved)
       reconcileVideo(current.project, current, new Set())
     })
-    if (copy.copyOf)
-      await changeProject(mapId, (current) => {
-        const original = current.project.slides.find(
-          (s) => s.id === copy.copyOf!.slide
+    try {
+      await changeProject(id, (current) => {
+        if (!current.project.slides.some((s) => s.id === slideId)) throw gone()
+        current.project.slides = current.project.slides.filter(
+          (s) => s.id !== slideId
         )
-        if (original?.onlyIn === id) original.onlyIn = to
+        reconcileVideo(current.project, current, new Set())
       })
+    } catch (error) {
+      await changeProject(to, (current) => {
+        current.project.slides = current.project.slides.filter(
+          (s) => s.id !== moved.id
+        )
+        reconcileVideo(current.project, current, new Set())
+      })
+      throw error
+    }
+    await clearOnly(mapId, page, id, to)
+    await syncEvidence(mapId, to)
     await planScenes(id)
     await planScenes(to)
-    scheduleSegues(id)
-    scheduleSegues(to)
+    await scheduleAround(id)
+    await scheduleAround(to)
     return { moved: true }
   }
   if (action === 'remove') {
     await changeProject(id, (current) => {
+      if (!current.project.slides.some((s) => s.id === slideId)) throw gone()
       current.project.slides = current.project.slides.filter(
         (s) => s.id !== slideId
       )
       reconcileVideo(current.project, current, new Set())
       addEvent(current, 'slide', `Removed “${copy.title}”; the map keeps it`)
     })
-    if (copy.copyOf)
-      await changeProject(mapId, (current) => {
-        const original = current.project.slides.find(
-          (s) => s.id === copy.copyOf!.slide
-        )
-        if (original?.onlyIn === id) delete original.onlyIn
-      })
+    await clearOnly(mapId, copy.copyOf?.slide, id)
     await planScenes(id)
-    scheduleSegues(id)
+    await scheduleAround(id)
     return { removed: true }
   }
   if (action === 'update' || action === 'keep') {
@@ -325,6 +322,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
     if (!original) throw new Refusal('The map no longer has this page')
     await changeProject(id, (current) => {
       const index = current.project.slides.findIndex((s) => s.id === slideId)
+      if (index < 0) throw gone()
       const now = current.project.slides[index]
       if (action === 'keep') {
         now.copyOf = { ...now.copyOf!, kept: pageHash(original) }
@@ -345,11 +343,28 @@ export const changeCopies = async (id: string, raw: unknown) => {
     })
     if (action === 'update') {
       await planScenes(id)
-      scheduleSegues(id)
+      await scheduleAround(id)
     }
     return { [action === 'keep' ? 'kept' : 'updated']: true }
   }
   throw new Refusal('Choose add, move, remove, update or keep')
+}
+
+/**
+ * After the creator edits an episode on the Wireframe stage (move, delete,
+ * duplicate, add, undo, its script): its segues and its neighbours', and a
+ * deleted copy's map page no longer "this episode only".
+ */
+export const afterEpisodeEdit = async (id: string, snapshot: Snapshot) => {
+  const map = snapshot.project.copyOfMap
+  if (!map) return
+  const removed = snapshot.deletedSlide?.slide.copyOf?.slide
+  if (
+    removed &&
+    !snapshot.project.slides.some((s) => s.copyOf?.slide === removed)
+  )
+    await clearOnly(map, removed, id)
+  await scheduleAround(id)
 }
 
 /**

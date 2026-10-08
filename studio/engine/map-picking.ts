@@ -5,8 +5,8 @@
 import type { Snapshot } from '../shared/api'
 import { addEvent } from './activity'
 import { runValidatedJsonStage } from './creative/stage'
-import { copyOf } from './map-copy'
-import { planScenes, scheduleSegues } from './map-segues'
+import { planScenes, scheduleAround } from './map-segues'
+import { copyOf, syncEvidence } from './map-copy'
 import { detectedHarness } from './notebook-intake'
 import { readRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
@@ -155,11 +155,10 @@ const pick = async (id: string) => {
         `Picked ${chosen.pages.length} page${chosen.pages.length === 1 ? '' : 's'} from the map`
       )
     })
+    await syncEvidence(map.project.id, id)
     await planScenes(id)
-    scheduleSegues(id)
-    const at =
-      series?.episodes.findIndex((item) => item.notebookId === id) ?? -1
-    if (at > 0) scheduleSegues(series!.episodes[at - 1].notebookId)
+    // Its title and pages are new to the episodes either side too.
+    await scheduleAround(id)
   } catch (error) {
     await changeProject(id, (current) => {
       if (!current.project.picking) return

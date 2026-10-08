@@ -584,3 +584,9 @@
 .page-check small {
   color: var(--muted);
 }
+.script-segue {
+  margin: 6px 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+}

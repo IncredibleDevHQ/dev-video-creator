@@ -131,8 +131,9 @@ app.templateGallery = new TemplateGallery(
 app.mapCanvas = new MapCanvas(app.root, {
   close: () => {
     app.stage = 'presentation'
-    if (app.snapshot?.project.id === app.mapCanvas.mapId) app.render()
-    else void app.openNotebook(app.mapCanvas.mapId)
+    const back = app.mapCanvas.from || app.mapCanvas.mapId
+    if (app.snapshot?.project.id === back) app.render()
+    else void app.openNotebook(back)
   },
   openEpisode: (id) => {
     app.mapCanvas.dismiss()

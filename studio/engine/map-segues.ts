@@ -46,7 +46,7 @@ export const validateSegues = (raw: unknown, ids: string[]) => {
   const list = Array.isArray(value.pages) ? value.pages : []
   const pages = list.map((entry) => {
     const item = (entry ?? {}) as Record<string, unknown>
-    return { id: String(item.id ?? ''), bridge: words(item.bridge, 320) }
+    return { id: String(item.id ?? ''), bridge: words(item.bridge, 2000) }
   })
   if (pages.map((page) => page.id).join() !== ids.join())
     problems.push(
@@ -54,8 +54,15 @@ export const validateSegues = (raw: unknown, ids: string[]) => {
     )
   if (pages.some((page) => !page.bridge))
     problems.push('Give every page a bridge')
-  const outro = words(value.outro, 320)
+  const outro = words(value.outro, 2000)
   if (!outro) problems.push('Write the outro said after the last page')
+  // Spoken lines: a long one is refused, never cut mid-sentence.
+  if (
+    [...pages.map((page) => page.bridge), outro].some(
+      (line) => line.length > 320
+    )
+  )
+    problems.push('Keep every line under 320 characters')
   return {
     ok: !problems.length,
     problems,
@@ -66,8 +73,13 @@ export const validateSegues = (raw: unknown, ids: string[]) => {
 
 const writing = new Map<string, Promise<void>>()
 const again = new Set<string>()
-/** Writes the episode's segues in the background; a later change runs again. */
-export const scheduleSegues = (id: string) => {
+const forced = new Set<string>()
+/**
+ * Writes the episode's segues in the background; a later change runs again.
+ * Forced, every line is written anew ("Write segues again").
+ */
+export const scheduleSegues = (id: string, force = false) => {
+  if (force) forced.add(id)
   if (writing.has(id)) {
     again.add(id)
     return
@@ -79,6 +91,22 @@ export const scheduleSegues = (id: string) => {
   writing.set(id, job)
   void job.catch(() => {})
 }
+/**
+ * The episode's segues, and its neighbours': the one before says "next
+ * time" with its title, the one after says "last time" with its pages.
+ */
+export const scheduleAround = async (id: string) => {
+  scheduleSegues(id)
+  const snapshot = await loadProject(id)
+  const series = snapshot?.project.episode
+    ? await loadSeries(snapshot.project.episode.series)
+    : null
+  const order = series?.episodes || []
+  const at = order.findIndex((item) => item.notebookId === id)
+  if (at > 0) scheduleSegues(order[at - 1].notebookId)
+  if (at >= 0 && at < order.length - 1) scheduleSegues(order[at + 1].notebookId)
+}
+
 /** Resolves when no episode's segues are being written (tests and checks). */
 export const settledAllSegues = async () => {
   while (writing.size) await Promise.all([...writing.values()])
@@ -130,18 +158,25 @@ const writeSegues = async (id: string) => {
     at >= 0 && at < order.length - 1
       ? await loadProject(order[at + 1].notebookId)
       : null
-  const keys = slides.map((_, index) =>
-    bridgeKey(slides, index, before?.project.title ?? null)
-  )
+  // "Last time" speaks of the episode before: its title and its pages.
+  const beforeKey = before
+    ? fingerprintOf({
+        title: before.project.title,
+        pages: before.project.slides.map((s) => s.copyOf?.slide ?? s.id)
+      })
+    : null
+  const keys = slides.map((_, index) => bridgeKey(slides, index, beforeKey))
   const endKey = outroKey(slides, after?.project.title ?? null)
   const last = slides[slides.length - 1]
+  const force = forced.delete(id)
   const stale = slides.map(
     (slide, index) =>
       slide.base !== undefined &&
-      (!slide.bridge || slide.bridgeFor !== keys[index])
+      (force || !slide.bridge || slide.bridgeFor !== keys[index])
   )
   const outroStale =
-    last.base !== undefined && (!last.outro || last.outroFor !== endKey)
+    last.base !== undefined &&
+    (force || !last.outro || last.outroFor !== endKey)
   const ids = slides.map((slide) => slide.id)
   // Nothing around any page changed: only a stray "next time" goes.
   if (!stale.some(Boolean) && !outroStale) {
@@ -201,8 +236,11 @@ const writeSegues = async (id: string) => {
     })
     await changeProject(id, (current) => {
       const now = current.project.slides
-      // Pages changed meanwhile: the run that follows writes them.
-      if (now.map((slide) => slide.id).join() !== ids.join()) return
+      // Pages changed meanwhile: run again on the pages as they are now.
+      if (now.map((slide) => slide.id).join() !== ids.join()) {
+        again.add(id)
+        return
+      }
       now.forEach((slide, index) => {
         // A script the creator wrote is theirs: it keeps no segue.
         if (slide.base === undefined) return

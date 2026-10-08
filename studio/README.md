@@ -142,8 +142,10 @@ unused; set aside a page you will not use. The map never changes because an
 episode did. When a page of the map changes, its copies say "source changed"
 and offer Update copy or Keep this version. An episode's segues are its own:
 the cold open or "last time", a line into each page and "next time", written
-by the agent and again when its pages change; a script you write yourself
-keeps no segue. Make opens the episode, ready for Make the video; once it is
+by the agent; when pages change, only the lines around them are written
+again, so a scene already made keeps its script. On the episode's Wireframe
+stage the script box edits the page's own words, with its segues shown
+above and below it. Make opens the episode, ready for Make the video; once it is
 made, Teaser cuts a teaser from its scenes and Posts drafts the words.
 `?map=<notebook id>` opens a map directly.
 

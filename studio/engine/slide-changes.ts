@@ -198,8 +198,18 @@ export const recoverChanges = (snapshot: Snapshot) => {
 }
 
 /** What a change redraws from: the page without the map's bookkeeping. */
+/**
+ * What a change redraws from: the page without the map's bookkeeping, and
+ * for an episode's copy its own script, not the segues written around it,
+ * which the episode may rewrite while the page is redrawn.
+ */
 const drawingOf = (slide: Slide | undefined) =>
-  slide ? pageContent(slide) : slide
+  slide
+    ? {
+        ...pageContent(slide),
+        ...(slide.base !== undefined ? { narration: slide.base } : {})
+      }
+    : slide
 
 const origin = () =>
   process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
@@ -230,17 +240,20 @@ const reviseSlide = async (id: string, change: SlideChange) => {
   const original =
     retained.outline?.scenes[retained.slideIds?.indexOf(change.slideId) ?? -1]
   let revised: OutlineScene | undefined
+  // An episode's copy is revised from its own script: its segues are put
+  // back around whatever comes back.
+  const own = drawingOf(slide)!
   if (harness && change.target && original)
     revised = {
       ...original,
       title: slide.title || original.title,
-      narration: slide.narration || original.narration
+      narration: own.narration || original.narration
     }
   else if (harness)
     revised = (
       await prepareCreativeSlideRevision({
         projectId: id,
-        slide,
+        slide: own,
         index,
         instruction: change.instruction,
         target: change.target,

@@ -15,6 +15,8 @@ import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
 import { scheduleChanges, withDeck } from './slide-changes'
+import { syncEvidence } from './map-copy'
+import { loadSeries } from './series'
 
 const NOTE_LIMIT = 8000
 const MOST_IDEAS = 8
@@ -102,8 +104,7 @@ export const addNote = async (id: string, raw: unknown) => {
   if (!before) throw new Refusal('Notebook not found')
   if (before.status !== 'ready' || !before.project.slides.some((s) => s.svg))
     throw new Refusal('Add notes once the wireframes are drawn')
-  const retained = await readRow<{ source: { text: string } }>('outlines', id)
-  if (!retained)
+  if (!(await readRow('outlines', id)))
     throw new Refusal('This notebook has no wireframes to sort into')
   const note: MapNote = {
     id: randomUUID(),
@@ -111,17 +112,27 @@ export const addNote = async (id: string, raw: unknown) => {
     text,
     state: 'sorting'
   }
-  // The note is evidence from now on: a page drawn from it quotes it.
-  retained.source.text = noted(retained.source.text, note)
-  await writeRow('outlines', id, retained)
-  const read = await readRow<{ text: string }>('sources', id)
-  if (read)
-    await writeRow('sources', id, { ...read, text: noted(read.text, note) })
-  const snapshot = await changeProject(id, (current) => {
+  const snapshot = await changeProject(id, async (current) => {
+    // The note is evidence from now on: a page drawn from it quotes it.
+    // Inside the notebook's queue, so two quick notes both stay.
+    const retained = await readRow<{ source: { text: string } }>('outlines', id)
+    if (retained) {
+      retained.source.text = noted(retained.source.text, note)
+      await writeRow('outlines', id, retained)
+    }
+    const read = await readRow<{ text: string }>('sources', id)
+    if (read)
+      await writeRow('sources', id, { ...read, text: noted(read.text, note) })
     current.project.notes = [...(current.project.notes || []), note]
     current.project.source = noted(current.project.source, note)
     addEvent(current, 'slide', 'Sorting your note into the map')
   })
+  // The map's episodes quote the same evidence.
+  const series = snapshot.project.mapSeries
+    ? await loadSeries(snapshot.project.mapSeries)
+    : null
+  for (const episode of series?.episodes || [])
+    await syncEvidence(id, episode.notebookId)
   const job = sortNote(id, note.id).finally(() => {
     if (sorting.get(note.id) === job) sorting.delete(note.id)
   })
