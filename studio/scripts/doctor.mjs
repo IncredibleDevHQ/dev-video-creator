@@ -86,6 +86,13 @@ if (storage === 'postgres-s3') {
     'INFO PostgreSQL/S3 configuration present; connectivity and existing notebook data were not accessed.'
   )
 }
+// Optional, but without it a scene's actors are never drawn: the video is
+// built from the page's boxes and native shapes only.
+console.log(
+  process.env.QUIVER_API_KEY
+    ? 'PASS Drawn actors (QUIVER_API_KEY)'
+    : `INFO Drawn actors are off: set QUIVER_API_KEY in ${resolve(root, '.env')} to draw a scene's actors. Values are never printed.`
+)
 console.log(
   'INFO Harness sign-in, voice-provider access and physical devices require their own flow checks.'
 )

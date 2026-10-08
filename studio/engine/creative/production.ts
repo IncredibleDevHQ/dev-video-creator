@@ -1,5 +1,6 @@
 import { captureNote, readyCapture } from '../../shared/capture'
 import { planRecipes, recipeBodies } from './recipe-bodies'
+import { spokenCues } from './cues'
 import { HarnessStageError } from '../generation-errors'
 import { prepareCastPacket } from './cast-packet'
 import {
@@ -156,6 +157,18 @@ export const buildCreativeProduction = async (
   // The app owns media binding; every run starts with immutable clock media.
   for (const [name, bytes] of Object.entries(supplied))
     productionSeed[`production/${name}`] = bytes
+  // A moment the presenter fills is not seen in the composition: its
+  // motion is the presenter's.
+  const presenterFilled = scene.moments
+    .filter((moment) => {
+      const on = (moment.media?.clips || [])
+        .filter((clip) => clip.camera)
+        .reduce((sum, clip) => sum + clip.end - clip.start, 0)
+      return (
+        moment.layout === 'full-screen' && on > (moment.end - moment.start) / 2
+      )
+    })
+    .map((moment) => moment.id)
   let accepted: SketchFiles | null = null,
     attempt = 0,
     lastProblems: string[] = []
@@ -192,14 +205,14 @@ export const buildCreativeProduction = async (
         )
     }
     // The settled frames, once the bundle is sound: words on objects,
-    // labels on each other, anything cut by the frame's edge, empty boxes.
+    // labels on each other, anything cut by the frame's edge, empty boxes;
+    // and each moment's motion: no frame frozen while the voice speaks.
     // Late in the budget they are recorded rather than refused, so a scene
     // is not lost to one stubborn label.
     if (!report.problems.length) {
-      const frames = await settledFrameProblems(
-        files,
-        context.clock.moments
-      ).catch((error: Error) => {
+      const frames = await settledFrameProblems(files, context.clock.moments, {
+        skip: presenterFilled
+      }).catch((error: Error) => {
         report.warnings.push(
           `The settled-frame check could not run: ${error.message}`
         )
@@ -295,6 +308,14 @@ export const buildCreativeProduction = async (
           moments: prepared.clock.moments.map((moment, index) => ({
             ...moment,
             lines: scene.moments[index].lines,
+            // When each phrase is said: a beat starts on its cue.
+            cues: spokenCues(
+              scene.moments[index].segments?.map((part) => part.lines) || [
+                scene.moments[index].lines
+              ],
+              moment.start,
+              moment.end
+            ),
             camera: contentOnly ? 'none' : scene.moments[index].camera,
             layout: contentOnly ? 'full-screen' : scene.moments[index].layout,
             overlay: contentOnly ? null : scene.moments[index].overlay,

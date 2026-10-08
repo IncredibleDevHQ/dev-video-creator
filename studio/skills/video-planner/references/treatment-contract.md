@@ -88,6 +88,13 @@ Use only the channels a moment needs; `null` means the channel is unused.
   say what the line does, and quote only approved words in `guide`.
 - `objects.change` — the before → after change; `actors` are brief entity ids
   (or `objects[].entity` ids this plan introduces).
+- `objects.beats` — the change as it develops with the voice: one visible
+  step for each idea the narration reaches, in its order, as
+  `[{ "on": "the bucket is full", "change": "the last token drops in and the rim lights" }]`.
+  `on` is the idea as the voice says it; `change` is what the viewer sees
+  happen then. A moment of about 8 s or more needs at least one beat for
+  every 4 s of its estimate: the picture develops as it is explained, it
+  does not change once and hold.
 - `takeaway` — the one sentence the viewer should leave with, for the
   creator's review. It is not on-screen text by default: the closing moment
   may say it, and needs no card for it.

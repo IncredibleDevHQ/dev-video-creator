@@ -171,8 +171,13 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   they change. Keep the example `PREVIOUS_PLAN.json` names unless the
   direction changes it, so revisions can be compared.
 - Every moment says why the viewer needs to see it and what they should
-  notice. Holding still is a choice; do not add a camera move or effect to
-  prove a capability was loaded.
+  notice, and develops as it is said: its `objects.beats` give a visible
+  change for each idea the voice reaches — a part appears as it is named, a
+  value travels as it is said, a state turns into the next. A slideshow (the
+  moment's picture arrives at its start, then holds while the voice goes on)
+  is the failure to avoid; the product refuses a build that freezes for more
+  than 3 s. Motion carries meaning: no camera move or effect only to prove a
+  capability was loaded, and no breathing or drifting to fake life.
 - Channels overlap: speech, objects, text, presenter and camera can share a
   moment. Give each property one writer — world camera, object-local motion,
   presenter framing and captions are separate.
@@ -190,6 +195,13 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   moments move. Every actor then shares one drawn style. Keep `native` for
   what must be exact: charts, counts, code, labels, connector paths and the
   dots that travel along them.
+- The page is a wireframe: it says what exists and how it relates, not how
+  the video looks. A `VISUAL_CAST.json` entry with `box: true` is the page's
+  plain box around a node — never `reuse` it as an actor. Decide how the
+  thing it names is seen: drawn (`generate` or `enrich` when `drawsArtwork`
+  is true), or `native` drawn as that thing — a silhouette with detail and
+  the parts its moments move (a film strip and playhead, a gauge and needle,
+  a gate and its arm) — and a card only for words the viewer must read.
 - When `CONTEXT.json` has a `story`, the video tells one kind of story
   and this scene carries some of its beats (SCENE.md says which). Leave the viewer knowing what
   each beat says they must know, drawing only on the evidence the source

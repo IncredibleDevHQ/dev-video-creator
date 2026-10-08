@@ -9,6 +9,13 @@ import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { RUNTIME_PATHS } from '../../render/runtime'
 import type { SketchFiles } from '../../render/types'
+import {
+  motionDefects,
+  motionProblems,
+  POSE,
+  SAMPLE_EVERY,
+  type Pose
+} from './motion-checks'
 
 export type FrameBox = {
   left: number
@@ -303,11 +310,13 @@ export const settledProblems = (
 
 /**
  * Plays the composition to each moment's settled frame (a moment's last
- * fifth of a second, after its motion lands) and measures it.
+ * fifth of a second, after its motion lands) and measures it; with
+ * `sample`, also every half second through the moment, for its motion.
  */
 export const measureSettledFrames = async (
   files: SketchFiles,
   moments: Array<{ id: string; start: number; end: number }>,
+  sample = false,
   size = { width: 1920, height: 1080 }
 ) => {
   const dir = await mkdtemp(join(tmpdir(), 'studio-settled-frames-'))
@@ -346,34 +355,66 @@ export const measureSettledFrames = async (
       'window.__playerReady === true && typeof window.__player?.renderSeek === "function"',
       { timeout: 30_000 }
     )
-    const frames: Array<{ moment: string; measure: FrameMeasure }> = []
-    for (const moment of moments) {
-      const at = Math.max(moment.start, moment.end - 0.2)
-      await page.evaluate(
+    const seek = (at: number) =>
+      page.evaluate(
         `(async () => {
           await window.__player.renderSeek(${at})
           if (window.__hfWaitForSeekCompletion) await window.__hfWaitForSeekCompletion()
           await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
         })()`
       )
+    const frames: Array<{ moment: string; measure: FrameMeasure }> = []
+    const poses: Array<{ moment: string; samples: Pose[] }> = []
+    for (const moment of moments) {
+      const at = Math.max(moment.start, moment.end - 0.2)
+      if (sample) {
+        const samples: Pose[] = []
+        for (let t = moment.start; t <= at + 1e-6; t += SAMPLE_EVERY) {
+          await seek(t)
+          const pose = (await page.evaluate(POSE)) as Pose | null
+          if (pose) samples.push(pose)
+        }
+        poses.push({ moment: moment.id, samples })
+      }
+      await seek(at)
       const measure = (await page.evaluate(MEASURE)) as FrameMeasure | null
       if (measure) frames.push({ moment: moment.id, measure })
     }
-    return frames
+    return { frames, poses }
   } finally {
     await browser.close()
     await rm(dir, { recursive: true, force: true })
   }
 }
 
-/** The settled-frame check of one build: its problems, said once each. */
+/**
+ * The settled-frame check of one build: its problems, said once each; with
+ * `motion`, also each moment's motion, except the moments it skips (one
+ * the presenter fills, which the composition does not show).
+ */
 export const settledFrameProblems = async (
   files: SketchFiles,
-  moments: Array<{ id: string; start: number; end: number }>
-) =>
-  settledProblems(
-    (await measureSettledFrames(files, moments)).map(({ moment, measure }) => ({
-      moment,
-      defects: frameDefects(measure)
-    }))
+  moments: Array<{ id: string; start: number; end: number }>,
+  motion?: { skip: string[] }
+) => {
+  const { frames, poses } = await measureSettledFrames(
+    files,
+    moments,
+    Boolean(motion)
   )
+  return [
+    ...settledProblems(
+      frames.map(({ moment, measure }) => ({
+        moment,
+        defects: frameDefects(measure)
+      }))
+    ),
+    ...motionProblems(
+      poses
+        .filter(({ moment }) => !motion?.skip.includes(moment))
+        .flatMap(({ moment, samples }) =>
+          motionDefects(moments.find((item) => item.id === moment)!, samples)
+        )
+    )
+  ]
+}

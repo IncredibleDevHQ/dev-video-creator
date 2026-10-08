@@ -3,6 +3,22 @@ import { fingerprintOf } from '../planning/fingerprint'
 import { readAsset } from '../persistence'
 import { ensureVisualCast } from './visual-cast'
 /** Carry the original browser-extracted, pixel-verified artwork into all creative stages. */
+/**
+ * Artwork that is only rectangles and rules: the wireframe's box around a
+ * node, not a drawing of anything (seen live: every actor of a scene was a
+ * rounded rectangle lifted from its page, and the video was boxes).
+ */
+export const plainBox = (svg: string) => {
+  const painted =
+    svg.match(
+      /<(path|rect|circle|ellipse|polygon|polyline|line|image|use)\b/g
+    ) || []
+  return (
+    painted.length > 0 &&
+    painted.every((tag) => tag === '<rect' || tag === '<line')
+  )
+}
+
 export const prepareCastPacket = async (project: Project, slideId: string) => {
   const revision = fingerprintOf(
     project.slides.map(({ id, svg }) => ({ id, svg }))
@@ -48,9 +64,11 @@ export const prepareCastPacket = async (project: Project, slideId: string) => {
       notes: page.notes
     })
   }
+  const boxes = new Set<string>()
   for (const entry of entries) {
     const folder = `packet/assets/${entry.id}`
     media[`${folder}/asset.svg`] = await readAsset(entry.artwork.svg.objectKey)
+    if (plainBox(media[`${folder}/asset.svg`].toString())) boxes.add(entry.id)
     media[`${folder}/preview.png`] = await readAsset(
       entry.artwork.thumbnail.objectKey
     )
@@ -77,6 +95,8 @@ export const prepareCastPacket = async (project: Project, slideId: string) => {
       id: entry.id,
       libraryKey: entry.libraryKey,
       kind: entry.kind,
+      // The page drew it as a plain box: a concept to depict, not artwork.
+      box: boxes.has(entry.id),
       label: entry.meaning.label,
       detail: entry.meaning.detail,
       entity: entry.identity.entity,
@@ -99,7 +119,7 @@ export const prepareCastPacket = async (project: Project, slideId: string) => {
         parts: `assets/${entry.id}/parts.json`
       }
     })),
-    rule: 'Inspect the page PNG and contact sheet. Only verified entries may be reused as equivalent artwork. The scene must explain the source through changes in objects, not slide fades.'
+    rule: 'Inspect the page PNG and contact sheet. Only verified entries may be reused as equivalent artwork. An entry with box: true is the wireframe’s plain box around a node: depict what it names, never reuse the box as its artwork. The scene must explain the source through changes in objects, not slide fades.'
   }
   return {
     visualCast,

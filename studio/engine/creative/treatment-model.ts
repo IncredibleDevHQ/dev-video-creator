@@ -40,7 +40,13 @@ export type TreatmentMoment = {
   purpose: string
   observation: string
   narration: { job: string; guide: string } | null
-  objects: { change: string; actors: string[] } | null
+  objects: {
+    change: string
+    actors: string[]
+    // The change as it develops with the voice: one visible step for each
+    // idea the narration reaches, in its order (`on` is that idea).
+    beats?: Array<{ on: string; change: string }>
+  } | null
   text: {
     content: string
     role: 'term' | 'label' | 'exact' | 'code' | 'takeaway'

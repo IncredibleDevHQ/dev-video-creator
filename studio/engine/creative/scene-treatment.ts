@@ -28,6 +28,9 @@ import {
   TreatmentReport
 } from './treatment-model'
 import { normalizeTreatment } from './treatment-normalize'
+
+/** A moment's picture develops at least this often, as its voice does. */
+const SECONDS_PER_BEAT = 4
 export * from './treatment-model'
 export { normalizeTreatment } from './treatment-normalize'
 const duplicates = (values: string[]) => [
@@ -304,7 +307,7 @@ export const validateTreatment = (
       )
   }
 
-  // Moments: each one earns its place.
+  // Moments: each one earns its place, and develops as it is said.
   if (!treatment.moments.length) problems.push('the plan has no moments')
   const momentIds = treatment.moments.map((moment) => moment.id)
   for (const id of duplicates(momentIds))
@@ -334,6 +337,18 @@ export const validateTreatment = (
     if (!channelCount(moment))
       problems.push(
         `${where} has no channel — something must be heard, seen or read`
+      )
+    // A moment develops as its voice does, not in one change and a hold
+    // (seen live: 64–80% of each scene one still frame).
+    const needed = moment.objects
+      ? Math.floor((moment.estimateSeconds || 0) / SECONDS_PER_BEAT)
+      : 0
+    const beats = (moment.objects?.beats || []).filter(
+      (beat) => beat?.on?.trim() && beat?.change?.trim()
+    )
+    if (needed >= 2 && beats.length < needed)
+      problems.push(
+        `${where} develops in ${beats.length === 1 ? 'one beat' : `${beats.length} beats`} over about ${moment.estimateSeconds} s: give objects.beats, one visible change for each idea its voice reaches (at least one every ${SECONDS_PER_BEAT} s), in the order it says them`
       )
     for (const actor of moment.objects?.actors || [])
       if (!entityIds.has(actor))

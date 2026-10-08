@@ -146,7 +146,13 @@ export const normalizeTreatment = (raw: unknown): SceneTreatmentV1 => {
         })),
         objects: channelOrNull(moment.objects, (entry) => ({
           change: text(entry.change, 1000),
-          actors: texts(entry.actors, 80)
+          actors: texts(entry.actors, 80),
+          beats: records(entry.beats)
+            .slice(0, 12)
+            .map((beat) => ({
+              on: text(beat.on, 300),
+              change: text(beat.change, 600)
+            }))
         })),
         text: channelOrNull(moment.text, (entry) => ({
           content: text(entry.content, 600),
