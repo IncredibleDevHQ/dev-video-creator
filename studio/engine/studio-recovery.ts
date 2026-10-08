@@ -57,6 +57,27 @@ export const settleNotebook = (
     release.drafting = { state: 'failed', error: RESTARTED, at }
     changed = true
   }
+  // The content map's background work: sorting notes, picking an episode's
+  // pages, writing its segues, grouping the map.
+  for (const note of snapshot.project.notes || [])
+    if (note.state === 'sorting') {
+      note.state = 'failed'
+      note.error = RESTARTED
+      changed = true
+    }
+  const { picking, segues, grouping } = snapshot.project
+  if (picking?.state === 'picking') {
+    snapshot.project.picking = { ...picking, state: 'failed', error: RESTARTED }
+    changed = true
+  }
+  if (segues?.state === 'writing') {
+    snapshot.project.segues = { state: 'failed', error: RESTARTED }
+    changed = true
+  }
+  if (grouping?.state === 'grouping') {
+    snapshot.project.grouping = { state: 'failed', error: RESTARTED }
+    changed = true
+  }
   if (release?.youtube?.state === 'uploading') {
     // A resumable upload may have finished on YouTube: say where to look.
     release.youtube = {

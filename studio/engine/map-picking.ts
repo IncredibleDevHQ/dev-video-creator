@@ -11,6 +11,7 @@ import { detectedHarness } from './notebook-intake'
 import { readRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
+import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
 import { loadSeries } from './series'
 
@@ -46,6 +47,21 @@ export const validatePick = (raw: unknown, drawn: string[]) => {
     warnings: [],
     value: { title, pages }
   }
+}
+
+/** Picks the pages again after the agent could not. */
+export const retryPick = async (id: string) => {
+  const snapshot = await changeProject(id, (current) => {
+    const now = current.project.picking
+    if (now?.state !== 'failed') throw new Refusal('Nothing to pick again')
+    current.project.picking = {
+      state: 'picking',
+      about: now.about,
+      ...(now.titled ? { titled: true } : {})
+    }
+  })
+  schedulePick(id)
+  return snapshot
 }
 
 const picking = new Map<string, Promise<void>>()

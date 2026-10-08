@@ -135,6 +135,22 @@ export const settledNotes = async () => {
   while (sorting.size) await Promise.all([...sorting.values()])
 }
 
+/** Sorts a note again that could not be sorted; its text is in the source already. */
+export const retryNote = async (id: string, noteId: string) => {
+  const snapshot = await changeProject(id, (current) => {
+    const note = current.project.notes?.find((item) => item.id === noteId)
+    if (!note || note.state !== 'failed')
+      throw new Refusal('Choose a note that could not be sorted')
+    note.state = 'sorting'
+    delete note.error
+  })
+  const job = sortNote(id, noteId).finally(() => {
+    if (sorting.get(noteId) === job) sorting.delete(noteId)
+  })
+  sorting.set(noteId, job)
+  return snapshot
+}
+
 const pagesOf = (snapshot: Snapshot) =>
   snapshot.project.slides.map((slide, index) => ({
     id: slide.id,

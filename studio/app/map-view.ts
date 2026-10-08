@@ -89,7 +89,7 @@ export const mapNotes = (snapshot: Snapshot) => {
         note.state === 'sorting'
           ? '<p class="map-note-state">Sorting into the map…</p>'
           : note.state === 'failed'
-            ? `<p class="map-note-state is-failed">${escape(note.error || 'Could not sort this note')}</p>`
+            ? `<p class="map-note-state is-failed">${escape(note.error || 'Could not sort this note')} <button type="button" class="quiet" data-map="resort:${note.id}">Sort again</button></p>`
             : ''
       return `<article class="map-note" data-map-note="${note.id}"><time>${new Date(note.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</time><p>${escape(note.text.length > 220 ? `${note.text.slice(0, 219)}…` : note.text)}</p>${state}${results ? `<ul>${results}</ul>` : ''}</article>`
     })

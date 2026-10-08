@@ -567,3 +567,43 @@ it('picks an episode’s pages from what it is about', async () => {
     'My title'
   )
 })
+
+it('marks map work a restart cut off, and sorts a note again', async () => {
+  const { settleNotebook, RESTARTED } = await import('./studio-recovery')
+  const snapshot = await drawnMap('m12')
+  snapshot.project.notes = [
+    {
+      id: 'n',
+      at: new Date().toISOString(),
+      text: 'An idea about pricing.',
+      state: 'sorting'
+    }
+  ]
+  snapshot.project.picking = { state: 'picking', about: 'pricing' }
+  snapshot.project.segues = { state: 'writing' }
+  snapshot.project.grouping = { state: 'grouping' }
+  expect(settleNotebook(snapshot)).toBe(true)
+  expect(snapshot.project.notes[0]).toMatchObject({
+    state: 'failed',
+    error: RESTARTED
+  })
+  expect(snapshot.project.picking).toMatchObject({
+    state: 'failed',
+    about: 'pricing'
+  })
+  expect(snapshot.project.segues).toMatchObject({ state: 'failed' })
+  expect(snapshot.project.grouping).toMatchObject({ state: 'failed' })
+  await writeRow('projects', 'm12', snapshot)
+  replies['Sort Note'] = () => ({
+    items: [{ kind: 'covered', line: 'pricing', page: 'm12-2' }]
+  })
+  await notes.retryNote('m12', 'n')
+  await notes.settledNotes()
+  expect((await loadProject('m12'))!.project.notes![0]).toMatchObject({
+    state: 'sorted',
+    results: [{ kind: 'covered', slideId: 'm12-2' }]
+  })
+  await expect(notes.retryNote('m12', 'n')).rejects.toThrow(
+    'could not be sorted'
+  )
+})

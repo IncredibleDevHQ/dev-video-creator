@@ -10,7 +10,8 @@ import {
   setAside,
   startMapSeries
 } from './map-episodes'
-import { addNote } from './map-notes'
+import { addNote, retryNote } from './map-notes'
+import { retryPick } from './map-picking'
 import { scheduleSegues } from './map-segues'
 import { groupTopics } from './map-topics'
 import { loadProject } from './projects'
@@ -20,7 +21,7 @@ type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues|pick)$/
 const seriesRoute =
   /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order)$/
 
@@ -52,7 +53,13 @@ const route = async (
   const [, id, action] = project
   if (action === 'map' && method === 'GET') return ok(await mapView(id))
   if (method !== 'POST') return null
-  if (action === 'notes') return ok(await addNote(id, body))
+  if (action === 'notes')
+    return ok(
+      typeof body.retry === 'string'
+        ? await retryNote(id, body.retry)
+        : await addNote(id, body)
+    )
+  if (action === 'pick') return ok(await retryPick(id))
   if (action === 'topics') return ok(await groupTopics(id))
   if (action === 'map-series') return ok(await startMapSeries(id, body))
   if (action === 'copies') return ok(await changeCopies(id, body))

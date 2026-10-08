@@ -3,7 +3,7 @@
 // drawn wireframe while the rest of the deck is still being drawn (review 5).
 import { randomUUID } from 'node:crypto'
 import type { ChatRequest, Snapshot } from '../shared/api'
-import type { SlideChange } from '../shared/model'
+import type { Slide, SlideChange } from '../shared/model'
 import { addEvent } from './activity'
 import { prepareCreativePages } from './creative/pages'
 import { prepareCreativeSlideRevision } from './creative/slide-revision'
@@ -196,6 +196,18 @@ export const recoverChanges = (snapshot: Snapshot) => {
     }
 }
 
+/**
+ * What a change redraws from: the page without the map's notes on it (its
+ * topic, set aside, cut into an episode), which grouping the map or using a
+ * page in an episode may change meanwhile without changing the page.
+ */
+const drawingOf = (slide: Slide | undefined) => {
+  if (!slide) return slide
+  const { topic, aside, onlyIn, fromNote, ...drawing } = slide
+  void [topic, aside, onlyIn, fromNote]
+  return drawing
+}
+
 const origin = () =>
   process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
   `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`
@@ -212,7 +224,9 @@ const reviseSlide = async (id: string, change: SlideChange) => {
   if (!retained) throw new Error('Source not found')
   const revisionKey = (project: Snapshot['project']) =>
     fingerprintOf({
-      slide: project.slides.find((item) => item.id === change.slideId),
+      slide: drawingOf(
+        project.slides.find((item) => item.id === change.slideId)
+      ),
       order: project.slides.map((item) => item.id),
       branding: project.branding
     })

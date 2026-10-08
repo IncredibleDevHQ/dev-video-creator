@@ -11,6 +11,10 @@ export const mapApi = {
   view: (id: string) => request<MapView>(`/projects/${id}/map`),
   note: (id: string, text: string) =>
     request<Snapshot>(`/projects/${id}/notes`, 'POST', { text }),
+  resortNote: (id: string, note: string) =>
+    request<Snapshot>(`/projects/${id}/notes`, 'POST', { retry: note }),
+  pick: (episode: string) =>
+    request<Snapshot>(`/projects/${episode}/pick`, 'POST', {}),
   topics: (id: string) =>
     request<Snapshot>(`/projects/${id}/topics`, 'POST', {}),
   startSeries: (id: string, title?: string) =>

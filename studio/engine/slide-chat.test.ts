@@ -185,3 +185,32 @@ it('does not replace a slide when its drawing stage fails, and says who could no
     'Kimi could not change this wireframe. Try again.'
   )
 })
+it('finishes a change when the map only grouped the page meanwhile', async () => {
+  await seed('grouped')
+  let resolve!: (value: unknown) => void
+  revise.mockImplementation(
+    () =>
+      new Promise((done) => {
+        resolve = done
+      })
+  )
+  await chatSlide('grouped', request)
+  await vi.waitFor(() => expect(revise).toHaveBeenCalled())
+  // Grouping the map by topic notes a topic on every page.
+  await changeProject('grouped', (current) => {
+    for (const slide of current.project.slides) slide.topic = 'Canvas'
+  })
+  resolve({
+    title: 'Fixture',
+    scenes: [revised],
+    targetSeconds: 6,
+    glossary: []
+  })
+  await settledChanges('grouped')
+  const saved = (await loadProject('grouped'))!
+  expect(saved.changes).toEqual([])
+  expect(saved.project.slides[1]).toMatchObject({
+    title: 'Working together',
+    topic: 'Canvas'
+  })
+})

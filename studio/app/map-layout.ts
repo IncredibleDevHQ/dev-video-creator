@@ -38,6 +38,10 @@ export const MX = 40,
 export const MH = 64,
   GH = 30
 export const MW = MP * 2 + COLS * CW + (COLS - 1) * CG
+/** A bigger map gets more columns, so it stays near the canvas's shape. */
+export const columnsFor = (pages: number) =>
+  pages <= 9 ? COLS : pages <= 20 ? 4 : pages <= 42 ? 6 : 8
+const widthFor = (cols: number) => MP * 2 + cols * CW + (cols - 1) * CG
 export const SH = 58,
   SP = 16,
   LH = 44,
@@ -104,7 +108,7 @@ export const mapLayout = (
   mode: MapMode
 ): MapLayout => {
   const layout: MapLayout = {
-    map: { x: MX, y: MY, w: MW, h: 0 },
+    map: { x: MX, y: MY, w: 0, h: 0 },
     groups: [],
     cards: {},
     series: null,
@@ -116,23 +120,26 @@ export const mapLayout = (
     empties: {},
     derived: []
   }
+  const cols = columnsFor(snapshot.project.slides.length)
+  const mw = widthFor(cols)
+  layout.map.w = mw
   let y = MY + MH
   for (const group of mapGroups(snapshot, mode)) {
-    layout.groups.push({ ...group, x: MX + MP, y, w: MW - MP * 2, h: GH - 8 })
+    layout.groups.push({ ...group, x: MX + MP, y, w: mw - MP * 2, h: GH - 8 })
     y += GH
     group.slides.forEach((id, index) => {
       layout.cards[id] = {
-        x: MX + MP + (index % COLS) * (CW + CG),
-        y: y + Math.floor(index / COLS) * (CH + CG),
+        x: MX + MP + (index % cols) * (CW + CG),
+        y: y + Math.floor(index / cols) * (CH + CG),
         w: CW,
         h: CH
       }
     })
-    y += Math.ceil(group.slides.length / COLS) * (CH + CG) + 8
+    y += Math.ceil(group.slides.length / cols) * (CH + CG) + 8
   }
   layout.map.h = Math.max(y - MY + MP - 8, 220)
   if (!view?.series) return layout
-  const sx = MX + MW + 180
+  const sx = MX + mw + 180
   let ly = MY + SH
   let widest = 640
   for (const episode of view.episodes) {

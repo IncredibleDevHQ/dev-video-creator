@@ -2,6 +2,7 @@
 // drag a page into an episode (⌥ cuts it), reorder or move copies, use the
 // bar and its menus, ⌘C/⌘X/⌘V, Delete and Esc, and the notes rail's form.
 import { api } from './api'
+import { confirmAction } from './confirm-action'
 import { episodeChoices, hideMenu, showMenu } from './map-bar'
 import type { MapCanvas, MapSel } from './map-canvas'
 import { mapApi } from './map-api'
@@ -427,6 +428,43 @@ const dispatch = async (
               : 'Back in play'
           )
         : undefined
+    case 'resort':
+      return map.run(
+        () => mapApi.resortNote(map.mapId, arg),
+        'Sorting the note again'
+      )
+    case 'pick':
+      return map.run(() => mapApi.pick(arg), 'Picking the pages again')
+    case 'resend': {
+      const failed = map.snapshot?.changes?.find(
+        (change) => change.slideId === page && change.state === 'failed'
+      )
+      if (!failed) return
+      return map.run(
+        () =>
+          api.chat(map.mapId, {
+            anchor: { stage: 'presentation', slideId: page },
+            instruction: failed.instruction,
+            ...(failed.target ? { target: failed.target } : {})
+          }),
+        'Sent again: the page is redrawn in the background'
+      )
+    }
+    case 'delete-page': {
+      if (!page) return
+      const sure = await confirmAction({
+        title: 'Delete this page from the map?',
+        detail:
+          'Episodes keep their copies, marked “original deleted”. Undo is on the Wireframe stage.',
+        action: 'Delete page'
+      })
+      if (!sure) return
+      map.sel = null
+      return map.run(
+        () => api.slide(map.mapId, { action: 'delete', slideId: page }),
+        'Page deleted from the map'
+      )
+    }
     case 'change':
       map.changing = page || null
       map.paint()

@@ -38,14 +38,19 @@ const content = (map: MapCanvas) => {
         ? `in ${users.map((id) => `Ep ${view.episodes.find((e) => e.notebook === id)?.number ?? '?'}`).join(', ')}`
         : 'unused'
     const series = Boolean(view?.series)
-    return `<div class="map-info"><b>Page ${index + 1}</b> · ${escape(slide.title || 'Untitled')}<small>${where}</small>${clipped}</div>${
+    const failed = snapshot.changes?.find(
+      (change) => change.slideId === slide.id && change.state === 'failed'
+    )
+    return `<div class="map-info"><b>Page ${index + 1}</b> · ${escape(slide.title || 'Untitled')}<small>${failed ? escape(failed.message || 'its change failed') : where}</small>${clipped}</div>${
+      failed ? act('resend', 'Send again', '', true) + SEP : ''
+    }${
       series && slide.svg
         ? act('copy', 'Copy', '⌘C') +
           act('cut', 'Cut', '⌘X') +
           act('menu:copy-to', 'Copy to…') +
           SEP
         : ''
-    }${act('change', 'Change…')}${act(slide.aside ? 'bring-back' : 'aside', slide.aside ? 'Bring back' : 'Set aside')}`
+    }${act('change', 'Change…')}${act(slide.aside ? 'bring-back' : 'aside', slide.aside ? 'Bring back' : 'Set aside')}${act('delete-page', 'Delete')}`
   }
   if (sel?.t === 'copy' && view) {
     const episode = map.episodeOf(sel.id)
@@ -84,7 +89,7 @@ const content = (map: MapCanvas) => {
     if (!episode) return ''
     return `<div class="map-info"><b style="color:${colorOf(view, episode.notebook)}">Ep ${episode.number}</b> · ${escape(episode.title)}<small>${episode.copies.length} page${episode.copies.length === 1 ? '' : 's'}${episode.segues === 'failed' ? ' · segues failed' : ''}</small>${clipped}</div>${
       clip ? act('paste', 'Paste', '⌘V', true) : ''
-    }${act(`open:${episode.notebook}`, episode.video ? 'Open episode' : 'Make…')}${episode.copies.length ? act(`segues:${episode.notebook}`, 'Write segues again') : ''}${
+    }${episode.picking?.state === 'failed' ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${act(`open:${episode.notebook}`, episode.video ? 'Open episode' : 'Make…')}${episode.copies.length ? act(`segues:${episode.notebook}`, 'Write segues again') : ''}${
       view.episodes.length > 1 ? SEP : ''
     }${episode.number > 1 ? act('order:-1', 'Move up') : ''}${episode.number < view.episodes.length ? act('order:1', 'Move down') : ''}`
   }
