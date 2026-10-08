@@ -38,6 +38,8 @@ export type Series = {
   threads: string[]
   /** The look every episode keeps, from the first. */
   branding?: Branding
+  /** The notebook whose wireframes the episodes copy (the content map). */
+  map?: string
 }
 
 /** On a notebook: the series it belongs to and what it carries over. */

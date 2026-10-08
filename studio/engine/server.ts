@@ -4,6 +4,7 @@ import { applyLook } from './look-apply'
 import { setNotebookLength, setNotebookTemplate } from './notebook-intake'
 import { checkCoverage, suggestTemplate } from './template-suggest'
 import { studioRoute } from './studio-routes'
+import { mapRoute } from './map-routes'
 import { settleInterruptedWork } from './studio-recovery'
 import {
   startPresentation,
@@ -221,6 +222,8 @@ export const createStudioServer = (
       const routed = await studioRoute(url, request, body, response)
       if (routed === 'sent') return
       if (routed) return send(response, routed.status, routed.value)
+      const mapped = await mapRoute(url, request, body)
+      if (mapped) return send(response, mapped.status, mapped.value)
       if (url.pathname === '/api/harnesses' && request.method === 'GET')
         return send(response, 200, {
           selected: await loadHarnessPreference(),

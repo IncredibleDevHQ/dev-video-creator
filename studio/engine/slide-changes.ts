@@ -18,6 +18,7 @@ import { readRow, storeAsset, writeRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { reconcileVideo } from './scene-model'
+import { composeNarration, scheduleSegues } from './map-segues'
 import type { readSourceNarrative } from './source-document'
 import {
   outlineSchema,
@@ -103,6 +104,29 @@ export const answerEvidence = async (id: string, raw: unknown) => {
   })
 }
 
+const decks = new Map<string, Promise<void>>()
+/**
+ * One deck-changing step at a time per notebook: a page being redrawn, or a
+ * note's new pages going in. A note waits for the redraw instead of moving
+ * the pages under it, which would fail that change.
+ */
+export const withDeck = async <T>(id: string, work: () => Promise<T>) => {
+  const before = decks.get(id) || Promise.resolve()
+  let release!: () => void
+  const mine = new Promise<void>((done) => {
+    release = done
+  })
+  const chained = before.then(() => mine)
+  decks.set(id, chained)
+  await before
+  try {
+    return await work()
+  } finally {
+    release()
+    if (decks.get(id) === chained) decks.delete(id)
+  }
+}
+
 const working = new Map<string, Promise<void>>()
 /** Start the notebook's queue unless it is running; drawing must finish first. */
 export const scheduleChanges = (id: string) => {
@@ -130,7 +154,7 @@ const processChanges = async (id: string) => {
       }
     })
     try {
-      await reviseSlide(id, next)
+      await withDeck(id, () => reviseSlide(id, next))
     } catch (error) {
       await changeProject(id, (current) => {
         const message = changeFailure(error, current)
@@ -305,6 +329,12 @@ const reviseSlide = async (id: string, change: SlideChange) => {
         : {})
     }
     delete current.project.slides[currentIndex].draft
+    // An episode's copy keeps its segues around the revised script.
+    const now = current.project.slides[currentIndex]
+    if (now.base !== undefined) {
+      now.base = revised.narration
+      now.narration = composeNarration(now)
+    }
     current.changes = (current.changes || []).filter(
       (item) => item.id !== change.id
     )
@@ -314,6 +344,7 @@ const reviseSlide = async (id: string, change: SlideChange) => {
       activity: 'complete'
     })
   })
+  if (snapshot.project.copyOfMap) scheduleSegues(id)
 }
 
 /** Without an agent, the writing model revises the scene and the studio draws it. */

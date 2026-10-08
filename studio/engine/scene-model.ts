@@ -185,8 +185,11 @@ export const reconcileVideo = (
       transitionScene(scene, 'invalidate', ledger)
       scene.produced = null
     }
+    // A scene left out waits for its page quietly: failing it would queue
+    // it the moment the page is drawn (a page from a note, say).
     if (
       !slide.svg &&
+      scene.phase !== 'idle' &&
       (scene.phase !== 'failed' ||
         scene.error !== 'Tell the studio what this slide is about')
     ) {

@@ -136,6 +136,18 @@ export type Slide = {
   answers?: EvidenceAnswer[]
   /** A product demo captured for this page's product-capture shot. */
   capture?: import('./release').ProductCapture
+  /** On the map: the note this page came from, its topic, and whether the
+   * creator set it aside or cut it into one episode only. */
+  fromNote?: string
+  topic?: string
+  aside?: boolean
+  onlyIn?: string
+  /** In an episode: the map's page this is a copy of, the map's script it
+   * started from, and the episode's own lines into and out of it. */
+  copyOf?: import('./content-map').SlideCopy
+  base?: string
+  bridge?: string
+  outro?: string
 }
 export type Transition =
   | 'none'
@@ -168,6 +180,18 @@ export type Project = {
   productUrls?: string[]
   /** What goes out once it is made: teasers, posts, the campaign. */
   release?: import('./release').Release
+  /** Notes added after the wireframes, sorted into them as a content map. */
+  notes?: import('./content-map').MapNote[]
+  /** The map's topics, in order, when the creator grouped its pages. */
+  topics?: string[]
+  /** The series whose episodes copy this notebook's wireframes. */
+  mapSeries?: string
+  /** An episode: the map notebook its pages are copies from. */
+  copyOfMap?: string
+  /** The map's topics being grouped by the agent, or why they were not. */
+  grouping?: { state: 'grouping' | 'failed'; error?: string }
+  /** An episode's segues: being written, or why they could not be. */
+  segues?: { state: 'writing' | 'failed'; error?: string }
   id: string
   title: string
   source: string

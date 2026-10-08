@@ -585,6 +585,10 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       if (typeof edit.narration !== 'string')
         throw new Error('Add the script for this wireframe')
       slide.narration = edit.narration.trim()
+      // In an episode, a script the creator wrote replaces the segues.
+      delete slide.base
+      delete slide.bridge
+      delete slide.outro
       reconcileVideo(snapshot.project, snapshot)
       return
     }
