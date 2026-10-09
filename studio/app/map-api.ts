@@ -38,6 +38,12 @@ export const mapApi = {
       'POST',
       body
     ),
+  renameEpisode: (episode: string, title: string) =>
+    request<Snapshot>(`/projects/${episode}/episode-title`, 'POST', { title }),
+  renameSeries: (series: string, title: string) =>
+    request<unknown>(`/series/${series}`, 'POST', { title }),
+  removeEpisode: (series: string, episode: string) =>
+    request<Series>(`/series/${series}/episode-remove`, 'POST', { episode }),
   moveEpisode: (series: string, episode: string, by: -1 | 1) =>
     request<Series>(`/series/${series}/episode-order`, 'POST', {
       episode,

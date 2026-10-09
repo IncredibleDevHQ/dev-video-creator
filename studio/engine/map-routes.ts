@@ -7,6 +7,8 @@ import {
   changeCopies,
   mapView,
   moveEpisode,
+  removeEpisode,
+  retitleEpisode,
   setAside,
   startMapSeries
 } from './map-episodes'
@@ -21,9 +23,9 @@ type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues|pick)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues|pick|episode-title)$/
 const seriesRoute =
-  /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order)$/
+  /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order|episode-remove)$/
 
 export const mapRoute = (
   url: URL,
@@ -46,7 +48,9 @@ const route = async (
     return ok(
       series[2] === 'episode-order'
         ? await moveEpisode(series[1], body)
-        : await addMapEpisode(series[1], body)
+        : series[2] === 'episode-remove'
+          ? await removeEpisode(series[1], body)
+          : await addMapEpisode(series[1], body)
     )
   const project = url.pathname.match(projectRoute)
   if (!project) return null
@@ -60,6 +64,7 @@ const route = async (
         : await addNote(id, body)
     )
   if (action === 'pick') return ok(await retryPick(id))
+  if (action === 'episode-title') return ok(await retitleEpisode(id, body))
   if (action === 'topics') return ok(await groupTopics(id))
   if (action === 'map-series') return ok(await startMapSeries(id, body))
   if (action === 'copies') return ok(await changeCopies(id, body))

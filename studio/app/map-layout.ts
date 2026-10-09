@@ -1,9 +1,11 @@
 // Where everything sits on the content map's canvas, in world units: the map
-// block of pages (by the order they were added, or by topic), the series to
-// its right with one lane per episode, and what each made episode was cut
-// into. Pure, so the canvas can move things by diffing two layouts.
+// block of pages (in the notebook's order, or by topic), the series under it
+// with one lane per episode, the Socials box beside the series with what each
+// made episode was cut into, and the workflow's lines between them. Pure, so
+// the canvas can move things by diffing two layouts.
 import type { Snapshot } from '../shared/api'
 import { topicGroups, type MapView } from '../shared/content-map'
+import type { Slide } from '../shared/model'
 
 export type MapMode = 'order' | 'topic'
 export type MapFilter = 'all' | 'unused' | 'new'
@@ -25,7 +27,21 @@ export type MapLayout = {
   bridges: Array<Box & { key: string; copy: string }>
   connectors: Array<Box & { key: string }>
   empties: Record<string, Box>
+  /** The Socials box, outside the series; null without a series. */
+  socials: Box | null
+  /** Each made episode's place in the Socials box, level with its lane. */
   derived: Array<Box & { episode: string }>
+  /** The workflow's lines: the pages into the series, and each made
+   * episode into its place among the socials. */
+  flows: Flow[]
+}
+export type Flow = {
+  key: string
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  episode?: string
 }
 
 export const MX = 40,
@@ -38,9 +54,10 @@ export const MX = 40,
 export const MH = 64,
   GH = 30
 export const MW = MP * 2 + COLS * CW + (COLS - 1) * CG
-/** A bigger map gets more columns, so it stays near the canvas's shape. */
+/** A bigger map gets more columns: with the series under it, the whole
+ * stays near the canvas's shape. */
 export const columnsFor = (pages: number) =>
-  pages <= 9 ? COLS : pages <= 20 ? 4 : pages <= 42 ? 6 : 8
+  pages <= 9 ? COLS : pages <= 16 ? 4 : pages <= 24 ? 6 : pages <= 40 ? 8 : 10
 const widthFor = (cols: number) => MP * 2 + cols * CW + (cols - 1) * CG
 export const SH = 58,
   SP = 16,
@@ -49,16 +66,79 @@ export const SH = 58,
   QH = 160,
   QG = 40,
   SW = 136
+/** A line into a page wraps to two lines under the connector before it. */
+export const BH = 34
 export const LPAD = 14,
   LGAP = 14,
-  LANEH = LH + QH + 40
+  LANEH = LH + QH + BH + 22
+/** The Socials box's width, and the room its lines cross to reach it. */
+export const SOW = 330,
+  SOGAP = 150
 
 const dayOf = (at: string) =>
   new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 
-/** The map's groups: the source, then each note, in order; or its topics. */
+/** A page on the map: drawn, a first draft being checked, being drawn, or
+ * only planned yet (its title from the story, its picture still to come). */
+export type MapPage = {
+  id: string
+  title: string
+  slide?: Slide
+  state: 'drawn' | 'draft' | 'drawing' | 'planned'
+}
+
+/**
+ * The map's pages in order. While the story is planned and drawn, every
+ * planned page is already there by its title, and fills in as it is drawn:
+ * the map forms on the canvas, as in the Wireframe stage's rail.
+ */
+export const mapPages = (snapshot: Snapshot): MapPage[] => {
+  const slides = snapshot.project.slides
+  const drawn = (slide: Slide): MapPage => ({
+    id: slide.id,
+    title: slide.title,
+    slide,
+    state: !slide.svg ? 'planned' : slide.draft ? 'draft' : 'drawn'
+  })
+  const plan = snapshot.status === 'ready' ? [] : snapshot.plan || []
+  if (!plan.length) return slides.map(drawn)
+  const drawing = new Set(
+    snapshot.stopping
+      ? []
+      : (snapshot.drawing || []).map((index) => plan[index]?.id)
+  )
+  const pages: MapPage[] = plan.map((entry) => {
+    const slide = slides.find((item) => item.id === entry.id)
+    return slide
+      ? drawn(slide)
+      : {
+          id: entry.id,
+          title: entry.title,
+          state: drawing.has(entry.id) ? 'drawing' : 'planned'
+        }
+  })
+  for (const slide of slides)
+    if (!plan.some((entry) => entry.id === slide.id)) pages.push(drawn(slide))
+  return pages
+}
+
+/**
+ * The map's groups. By order, one unlabelled group in the notebook's order
+ * (a note's page sits where it was placed, numbered with the rest); by
+ * topic, a labelled group per topic. While the map forms, its pages are one
+ * group in the story's order.
+ */
 export const mapGroups = (snapshot: Snapshot, mode: MapMode) => {
   const slides = snapshot.project.slides
+  if (snapshot.status !== 'ready' && snapshot.plan?.length)
+    return [
+      {
+        key: 'pages',
+        label: '',
+        meta: '',
+        slides: mapPages(snapshot).map((page) => page.id)
+      }
+    ]
   if (mode === 'topic')
     return topicGroups(slides, snapshot.project.topics).map((group) => ({
       key: `t:${group.name}`,
@@ -66,26 +146,17 @@ export const mapGroups = (snapshot: Snapshot, mode: MapMode) => {
       meta: '',
       slides: group.slides
     }))
-  const notes = snapshot.project.notes || []
-  const known = new Set(notes.map((note) => note.id))
-  const groups = [
-    {
-      key: 'source',
-      label: 'From the source',
-      meta: '',
-      slides: slides
-        .filter((slide) => !slide.fromNote || !known.has(slide.fromNote))
-        .map((slide) => slide.id)
-    }
-  ]
-  for (const note of notes)
-    groups.push({
-      key: `n:${note.id}`,
-      label: 'Note',
-      meta: dayOf(note.at),
-      slides: slides.filter((s) => s.fromNote === note.id).map((s) => s.id)
-    })
-  return groups.filter((group) => group.slides.length)
+  return [
+    { key: 'pages', label: '', meta: '', slides: slides.map((s) => s.id) }
+  ].filter((group) => group.slides.length)
+}
+
+/** When a page came from a note: the note's day. */
+export const noteDay = (snapshot: Snapshot, slide: Slide) => {
+  const note = slide.fromNote
+    ? snapshot.project.notes?.find((item) => item.id === slide.fromNote)
+    : undefined
+  return note ? dayOf(note.at) : ''
 }
 
 /** Pages the latest note added or changed: the "New" filter. */
@@ -118,15 +189,19 @@ export const mapLayout = (
     bridges: [],
     connectors: [],
     empties: {},
-    derived: []
+    socials: null,
+    derived: [],
+    flows: []
   }
-  const cols = columnsFor(snapshot.project.slides.length)
+  const cols = columnsFor(mapPages(snapshot).length)
   const mw = widthFor(cols)
   layout.map.w = mw
   let y = MY + MH
   for (const group of mapGroups(snapshot, mode)) {
-    layout.groups.push({ ...group, x: MX + MP, y, w: mw - MP * 2, h: GH - 8 })
-    y += GH
+    if (group.label) {
+      layout.groups.push({ ...group, x: MX + MP, y, w: mw - MP * 2, h: GH - 8 })
+      y += GH
+    }
     group.slides.forEach((id, index) => {
       layout.cards[id] = {
         x: MX + MP + (index % cols) * (CW + CG),
@@ -139,8 +214,10 @@ export const mapLayout = (
   }
   layout.map.h = Math.max(y - MY + MP - 8, 220)
   if (!view?.series) return layout
-  const sx = MX + mw + 180
-  let ly = MY + SH
+  // The series sits under the map: pages are dragged down into its lanes.
+  const sx = MX
+  const sy = MY + layout.map.h + 80
+  let ly = sy + SH
   let widest = 640
   for (const episode of view.episodes) {
     const n = episode.copies.length
@@ -193,7 +270,7 @@ export const mapLayout = (
             x: x - QG / 2 - 104,
             y: rowY + QH + 8,
             w: 208,
-            h: 18
+            h: BH
           })
       })
       const ex = x0 + SW + QG + n * (QW + QG)
@@ -216,25 +293,54 @@ export const mapLayout = (
     }
     ly += LANEH + LGAP
   }
-  // What a made episode was cut into sits right after its own lane.
-  for (const episode of view.episodes) {
-    if (!episode.teasers.length && !episode.posts) continue
-    const lane = layout.lanes[episode.notebook]
-    const rows = episode.teasers.length + (episode.posts ? 1 : 0)
-    const cut = {
-      x: lane.x + lane.w + 40,
-      y: lane.y + 8,
-      w: 280,
-      h: 52 + rows * 30
-    }
-    layout.derived.push({ episode: episode.notebook, ...cut })
-    widest = Math.max(widest, lane.w + 40 + cut.w)
-  }
   layout.series = {
     x: sx,
-    y: MY,
+    y: sy,
     w: SP * 2 + widest,
-    h: Math.max(ly - MY + SP - LGAP, 180)
+    h: Math.max(ly - sy + SP - LGAP, 180)
+  }
+  const mid = MX + mw / 2
+  layout.flows.push({
+    key: 'f:series',
+    x1: mid,
+    y1: MY + layout.map.h,
+    x2: mid,
+    y2: sy
+  })
+  // What a made episode was cut into: the Socials box, beside the series,
+  // each episode's place level with its lane and a line into it.
+  const ox = sx + layout.series.w + SOGAP
+  let bottom = sy + SH
+  for (const episode of view.episodes) {
+    if (!episode.video?.joined && !episode.teasers.length && !episode.posts)
+      continue
+    const lane = layout.lanes[episode.notebook]
+    // Its teasers (or a row to cut one), then its posts.
+    const rows = Math.max(1, episode.teasers.length) + 1
+    const y = Math.max(bottom, lane.y)
+    const place = {
+      episode: episode.notebook,
+      x: ox + SP,
+      y,
+      w: SOW - SP * 2,
+      h: 44 + rows * 32
+    }
+    layout.derived.push(place)
+    bottom = y + place.h + 14
+    layout.flows.push({
+      key: `f:${episode.notebook}`,
+      episode: episode.notebook,
+      x1: lane.x + lane.w,
+      y1: lane.y + 22,
+      x2: place.x,
+      y2: place.y + 22
+    })
+  }
+  layout.socials = {
+    x: ox,
+    y: sy,
+    w: SOW,
+    h: Math.max(bottom - sy + SP - 14, 180)
   }
   return layout
 }
@@ -243,7 +349,11 @@ export const mapLayout = (
 export const extent = (layout: MapLayout, focus?: Box) => {
   const boxes = focus
     ? [focus]
-    : [layout.map, ...(layout.series ? [layout.series] : []), ...layout.derived]
+    : [
+        layout.map,
+        ...(layout.series ? [layout.series] : []),
+        ...(layout.socials ? [layout.socials] : [])
+      ]
   const x0 = Math.min(...boxes.map((b) => b.x)) - 30
   const y0 = Math.min(...boxes.map((b) => b.y)) - 30
   const x1 = Math.max(...boxes.map((b) => b.x + b.w)) + 30

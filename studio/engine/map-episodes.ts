@@ -367,6 +367,55 @@ export const afterEpisodeEdit = async (id: string, snapshot: Snapshot) => {
   await scheduleAround(id)
 }
 
+/** An episode's title, as the creator names it; the episodes either side
+ * say it in their "next time" and "last time". */
+export const retitleEpisode = async (id: string, raw: unknown) => {
+  const title = words((raw as { title?: unknown })?.title, 120)
+  if (!title) throw new Refusal('Give the episode a title')
+  await episodeOf(id)
+  const changed = await changeProject(id, (current) => {
+    current.project.title = title
+  })
+  await scheduleAround(id)
+  return changed
+}
+
+/**
+ * Takes an episode out of the map's series. Its notebook stays, as a
+ * notebook of its own; the episodes after it move up a number, and the
+ * map's pages cut into it belong to no episode again.
+ */
+export const removeEpisode = async (seriesId: string, raw: unknown) => {
+  const notebook = String((raw as { episode?: unknown })?.episode || '')
+  const before = await loadSeries(seriesId)
+  if (!before?.map) throw new Refusal('This series has no content map')
+  const at = before.episodes.findIndex((item) => item.notebookId === notebook)
+  if (at < 0) throw new Refusal('Choose an episode of this series')
+  const saved = await changeSeries(seriesId, (series) => {
+    series.episodes = series.episodes.filter(
+      (item) => item.notebookId !== notebook
+    )
+    series.episodes.forEach((item, index) => {
+      item.number = index + 1
+    })
+  })
+  await changeProject(notebook, (current) => {
+    delete current.project.episode
+    delete current.project.copyOfMap
+    addEvent(current, 'slide', `Taken out of the series ${before.title}`)
+  })
+  await changeProject(before.map, (current) => {
+    for (const slide of current.project.slides)
+      if (slide.onlyIn === notebook) delete slide.onlyIn
+  })
+  for (const item of saved.episodes)
+    await changeProject(item.notebookId, (current) => {
+      if (current.project.episode) current.project.episode.number = item.number
+    })
+  for (const item of saved.episodes) scheduleSegues(item.notebookId)
+  return saved
+}
+
 /**
  * Moves an episode up or down the series: the episodes are numbered again,
  * and every episode whose neighbours changed has its segues written again.
@@ -494,9 +543,19 @@ export const mapView = async (mapId: string): Promise<MapView> => {
       teasers: (ep.project.release?.teasers || []).map((t) => ({
         id: t.id,
         channel: t.channel,
-        state: t.state
+        aspect: t.aspect,
+        state: t.state,
+        ...(t.state === 'ready' && t.objectKey
+          ? { objectKey: t.objectKey }
+          : {})
       })),
-      posts: Boolean(ep.project.release?.posts)
+      posts: ep.project.release?.posts
+        ? {
+            x: ep.project.release.posts.x,
+            linkedin: ep.project.release.posts.linkedin,
+            youtube: ep.project.release.posts.youtube
+          }
+        : null
     })
   }
   return {

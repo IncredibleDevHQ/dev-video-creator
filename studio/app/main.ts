@@ -140,6 +140,13 @@ app.mapCanvas = new MapCanvas(app.root, {
     app.stage = 'presentation'
     void app.openNotebook(id)
   },
+  openPage: (id, index) => {
+    app.mapCanvas.dismiss()
+    app.stage = 'presentation'
+    app.selected = index
+    app.selectedPlan = null
+    void app.openNotebook(id)
+  },
   error: showError
 })
 app.pendingChats = new Set<string>()

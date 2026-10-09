@@ -843,3 +843,49 @@ it('clears a cut when its copy is deleted on the Wireframe stage', async () => {
   expect((await loadProject('m18'))!.project.slides[1].onlyIn).toBeUndefined()
   await segues.settledAllSegues()
 })
+
+it('renames an episode, and takes one out of the series', async () => {
+  await drawnMap('m19')
+  const series = await episodes.startMapSeries('m19', {})
+  const add = async (title: string, slides: string[]) =>
+    (await episodes.addMapEpisode(series.id, { title, slides })).notebook
+      .project.id
+  const a = await add('A', ['m19-1'])
+  const b = await add('B', ['m19-2'])
+  const c = await add('C', ['m19-3'])
+  await segues.settledAllSegues()
+  // Renamed, the episode before says the new title in its "next time".
+  await episodes.retitleEpisode(b, { title: 'Bee' })
+  await segues.settledAllSegues()
+  expect((await loadProject(b))!.project.title).toBe('Bee')
+  expect((await loadProject(a))!.project.slides[0].outro).toBe(
+    'Next time: Bee.'
+  )
+  await expect(episodes.retitleEpisode(b, { title: ' ' })).rejects.toThrow(
+    'Give the episode a title'
+  )
+  // A page cut into B is B's only; taken out, B is a notebook of its own
+  // and the page is free again.
+  await episodes.changeCopies(b, { action: 'add', slide: 'm19-4', only: true })
+  expect((await loadProject('m19'))!.project.slides[3].onlyIn).toBe(b)
+  const saved = await episodes.removeEpisode(series.id, { episode: b })
+  await segues.settledAllSegues()
+  expect(saved.episodes.map((e) => [e.notebookId, e.number])).toEqual([
+    [a, 1],
+    [c, 2]
+  ])
+  const alone = (await loadProject(b))!.project
+  expect(alone.copyOfMap).toBeUndefined()
+  expect(alone.episode).toBeUndefined()
+  expect(alone.slides).toHaveLength(2)
+  expect((await loadProject('m19'))!.project.slides[3].onlyIn).toBeUndefined()
+  expect((await loadProject(c))!.project.episode?.number).toBe(2)
+  // A and C now meet: A's "next time" leads into C.
+  expect((await loadProject(a))!.project.slides[0].outro).toBe('Next time: C.')
+  const view = await episodes.mapView('m19')
+  expect(view.episodes.map((e) => e.title)).toEqual(['A', 'C'])
+  expect(view.usage['m19-2']).toBeUndefined()
+  await expect(
+    episodes.removeEpisode(series.id, { episode: b })
+  ).rejects.toThrow('Choose an episode of this series')
+})

@@ -3,7 +3,14 @@
 // bar and its menus, ⌘C/⌘X/⌘V, Delete and Esc, and the notes rail's form.
 import { api } from './api'
 import { confirmAction } from './confirm-action'
-import { episodeChoices, hideMenu, showMenu } from './map-bar'
+import {
+  episodeChoices,
+  hideMenu,
+  moreChoices,
+  showHelp,
+  showMenu,
+  showPosts
+} from './map-bar'
 import type { MapCanvas, MapSel } from './map-canvas'
 import { mapApi } from './map-api'
 import { dropSpot, QH } from './map-layout'
@@ -22,12 +29,40 @@ export type DragState = {
   offset?: { x: number; y: number }
   over?: string | null
   spot?: ReturnType<typeof dropSpot>
+  /** The latest pointer, and the frame that pans while it is at an edge. */
+  last?: PointerEvent
+  edge?: number
+}
+
+// Held near the canvas's edge, a drag pans the map toward that edge, so a
+// lane out of view can still be reached.
+const EDGE = 48
+const panAtEdge = (map: MapCanvas, drag: DragState, event: PointerEvent) => {
+  drag.last = event
+  if (drag.edge) return
+  const step = () => {
+    drag.edge = 0
+    const canvas = map.canvas
+    if (map.drag !== drag || !drag.last || !canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const { clientX: x, clientY: y } = drag.last
+    const dx = x < rect.left + EDGE ? 14 : x > rect.right - EDGE ? -14 : 0
+    const dy = y < rect.top + EDGE ? 14 : y > rect.bottom - EDGE ? -14 : 0
+    if (!dx && !dy) return
+    map.camera.x += dx
+    map.camera.y += dy
+    map.applyCamera()
+    moveDrag(map, drag, drag.last)
+    drag.edge = requestAnimationFrame(step)
+  }
+  drag.edge = requestAnimationFrame(step)
 }
 
 const selectionOf = (key: string): MapSel => {
   if (key.startsWith('m:')) return { t: 'page', id: key.slice(2) }
   if (key.startsWith('c:')) return { t: 'copy', id: key.slice(2) }
   if (/^(L|Z|s|e):/.test(key)) return { t: 'lane', id: key.slice(2) }
+  if (key === 'B:series') return { t: 'series' }
   return null
 }
 
@@ -63,12 +98,72 @@ export const installMapInput = (map: MapCanvas) => {
       event.preventDefault()
       ;(form as HTMLFormElement).requestSubmit()
     }
+    // A card reached with Tab selects with Enter or Space, as a click would.
+    const el = (event.target as Element).closest?.<HTMLElement>(
+      '[data-map-canvas] .map-el'
+    )
+    const own = (event.target as Element).closest?.('button, a, input')
+    if (el && !own && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault()
+      map.select(selectionOf(el.dataset.k || ''))
+    }
+  })
+  // Focus moves the camera, never the canvas: a card reached with Tab is
+  // brought into view as a pan would, from where the layout puts it (the
+  // camera may still be gliding).
+  root.addEventListener('focusin', (event) => {
+    const el = event.target as HTMLElement
+    const canvas = map.canvas
+    if (!el.classList?.contains('map-el') || !canvas?.contains(el)) return
+    canvas.scrollLeft = 0
+    canvas.scrollTop = 0
+    const at = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(
+      el.style.transform
+    )
+    if (!at) return
+    const { k } = map.camera
+    const rect = canvas.getBoundingClientRect()
+    // Too big to show whole, it shows its start; else it is nudged in.
+    const nudge = (
+      start: number,
+      size: number,
+      room: number,
+      lead: number,
+      tail: number
+    ) =>
+      size > room - lead - tail
+        ? start < lead || start > room - tail
+          ? lead - start
+          : 0
+        : start < lead
+          ? lead - start
+          : start + size > room - tail
+            ? room - tail - start - size
+            : 0
+    const dx = nudge(
+      map.camera.x + Number(at[1]) * k,
+      el.offsetWidth * k,
+      rect.width,
+      40,
+      40
+    )
+    const dy = nudge(
+      map.camera.y + Number(at[2]) * k,
+      el.offsetHeight * k,
+      rect.height,
+      60,
+      110
+    )
+    if (!dx && !dy) return
+    map.camera.x += dx
+    map.camera.y += dy
+    map.applyCamera(true)
   })
   root.addEventListener('pointerdown', (event) => {
     if (!map.isOpen || event.button !== 0) return
     const target = event.target as Element
     const canvas = target.closest<HTMLElement>('[data-map-canvas]')
-    if (!canvas || target.closest('button')) return
+    if (!canvas || target.closest('button, a')) return
     event.preventDefault()
     ;(document.activeElement as HTMLElement | null)?.blur?.()
     hideMenu(map)
@@ -106,17 +201,33 @@ export const installMapInput = (map: MapCanvas) => {
       map.camera.x = drag.cx + dx
       map.camera.y = drag.cy + dy
       map.applyCamera()
-    } else moveDrag(map, drag, event)
+    } else {
+      moveDrag(map, drag, event)
+      panAtEdge(map, drag, event)
+    }
+  })
+  // With no pages chosen, a new episode needs to say what it is about
+  // before the agent can choose its pages.
+  root.addEventListener('input', (event) => {
+    const input = event.target as HTMLInputElement
+    const form = input.closest?.<HTMLFormElement>('[data-map-form="episode"]')
+    const submit = form?.querySelector<HTMLButtonElement>(
+      'button[type="submit"]'
+    )
+    if (submit && form?.querySelector('[data-map="empty-episode"]'))
+      submit.disabled = !input.value.trim()
   })
   const finish = (event: PointerEvent) => {
     const drag = map.drag
     if (!map.isOpen || !drag) return
     map.drag = null
+    if (drag.edge) cancelAnimationFrame(drag.edge)
     map.canvas?.classList.remove('is-panning')
     const tip = map.slot('dragtip')
     if (tip) tip.hidden = true
     if (!drag.moved) {
       map.changing = null
+      map.renaming = null
       map.select(drag.key ? selectionOf(drag.key) : null)
       return
     }
@@ -157,7 +268,8 @@ export const installMapInput = (map: MapCanvas) => {
     if (!map.isOpen || !map.layout) return
     // Pointer capture sends the event to the canvas: find what is under it.
     const under = document.elementFromPoint(event.clientX, event.clientY)
-    if (!under?.closest('[data-map-canvas]') || under.closest('button')) return
+    if (!under?.closest('[data-map-canvas]') || under.closest('button, a'))
+      return
     const key = under.closest<HTMLElement>('.map-el')?.dataset.k || ''
     const pad = (b: { x: number; y: number; w: number; h: number }) => ({
       x: b.x - 20,
@@ -169,21 +281,9 @@ export const installMapInput = (map: MapCanvas) => {
       return map.fit(map.layout.map)
     if (key === 'B:series' && map.layout.series)
       return map.fit(map.layout.series)
-    // What a made episode was cut into: framed with its episode's lane.
-    if (key.startsWith('D:')) {
-      const lane = map.layout.lanes[key.slice(2)]
-      const cut = map.layout.derived.find((d) => d.episode === key.slice(2))
-      if (lane && cut)
-        return map.fit(
-          pad({
-            x: lane.x,
-            y: Math.min(lane.y, cut.y),
-            w: cut.x + cut.w - lane.x,
-            h:
-              Math.max(lane.y + lane.h, cut.y + cut.h) - Math.min(lane.y, cut.y)
-          })
-        )
-    }
+    // The Socials box, or a made episode's place in it.
+    if ((key === 'S:socials' || key.startsWith('D:')) && map.layout.socials)
+      return map.fit(pad(map.layout.socials))
     const sel = selectionOf(key)
     const lane =
       sel?.t === 'lane'
@@ -217,6 +317,7 @@ export const installMapInput = (map: MapCanvas) => {
     } else if (key === 'escape') {
       map.naming = null
       map.changing = null
+      map.renaming = null
       map.select(null)
     }
   })
@@ -339,6 +440,7 @@ const submit = async (map: MapCanvas, form: HTMLFormElement) => {
     )
   }
   if (kind === 'episode') return map.addEpisode(String(data.get('title') || ''))
+  if (kind === 'rename') return map.saveTitle(String(data.get('title') || ''))
   if (kind === 'change' && map.changing) {
     const slideId = map.changing
     const instruction = String(data.get('instruction') || '').trim()
@@ -365,7 +467,14 @@ const dispatch = async (
   const sel = map.sel
   const page = sel?.t === 'page' ? sel.id : ''
   const copy = sel?.t === 'copy' ? sel.id : ''
-  if (name !== 'cancel') hideMenu(map)
+  const lane =
+    sel?.t === 'lane'
+      ? map.view?.episodes.find((e) => e.notebook === sel.id)
+      : undefined
+  // The same "More" again closes its menu; copying a post keeps the posts.
+  const menu = map.slot('menu')
+  const reopened = menu && !menu.hidden && menu.dataset.for === action
+  if (name !== 'cancel' && name !== 'copy-post') hideMenu(map)
   switch (name) {
     case 'close':
       return map.close()
@@ -382,7 +491,8 @@ const dispatch = async (
       map.mode = arg === 'topic' ? 'topic' : 'order'
       return map.paint()
     case 'filter':
-      map.filter = arg === 'unused' || arg === 'new' ? arg : 'all'
+      map.filter =
+        (arg === 'unused' || arg === 'new') && map.filter !== arg ? arg : 'all'
       return map.paint()
     case 'group':
       return map.run(
@@ -402,6 +512,7 @@ const dispatch = async (
     case 'cancel':
       map.naming = null
       map.changing = null
+      map.renaming = null
       return map.paint()
     case 'copy':
     case 'cut':
@@ -418,15 +529,90 @@ const dispatch = async (
       map.toast('Cut from its episode: select another and press ⌘V to move it')
       return map.paint()
     }
-    case 'menu':
-      if (!target) return
+    case 'menu': {
+      if (!target || reopened) return
       if (arg === 'copy-to')
-        return showMenu(map, target, episodeChoices(map, 'copy-to'))
-      return showMenu(
-        map,
-        target,
-        episodeChoices(map, 'move-to', map.episodeOf(copy)?.notebook)
+        return showMenu(
+          map,
+          target,
+          episodeChoices(map, 'copy-to', undefined, page)
+        )
+      if (arg === 'move-to') {
+        const from = map.episodeOf(copy)
+        const source = from?.copies.find((c) => c.id === copy)?.copyOf?.slide
+        return showMenu(
+          map,
+          target,
+          episodeChoices(map, 'move-to', from?.notebook, source)
+        )
+      }
+      return showMenu(map, target, moreChoices(map, arg))
+    }
+    case 'open-page': {
+      const index =
+        map.snapshot?.project.slides.findIndex((s) => s.id === page) ?? -1
+      return index < 0 ? undefined : map.hooks.openPage(map.mapId, index)
+    }
+    case 'open-copy': {
+      const from = map.episodeOf(copy)
+      const index = from?.copies.findIndex((c) => c.id === copy) ?? -1
+      return from && index >= 0
+        ? map.hooks.openPage(from.notebook, index)
+        : undefined
+    }
+    case 'rename-episode':
+      return lane ? map.rename('episode', lane.notebook, lane.title) : undefined
+    case 'rename-series': {
+      const series = map.view?.series
+      return series ? map.rename('series', series.id, series.title) : undefined
+    }
+    case 'remove-episode': {
+      const series = map.view?.series
+      if (!series || !lane) return
+      const sure = await confirmAction({
+        title: `Take Ep ${lane.number} out of the series?`,
+        detail:
+          'It stays a notebook of its own, with its copies and anything made. The map keeps its pages.',
+        action: 'Take it out'
+      })
+      if (!sure) return
+      map.sel = null
+      return map.run(
+        () => mapApi.removeEpisode(series.id, lane.notebook),
+        'Taken out of the series. The episodes either side now meet.'
       )
+    }
+    case 'reveal':
+      return map.reveal(arg)
+    case 'help':
+      return target && !reopened ? showHelp(map, target) : undefined
+    case 'notes': {
+      const shell = map.root.querySelector('.map-page')
+      const open = !shell?.classList.contains('is-notes-open')
+      shell?.classList.toggle('is-notes-open', open)
+      target?.setAttribute('aria-expanded', String(open))
+      return
+    }
+    case 'note-more':
+      if (map.openNotes.has(arg)) map.openNotes.delete(arg)
+      else map.openNotes.add(arg)
+      return map.paint()
+    case 'read-posts':
+      return target && !reopened ? showPosts(map, target, arg) : undefined
+    case 'copy-post': {
+      const [episode, channel] = arg.split(':')
+      const posts = map.view?.episodes.find(
+        (e) => e.notebook === episode
+      )?.posts
+      const text = posts?.[channel as keyof typeof posts]
+      if (!text) return
+      try {
+        await navigator.clipboard.writeText(text)
+        return map.toast('Copied')
+      } catch {
+        return map.toast('Could not copy: select the text instead')
+      }
+    }
     case 'copy-to':
       if (!page) return
       if (arg === 'new') return map.newEpisode([page])

@@ -25,6 +25,7 @@ export type MapSel =
   | { t: 'page'; id: string }
   | { t: 'copy'; id: string }
   | { t: 'lane'; id: string }
+  | { t: 'series' }
   | null
 export type MapClip =
   | { mode: 'copy' | 'cut'; slide: string }
@@ -33,6 +34,8 @@ export type MapClip =
 type Hooks = {
   close: () => void
   openEpisode: (id: string) => void
+  /** Opens a notebook's Wireframe stage at one of its pages. */
+  openPage: (id: string, index: number) => void
   error: (reason: unknown) => void
 }
 
@@ -51,9 +54,14 @@ export class MapCanvas {
   fly: Record<string, { x: number; y: number }> = {}
   drag: DragState | null = null
   naming: { slides: string[] } | null = null
+  renaming: { kind: 'episode' | 'series'; id: string; title: string } | null =
+    null
   from = ''
   changing: string | null = null
+  /** Long notes the creator opened with More. */
+  openNotes = new Set<string>()
   private fitted = false
+  private fittedPages = 0
   private poll: ReturnType<typeof setInterval> | null = null
   private unsubscribe: (() => void) | null = null
   private toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -84,6 +92,7 @@ export class MapCanvas {
     this.sel = null
     this.clip = null
     this.fitted = false
+    this.fittedPages = 0
     this.els.clear()
     replacePlayerView(this.root, mapPage('Loading…'), null)
     const url = new URL(location.href)
@@ -149,12 +158,30 @@ export class MapCanvas {
       'tools',
       mapTools(this.snapshot, this.view, this.mode, this.filter)
     )
-    this.fill('notes', mapNotes(this.snapshot))
+    this.fill('notes', mapNotes(this.snapshot, this.openNotes))
+    // Notes pile into a drawn map; while it forms they wait.
+    const ready = this.snapshot.status === 'ready'
+    const note = this.root.querySelector<HTMLTextAreaElement>(
+      '[data-map-form="note"] textarea'
+    )
+    const add = this.root.querySelector<HTMLButtonElement>(
+      '[data-map-form="note"] button'
+    )
+    if (note && note.disabled === ready) {
+      note.disabled = !ready
+      note.placeholder = ready
+        ? 'Add a note: an idea, a link, a half-thought…'
+        : 'Notes open once the map is drawn'
+    }
+    if (add) add.disabled = !ready
     this.layout = mapLayout(this.snapshot, this.view, this.mode)
     paintWorld(this)
     renderBar(this)
-    if (!this.fitted && this.view) {
+    // Fit once the map has its pages: at first, and when the story plans them.
+    const pages = this.layout ? Object.keys(this.layout.cards).length : 0
+    if ((!this.fitted || (this.fittedPages === 0 && pages > 0)) && this.view) {
       this.fitted = true
+      this.fittedPages = pages
       this.fit()
     }
   }
@@ -172,6 +199,13 @@ export class MapCanvas {
       ? 'transform .45s cubic-bezier(.2,.8,.2,1)'
       : ''
     world.style.transform = `translate(${this.camera.x}px,${this.camera.y}px) scale(${this.camera.k})`
+    const zoom = this.slot('zoom')
+    if (zoom) zoom.textContent = `${Math.round(this.camera.k * 100)}%`
+    // Lines keep their width on screen at any zoom (set on the lines only,
+    // so the cards' styles are left alone).
+    this.root
+      .querySelector<SVGElement>('[data-map-wires]')
+      ?.style.setProperty('--k', String(this.camera.k))
   }
   fit(focus?: Box) {
     if (!this.layout || !this.canvas) return
@@ -181,9 +215,10 @@ export class MapCanvas {
     const height = rect.height - 90
     if (width <= 0 || height <= 0) return
     const k = Math.max(0.2, Math.min(width / box.w, height / box.h, 1))
+    // Too big even at the smallest zoom, it shows from its top left.
     this.camera = {
       k,
-      x: 12 + (width - box.w * k) / 2 - box.x * k,
+      x: 12 + Math.max(0, (width - box.w * k) / 2) - box.x * k,
       y: 16 + Math.max(0, (height - box.h * k) / 2) - box.y * k
     }
     this.applyCamera(true)
@@ -268,11 +303,12 @@ export class MapCanvas {
     if (!clip) return this.toast('Select a page and press ⌘C first')
     let episode = this.sel?.t === 'lane' ? this.sel.id : null
     let index: number | undefined
-    if (this.sel?.t === 'copy') {
-      const ep = this.episodeOf(this.sel.id)
+    const sel = this.sel
+    if (sel?.t === 'copy') {
+      const ep = this.episodeOf(sel.id)
       if (ep) {
         episode = ep.notebook
-        index = ep.copies.findIndex((c) => c.id === this.sel!.id) + 1
+        index = ep.copies.findIndex((c) => c.id === sel.id) + 1
       }
     }
     if (!episode) return this.toast('Select an episode to paste into')
@@ -291,6 +327,7 @@ export class MapCanvas {
   newEpisode(slides: string[] = []) {
     if (!this.view?.series) return
     this.naming = { slides }
+    this.sel = null
     this.paint()
     this.root
       .querySelector<HTMLInputElement>('[data-map-form="episode"] input')
@@ -319,6 +356,43 @@ export class MapCanvas {
     )
     this.fitted = false
     this.paint()
+  }
+  /** Asks for a new title, in the bar. */
+  rename(kind: 'episode' | 'series', id: string, title: string) {
+    this.renaming = { kind, id, title }
+    this.paint()
+    const input = this.root.querySelector<HTMLInputElement>(
+      '[data-map-form="rename"] input'
+    )
+    input?.focus()
+    input?.select()
+  }
+  async saveTitle(title: string) {
+    const renaming = this.renaming
+    this.renaming = null
+    if (!renaming || !title.trim() || title.trim() === renaming.title)
+      return this.paint()
+    await this.run(
+      () =>
+        renaming.kind === 'series'
+          ? mapApi.renameSeries(renaming.id, title.trim())
+          : mapApi.renameEpisode(renaming.id, title.trim()),
+      renaming.kind === 'series'
+        ? 'Series renamed'
+        : 'Episode renamed: the episodes either side say its new title'
+    )
+  }
+  /** Shows a page: selects it and brings it into view. */
+  reveal(id: string) {
+    const box = this.layout?.cards[id]
+    this.select({ t: 'page', id })
+    if (box)
+      this.fit({
+        x: box.x - 160,
+        y: box.y - 120,
+        w: box.w + 320,
+        h: box.h + 240
+      })
   }
   async startSeries() {
     await this.run(

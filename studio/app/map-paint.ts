@@ -1,18 +1,21 @@
 // Paints the canvas: every block, page, copy and segue is an element keyed by
 // what it shows, placed in world units, so a change of layout glides rather
-// than redraws. Wires are drawn only for the selection: a page to its copies,
-// an episode to the pages it copied.
+// than redraws. Lines show the workflow: the pages into the series, every
+// page to its copies (faint, and strong for what is selected), and each made
+// episode into its place among the socials.
+import type { Snapshot } from '../shared/api'
 import { unusedPages } from '../shared/content-map'
 import type { MapCanvas } from './map-canvas'
 import type { Box } from './map-layout'
-import { newPages } from './map-layout'
+import { mapPages, newPages, type MapPage } from './map-layout'
 import {
   colorOf,
   copyCard,
   derivedBlock,
   laneHead,
   mapCard,
-  segueCard
+  segueCard,
+  socialsHead
 } from './map-view'
 import { escape } from './ui'
 
@@ -22,6 +25,10 @@ type Item = {
   box: Box
   html: string
   data?: Record<string, string>
+  /** The whole text, for a block that shows it cut short. */
+  title?: string
+  /** What a keyboard user hears; with it, the block is reached with Tab. */
+  label?: string
 }
 type Node = HTMLElement & { _html?: string }
 
@@ -33,8 +40,43 @@ const selectedKey = (map: MapCanvas) => {
       ? `m:${sel.id}`
       : sel.t === 'copy'
         ? `c:${sel.id}`
-        : `L:${sel.id}`
+        : sel.t === 'lane'
+          ? `L:${sel.id}`
+          : 'B:series'
 }
+
+/** The map block's line: what it holds, or how far the drawing is. */
+const summary = (
+  snapshot: Snapshot,
+  pages: MapPage[],
+  use: { used: number; unused: number; series: boolean } | null
+) => {
+  if (snapshot.status === 'building' || snapshot.status === 'reading') {
+    if (!pages.length) return escape(formingLabel(snapshot))
+    // A first draft being checked is drawn, as far as the map shows.
+    const drawn = pages.filter(
+      (page) => page.state === 'drawn' || page.state === 'draft'
+    ).length
+    return `Drawing ${pages.length} pages · ${drawn} drawn`
+  }
+  const count = `${pages.length} page${pages.length === 1 ? '' : 's'}`
+  return use?.series
+    ? `${count} · ${use.used} used · <em>${use.unused} unused</em>`
+    : count
+}
+const formingLabel = (snapshot: Snapshot) =>
+  snapshot.status === 'reading'
+    ? 'Reading the source…'
+    : snapshot.status === 'draft'
+      ? 'Create the wireframes to start the map.'
+      : snapshot.status === 'failed'
+        ? snapshot.error || 'The map could not be drawn.'
+        : /understanding/i.test(lastSlideEvent(snapshot))
+          ? 'Understanding the source…'
+          : 'Planning the story…'
+const lastSlideEvent = (snapshot: Snapshot) =>
+  [...snapshot.events].reverse().find((event) => event.kind === 'slide')
+    ?.message || ''
 
 export const paintWorld = (map: MapCanvas) => {
   const { snapshot, view, layout } = map
@@ -49,12 +91,40 @@ export const paintWorld = (map: MapCanvas) => {
   const used = view
     ? pages.filter((slide) => view.usage[slide.id]?.length).length
     : 0
+  const all = mapPages(snapshot)
+  // A selected episode's colour marks the map pages it copied.
+  const sel = map.sel
+  const lane =
+    sel?.t === 'lane'
+      ? view?.episodes.find((e) => e.notebook === sel.id)
+      : undefined
+  // Where each lit page sits in the episode: its copies' numbers.
+  const sources = new Map<string, number[]>()
+  lane?.copies.forEach((copy, index) => {
+    const id = copy.copyOf?.slide
+    if (id) sources.set(id, [...(sources.get(id) || []), index + 1])
+  })
+  if (lane && view)
+    map.world!.style.setProperty('--sel', colorOf(view, lane.notebook))
   items.push({
     key: 'B:map',
     cls: 'map-block',
     box: layout.map,
-    html: `<div class="map-block-head"><h2>Pages</h2><p>${pages.length} page${pages.length === 1 ? '' : 's'}${view?.series ? ` · ${used} used · <em>${unused?.size ?? 0} unused</em>` : ''}${snapshot.status === 'building' ? ' · drawing' : ''}</p></div>`
+    html: `<div class="map-block-head"><h2>Pages</h2><p>${summary(snapshot, all, view ? { used, unused: unused?.size ?? 0, series: Boolean(view.series) } : null)}</p></div>`
   })
+  // Before the story is planned there is nothing to show but what happens.
+  if (!all.length)
+    items.push({
+      key: 'M:forming',
+      cls: 'map-forming',
+      box: {
+        x: layout.map.x + 20,
+        y: layout.map.y + 70,
+        w: layout.map.w - 40,
+        h: layout.map.h - 90
+      },
+      html: `<p>${escape(formingLabel(snapshot))}</p><small>Each page appears here as soon as the story plans it, then fills in as it is drawn.</small>`
+    })
   for (const group of layout.groups)
     items.push({
       key: `G:${group.key}`,
@@ -62,30 +132,39 @@ export const paintWorld = (map: MapCanvas) => {
       box: group,
       html: `<b>${escape(group.label)}</b>${group.meta ? `<span>${escape(group.meta)}</span>` : ''}<span>${group.slides.length} page${group.slides.length === 1 ? '' : 's'}</span>`
     })
-  for (const slide of pages) {
-    const box = layout.cards[slide.id]
-    if (!box) continue
+  all.forEach((page, index) => {
+    const box = layout.cards[page.id]
+    if (!box) return
     let cls = 'map-card'
-    if (chosen === `m:${slide.id}`) cls += ' is-selected'
-    if (slide.aside) cls += ' is-aside'
-    if (map.filter === 'unused' && unused && !unused.has(slide.id))
+    if (chosen === `m:${page.id}`) cls += ' is-selected'
+    if (page.slide?.aside) cls += ' is-aside'
+    const planned = page.state === 'planned' || page.state === 'drawing'
+    if (planned) cls += ' is-planned'
+    if (sources.has(page.id)) cls += ' is-source'
+    if (map.filter === 'unused' && unused && !unused.has(page.id))
       cls += ' is-dim'
-    if (map.filter === 'new' && !fresh.has(slide.id)) cls += ' is-dim'
+    if (map.filter === 'new' && !fresh.has(page.id)) cls += ' is-dim'
     items.push({
-      key: `m:${slide.id}`,
+      key: `m:${page.id}`,
       cls,
       box,
-      html: mapCard(snapshot, view, slide, fresh.has(slide.id)),
-      data: { page: slide.id }
+      html:
+        mapCard(snapshot, view, page, index + 1, fresh.has(page.id)) +
+        (sources.has(page.id)
+          ? `<span class="map-src" title="Its place in the episode">${sources.get(page.id)!.join(', ')}</span>`
+          : ''),
+      data: { page: page.id },
+      ...(planned ? {} : { label: `Page ${index + 1}: ${page.title}` })
     })
-  }
+  })
   if (view?.series && layout.series) {
     const copies = view.episodes.reduce((n, e) => n + e.copies.length, 0)
     items.push({
       key: 'B:series',
       cls: 'map-block map-series',
       box: layout.series,
-      html: `<div class="map-block-head"><h2>Series · ${escape(view.series.title)}</h2><p>${view.episodes.length ? `${view.episodes.length} episode${view.episodes.length === 1 ? '' : 's'} · ${copies} cop${copies === 1 ? 'y' : 'ies'} of map pages` : 'No episodes yet: add one with + Episode'}</p></div>`
+      html: `<div class="map-block-head"><h2>Series · ${escape(view.series.title)}</h2><p>${view.episodes.length ? `${view.episodes.length} episode${view.episodes.length === 1 ? '' : 's'} · ${copies} page${copies === 1 ? '' : 's'} from the map` : 'No episodes yet: add one with + Episode'}</p></div>`,
+      label: `Series: ${view.series.title}`
     })
     const pageNo = new Map(pages.map((slide, index) => [slide.id, index + 1]))
     const pageSvg = new Map(pages.map((slide) => [slide.id, slide.svg]))
@@ -97,7 +176,8 @@ export const paintWorld = (map: MapCanvas) => {
         cls: `map-lane${chosen === `L:${episode.notebook}` ? ' is-selected' : ''}${over ? ' is-drop' : ''}`,
         box: lane,
         html: laneHead(view, episode),
-        data: { lane: episode.notebook }
+        data: { lane: episode.notebook },
+        label: `Ep ${episode.number}: ${episode.title}`
       })
       const empty = layout.empties[episode.notebook]
       if (empty)
@@ -124,7 +204,8 @@ export const paintWorld = (map: MapCanvas) => {
             copy.copyOf ? pageNo.get(copy.copyOf.slide) || 0 : 0,
             copy.copyOf ? (pageSvg.get(copy.copyOf.slide) ?? null) : null
           ),
-          data: { copy: copy.id }
+          data: { copy: copy.id },
+          label: `Ep ${episode.number}, page ${index + 1}: ${copy.title}`
         })
       })
       for (const segue of layout.segues.filter(
@@ -135,7 +216,11 @@ export const paintWorld = (map: MapCanvas) => {
           cls: `map-segue${episode.segues === 'writing' ? ' is-busy' : ''}`,
           box: segue,
           html: segueCard(episode, segue.end, at === view.episodes.length - 1),
-          data: { lane: episode.notebook }
+          data: { lane: episode.notebook },
+          title:
+            (segue.end
+              ? episode.copies.at(-1)?.outro
+              : episode.copies[0]?.bridge) || ''
         })
     })
     for (const bridge of layout.bridges) {
@@ -148,7 +233,8 @@ export const paintWorld = (map: MapCanvas) => {
         box: bridge,
         html: busy
           ? 'rewriting…'
-          : escape(copy?.bridge ? `↳ ${copy.bridge}` : '')
+          : escape(copy?.bridge ? `↳ ${copy.bridge}` : ''),
+        title: busy ? '' : copy?.bridge || ''
       })
     }
     for (const connector of layout.connectors)
@@ -157,6 +243,13 @@ export const paintWorld = (map: MapCanvas) => {
         cls: 'map-connector',
         box: connector,
         html: ''
+      })
+    if (layout.socials)
+      items.push({
+        key: 'S:socials',
+        cls: 'map-block map-socials',
+        box: layout.socials,
+        html: socialsHead(view)
       })
     for (const derived of layout.derived) {
       const episode = view.episodes.find((e) => e.notebook === derived.episode)!
@@ -206,6 +299,20 @@ const sync = (map: MapCanvas, items: Item[]) => {
     if (!dragging)
       node.style.transform = `translate(${item.box.x}px,${item.box.y}px)`
     node.style.opacity = ''
+    const title = item.title || ''
+    if (node.title !== title) node.title = title
+    const label = item.label || ''
+    if ((node.getAttribute('aria-label') || '') !== label) {
+      if (label) {
+        node.tabIndex = 0
+        node.setAttribute('role', 'button')
+        node.setAttribute('aria-label', label)
+      } else {
+        node.removeAttribute('tabindex')
+        node.removeAttribute('role')
+        node.removeAttribute('aria-label')
+      }
+    }
     if (node._html !== item.html) {
       node.innerHTML = item.html
       node._html = item.html
@@ -219,45 +326,59 @@ const sync = (map: MapCanvas, items: Item[]) => {
     }
 }
 
-const curve = (x1: number, y1: number, x2: number, y2: number) => {
-  const d = Math.max(60, Math.abs(x2 - x1) * 0.4)
-  const v = Math.max(50, Math.abs(y2 - y1) * 0.5)
-  return `M${x1},${y1} C${x1 + d},${y1} ${x2},${y2 - v} ${x2},${y2}`
+// Down from a page to a copy below it, or across from a lane to the socials.
+const down = (x1: number, y1: number, x2: number, y2: number) => {
+  const v = Math.max(50, (y2 - y1) * 0.5)
+  return `M${x1},${y1} C${x1},${y1 + v} ${x2},${y2 - v} ${x2},${y2}`
+}
+const across = (x1: number, y1: number, x2: number, y2: number) => {
+  const h = Math.max(40, (x2 - x1) * 0.5)
+  return `M${x1},${y1} C${x1 + h},${y1} ${x2 - h},${y2} ${x2},${y2}`
 }
 
 const drawWires = (map: MapCanvas) => {
-  const svg = map.root.querySelector('[data-map-wires]')
+  const svg = map.root.querySelector<SVGSVGElement>('[data-map-wires]')
   const { layout, view, sel } = map
   if (!svg || !layout) return
   const paths: string[] = []
-  const wire = (
-    page: string,
-    copy: string,
-    episode: string,
-    sibling = false
-  ) => {
-    const a = layout.cards[page]
-    const b = layout.copies[copy]
-    if (a && b && view)
-      paths.push(
-        `<path class="map-wire${sibling ? ' is-sibling' : ''}" stroke="${colorOf(view, episode)}" d="${curve(a.x + a.w, a.y + a.h / 2, b.x + b.w / 2, b.y)}"/>`
-      )
-  }
+  const colors = new Set<string>()
+  // The copy selected: its map page's wires, its own drawn solid.
+  const source =
+    sel?.t === 'copy'
+      ? map.episodeOf(sel.id)?.copies.find((c) => c.id === sel.id)?.copyOf
+          ?.slide
+      : undefined
   for (const episode of view?.episodes || [])
     for (const copy of episode.copies) {
       const page = copy.copyOf?.slide
-      if (!page) continue
-      if (sel?.t === 'page' && sel.id === page)
-        wire(page, copy.id, episode.notebook)
-      if (sel?.t === 'lane' && sel.id === episode.notebook)
-        wire(page, copy.id, episode.notebook)
-      if (sel?.t === 'copy') {
-        const chosen = map
-          .episodeOf(sel.id)
-          ?.copies.find((c) => c.id === sel.id)
-        if (chosen?.copyOf?.slide === page)
-          wire(page, copy.id, episode.notebook, copy.id !== sel.id)
-      }
+      const a = page ? layout.cards[page] : undefined
+      const b = layout.copies[copy.id]
+      if (!a || !b || !view) continue
+      const on =
+        (sel?.t === 'page' && sel.id === page) ||
+        (sel?.t === 'lane' && sel.id === episode.notebook) ||
+        source === page
+      const sibling = source === page && sel?.t === 'copy' && copy.id !== sel.id
+      paths.push(
+        `<path class="map-wire${on ? ' is-on' : ''}${sibling ? ' is-sibling' : ''}" stroke="${colorOf(view, episode.notebook)}" d="${down(a.x + a.w / 2, a.y + a.h, b.x + b.w / 2, b.y)}"/>`
+      )
     }
-  svg.innerHTML = paths.join('')
+  // The workflow's own lines, always, with an arrow where each one lands.
+  for (const flow of layout.flows) {
+    const color = flow.episode && view ? colorOf(view, flow.episode) : ''
+    if (color) colors.add(color)
+    const id = color ? `map-arrow-${color.slice(1)}` : 'map-arrow'
+    paths.push(
+      `<path class="map-flow${color ? '' : ' is-neutral'}"${color ? ` stroke="${color}"` : ''} marker-end="url(#${id})" d="${
+        flow.episode
+          ? across(flow.x1, flow.y1, flow.x2, flow.y2)
+          : down(flow.x1, flow.y1, flow.x2, flow.y2)
+      }"/>`
+    )
+  }
+  const marker = (id: string, fill: string) =>
+    `<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0,0 L10,5 L0,10 z"${fill ? ` fill="${fill}"` : ''}/></marker>`
+  const defs = `<defs>${marker('map-arrow', '')}${[...colors].map((color) => marker(`map-arrow-${color.slice(1)}`, color)).join('')}</defs>`
+  svg.classList.toggle('has-focus', Boolean(sel && sel.t !== 'series'))
+  svg.innerHTML = defs + paths.join('')
 }

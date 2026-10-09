@@ -60,8 +60,16 @@ export type MapEpisode = {
   picking?: { state: 'picking' | 'failed'; about: string }
   copies: MapCopy[]
   video: { scenes: number; made: number; joined: boolean } | null
-  teasers: Array<{ id: string; channel: string; state: string }>
-  posts: boolean
+  teasers: Array<{
+    id: string
+    channel: string
+    aspect: string
+    state: string
+    /** The cut, once ready, to watch from the canvas. */
+    objectKey?: string
+  }>
+  /** The posts' words for each channel, once drafted. */
+  posts: { x: string; linkedin: string; youtube: string } | null
 }
 
 /** Everything the canvas needs: the map's pages, its series and episodes. */

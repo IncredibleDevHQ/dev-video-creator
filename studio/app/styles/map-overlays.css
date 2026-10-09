@@ -1,0 +1,239 @@
+/* The content map's overlays: zoom, toast, the selection bar, its menus and
+   the posts popover, and the drag tip. */
+.map-zoom {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  z-index: 60;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.map-zoom button {
+  padding: 4px 9px;
+  font-size: 13px;
+  border-radius: 7px;
+}
+.map-zoom span {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.map-toast {
+  position: absolute;
+  bottom: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 13px;
+  max-width: 70%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.map-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 7px 7px 14px;
+  border-radius: 13px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  max-width: calc(100% - 24px);
+}
+.map-bar button {
+  padding: 5px 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.map-bar kbd {
+  margin-left: 5px;
+  font:
+    11px Inter,
+    Arial,
+    sans-serif;
+  color: var(--muted);
+}
+.map-info {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.map-info small {
+  margin-left: 6px;
+  color: var(--muted);
+}
+.map-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+  flex: none;
+}
+.map-ask {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+.map-ask label {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.map-ask input {
+  flex: 1;
+  min-width: 120px;
+  width: min(360px, 40vw);
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: inherit;
+}
+.map-menu {
+  position: absolute;
+  z-index: 70;
+  min-width: 200px;
+  padding: 6px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+.map-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 9px;
+  font-size: 13px;
+}
+.map-menu i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ep);
+  flex: none;
+}
+.map-dragtip {
+  position: absolute;
+  z-index: 80;
+  pointer-events: none;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.map-bar .map-more {
+  padding: 5px 9px;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 1px;
+}
+.map-menu button span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-menu button small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.map-menu button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.map-menu button.is-danger {
+  color: var(--danger, #b91c1c);
+}
+.map-menu.is-posts {
+  width: min(380px, calc(100% - 20px));
+  max-height: min(460px, calc(100% - 20px));
+  overflow: auto;
+  padding: 4px 12px;
+}
+.map-menu.is-posts section + section {
+  border-top: 1px solid var(--line);
+}
+.map-menu.is-posts .map-post-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0 2px;
+  font-size: 13px;
+}
+.map-menu.is-posts .map-post-head button {
+  width: auto;
+  padding: 3px 9px;
+}
+.map-menu.is-posts p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  user-select: text;
+}
+.map-menu hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 4px 2px;
+}
+.map-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.map-menu.is-help {
+  width: min(400px, calc(100% - 20px));
+  padding: 10px 14px;
+}
+.map-menu.is-help dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+.map-menu.is-help dt {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.map-menu.is-help dd {
+  margin: 0;
+  color: var(--muted);
+}
