@@ -365,3 +365,10 @@ export function placePanel(root: HTMLElement, panel: HTMLElement) {
   root.querySelector('.video-stage .layered-controls')?.remove()
   root.querySelector('.stage-area')?.classList.add('has-dialogue-studio')
 }
+
+/** Whether the recorder has the camera on: the studio then offers nothing
+ * but the recording. */
+export const cameraOn = (root: HTMLElement) =>
+  Boolean(
+    root.querySelector('[data-capture-phase]:not([data-capture-phase="idle"])')
+  )

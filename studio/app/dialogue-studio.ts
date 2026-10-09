@@ -16,6 +16,7 @@ import {
 } from './scene-timeline'
 import {
   animationNote,
+  cameraOn,
   caretToEnd,
   enableControls,
   fitStage,
@@ -81,9 +82,8 @@ export function dialogueStudio(
   const text = () =>
     editing ? (draft + completion).trim() : ctx()?.moment.extension?.text || ''
   const boundary = () => (ctx() ? dialogueBoundary(ctx()!.moment) : 0)
-  // In practice the scene's map is on show, whatever Play plays, so the
-  // moment on show keeps its place in the scene; positions count from the
-  // scene's start, and nothing is rebuilt as one moment follows another.
+  // In practice the scene's map is on show whatever Play plays: positions
+  // count from the scene's start, and nothing is rebuilt between moments.
   const mapped = () => {
     const c = ctx()
     return Boolean(host && c?.scope && c.scene.moments.length > 1 && !editing)
@@ -513,11 +513,7 @@ export function dialogueStudio(
       left: moment.start + length - second
     })
     const make = panel.querySelector<HTMLButtonElement>('[data-ds-make]')
-    // Never while the camera is on (review 6).
-    const recording =
-      (root.querySelector<HTMLElement>('.video-workspace')?.dataset
-        .capturePhase || 'idle') !== 'idle'
-    if (make) make.hidden = Boolean(video()) || making || editing || recording
+    if (make) make.hidden = !!(video() || making || editing || cameraOn(root))
     if (editing) return
     const active = scene
       ? (wordStarts[index] ?? 0) +
