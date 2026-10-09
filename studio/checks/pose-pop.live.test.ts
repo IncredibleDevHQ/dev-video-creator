@@ -122,6 +122,11 @@ it('shows the same frame by every seek, and ends as drawn', async () => {
     [1.6, 1.9, 3]
   )
   expect(close[3]).toBe(AT_REST)
+  const four = await everyPath(
+    `for (const at of [1, 1.05, 1.1, 1.15]) artworkPose(tl, 'x', 'glow', at, 0.8)`,
+    [1.65, 1.8, 3]
+  )
+  expect(four[3]).toBe(AT_REST)
   const nested = await everyPath(
     `const sub = gsap.timeline(); artworkPose(sub, 'x', 'limit', 0.25, 0.8); tl.add(sub, 1); artworkPose(tl, 'x', 'glow', 1, 0.8)`,
     [1.6, 1.9, 3]
@@ -162,4 +167,19 @@ it('ends every part of a pose within its seconds, its pop included, however ofte
   await tab.close()
   expect(built.map(([end]) => +end.toFixed(6))).toEqual([0.6, 0.8, 1.2])
   expect(built.map(([, pops]) => pops)).toEqual([1, 1, 1])
+}, 60_000)
+
+it('starts a new timeline with the drawing as drawn, though an older one stopped mid-pop', async () => {
+  const tab = await open()
+  const layers = (await tab.evaluate(`(() => {
+    const old = gsap.timeline({ paused: true })
+    artworkPose(old, 'x', 'glow', 1, 0.8)
+    old.seek(1.64, true)
+    const fresh = gsap.timeline({ paused: true })
+    artworkPose(fresh, 'x', 'limit', 2, 0.8)
+    fresh.seek(4, true)
+    return [...document.querySelectorAll('[data-pose-layer]')].map((layer) => layer.getAttribute('transform'))
+  })()`)) as string[]
+  await tab.close()
+  expect(layers).toEqual(Array(4).fill('matrix(1 0 0 1 0 0)'))
 }, 60_000)

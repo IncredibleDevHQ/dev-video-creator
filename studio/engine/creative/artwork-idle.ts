@@ -101,17 +101,21 @@ const rulesOf = (css: string) => {
   return rules
 }
 
-/** The declarations kept from a block: allowed properties, safe values. */
+/**
+ * The declarations kept from a block: allowed properties with safe values.
+ * One marked important stays so in a rule; in a keyframe the browser ignores
+ * it, so it is left out.
+ */
 const declarationsOf = (body: string, allowed: Set<string>) =>
   body.split(';').flatMap((item) => {
     const colon = item.indexOf(':')
     const property = item.slice(0, colon).trim().toLowerCase()
-    const value = item
-      .slice(colon + 1)
-      .replace(/!\s*important\s*$/i, '')
-      .trim()
+    const raw = item.slice(colon + 1).trim()
+    const important = /!\s*important$/i.test(raw)
+    const value = raw.replace(/!\s*important$/i, '').trim()
+    if (important && allowed !== RULE_PROPERTIES) return []
     return colon > 0 && allowed.has(property) && safeValue(value)
-      ? [`${property}: ${value}`]
+      ? [`${property}: ${value}${important ? ' !important' : ''}`]
       : []
   })
 
@@ -265,6 +269,10 @@ export const idleLoop = (
     places.get(key)!.names.add(name)
   }
   const kept: string[] = []
+  // An id outranks a class in the animation's CSS, and a style written on
+  // the element outranks both. The loop's rules are all classes, so each
+  // says its class as often as its rank to keep that order.
+  const ranked = (name: string, rank: number) => `.${name}`.repeat(rank)
   // A selector the loop wrote: a class it put on elements or groups, or one
   // element's id. Never the frame itself.
   const targetsOf = (selector: string) => {
@@ -284,6 +292,7 @@ export const idleLoop = (
     return {
       // Named by its place in the drawing, which the animation does not change.
       name: id ? `${scope}-idle-${found[0]!.index}` : named(name!),
+      id: Boolean(id),
       places: found as Array<{ index: number; last: number }>
     }
   }
@@ -299,12 +308,13 @@ export const idleLoop = (
     if (role === 'plays') playing = true
     const sure = targets as Array<{
       name: string
+      id: boolean
       places: Array<{ index: number; last: number }>
     }>
     for (const target of sure)
       for (const place of target.places) mark(place, target.name)
     kept.push(
-      `${sure.map((target) => `.${target.name}`).join(', ')} { ${declarations.map(renamed).join('; ')}; }`
+      `${sure.map((target) => ranked(target.name, target.id ? 2 : 1)).join(', ')} { ${declarations.map(renamed).join('; ')}; }`
     )
   }
   // An animation written on the element itself counts the same.
@@ -322,7 +332,7 @@ export const idleLoop = (
     if (role === 'plays') playing = true
     const name = `${scope}-idle-${place.index}-own`
     mark(place, name)
-    kept.push(`.${name} { ${declarations.map(renamed).join('; ')}; }`)
+    kept.push(`${ranked(name, 3)} { ${declarations.map(renamed).join('; ')}; }`)
   })
   if (!playing) return { problem: 'it added no loop to the drawing’s parts' }
   return {
@@ -349,9 +359,21 @@ export const idleLoop = (
 const PAINT =
   /^(?:defs|lineargradient|radialgradient|pattern|clippath|mask|symbol|marker|filter)$/i
 const WORDS = /^(?:text|textpath)$/i
-// A class attribute as written: quoted either way, or bare.
-const QUOTED_CLASS = /\sclass\s*=\s*(["'])(.*?)\1/
-const BARE_CLASS = /\sclass\s*=\s*([^\s"'=<>`\/]+)/
+// An attribute of a start tag, its value quoted either way or bare.
+const ATTRIBUTE = /\s([^\s"'=<>/]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s"'=<>`]+))?/g
+
+/** A start tag with names added to its class, however the class is written. */
+const withClass = (tag: string, names: string) => {
+  for (const found of tag.matchAll(ATTRIBUTE)) {
+    if (found[1].toLowerCase() !== 'class') continue
+    const value = found[2] || ''
+    const quoted = /^["']/.test(value)
+    const quote = quoted ? value[0] : '"'
+    const mine = quoted ? value.slice(1, -1) : value
+    return `${tag.slice(0, found.index)} class=${quote}${`${mine} ${names}`.trim()}${quote}${tag.slice(found.index! + found[0].length)}`
+  }
+  return tag.replace(/\s*(\/?)>$/, ` class="${names}"$1>`)
+}
 
 /**
  * The drawing with its loop on it: the CSS in its own <style>, and each part
@@ -410,18 +432,7 @@ export const withIdle = (svg: string, loop: IdleLoop) => {
       end: element.at + element.length,
       rank: 0,
       span: 0,
-      text: QUOTED_CLASS.test(tag)
-        ? tag.replace(
-            QUOTED_CLASS,
-            (_, quote: string, mine: string) =>
-              ` class=${quote}${`${mine} ${names}`.trim()}${quote}`
-          )
-        : BARE_CLASS.test(tag)
-          ? tag.replace(
-              BARE_CLASS,
-              (_, mine: string) => ` class="${mine} ${names}"`
-            )
-          : tag.replace(/\s*(\/?)>$/, ` class="${names}"$1>`)
+      text: withClass(tag, names)
     })
   }
   const root = elements[0]

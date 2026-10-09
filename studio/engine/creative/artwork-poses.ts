@@ -646,7 +646,7 @@ export const posedDrawing = (
 }
 
 /** How many pops may overlap on one drawing, each scaling its own layer. */
-const POP_LAYERS = 3
+const POP_LAYERS = 4
 // A layer starts as drawn, said in full: a tween sought back before its pop
 // restores what the layer had, and with nothing there it would hide it.
 const POP_LAYER = '<g data-pose-layer="" transform="matrix(1 0 0 1 0 0)">'

@@ -181,6 +181,17 @@ it('leaves a provider’s words alone where they hold no key', () => {
   expect(
     gateway.withoutKeys('Sent Bearer abcdefghijklmnop1234.', '', 400)
   ).toBe('Sent Bearer [key].')
+  // Nor a longer placeholder, words after "Bearer", or a word that starts
+  // like a key.
+  expect(
+    gateway.withoutKeys(
+      'Load a model in lm-studio first. Bearer authentication-scheme. SK_NOT_FOUND, rk_limit, sk-SK',
+      'lm-studio',
+      400
+    )
+  ).toBe(
+    'Load a model in lm-studio first. Bearer authentication-scheme. SK_NOT_FOUND, rk_limit, sk-SK'
+  )
   // A key is hidden before the text is cut, so none of it shows.
   const key = 'LONGSECRETKEY1234567'
   const cut = gateway.withoutKeys(`${'a'.repeat(395)}${key}`, key, 400)

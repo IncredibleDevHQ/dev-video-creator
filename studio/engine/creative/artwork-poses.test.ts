@@ -325,6 +325,22 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     'power2.inOut',
     expect.closeTo(0.65, 6)
   ])
+  // On a new timeline the layers start as drawn, though an older one was
+  // left in the middle of a pop; pops that overlap take distinct layers,
+  // whatever order the scene builds them in.
+  const layerList = [...document.querySelectorAll('[data-pose-layer]')]
+  layerList[3].setAttribute('transform', 'matrix(1.04 0 0 1.04 -1 -1)')
+  const fresh = {
+    to: tl.to,
+    set: tl.set,
+    fromTo: tl.fromTo,
+    duration: tl.duration
+  }
+  pops.length = 0
+  for (const at of [5, 1, 1.05, 1.1, 1.15]) play(fresh, 'gauge', 'glow', at)
+  expect(layerList[3].getAttribute('transform')).toBe('matrix(1 0 0 1 0 0)')
+  const overlapping = pops.slice(1).map((pop) => pop.layer)
+  expect(new Set(overlapping).size).toBe(4)
   // Back to rest: no pop; nor without the group, as an older drawing has.
   pops.length = 0
   play(tl, 'gauge', 'rest', 3)
@@ -337,13 +353,13 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
 
 it('puts the drawing in a group with layers for its pops, after its loop’s style', () => {
   const layers =
-    '<g data-pose-layer="" transform="matrix(1 0 0 1 0 0)">'.repeat(3)
+    '<g data-pose-layer="" transform="matrix(1 0 0 1 0 0)">'.repeat(4)
   expect(
     withPop(
       '<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g id="a"/></svg>'
     )
   ).toBe(
-    `<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g data-pose-pop="">${layers}<g id="a"/></g></g></g></g></svg>`
+    `<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g data-pose-pop="">${layers}<g id="a"/></g></g></g></g></g></svg>`
   )
   expect(withPop('<svg viewBox="0 0 8 8"/>')).toBe('<svg viewBox="0 0 8 8"/>')
 })

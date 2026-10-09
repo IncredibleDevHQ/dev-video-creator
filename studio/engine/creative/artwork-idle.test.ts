@@ -54,11 +54,13 @@ it('takes the loop Quiver added: motion only, named for the object, finite', () 
   expect(loop!.css).toContain(
     '.gauge-blink { animation: gauge-blink 1.5s steps(2) 999; }'
   )
+  // An id outranks a class, and a style on the element both: each rule
+  // says its class as often as its rank.
   expect(loop!.css).toContain(
-    '.gauge-idle-7 { transform-origin: 5px 0px; animation: gauge-breathe 3s ease-in-out 999; }'
+    '\n.gauge-idle-7.gauge-idle-7 { transform-origin: 5px 0px; animation: gauge-breathe 3s ease-in-out 999; }'
   )
   expect(loop!.css).toContain(
-    '.gauge-idle-9-own { transform-origin: 5px 5px; animation: gauge-tremble 2s 999; }'
+    '\n.gauge-idle-9-own.gauge-idle-9-own.gauge-idle-9-own { transform-origin: 5px 5px; animation: gauge-tremble 2s 999; }'
   )
   // Colours and rules it can't place are left out.
   expect(loop!.css).not.toContain('red')
@@ -151,7 +153,7 @@ it('keeps only safe CSS from the animation: no markup, loads or odd names', () =
   expect(idleLoop(drawing, unsafe, 'gauge').loop!.css).toBe(
     [
       '@keyframes gauge-ok { to { opacity: .4; } }',
-      '.gauge-blink { animation: gauge-ok 1s 999; transform-origin: 5px 5px; transform-box: fill-box; }'
+      '.gauge-blink { animation: gauge-ok 1s 999; transform-origin: 5px 5px; transform-box: fill-box !important; }'
     ].join('\n')
   )
   // Names take the object's in a form CSS can carry.
@@ -257,10 +259,10 @@ it('keeps the rules that tune a loop: lamps in turn, a duration set apart', () =
   const css = idleLoop(drawing, split, 'gauge').loop!.css
   expect(css).toContain('@keyframes gauge-spin-infinite')
   expect(css).toContain(
-    '.gauge-idle-9 { animation-name: gauge-spin-infinite; }'
+    '\n.gauge-idle-9.gauge-idle-9 { animation-name: gauge-spin-infinite; }'
   )
   expect(css).toContain(
-    '.gauge-idle-9 { animation-duration: 3s; animation-iteration-count: 999; }'
+    '\n.gauge-idle-9.gauge-idle-9 { animation-duration: 3s; animation-iteration-count: 999; }'
   )
   // Names with no letters CSS can carry still differ.
   const scoped = (entity: string) =>
@@ -277,4 +279,34 @@ it('keeps the rules that tune a loop: lamps in turn, a duration set apart', () =
       }
     )
   ).toContain('<tspan class="q badge-pulse">')
+})
+
+it('keeps the animation’s order of rules: an id over a class, important over both', () => {
+  // The fan turns in 3 s by its id; a class's slower duration loses to it,
+  // as in the animation, unless it is important. In a keyframe an important
+  // value is void, so it is left out.
+  const fan = drawing.replace(
+    '<svg viewBox="0 0 80 60">',
+    '<svg viewBox="0 0 80 60"><style>@keyframes spin { 50% { opacity: .5 !important; transform: rotate(180deg) } } #needle { animation: spin 3s infinite } .slow { animation-duration: 6s } .slower { animation-delay: 1s !important }</style>'
+  )
+  const css = idleLoop(
+    drawing,
+    fan.replace('data-part="needle"', 'data-part="needle" class="slow slower"'),
+    'gauge'
+  ).loop!.css
+  expect(css).toContain(
+    '@keyframes gauge-spin { 50% { transform: rotate(180deg); } }'
+  )
+  expect(css).toContain(
+    '\n.gauge-idle-9.gauge-idle-9 { animation: gauge-spin 3s 999; }'
+  )
+  expect(css).toContain('\n.gauge-slow { animation-duration: 6s; }')
+  expect(css).toContain('\n.gauge-slower { animation-delay: 1s !important; }')
+  // Words that look like a class inside another attribute are not its class.
+  expect(
+    withIdle(
+      '<svg viewBox="0 0 8 8"><text><tspan aria-label="see class=q here">•</tspan></text></svg>',
+      { css: '', classes: [{ index: 2, names: ['badge-pulse'] }] }
+    )
+  ).toContain('<tspan aria-label="see class=q here" class="badge-pulse">')
 })
