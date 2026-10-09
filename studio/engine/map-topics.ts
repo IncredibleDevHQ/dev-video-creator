@@ -79,7 +79,13 @@ const group = async (id: string) => {
     const ids = pages.map((page) => page.id)
     const grouped = await runValidatedJsonStage<Topics>({
       projectId: id,
-      inputKey: fingerprintOf({ pages, before: snapshot.project.topics }),
+      // Each Group again is the creator asking for new topics: a fresh key,
+      // so a saved result never comes back for it (review 6).
+      inputKey: fingerprintOf({
+        pages,
+        before: snapshot.project.topics,
+        asked: Date.now()
+      }),
       checkpoint: 'map-topics',
       operation: 'revise-story',
       stage: 'story',
@@ -115,13 +121,12 @@ const group = async (id: string) => {
     })
   } catch (error) {
     await changeProject(id, (current) => {
-      current.project.grouping = {
-        state: 'failed',
-        error:
-          error instanceof Error && error.message
-            ? error.message
-            : 'The agent could not group the map'
-      }
+      const said =
+        error instanceof Error && error.message
+          ? error.message
+          : 'The agent could not group the map'
+      current.project.grouping = { state: 'failed', error: said }
+      addEvent(current, 'slide', `Could not group the map by topic: ${said}`)
     }).catch(() => {})
   }
 }

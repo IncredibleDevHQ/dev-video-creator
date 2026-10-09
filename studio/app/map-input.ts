@@ -478,13 +478,26 @@ const dispatch = async (
   switch (name) {
     case 'close':
       return map.close()
+    case 'stage':
+      return arg === 'notebook' || arg === 'presentation' || arg === 'video'
+        ? map.hooks.openStage(arg)
+        : undefined
     case 'zoom-in':
-    case 'zoom-out':
-      map.camera.k = Math.min(
+    case 'zoom-out': {
+      // Around the view's centre, as the wheel zooms around the pointer, so
+      // what is in view stays in view (review 6).
+      const rect = map.canvas!.getBoundingClientRect()
+      const cx = rect.width / 2
+      const cy = rect.height / 2
+      const k = Math.min(
         2,
         Math.max(0.2, map.camera.k * (name === 'zoom-in' ? 1.2 : 1 / 1.2))
       )
+      map.camera.x = cx - (cx - map.camera.x) * (k / map.camera.k)
+      map.camera.y = cy - (cy - map.camera.y) * (k / map.camera.k)
+      map.camera.k = k
       return map.applyCamera(true)
+    }
     case 'fit':
       return map.fit()
     case 'mode':
@@ -685,6 +698,8 @@ const dispatch = async (
     }
     case 'remove':
       return copy ? map.removeCopy(copy) : undefined
+    case 'undo-remove':
+      return map.undoRemove()
     case 'paste':
       return map.paste()
     case 'clear-clip':

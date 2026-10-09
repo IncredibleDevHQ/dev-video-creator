@@ -42,13 +42,15 @@ export type Flow = {
   x2: number
   y2: number
   episode?: string
+  /** A flow into an episode runs down this x, left of the series. */
+  trunk?: number
 }
 
 export const MX = 40,
   MY = 40,
   MP = 20,
   CW = 220,
-  CH = 176,
+  CH = 192,
   CG = 18,
   COLS = 3
 export const MH = 64,
@@ -63,7 +65,7 @@ export const SH = 58,
   SP = 16,
   LH = 44,
   QW = 184,
-  QH = 160,
+  QH = 176,
   QG = 40,
   SW = 136
 /** A line into a page wraps to two lines under the connector before it. */
@@ -299,14 +301,21 @@ export const mapLayout = (
     w: SP * 2 + widest,
     h: Math.max(ly - sy + SP - LGAP, 180)
   }
-  const mid = MX + mw / 2
-  layout.flows.push({
-    key: 'f:series',
-    x1: mid,
-    y1: MY + layout.map.h,
-    x2: mid,
-    y2: sy
-  })
+  // From the pages into each episode: down a trunk left of the series, then
+  // into the lane, crossing no card (review 6).
+  const trunk = sx - 28
+  for (const episode of view.episodes) {
+    const lane = layout.lanes[episode.notebook]
+    layout.flows.push({
+      key: `f:in:${episode.notebook}`,
+      episode: episode.notebook,
+      trunk,
+      x1: MX,
+      y1: MY + layout.map.h - 28,
+      x2: lane.x,
+      y2: lane.y + 22
+    })
+  }
   // What a made episode was cut into: the Socials box, beside the series,
   // each episode's place level with its lane and a line into it.
   const ox = sx + layout.series.w + SOGAP

@@ -379,16 +379,41 @@
 }
 /* Top right: a cut page's "Ep 2 only" flag holds the top left. */
 .map-src {
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  z-index: 3;
-  padding: 2px 8px;
+  margin-left: 6px;
+  padding: 0 6px;
   border-radius: 999px;
   background: var(--sel);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+}
+/* A page's state is its border; its word sits in the meta row. */
+.map-card.is-changing {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.map-card.is-failed {
+  border-color: var(--danger, #b91c1c);
+}
+.map-card.is-stale {
+  border-color: #c98a1b;
+}
+.map-tag {
+  font-weight: 600;
+  font-size: 11px;
+}
+.map-tag.is-new {
+  color: var(--accent);
+}
+.map-tag.is-busy {
+  font-weight: 500;
+  font-style: italic;
+}
+.map-tag.is-failed {
+  color: var(--danger, #b91c1c);
+}
+.map-tag.is-stale {
+  color: #a86f12;
 }
 .map-el:focus-visible {
   outline: 2px solid var(--accent);
@@ -483,6 +508,7 @@
   background: var(--rail);
   border-style: dashed;
 }
+/* Two lines for a title (review 6: "Objection: why not always us…"). */
 .map-card-title {
   position: absolute;
   left: 12px;
@@ -490,9 +516,11 @@
   bottom: 30px;
   font-weight: 600;
   font-size: 13px;
-  white-space: nowrap;
+  line-height: 17px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 .map-card-meta {
   position: absolute;
@@ -569,20 +597,18 @@
   color: #b7791f;
 }
 .map-num {
-  position: absolute;
-  left: 14px;
-  top: 76px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  vertical-align: 1px;
+  margin-right: 6px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 10px;
   font-weight: 700;
   background: var(--ep);
   color: #fff;
-  border: 2px solid var(--paper);
 }
 .map-lane {
   z-index: 1;

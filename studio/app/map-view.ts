@@ -6,6 +6,8 @@ import type { MapCopy, MapEpisode, MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
 import { themeControl } from './appearance'
 import { escape } from './ui'
+import { videoOpens } from '../shared/state'
+import incredibleLogo from './assets/incredible-logo.svg'
 import {
   noteDay,
   type MapFilter,
@@ -33,10 +35,13 @@ const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`
 
 /** The page: header, notes rail, the canvas, and its overlays. */
+// The map's header carries the studio's logo and the notebook's stages, as
+// every other screen does (review 6).
 export const mapPage = (title: string) => `<div class="map-page">
 <header class="map-header">
-<button type="button" class="quiet map-back" data-map="close">← Notebook</button>
+<a class="brand map-brand" href="/" aria-label="Incredible Studio: all notebooks" title="All notebooks"><img src="${incredibleLogo}" alt=""></a>
 <div class="map-title"><strong>Content map</strong><span data-map-slot="title">${escape(title)}</span></div>
+<nav class="map-stages" aria-label="Stages" data-map-slot="stages"></nav>
 <button type="button" class="quiet map-notes-toggle" data-map="notes" aria-expanded="false">Notes</button>
 <div class="map-tools" data-map-slot="tools"></div>
 ${themeControl()}
@@ -56,6 +61,21 @@ ${themeControl()}
 </section>
 </div>
 </div>`
+
+/** The notebook's stages; the map is a view of the Wireframe stage. */
+export const mapStages = (snapshot: Snapshot) =>
+  (
+    [
+      ['notebook', 'Notebook'],
+      ['presentation', 'Wireframe'],
+      ['video', 'Video']
+    ] as const
+  )
+    .map(
+      ([stage, label]) =>
+        `<button type="button" data-map="stage:${stage}" ${stage === 'presentation' ? 'aria-current="page"' : ''} ${stage === 'video' && !videoOpens(snapshot) ? 'disabled title="Make the wireframes first"' : ''}>${label}</button>`
+    )
+    .join('')
 
 /** The header's tools: views, filters, grouping, the series. */
 export const mapTools = (
@@ -83,10 +103,12 @@ ${
   mode !== 'topic'
     ? ''
     : grouping?.state === 'grouping'
-      ? '<button type="button" class="quiet" disabled>Grouping…</button>'
-      : snapshot.project.topics?.length
-        ? '<button type="button" class="quiet map-regroup" data-map="group" aria-label="Group again" title="Group again">↻</button>'
-        : '<button type="button" class="quiet" data-map="group">Group by topic</button>'
+      ? '<button type="button" class="quiet" disabled>Grouping… about a minute</button>'
+      : grouping?.state === 'failed'
+        ? `<span class="map-tool-error" title="${escape(grouping.error || '')}">Grouping failed</span><button type="button" class="quiet" data-map="group">Group again</button>`
+        : snapshot.project.topics?.length
+          ? '<button type="button" class="quiet" data-map="group">Group again</button>'
+          : ''
 }
 ${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
 }
@@ -103,7 +125,7 @@ export const mapNotes = (snapshot: Snapshot, open: Set<string> = new Set()) => {
   if (!notes.length)
     return snapshot.status === 'ready'
       ? `<p class="map-hint">Add notes here any time. Each one is sorted into the map: a new page, an addition to a page, or already covered.</p>`
-      : `<p class="map-hint">Once the map is drawn, notes added here are sorted into it.</p>`
+      : ''
   const page = (id: string) =>
     snapshot.project.slides.findIndex((slide) => slide.id === id) + 1
   return notes
@@ -145,7 +167,8 @@ export const mapCard = (
   view: MapView | null,
   page: MapPage,
   number: number,
-  fresh: boolean
+  fresh: boolean,
+  places: number[] = []
 ) => {
   const slide: Slide = page.slide || {
     id: page.id,
@@ -164,39 +187,48 @@ export const mapCard = (
   const added = (snapshot.project.notes?.at(-1)?.results || []).some(
     (result) => result.kind === 'adds' && result.slideId === slide.id
   )
-  const flag = only
-    ? `<span class="map-flag">Ep ${only.number} only</span>`
-    : fresh && slide.fromNote
-      ? '<span class="map-flag is-new">new</span>'
-      : fresh && added
-        ? '<span class="map-flag is-adds">+ added</span>'
-        : ''
-  const state =
-    change?.state === 'working'
-      ? '<span class="map-badge is-busy">changing…</span>'
-      : change?.state === 'failed'
-        ? '<span class="map-badge is-failed">change failed</span>'
+  // One word beside the page number, never on the drawing (review 6); the
+  // card's border carries a change's state too.
+  const tag = (kind: string, text: string) =>
+    `<span class="map-tag is-${kind}">${escape(text)}</span>`
+  const said =
+    change?.state === 'failed'
+      ? tag('failed', 'change failed')
+      : change?.state === 'working'
+        ? tag('busy', 'changing…')
         : change
-          ? '<span class="map-badge">queued</span>'
-          : ''
-  const use = slide.aside
-    ? '<span class="map-uses is-aside">set aside</span>'
-    : users.length && view
+          ? tag('busy', 'queued')
+          : only
+            ? tag('only', `Ep ${only.number} only`)
+            : fresh && slide.fromNote
+              ? tag('new', 'new')
+              : fresh && added
+                ? tag('new', '+ added')
+                : slide.aside
+                  ? tag('aside', 'set aside')
+                  : noteDay(snapshot, slide)
+                    ? `<span class="map-from-note" title="From a note, ${escape(noteDay(snapshot, slide))}">note</span>`
+                    : ''
+  // Used pages wear their episodes' chips; the summary counts the unused.
+  const use =
+    users.length && view
       ? `<span class="map-uses">${users
           .map((episode) => {
             const ep = view.episodes.find((e) => e.notebook === episode)
             return `<i style="--ep:${colorOf(view, episode)}">E${ep?.number ?? '?'}</i>`
           })
           .join('')}</span>`
-      : // Before a series, every page is unused: saying so is noise.
-        view?.series
-        ? '<span class="map-uses is-unused">unused</span>'
-        : ''
-  const day = noteDay(snapshot, slide)
-  const from = day
-    ? ` <span class="map-from-note" title="From a note, ${escape(day)}">· note</span>`
+      : ''
+  const place = places.length
+    ? `<span class="map-src" title="Its place in the episode">#${places.join(', #')}</span>`
     : ''
-  return `${thumb(slide.svg, change ? 'drawing…' : slide.idea || 'Blank page', Boolean(change))}${flag}${state}<div class="map-card-title">${escape(slide.title || 'Untitled page')}</div><div class="map-card-meta">page ${number}${from}${use}</div>`
+  return `${thumb(slide.svg, change ? 'drawing…' : slide.idea || 'Blank page', Boolean(change))}<div class="map-card-title">${escape(slide.title || 'Untitled page')}</div><div class="map-card-meta">page ${number}${said ? ` · ${said}` : ''}${place}${use}</div>`
+}
+
+/** How a page or copy stands, for its card's border. */
+export const pageState = (snapshot: Snapshot, slideId: string) => {
+  const change = snapshot.changes?.find((item) => item.slideId === slideId)
+  return change?.state === 'failed' ? 'is-failed' : change ? 'is-changing' : ''
 }
 
 /** An episode's copy of a map page. */
@@ -222,16 +254,19 @@ export const copyCard = (
         )
         .join('')}</span>`
     : ''
-  const badge = copy.orphan
-    ? '<span class="map-badge is-failed">original deleted</span>'
-    : copy.stale
-      ? '<span class="map-badge is-stale">source changed</span>'
-      : ''
   const made = copy.scene?.made
     ? '<span class="map-made" title="Its scene is made">✓ made</span>'
     : ''
   const svg = copy.svg === undefined ? mapSvg : copy.svg
-  return `${thumb(svg, 'Blank page')}${badge}<span class="map-num" style="--ep:${colorOf(view, episode.notebook)}">${index + 1}</span><div class="map-card-title">${escape(copy.title)}</div><div class="map-card-meta">${page ? `from page ${page}` : 'its own page'}${made}${also}</div>`
+  // Where it came from, or how it differs from it, beside the drawing.
+  const from = copy.orphan
+    ? '<span class="map-tag is-failed">original deleted</span>'
+    : copy.stale
+      ? `<span class="map-tag is-stale">page ${page} changed</span>`
+      : page
+        ? `from page ${page}`
+        : 'its own page'
+  return `${thumb(svg, 'Blank page')}<div class="map-card-title"><span class="map-num" style="--ep:${colorOf(view, episode.notebook)}">${index + 1}</span>${escape(copy.title)}</div><div class="map-card-meta">${from}${made}${also}</div>`
 }
 
 /** The episode's first line in, or its last line out. */
@@ -263,7 +298,7 @@ export const laneHead = (view: MapView, episode: MapEpisode) => {
           : video && !video.joined && video.scenes
             ? `<span class="map-state is-busy">making ${video.made} of ${video.scenes}</span>`
             : `<span class="map-state">${plural(episode.copies.length, 'page')}</span>${video?.joined ? '<span class="map-state is-made">· made</span>' : ''}`
-  return `<div class="map-lane-head"><i class="map-dot" style="--ep:${colorOf(view, episode.notebook)}"></i><b>Ep ${episode.number}</b><span class="map-lane-title">${escape(episode.title)}</span>${state}<span class="map-lane-acts"><button type="button" class="quiet" data-map="open:${episode.notebook}">${video ? 'Open' : 'Make…'}</button></span></div>`
+  return `<div class="map-lane-head"><i class="map-dot" style="--ep:${colorOf(view, episode.notebook)}"></i><b>Ep ${episode.number}</b><span class="map-lane-title">${escape(episode.title)}</span>${state}<span class="map-lane-acts"><button type="button" class="quiet" data-map="open:${episode.notebook}">${video ? 'Open' : 'Make video'}</button></span></div>`
 }
 
 const CHANNELS: Record<string, string> = {

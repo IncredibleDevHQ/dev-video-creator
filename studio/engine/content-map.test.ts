@@ -927,3 +927,24 @@ it('writes "next time" again once an empty next episode has its first page', asy
     'Next time: B, opening on preview by relay.'
   )
 })
+
+it('keeps a removed copy and its scene, so Undo brings both back', async () => {
+  await drawnMap('m21')
+  const series = await episodes.startMapSeries('m21', {})
+  const ep = (
+    await episodes.addMapEpisode(series.id, { slides: ['m21-1', 'm21-2'] })
+  ).notebook.project.id
+  await segues.settledAllSegues()
+  const [first, second] = (await loadProject(ep))!.project.slides
+  await episodes.changeCopies(ep, { action: 'remove', slide: second.id })
+  const after = (await loadProject(ep))!
+  expect(after.project.slides.map((s) => s.id)).toEqual([first.id])
+  expect(after.deletedSlide?.slide.id).toBe(second.id)
+  expect(after.deletedSlide?.index).toBe(1)
+  const restored = await editSlide(ep, { action: 'undo-delete' } as never)
+  expect(restored.project.slides.map((s) => s.id)).toEqual([
+    first.id,
+    second.id
+  ])
+  await segues.settledAllSegues()
+})

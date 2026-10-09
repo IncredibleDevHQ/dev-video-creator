@@ -101,7 +101,7 @@ describe('the map’s layout', () => {
     ).toEqual([['', ['a', 'b', 'c', 'd']]])
     expect(mapLayout(snapshot, null, 'order').groups).toEqual([])
     expect(mapCard(snapshot, null, pageOf(snapshot, 2), 3, false)).toContain(
-      '· note'
+      '>note</span>'
     )
     expect(
       mapGroups(snapshot, 'topic').map((g) => [g.label, g.slides])
@@ -178,9 +178,10 @@ describe('the map’s markup', () => {
     expect(mapCard(snapshot, view, pageOf(snapshot, 1), 2, false)).toMatch(
       /E1<\/i>.*E2<\/i>/
     )
-    expect(mapCard(snapshot, view, pageOf(snapshot, 2), 3, false)).toContain(
-      'unused'
-    )
+    // Unused pages say nothing: the summary counts them (review 6).
+    expect(
+      mapCard(snapshot, view, pageOf(snapshot, 2), 3, false)
+    ).not.toContain('unused')
     expect(mapCard(snapshot, view, pageOf(snapshot, 3), 4, false)).toContain(
       'set aside'
     )
@@ -191,7 +192,7 @@ describe('the map’s markup', () => {
   it('marks a copy whose original changed, and one used twice', () => {
     const [first, second] = view.episodes[0].copies
     expect(copyCard(view, view.episodes[0], second, 1, 2)).toContain(
-      'source changed'
+      'page 2 changed'
     )
     // Used twice: the other episode's chip, and the number stays.
     const twice = copyCard(
@@ -234,7 +235,7 @@ describe('the map’s markup', () => {
   })
   it('offers Make before a video; once made, its place among the socials offers a teaser and posts', () => {
     expect(laneHead(view, view.episodes[0])).toContain(
-      'data-map="open:e1">Make…<'
+      'data-map="open:e1">Make video<'
     )
     const made = {
       ...view.episodes[0],
@@ -265,7 +266,13 @@ describe('the map’s markup', () => {
     // Only the made episode has a place, level with its lane.
     expect(layout.derived.map((place) => place.episode)).toEqual(['e1'])
     expect(layout.derived[0].y).toBe(layout.lanes.e1.y)
-    expect(layout.flows.map((flow) => flow.key)).toEqual(['f:series', 'f:e1'])
+    // Into each episode down a trunk, and the made one into the socials.
+    expect(layout.flows.map((flow) => flow.key)).toEqual([
+      'f:in:e1',
+      'f:in:e2',
+      'f:e1'
+    ])
+    expect(layout.flows[0].trunk).toBeLessThan(layout.series!.x)
   })
   it('lets a made episode’s teaser be watched and its posts read', () => {
     const cut = derivedBlock(view, {

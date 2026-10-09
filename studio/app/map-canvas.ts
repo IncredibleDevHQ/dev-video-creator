@@ -6,6 +6,7 @@
 import type { Snapshot } from '../shared/api'
 import type { MapView } from '../shared/content-map'
 import { api } from './api'
+import { confirmAction } from './confirm-action'
 import { mapApi } from './map-api'
 import { renderBar, hideMenu } from './map-bar'
 import { installMapInput, type DragState } from './map-input'
@@ -18,7 +19,7 @@ import {
   type MapMode
 } from './map-layout'
 import { paintWorld } from './map-paint'
-import { mapNotes, mapPage, mapTools } from './map-view'
+import { mapNotes, mapPage, mapStages, mapTools } from './map-view'
 import { replacePlayerView } from './player-view'
 
 export type MapSel =
@@ -36,6 +37,8 @@ type Hooks = {
   openEpisode: (id: string) => void
   /** Opens a notebook's Wireframe stage at one of its pages. */
   openPage: (id: string, index: number) => void
+  /** Leaves the map for one of the notebook's stages. */
+  openStage: (stage: 'notebook' | 'presentation' | 'video') => void
   error: (reason: unknown) => void
 }
 
@@ -60,6 +63,9 @@ export class MapCanvas {
   changing: string | null = null
   /** Long notes the creator opened with More. */
   openNotes = new Set<string>()
+  /** The episode whose last removed page Undo brings back. */
+  undo: { episode: string } | null = null
+  private adding = false
   private fitted = false
   private fittedPages = 0
   private poll: ReturnType<typeof setInterval> | null = null
@@ -158,6 +164,7 @@ export class MapCanvas {
       'tools',
       mapTools(this.snapshot, this.view, this.mode, this.filter)
     )
+    this.fill('stages', mapStages(this.snapshot))
     this.fill('notes', mapNotes(this.snapshot, this.openNotes))
     // Notes pile into a drawn map; while it forms they wait.
     const ready = this.snapshot.status === 'ready'
@@ -228,15 +235,22 @@ export class MapCanvas {
     hideMenu(this)
     this.paint()
   }
-  toast(text: string) {
+  /** A short line over the canvas; with an action, a button that does it. */
+  toast(text: string, action?: { label: string; map: string }) {
     const node = this.slot('toast')
     if (!node) return
-    node.textContent = text
+    node.innerHTML = action
+      ? `<span></span><button type="button" class="quiet" data-map="${action.map}">${action.label}</button>`
+      : '<span></span>'
+    node.querySelector('span')!.textContent = text
     node.hidden = false
     if (this.toastTimer) clearTimeout(this.toastTimer)
-    this.toastTimer = setTimeout(() => {
-      node.hidden = true
-    }, 3200)
+    this.toastTimer = setTimeout(
+      () => {
+        node.hidden = true
+      },
+      action ? 7000 : 3200
+    )
   }
   /** Runs a change, then shows the map as it is now. */
   async run(work: () => Promise<unknown>, said?: string | (() => string)) {
@@ -289,13 +303,38 @@ export class MapCanvas {
         : 'Moved to the other episode.'
     )
   }
-  removeCopy(copy: string) {
+  /** Removes a page from its episode, with Undo; a made scene asks first. */
+  async removeCopy(copy: string) {
     const from = this.episodeOf(copy)
-    if (!from) return
+    const item = from?.copies.find((c) => c.id === copy)
+    if (!from || !item) return
+    if (
+      item.scene?.made &&
+      !(await confirmAction({
+        title: 'Remove this page and its made scene?',
+        detail: `The scene made for “${item.title}” in Ep ${from.number} goes with it. Undo brings both back.`,
+        action: 'Remove page'
+      }))
+    )
+      return
     this.sel = { t: 'lane', id: from.notebook }
-    return this.run(
-      () => mapApi.copies(from.notebook, { action: 'remove', slide: copy }),
-      'Removed from the episode. The map keeps the page.'
+    await this.run(() =>
+      mapApi.copies(from.notebook, { action: 'remove', slide: copy })
+    )
+    this.undo = { episode: from.notebook }
+    this.toast('Removed from the episode. The map keeps the page.', {
+      label: 'Undo',
+      map: 'undo-remove'
+    })
+  }
+  /** Brings back the page last removed, and its scene. */
+  async undoRemove() {
+    const undo = this.undo
+    this.undo = null
+    if (!undo) return
+    await this.run(
+      () => api.slide(undo.episode, { action: 'undo-delete' }),
+      'Back in the episode'
     )
   }
   paste() {
@@ -337,8 +376,13 @@ export class MapCanvas {
   async addEpisode(text: string, empty = false) {
     const series = this.view?.series
     const slides = this.naming?.slides || []
+    // One click, one episode: the form goes at once and a second submit
+    // while the first is in flight does nothing (review 6).
+    if (this.adding) return
     this.naming = null
+    this.paint()
     if (!series) return
+    this.adding = true
     const said = text.trim()
     // Said what it is about and no pages: the agent picks them.
     const about = !slides.length && !empty && said ? said : undefined
@@ -353,7 +397,9 @@ export class MapCanvas {
         : about
           ? 'Episode added: the agent is picking its pages from the map.'
           : 'Empty episode added: drop pages into it.'
-    )
+    ).finally(() => {
+      this.adding = false
+    })
     this.fitted = false
     this.paint()
   }

@@ -302,10 +302,29 @@ export const changeCopies = async (id: string, raw: unknown) => {
   }
   if (action === 'remove') {
     await changeProject(id, (current) => {
-      if (!current.project.slides.some((s) => s.id === slideId)) throw gone()
-      current.project.slides = current.project.slides.filter(
-        (s) => s.id !== slideId
-      )
+      const slides = current.project.slides
+      const index = slides.findIndex((s) => s.id === slideId)
+      if (index < 0) throw gone()
+      // Kept for Undo, with its scene, as the Wireframe stage's delete does
+      // (review 6: one key removed a made scene for good).
+      const video = current.project.video
+      current.deletedSlide = {
+        index,
+        slide: slides[index],
+        scene: video?.scenes.find((scene) => scene.slideId === slideId),
+        seams: video?.scenes.slice(0, -1).flatMap((scene, i) =>
+          scene.slideId === slideId || video.scenes[i + 1].slideId === slideId
+            ? [
+                {
+                  left: scene.slideId,
+                  right: video.scenes[i + 1].slideId,
+                  transition: video.transitions[i]
+                }
+              ]
+            : []
+        )
+      }
+      current.project.slides = slides.filter((s) => s.id !== slideId)
       reconcileVideo(current.project, current, new Set())
       addEvent(current, 'slide', `Removed “${copy.title}”; the map keeps it`)
     })

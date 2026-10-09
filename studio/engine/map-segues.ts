@@ -234,7 +234,8 @@ const writeSegues = async (id: string) => {
   try {
     const segues = await runValidatedJsonStage<Segues>({
       projectId: id,
-      inputKey: fingerprintOf(brief),
+      // Rewrite segues is the creator asking for new lines: a fresh key.
+      inputKey: fingerprintOf(force ? { brief, asked: Date.now() } : brief),
       checkpoint: 'episode-segues',
       operation: 'revise-story',
       stage: 'story',

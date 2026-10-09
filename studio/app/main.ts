@@ -147,6 +147,13 @@ app.mapCanvas = new MapCanvas(app.root, {
     app.selectedPlan = null
     void app.openNotebook(id)
   },
+  openStage: (stage) => {
+    const back = app.mapCanvas.from || app.mapCanvas.mapId
+    app.mapCanvas.dismiss()
+    app.stage = stage
+    if (app.snapshot?.project.id === back) app.render()
+    else void app.openNotebook(back)
+  },
   error: showError
 })
 app.pendingChats = new Set<string>()
