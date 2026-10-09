@@ -4,7 +4,6 @@
 import type { Snapshot } from '../shared/api'
 import { STORY_SCENES, type StoryLength } from '../shared/model'
 import { agentNames, foundAgent, modelLabelOf } from './agent-setup'
-import { modelLabel } from './agent-menu'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
@@ -59,7 +58,7 @@ export const choicesRow = (snapshot: Snapshot, editable: boolean) => {
   // With a template, its direction sets the length; without, the count does.
   return `<p class="choice-row"><span>With</span>
 <button type="button" class="choice" data-action="agent-menu" data-popover="agent">${escape(agent)}</button><span aria-hidden="true">·</span>
-<button type="button" class="choice" data-action="open-templates" ${off}>${escape(told ? told.narrative.name : 'No template')}${told && snapshot.suggestion?.preselected && snapshot.suggestion.narratives[0]?.id === told.narrative.id ? ' <small>suggested</small>' : ''}</button><span aria-hidden="true">·</span>
+<button type="button" class="choice" data-action="open-templates" ${off}>${escape(told ? told.narrative.name : 'No template')}${told && snapshot.suggestion?.preselected && snapshot.suggestion.narratives[0]?.id === told.narrative.id ? ` <small>${snapshot.suggestion.stale ? 'suggested before your edits' : 'suggested'}</small>` : ''}</button><span aria-hidden="true">·</span>
 ${
   told
     ? `<button type="button" class="choice" data-action="direction-menu" data-popover="direction" ${off}>${escape(told.label)}</button>`

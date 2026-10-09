@@ -40,6 +40,8 @@ export type GalleryState = {
   back: string
   /** The templates suggested for this post, best first. */
   suggested?: string[]
+  /** Suggested before the notes were edited since. */
+  suggestedStale?: boolean
 }
 
 export const lowerFirst = (text: string) =>

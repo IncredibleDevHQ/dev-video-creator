@@ -51,10 +51,19 @@ export const clickAccounts = async (
     const tab = window.open(url, '_blank')
     // The desktop app opens it in the system browser and keeps no window, so
     // there nothing is blocked; in a browser, no window means a blocked one.
-    if (!tab && !/\bElectron\//.test(navigator.userAgent)) {
+    const desktop = /\bElectron\//.test(navigator.userAgent)
+    // One word at a time beside the button: a new one replaces the last.
+    const warn = (text: string) => {
+      if (target.nextElementSibling?.classList.contains('account-warn'))
+        target.nextElementSibling.remove()
       target.insertAdjacentHTML(
         'afterend',
-        '<p class="account-warn">The browser blocked the sign-in window: allow pop-ups for the studio, then try again.</p>'
+        `<p class="account-warn">${text}</p>`
+      )
+    }
+    if (!tab && !desktop) {
+      warn(
+        'The browser blocked the sign-in window: allow pop-ups for the studio, then try again.'
       )
       return true
     }
@@ -85,9 +94,10 @@ export const clickAccounts = async (
       if (Date.now() - started > 5 * 60_000) {
         target.textContent = label
         target.disabled = false
-        target.insertAdjacentHTML(
-          'afterend',
-          '<p class="account-warn">No sign-in came back within five minutes. Try again; if no window opened, allow pop-ups for the studio.</p>'
+        warn(
+          desktop
+            ? 'No sign-in came back within five minutes. Try again from your browser’s sign-in page.'
+            : 'No sign-in came back within five minutes. Try again; if no window opened, allow pop-ups for the studio.'
         )
         return
       }

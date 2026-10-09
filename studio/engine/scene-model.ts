@@ -23,7 +23,12 @@ export const sceneRole = (project: Project, index: number) => {
     return roleOf(index, project.slides.length)
   return index === inVideo.lastIndexOf(true) ? 'ending' : 'body'
 }
-export const scenePlanKey = (project: Project, scene: Scene) => {
+export const scenePlanKey = (
+  project: Project,
+  scene: Scene,
+  // As 32b14a0c made it, the model's shown name in it, for a while.
+  legacy = false
+) => {
   const index = project.slides.findIndex((slide) => slide.id === scene.slideId)
   // By the slide's place: while the video reconciles, its scene list is
   // still being rebuilt, and scenes follow the slides one to one.
@@ -47,10 +52,12 @@ export const scenePlanKey = (project: Project, scene: Scene) => {
   return fingerprintOf({
     // What writes the scene, never how its model is named: a name shown for
     // it must not send every scene back to be written (review 6).
-    harness: harness && {
-      adapter: harness.adapter,
-      ...(harness.model ? { model: harness.model } : {})
-    },
+    harness: legacy
+      ? harness
+      : harness && {
+          adapter: harness.adapter,
+          ...(harness.model ? { model: harness.model } : {})
+        },
     slide: project.slides[index] ? slide : undefined,
     title: project.title,
     role: sceneRole(project, index),
@@ -191,7 +198,12 @@ export const reconcileVideo = (
       error: null
     }
     const key = scenePlanKey(project, scene)
-    if (scene.planKey !== key) {
+    // Planned while a model's shown name went into the key (32b14a0c, for a
+    // while): the same plan, kept as it is, never made again for that.
+    const kept =
+      Boolean(project.video?.settings.harness?.label) &&
+      scene.planKey === scenePlanKey(project, scene, true)
+    if (scene.planKey !== key && !kept) {
       scene.planKey = key
       // Left out of the video, a scene takes its new inputs quietly: only a
       // scene in the video says it must be made again.

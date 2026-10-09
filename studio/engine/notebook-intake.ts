@@ -67,7 +67,10 @@ export const editNotebookSource = async (
         'Wait for generation to finish before editing the notes'
       )
     const retained = await readRow<SourceRead>('sources', id)
-    const revised = readSourceNarrative(text, title.trim())
+    // Kept whole: the notes passed the limit as the creator counts them, and
+    // the editor's markdown runs longer than that (review 6: their end was
+    // cut while the editor said "Saved").
+    const revised = readSourceNarrative(text, title.trim(), Infinity)
     const source: SourceRead = {
       ...(retained || revised),
       title: revised.title,
@@ -264,6 +267,10 @@ export const setNotebookTemplate = async (id: string, raw: unknown) => {
       delete current.project.direction
     }
     current.project.templateChosen = true
+    // The story planned for the old template goes with its outline: the
+    // rail shows no titles a new Create will not draw (review 6).
+    delete current.plan
+    delete current.plannedSlides
   })
   await deleteRow('outlines', id)
   return snapshot

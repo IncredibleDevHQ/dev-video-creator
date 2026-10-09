@@ -85,6 +85,28 @@ const draft = async (
   )
   return (await loadProject(created.project.id))!
 }
+it('keeps saved notes whole, though the editor’s markdown runs longer than they count', async () => {
+  const notebook = await draft()
+  const id = notebook.project.id
+  // Escaped characters and a widened table count as the creator sees them;
+  // raw, these notes are well over 24,000 characters (review 6: their end
+  // was cut while the editor said "Saved").
+  const rows = Array.from(
+    { length: 400 },
+    (_, i) =>
+      `| row ${i} | value \\_${i} |\n| ------------------------ | ------------------------ |`
+  ).join('\n')
+  const notes = `${rows}\n\n## The last section\n\nIt ends here.`
+  expect(notes.length).toBeGreaterThan(24_000)
+  const saved = await editNotebookSource(id, notes, 'Long notes')
+  expect(saved.project.source.endsWith('It ends here.')).toBe(true)
+  const kept = await readRow<ReturnType<typeof readSourceNarrative>>(
+    'sources',
+    id
+  )
+  expect(kept?.text.endsWith('It ends here.')).toBe(true)
+})
+
 it('retains Markdown in an empty notebook without detecting or running an agent, including after restart', async () => {
   expect(await loadHarnessPreference()).toBeNull()
   const notebook = await draft()

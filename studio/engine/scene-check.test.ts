@@ -86,3 +86,25 @@ it('says the video stopped only while a scene is stopped, however the scene reco
   expect(stopped.phase).toBe('waiting')
   expect(video).toMatchObject({ phase: 'idle', error: null })
 })
+
+it('says how many scenes are stopped now, and nothing once none is', async () => {
+  const { settleStoppedVideo } = await import('./autopilot')
+  const a = scene({ id: 'a', failure: 'production' })
+  const b = scene({ id: 'b', failure: 'production' })
+  const video = {
+    phase: 'failed',
+    error: '2 scenes stopped. Other saved animations are ready.',
+    scenes: [a, b]
+  } as never as Parameters<typeof settleStoppedVideo>[0] & {
+    phase: string
+    error: string | null
+  }
+  // One fixed: the line counts the one left (review 6: it said 2).
+  a.phase = 'produced'
+  settleStoppedVideo(video)
+  expect(video.error).toBe('A scene stopped. Other saved animations are ready.')
+  // The other's wireframe deleted with it: nothing is stopped.
+  video!.scenes.splice(1, 1)
+  settleStoppedVideo(video)
+  expect(video).toMatchObject({ phase: 'idle', error: null })
+})

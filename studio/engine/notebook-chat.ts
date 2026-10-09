@@ -7,6 +7,7 @@ import { fingerprintOf, quotedIn } from './planning/fingerprint'
 import { runValidatedJsonStage } from './creative/stage'
 import { modelFetch } from './model-gateway'
 import { Refusal } from './refusal'
+import { generationFailure, HarnessStageError } from './generation-errors'
 export type SourceReply = { reply: string; evidence: string[] }
 export const validateSourceReply = (raw: unknown, source: SourceRead) => {
   const value = raw as SourceReply
@@ -129,14 +130,27 @@ export const chatNotebook = async (id: string, request: ChatRequest) => {
       addEvent(current, 'chat', answer.reply, { anchor: request.anchor })
     )
   } catch (error) {
+    // What stopped the agent, in the studio's words, as for background work
+    // (review 6: the creator got the vague error).
+    const fallback = 'Could not answer this source question. Try again.'
+    const said = agentStopped(error, fallback)
     await changeProject(id, (current) =>
-      addEvent(
-        current,
-        'chat',
-        'Could not answer this source question. Try again.',
-        { anchor: request.anchor }
-      )
+      addEvent(current, 'chat', said?.message || fallback, {
+        anchor: request.anchor
+      })
     )
-    throw error
+    throw said || error
   }
 }
+
+/**
+ * A refusal as it is, and an agent's failure as a refusal in the studio's
+ * own words (sign-in, credits, time); null for anything else, which stays
+ * the studio's own fault.
+ */
+export const agentStopped = (error: unknown, fallback: string) =>
+  error instanceof Refusal
+    ? error
+    : error instanceof HarnessStageError
+      ? new Refusal(generationFailure(error, fallback))
+      : null

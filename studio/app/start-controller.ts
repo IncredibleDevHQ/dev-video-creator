@@ -259,10 +259,13 @@ export const clickStart = async (
       action: 'Re-read the article'
     })
     // Edited notes are the creator's: re-reading replaces them, so ask, once
-    // they are saved, so an edit just typed counts too (review 6).
+    // they are saved, so an edit just typed counts too (review 6). Agreed to
+    // already, when they could not be saved, it is not asked twice.
     if (
       !saved ||
-      (notesEdited(app.snapshot!) &&
+      !app.snapshot ||
+      (saved === 'saved' &&
+        notesEdited(app.snapshot) &&
         !(await confirmAction({
           title: 'Re-read the article?',
           detail:

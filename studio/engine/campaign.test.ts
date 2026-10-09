@@ -345,6 +345,39 @@ it('posts the words on screen, and treats a post with no answer as maybe out', a
   await expect(postItem('launch', { item: 'launch-x-0' })).rejects.toThrow(
     'Check your feed first'
   )
+  // X takes the post, then its answer is lost: it may have gone out.
+  await changeItem('launch', { item: 'launch-x-0', state: 'approved' }).catch(
+    () => {}
+  )
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) =>
+      String(url).endsWith('/2/tweets')
+        ? new Response(
+            new ReadableStream({
+              start: (controller) => controller.error(new Error('reset'))
+            }),
+            { status: 201 }
+          )
+        : new Response(null, { status: 204 })
+    )
+  )
+  await expect(
+    postItem('launch', { item: 'launch-x-0', again: true })
+  ).rejects.toThrow('may have gone out')
+  expect(
+    (await loadProject('launch'))!.project.release!.campaign.find(
+      (entry) => entry.id === 'launch-x-0'
+    )!.state
+  ).toBe('unknown')
+  // Nor is an emptied box approved.
+  await expect(
+    changeItem('launch', {
+      item: 'teaser-x--14',
+      state: 'approved',
+      words: ' '
+    })
+  ).rejects.toThrow('Write the post’s words first')
   // An emptied box posts nothing, not the words kept before.
   await expect(
     postItem('launch', { item: 'launch-x-0', words: '  ', again: true })

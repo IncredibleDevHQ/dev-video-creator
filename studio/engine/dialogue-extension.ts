@@ -4,7 +4,7 @@ import { refreshVideoKeys, recordingKeyOf } from './scene-model'
 import { estimateSpeech } from '../shared/dialogue'
 import { runValidatedJsonStage } from './creative/stage'
 import { fingerprintOf } from './planning/fingerprint'
-import { validateSourceReply } from './notebook-chat'
+import { agentStopped, validateSourceReply } from './notebook-chat'
 import type { SourceRead } from './source-document'
 import { readRow } from './persistence'
 import { Refusal } from './refusal'
@@ -148,6 +148,12 @@ export async function suggestDialogueExtension(
       },
       validate: (raw) => validateSourceReply(raw, source),
       operation: 'extension'
+    }).catch((error: unknown) => {
+      // What stopped the agent, in the studio's words (review 6).
+      throw (
+        agentStopped(error, 'Could not suggest how to go on. Try again.') ||
+        error
+      )
     })
     return { text: result.reply }
   } finally {

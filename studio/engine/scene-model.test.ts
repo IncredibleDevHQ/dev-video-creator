@@ -132,3 +132,22 @@ it('keeps made scenes when only the name shown for their model changes', async (
   p.video!.settings.harness = { adapter: 'codex', model: 'gpt-6.2' }
   expect(scenePlanKey(p, scene)).not.toBe(key)
 })
+
+it('keeps a scene planned while its model’s name went into the key', async () => {
+  const { scenePlanKey } = await import('./scene-model')
+  const p = project()
+  p.video!.settings.harness = {
+    adapter: 'codex',
+    model: 'gpt-6.1-sol',
+    label: 'GPT-6.1-Sol'
+  }
+  reconcileVideo(p, { project: p, events: [] })
+  const scene = p.video!.scenes[0]
+  // As 32b14a0c keyed it, then made.
+  scene.planKey = scenePlanKey(p, scene, true)
+  scene.phase = 'produced'
+  scene.produced = { inputKey: 'k', objectKey: 'o.mp4' }
+  reconcileVideo(p, { project: p, events: [] })
+  expect(scene.phase).toBe('produced')
+  expect(scene.produced).not.toBeNull()
+})

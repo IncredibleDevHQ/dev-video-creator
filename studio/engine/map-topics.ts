@@ -7,6 +7,7 @@ import { detectedHarness } from './notebook-intake'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
+import { withoutKeys } from './model-gateway'
 
 const origin = () =>
   process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
@@ -121,9 +122,11 @@ const group = async (id: string) => {
     })
   } catch (error) {
     await changeProject(id, (current) => {
+      // The agent's own words, with anything like a key hidden: they are
+      // shown and kept (review 6).
       const said =
         error instanceof Error && error.message
-          ? error.message
+          ? withoutKeys(error.message, '', 400)
           : 'The agent could not group the map'
       current.project.grouping = { state: 'failed', error: said }
       addEvent(current, 'slide', `Could not group the map by topic: ${said}`, {

@@ -23,6 +23,8 @@ export type GalleryContext = {
   back: string
   /** The templates suggested for this post, best first. */
   suggested?: string[]
+  /** Suggested before the notes were edited since. */
+  suggestedStale?: boolean
 }
 
 const CARD_SECONDS = 4.5

@@ -107,19 +107,26 @@ export const postToX = async (
   options: { wait?: number } = {}
 ) => {
   const media = video ? await xVideo(video, options.wait) : null
-  const body = await json(
-    await publishRequest('x', 'https://api.x.com/2/tweets', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        text,
-        ...(media ? { media: { media_ids: [media] } } : {})
+  const response = await publishRequest('x', 'https://api.x.com/2/tweets', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      text,
+      ...(media ? { media: { media_ids: [media] } } : {})
+    })
+  })
+  // Taken, then its answer lost on the way, or silent on where it is: it
+  // went out, or may have (review 6: it was offered again).
+  const body = response.ok
+    ? await json(response, 'The post on X').catch(() => {
+        throw new UncertainPost(
+          'X took the post, but its answer was lost; it may have gone out'
+        )
       })
-    }),
-    'The post on X'
-  )
+    : await json(response, 'The post on X')
   const id = (body.data as { id?: string })?.id
-  if (!id) throw new Refusal('X did not say where the post is')
+  if (!id)
+    throw new UncertainPost('X took the post but did not say where it is')
   return `https://x.com/i/web/status/${id}`
 }
 

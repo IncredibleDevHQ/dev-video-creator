@@ -35,19 +35,28 @@ export const paintPracticeActions = (app: AppContext) => {
   // recorded (review 6: it showed, then failed with "No moments need
   // recording").
   const scene = app.snapshot?.project.video?.scenes[app.selected]
-  const open =
-    (scene && app.snapshot?.views?.scenes[scene.id]?.openMomentIds) || []
-  const recordable =
-    (phase === 'ready' || phase === 'finished') &&
-    !!scene &&
-    !!open.length &&
-    !whyNoRecording(scene)
-  // What it records: the whole scene's open moments when practice plays the
-  // scene, else this moment, or the next one still to record.
+  // What a press records, by the same plan the press itself follows: the
+  // scene's open moments when practice plays the scene, else the moment on
+  // show when it needs a take, else the next one still to record.
+  const voice = app.snapshot?.project.video?.settings?.voice
+  const plan =
+    scene && voice && (phase === 'ready' || phase === 'finished')
+      ? recordingPlan(
+          scene.moments,
+          app.snapshot?.views?.scenes[scene.id]?.openMomentIds || [],
+          app.momentIndex,
+          {
+            whole: app.practiceScope === 'scene',
+            here: true,
+            needs: (moment) => momentNeedsRecording(moment, voice)
+          }
+        )
+      : []
+  const recordable = !!scene && plan.length > 0 && !whyNoRecording(scene)
   const what =
-    app.practiceMomentIds.length > 1
+    plan.length > 1
       ? 'scene'
-      : open.includes(scene?.moments[app.momentIndex]?.id || '')
+      : plan[0]?.id === scene?.moments[app.momentIndex]?.id
         ? 'moment'
         : 'next'
   actions.innerHTML = `${practiceControls(

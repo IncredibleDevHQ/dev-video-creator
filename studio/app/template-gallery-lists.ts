@@ -90,7 +90,11 @@ const suggestedSection = (state: GalleryState) => {
   return found.length
     ? html`<section class="tpl-group tpl-suggested" data-group="suggested">
         <div class="tpl-story-head">
-          <h2>Suggested for this post</h2>
+          <h2>
+            ${state.suggestedStale
+              ? 'Suggested before your edits'
+              : 'Suggested for this post'}
+          </h2>
           <p>The stories your notes tell best, best first.</p>
         </div>
         ${cards(found, state)}

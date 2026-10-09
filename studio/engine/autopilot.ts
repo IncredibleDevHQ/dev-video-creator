@@ -123,6 +123,21 @@ const stages: Partial<Record<SceneSignal, SceneStage>> = {
   'recover-plan': 'artwork',
   'recover-production': 'voice'
 }
+/**
+ * The video's stopped state as its scenes have it now (review 6): none
+ * stopped, and the video is not; fewer, and it says how many.
+ */
+export const settleStoppedVideo = (video?: Project['video']) => {
+  if (!video || video.phase !== 'failed') return
+  const stopped = video.scenes.filter(
+    (scene) => scene.phase === 'failed'
+  ).length
+  if (!stopped) {
+    video.phase = 'idle'
+    video.error = null
+  } else if (/^(?:A scene|\d+ scenes) stopped\./.test(video.error || ''))
+    video.error = `${stopped === 1 ? 'A scene' : `${stopped} scenes`} stopped. Other saved animations are ready.`
+}
 export const transitionScene = (
   scene: Scene,
   signal: SceneSignal,
@@ -137,18 +152,13 @@ export const transitionScene = (
   if (signal !== 'fail') {
     delete scene.lastCheck
     delete scene.acceptable
-    // The video stopped for scenes: once none is stopped and this one has
-    // settled, however it recovered (made, waiting for a take, left out,
-    // written again), neither is the video (review 6: it still said so).
-    const video = (ledger as { project: Partial<Project> }).project.video
-    if (
-      ['waiting', 'produced', 'idle'].includes(scene.phase) &&
-      video?.phase === 'failed' &&
-      !video.scenes.some((item) => item.phase === 'failed')
-    ) {
-      video.phase = 'idle'
-      video.error = null
-    }
+    // The video stopped for scenes: once this one has settled, however it
+    // recovered (made, waiting for a take, left out, written again), the
+    // video says what is stopped now (review 6: it still said so).
+    if (['waiting', 'produced', 'idle'].includes(scene.phase))
+      settleStoppedVideo(
+        (ledger as { project: Partial<Project> }).project.video
+      )
   }
   addEvent(
     ledger,

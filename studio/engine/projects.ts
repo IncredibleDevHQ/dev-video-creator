@@ -47,13 +47,14 @@ import {
 } from '../shared/state'
 import { modelFetch } from './model-gateway'
 import { SourceReadError } from './source-fetch'
-import { readSourceNarrative } from './source-document'
+import { cutArticle, readSourceNarrative } from './source-document'
 import { readSourceUrl } from './source-reader'
 import { outlineSchema, outlinePrompt, sanitizeOutline } from './source-outline'
 import { pageBrandFrom, renderPage } from './source-page'
 import { identityOf } from './branding'
 import { startingLook, withLook } from './looks'
 import { Refusal } from './refusal'
+import { settleStoppedVideo } from './autopilot'
 import { sourceLink } from '../shared/source-link'
 const queues = new Map<string, Promise<unknown>>()
 /**
@@ -257,8 +258,11 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
     const url = new URL(sourceUrl)
     if (!['https:', 'http:'].includes(url.protocol))
       throw new Refusal('The original source link is invalid')
+    // Cut as a read article is, saying so: the notes and what the agent
+    // reads are the same, and fit (review 6: the whole paste was kept).
+    const pasted = cutArticle(text.trim()).text
     const source = {
-      ...readSourceNarrative(text.trim()),
+      ...readSourceNarrative(pasted, '', Infinity),
       url: sourceUrl,
       site: url.hostname
     }
@@ -272,7 +276,7 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
         await startingLook(source)
       )
     current.project.sourceUrl = sourceUrl
-    current.project.source = text.trim()
+    current.project.source = pasted
     current.status = current.sourceOnly ? 'draft' : 'building'
     current.project.title = source.title || 'Untitled notebook'
     current.error = null
@@ -654,6 +658,8 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       }
     }
     reconcileVideo(snapshot.project, snapshot)
+    // A stopped scene that went with its wireframe stops nothing (review 6).
+    if (edit.action === 'delete') settleStoppedVideo(snapshot.project.video)
     if (
       edit.action === 'undo-delete' &&
       restored?.seams &&

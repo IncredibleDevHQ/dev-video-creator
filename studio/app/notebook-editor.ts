@@ -119,9 +119,11 @@ export const saveBeforeLeaving = async (
     action: 'Leave without saving'
   }
 ) => {
+  // 'saved' or 'left' (without the edits, on the creator's word), both
+  // truthy; false to stay.
   try {
     await flushNotebookEdits(app)
-    return true
+    return 'saved' as const
   } catch (reason) {
     const leave = await confirmAction({
       title: 'Your notes are not saved',
@@ -142,7 +144,7 @@ export const saveBeforeLeaving = async (
       status(app, 'Saved')
       showCount(app, saved)
     }
-    return leave
+    return leave ? ('left' as const) : false
   }
 }
 

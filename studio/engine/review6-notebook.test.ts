@@ -38,6 +38,14 @@ it('counts the notes without the reader’s cut note', () => {
   expect(
     notesLength('See [https://a.io/x](https://a.io/x) or <https://b.io>.')
   ).toBe('See https://a.io/x or https://b.io.'.length)
+  // A cut note the editor moved inside a code block or a table, closing it
+  // after the note, is still not counted; only a table's own divider rows
+  // are shortened, so a long run of dashes in the text counts in full.
+  const code = `\`\`\`\n${'x'.repeat(30)}\n… [cut: the article goes on for 9 more characters]\n\`\`\``
+  expect(notesLength(code)).toBe(notesLength(`\`\`\`\n${'x'.repeat(30)}`))
+  const table = `| a |\n| ${'y'.repeat(10)} … \\[cut: the article goes on for 9 more characters\\] |`
+  expect(notesLength(table)).toBe(notesLength(`| a |\n| ${'y'.repeat(10)}`))
+  expect(notesLength('-'.repeat(50))).toBe(50)
   // A link with its own words keeps them.
   expect(notesLength('[the post](https://a.io/x)')).toBe(
     '[the post](https://a.io/x)'.length
@@ -140,4 +148,19 @@ it('lets the Wireframe tab show an empty stage whose button starts the run', () 
   expect(notebookNextAction(draft, true)).toContain('Creating…')
   expect(notebookNextAction(draft, true)).toContain('aria-busy="true"')
   expect(notebookNextAction(draft, true)).toContain('disabled')
+})
+
+it('cuts a long article where a paragraph ends, never inside code, and says so', async () => {
+  const { cutArticle } = await import('./source-document')
+  const para = 'Words in a paragraph. '.repeat(40)
+  const article = `${para}\n\n${para}\n\n\`\`\`\n${'code();\n'.repeat(4000)}\`\`\`\n\n${para}`
+  const { text, left } = cutArticle(article, 24_000)
+  expect(text).toMatch(
+    / … \[cut: the article goes on for [\d,]+ more characters\]$/
+  )
+  // The cut lands before the code block opens, not inside it.
+  expect((text.match(/^\`\`\`/gm) || []).length % 2).toBe(0)
+  expect(left).toBe(article.length - text.indexOf(' … [cut:'))
+  // Short enough, kept whole.
+  expect(cutArticle('Short.', 24_000)).toEqual({ text: 'Short.', left: 0 })
 })

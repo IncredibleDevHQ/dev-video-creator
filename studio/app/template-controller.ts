@@ -42,7 +42,8 @@ export const galleryContext = (app: AppContext) => {
         ({ id, p }, index) =>
           narrativeById(id) && index < 3 && (index === 0 || p >= 0.1)
       )
-      .map(({ id }) => id)
+      .map(({ id }) => id),
+    suggestedStale: Boolean(app.snapshot?.suggestion?.stale)
   }
 }
 

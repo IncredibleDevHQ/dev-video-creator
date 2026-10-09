@@ -52,7 +52,11 @@ it('puts Record beside Start practice, only when something can be recorded', asy
   const { document } = parseHTML(
     '<main><div class="video-actions"><div></div><div></div></div></main>'
   )
-  const scene = { id: 's', phase: 'waiting', moments: [{ id: 'm1' }] }
+  const scene = {
+    id: 's',
+    phase: 'waiting',
+    moments: [{ id: 'm1', lines: 'Hello.', camera: 'none', take: null }]
+  }
   const app = {
     root: document.querySelector('main'),
     practiceOpen: true,
@@ -63,7 +67,9 @@ it('puts Record beside Start practice, only when something can be recorded', asy
     selected: 0,
     momentIndex: 0,
     snapshot: {
-      project: { video: { scenes: [scene] } },
+      project: {
+        video: { settings: { voice: { kind: 'record' } }, scenes: [scene] }
+      },
       views: { scenes: { s: { openMomentIds: ['m1'] } } }
     }
   } as never
@@ -73,16 +79,25 @@ it('puts Record beside Start practice, only when something can be recorded', asy
     /Start practice[\s\S]*data-action="record-moment"/
   )
   expect(row().innerHTML.match(/class="primary"/g)).toHaveLength(1)
-  // Nothing left to record, or a scene that can't take a take: no Record.
+  expect(row().innerHTML).toContain('aria-label="Record this moment"')
+  // A scene that can't take a take: no Record.
   scene.phase = 'failed'
   paintPracticeActions(app)
   expect(row().innerHTML).not.toContain('record-moment')
   scene.phase = 'waiting'
-  ;(
-    app as {
-      snapshot: { views: { scenes: { s: { openMomentIds: string[] } } } }
+  // Recorded already, in the creator's own voice: Record takes the moment
+  // on show again, and says so.
+  const state = app as {
+    snapshot: {
+      project: { video: { settings: { voice: { kind: string } } } }
+      views: { scenes: { s: { openMomentIds: string[] } } }
     }
-  ).snapshot.views.scenes.s.openMomentIds = []
+  }
+  state.snapshot.views.scenes.s.openMomentIds = []
+  paintPracticeActions(app)
+  expect(row().innerHTML).toContain('aria-label="Record this moment"')
+  // An AI voice and no camera: nothing to record, no Record.
+  state.snapshot.project.video.settings.voice = { kind: 'ai' }
   paintPracticeActions(app)
   expect(row().innerHTML).not.toContain('record-moment')
 })

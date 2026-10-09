@@ -315,14 +315,37 @@ export const extractionOf = (
   }
 }
 
+/**
+ * An article too long to keep whole, kept to `limit` characters and saying
+ * what it leaves out. It is cut where a paragraph ends, never inside a table
+ * or a code block (review 6: the cut note went inside one, and was counted).
+ */
+export const cutArticle = (text: string, limit = 24_000) => {
+  if (text.length <= limit) return { text, left: 0 }
+  const paragraph = text.lastIndexOf('\n\n', limit)
+  let kept = text.slice(0, paragraph > limit * 0.8 ? paragraph : limit)
+  // Still inside a code block: cut before it opens.
+  const fences = [...kept.matchAll(/^(?:`{3,}|~{3,})/gm)]
+  if (fences.length % 2) kept = kept.slice(0, fences[fences.length - 1].index)
+  kept = kept.trimEnd()
+  const left = text.length - kept.length
+  return {
+    text: `${kept} … [cut: the article goes on for ${left.toLocaleString('en')} more characters]`,
+    kept,
+    left
+  }
+}
+
 export const readSourceNarrative = (
   narrative: string,
-  title = ''
+  title = '',
+  // Notes the creator saved passed the limit as they count it: kept whole.
+  limit = 24_000
 ): SourceRead => {
   const given = String(narrative || '')
     .replace(/\r\n?/g, '\n')
     .trim()
-  const text = given.slice(0, 24_000)
+  const text = given.slice(0, limit)
   // A text too long to read whole says so (B02 of the BoltDB review).
   const cuts =
     given.length > text.length
