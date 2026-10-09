@@ -4,7 +4,7 @@ import { notesLength, NOTE_LIMIT } from '../shared/notes'
 import { loadableFont } from '../shared/looks'
 import { lengthForPages, lengthLabel } from '../shared/narratives'
 import { modelName } from '../shared/agent-models'
-import { presentationProgress } from '../app/progress'
+import { notesOnly, presentationProgress } from '../app/progress'
 import { notebookNextAction } from '../app/notebook-next-step'
 
 const draft = {
@@ -47,6 +47,20 @@ it('keeps a font only if it can load, else the nearest built-in', () => {
   })
   expect(loadableFont('styreneA')).toEqual({ value: 'Inter', replaced: true })
   expect(loadableFont('JetBrains Mono').value).toBe('ui-monospace')
+  // Windows' own fonts don't show on a Mac: the nearest built-in, said so;
+  // the system's own fonts show as they are.
+  expect(loadableFont('Segoe UI')).toEqual({
+    value: 'system-ui',
+    replaced: true
+  })
+  expect(loadableFont('Consolas')).toEqual({
+    value: 'ui-monospace',
+    replaced: true
+  })
+  expect(loadableFont('system-ui')).toEqual({
+    value: 'system-ui',
+    replaced: false
+  })
 })
 
 it('says on the notebook’s look when a site’s fonts stand in', async () => {
@@ -96,6 +110,12 @@ it('names models plainly', () => {
 })
 
 it('lets the Wireframe tab show an empty stage whose button starts the run', () => {
+  // A new notebook is a draft of notes only: its Wireframe tab is not sent
+  // back to the notes; one still reading, or failed to read, keeps to them.
+  const fresh = { ...draft, sourceOnly: true } as typeof draft
+  expect(notesOnly(fresh)).toBe(false)
+  expect(notesOnly({ ...fresh, status: 'reading' } as typeof draft)).toBe(true)
+  expect(notesOnly({ ...fresh, status: 'failed' } as typeof draft)).toBe(true)
   const card = presentationProgress(draft)
   expect(card).toContain('No wireframes yet')
   expect(card).toContain('data-action="create-presentation"')

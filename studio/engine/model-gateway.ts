@@ -443,9 +443,14 @@ export const imageGenerate = async ({
  * digit or a mask, so words like "bearer token" or SK_NOT_FOUND stay.
  */
 export const withoutKeys = (text: string, key: string, length: number) =>
+  // Only what can be shown is searched, with room for a key that crosses
+  // the cut: a huge answer costs no more than a short one.
   (key.length >= 16 || (key.length >= 6 && /\d/.test(key) && /[a-z]/i.test(key))
-    ? text.split(key).join('[key]')
-    : text
+    ? text
+        .slice(0, length + 600)
+        .split(key)
+        .join('[key]')
+    : text.slice(0, length + 600)
   )
     .replace(
       /\bBearer\s+(?=[\w~+\/*=.-]*\d)[\w~+\/*=-]{16,}(?:\.[\w~+\/*=-]+)*/g,
@@ -634,7 +639,7 @@ export const voiceProviderRequest = async (
   if (!/^\/(?:v1\/tts|model)(?:[/?]|$)/.test(path))
     throw new Error('Unknown voice operation')
   const key = await fishKey()
-  if (!key) throw new Error('Add your Fish Audio key in Settings')
+  if (!key) throw new Refusal('Add your Fish Audio key in Settings')
   const headers = new Headers(init.headers)
   headers.set('authorization', `Bearer ${key}`)
   const response = await fetch(`https://api.fish.audio${path}`, {
@@ -644,9 +649,8 @@ export const voiceProviderRequest = async (
       ? AbortSignal.any([init.signal, AbortSignal.timeout(120000)])
       : AbortSignal.timeout(120000)
   })
+  // Its refusal in its own words, as the model providers' (review 6).
   if (!response.ok && !(missingIsGone && response.status === 404))
-    throw new Error(
-      `The voice provider could not complete this request (${response.status})`
-    )
+    throw await rejected('Fish Audio', response, key)
   return response
 }

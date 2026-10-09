@@ -420,7 +420,9 @@ it('retains the harness selection and accepted creative plan with the scene chec
     ).toBe(true)
   )
   const saved = (await loadProject('harness'))!
-  expect(saved.project.video!.settings.harness).toEqual({
+  // Kept, with the name the agent's own list gives the model when it lists
+  // one (that list is this computer's).
+  expect(saved.project.video!.settings.harness).toMatchObject({
     adapter: 'kimi',
     model: 'kimi-code/k3'
   })

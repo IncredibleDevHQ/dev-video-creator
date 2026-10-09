@@ -201,15 +201,16 @@ export const availableHarness = async (raw: unknown) => {
     throw new Refusal(
       'This local agent is unavailable. Detect agents again in Settings.'
     )
-  // When the agent lists its models, only a listed, available one is kept.
+  // When the agent lists its models, only a listed, available one is kept,
+  // with the name the list gives it, as the picker shows it (review 6: the
+  // notebook said the raw id).
   const options = choice.models?.options || []
-  if (
-    harness.model &&
-    options.length &&
-    !options.some((model) => model.id === harness.model && !model.unavailable)
-  )
+  const listed = options.find((model) => model.id === harness.model)
+  if (harness.model && options.length && (!listed || listed.unavailable))
     throw new Refusal('Choose an available model for this agent')
-  return harness
+  return listed && listed.label !== listed.id
+    ? { ...harness, label: listed.label }
+    : harness
 }
 
 export const setNotebookLength = (id: string, raw: unknown) => {

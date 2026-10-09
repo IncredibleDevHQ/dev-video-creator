@@ -1,4 +1,5 @@
 import { themeControl } from './appearance'
+import { notesOnly } from './progress'
 import { animationSecond } from '../shared/scene-time'
 import { videoSecond } from '../shared/video-clock'
 import { api } from './api'
@@ -9,7 +10,6 @@ import { movePlayhead } from './moment-timeline'
 import { notebookOpeningView } from './notebook-opening'
 import { notebookScreen } from './notebook-screen'
 import { replacePlayerView } from './player-view'
-import { recordControl } from './practice-controls'
 import { paintPracticeActions } from './recording-controller'
 import { syncPresenterLayout } from './presenter-motion'
 import { reviewLayoutSecond } from './take-review-clock'
@@ -19,13 +19,12 @@ import { followTranscript, transcriptWords } from './transcript-follow'
 import { escape } from './ui'
 import { videoScreen } from './video-screen'
 import { workspaceHeader } from './workspace-header'
-import { workspaceUrl } from './workspace-position'
+import { momentOnShow, workspaceUrl } from './workspace-position'
 import { syncLookPreview } from './look-panel'
 import { meterStream } from './mic-meter'
 import { markPin } from './wireframe-pin'
 import { syncPlayerBar } from './player-bar'
 import { lookForAgent } from './agent-setup'
-import { sceneDisplay } from '../shared/state'
 
 export const createRender = (app: AppContext) => () => {
   if (
@@ -104,7 +103,7 @@ ${notebookOpeningView(app.opening.state)}`,
     return
   }
   const { project } = app.snapshot
-  if (app.snapshot.sourceOnly && !project.slides.length) app.stage = 'notebook'
+  if (notesOnly(app.snapshot)) app.stage = 'notebook'
   // An outline scene that has since been drawn opens as its wireframe.
   if (app.selectedPlan) {
     const drawn = project.slides.findIndex(
@@ -119,17 +118,23 @@ ${notebookOpeningView(app.opening.state)}`,
     }
   }
   app.selected = Math.max(0, Math.min(app.selected, project.slides.length - 1))
-  // The moment belongs to the scene on show: one out of its range, kept from
-  // another scene, starts again at its first (review 6: Practice and chat
-  // then did nothing).
+  // The moment belongs to the scene on show; when the scene changes and
+  // nothing chose one for it, its first is shown (review 6).
   const shownScene = project.video?.scenes[app.selected]
-  if (
-    shownScene &&
-    (app.momentIndex < 0 || app.momentIndex >= shownScene.moments.length)
-  ) {
-    // Its time goes with it, so the time chip and the chat's anchor agree.
-    app.momentIndex = 0
-    app.second = shownScene.moments[0]?.start ?? 0
+  if (shownScene) {
+    const shown = momentOnShow(
+      shownScene,
+      app.momentIndex,
+      app.second,
+      app.shownMoment
+    )
+    app.momentIndex = shown.momentIndex
+    app.second = shown.second
+    app.shownMoment = {
+      scene: shownScene.id,
+      index: app.momentIndex,
+      second: app.second
+    }
   }
   const viewUrl = workspaceUrl(
     new URL(location.href),
@@ -336,17 +341,6 @@ ${escape(project.title)}</h1>
         : app.practice.active
           ? 'running'
           : 'finished'
-    // Record beside Start practice only when something can be recorded
-    // (review 6: it showed, then failed with "No moments need recording").
-    const scene = app.snapshot?.project.video?.scenes[app.selected]
-    const recordable =
-      !!scene &&
-      !!app.snapshot?.views?.scenes[scene.id]?.openMomentIds.length &&
-      sceneDisplay(app.snapshot, scene).canRecord
-    if ((phase === 'ready' || phase === 'finished') && recordable)
-      app.root
-        .querySelector('.practice-panel-heading')
-        ?.insertAdjacentHTML('beforeend', recordControl())
     const panel = app.root.querySelector('.practice-panel')
     const toolbar = document.createElement('div')
     toolbar.className = 'capture-toolbar'

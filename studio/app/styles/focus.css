@@ -448,6 +448,20 @@ body:has(.is-focused) > #app > header {
   border-color: #68504f;
   color: #f4e9e8;
 }
+/* Record beside Start practice, the one primary (review 6). */
+.video-actions .record-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #68504f;
+  border-radius: 8px;
+  background: #2b2221;
+  color: #f4e9e8;
+}
+.video-actions .record-entry:hover {
+  background: #402a28;
+  border-color: #a66964;
+}
 .is-focused .practice-panel {
   margin: 0;
   padding: 10px 16px;

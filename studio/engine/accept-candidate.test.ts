@@ -60,3 +60,53 @@ it('accepts only a candidate refused by soft checks, for this scene as it is', a
     'The candidate no longer fits this scene'
   )
 })
+
+it('accepts a scene built as its animation, under the key the animation is built with', async () => {
+  const { refreshVideoKeys } = await import('./scene-model')
+  const { loadStageCheckpoint } = await import('./artifacts')
+  const { waitForSceneProduction } = await import('./production')
+  // A scene with a creative plan is built as its animation: its candidates
+  // carry the animation's key, not the scene's (review 6: Accept as is
+  // always said the candidate no longer fit).
+  const snapshot = notebook({
+    acceptable: 'a2',
+    creativePlan: { recordId: 'r1' },
+    moments: [
+      {
+        id: 'm1',
+        title: 'One',
+        lines: 'Hello there.',
+        start: 0,
+        end: 2,
+        camera: 'none',
+        layout: 'full-screen',
+        overlay: null,
+        recordingKey: 'rk',
+        take: null,
+        audio: null,
+        audioKey: 'au'
+      }
+    ]
+  })
+  refreshVideoKeys(snapshot.project)
+  const scene = snapshot.project.video!.scenes[0]
+  scene.phase = 'failed'
+  scene.failure = 'production'
+  const built = `animation-${scene.animationKey}`
+  expect(built).not.toBe(`animation-${scene.inputKey}`)
+  await writeRow('creative-production-attempts', 'a2', {
+    projectId: 'p',
+    sceneId: 'scene-s',
+    inputKey: built,
+    soft: true,
+    artifacts: []
+  })
+  await writeRow('projects', 'p', snapshot)
+  const started = await acceptCandidate('p', 'scene-s')
+  expect(started.project.video!.scenes[0].phase).toBe('producing')
+  // Where the animation's build looks for its accepted production.
+  expect(
+    await loadStageCheckpoint('p', 'scene-s', 'creative-production', built)
+  ).toBeTruthy()
+  await waitForSceneProduction('p', 'scene-s').catch(() => {})
+})

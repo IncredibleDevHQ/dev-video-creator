@@ -49,7 +49,7 @@ export const choicesRow = (snapshot: Snapshot, editable: boolean) => {
   // The found agent by name, as the header's pill says it.
   const found = foundAgent()
   const agent = harness
-    ? `${agentNames[harness.adapter]}${harness.model ? ` ${modelLabel(harness.model)}` : ''}`
+    ? `${agentNames[harness.adapter]}${harness.model ? ` ${harness.label || modelLabel(harness.model)}` : ''}`
     : found
       ? agentNames[found]
       : 'your agent'

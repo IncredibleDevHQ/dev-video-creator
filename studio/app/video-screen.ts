@@ -37,7 +37,7 @@ import {
 import { sceneActivity, sceneActivityRail } from './scene-activity'
 import type { Branding, StudioSettings } from '../shared/settings'
 import { momentViewKey } from '../shared/model'
-import { videoOpens } from '../shared/state'
+import { videoOpens, whyNoRecording } from '../shared/state'
 import type { Moment, Scene, Slide, VideoSettings } from '../shared/model'
 import { voiceRows } from './voice-choice'
 import type { Snapshot } from '../shared/api'
@@ -612,7 +612,8 @@ ${
                       record,
                       'record-moment',
                       view.action !== 'retry' && view.action !== 'make',
-                      !display.canRecord
+                      !display.canRecord,
+                      whyNoRecording(scene)
                     )
                   : ''
               }${
@@ -718,7 +719,7 @@ ${
             'recorded' &&
           capture.phase === 'idle' &&
           !leftOut
-            ? `<button data-retake="${index}" class="retake-moment" ${display.canRecord ? '' : 'disabled title="Wait for this scene to finish changing"'}>Retake</button>`
+            ? `<button data-retake="${index}" class="retake-moment" ${display.canRecord ? '' : `disabled title="${escape(whyNoRecording(scene))}"`}>Retake</button>`
             : ''
         }${snapshot.events
           .filter(

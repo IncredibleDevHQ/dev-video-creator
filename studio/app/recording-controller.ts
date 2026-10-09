@@ -1,4 +1,4 @@
-import { sceneDisplay } from '../shared/state'
+import { sceneDisplay, whyNoRecording } from '../shared/state'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { dialogueStudio } from './dialogue-studio'
@@ -11,7 +11,7 @@ import { recordingPlan } from './recording-target'
 import { momentNeedsRecording } from '../shared/state'
 import { time } from './scene-timeline'
 import { followTranscript, transcriptWords } from './transcript-follow'
-import { practiceControls } from './practice-controls'
+import { practiceControls, recordControl } from './practice-controls'
 import { sceneOverlay } from './scene-overlay'
 import { workspaceUrl } from './workspace-position'
 import { reviewLayoutSecond } from './take-review-clock'
@@ -30,8 +30,18 @@ export const practicePhase = (app: AppContext) =>
 export const paintPracticeActions = (app: AppContext) => {
   const actions = app.root.querySelector('.video-actions>div:last-child')
   if (!actions || !app.practiceOpen) return
-  actions.innerHTML = practiceControls(
-    practicePhase(app),
+  const phase = practicePhase(app)
+  // Record sits beside Start practice, and only when something can be
+  // recorded (review 6: it showed, then failed with "No moments need
+  // recording").
+  const scene = app.snapshot?.project.video?.scenes[app.selected]
+  const recordable =
+    (phase === 'ready' || phase === 'finished') &&
+    !!scene &&
+    !!app.snapshot?.views?.scenes[scene.id]?.openMomentIds.length &&
+    !whyNoRecording(scene)
+  actions.innerHTML = `${practiceControls(
+    phase,
     app.practiceMomentIds.length > 1
       ? app.practiceMomentIds.at(-1) ===
         app.snapshot?.project.video?.scenes[app.selected]?.moments[
@@ -41,7 +51,7 @@ export const paintPracticeActions = (app: AppContext) => {
         : 'Next moment'
       : undefined,
     app.practiceMomentIds.length
-  )
+  )}${recordable ? recordControl() : ''}`
 }
 
 /**
@@ -635,10 +645,7 @@ export const clickRecording = async (
     )
     if (!scene || id !== app.recordingProjectId || !app.recordingAttempt.length)
       throw new Error('Select the moment you want to record.')
-    if (!sceneDisplay(app.snapshot, scene).canRecord)
-      throw new Error(
-        'Wait for this scene to finish changing before recording again.'
-      )
+    if (whyNoRecording(scene)) throw new Error(`${whyNoRecording(scene)}.`)
     const moments = app.recordingAttempt.map((previous) =>
       scene.moments.find(
         (moment) =>
@@ -673,10 +680,7 @@ export const clickRecording = async (
     } else if (next === 'record' || action === 'record-moment') {
       // A scene being planned or produced can't take a recording yet: say
       // so before the take, not after it (review 6).
-      if (!sceneDisplay(app.snapshot, scene).canRecord)
-        throw new Error(
-          'Wait for this scene to finish changing before recording.'
-        )
+      if (whyNoRecording(scene)) throw new Error(`${whyNoRecording(scene)}.`)
       // What Play plays, Record records: the whole scene, or one moment
       // (in practice, the one on show).
       const voice = app.snapshot.project.video!.settings.voice,
@@ -709,8 +713,7 @@ export const clickRecording = async (
   }
   if (target.dataset.retake) {
     const scene = app.snapshot.project.video!.scenes[app.selected]
-    if (!sceneDisplay(app.snapshot, scene).canRecord)
-      throw new Error('Wait for this scene to finish changing before retaking.')
+    if (whyNoRecording(scene)) throw new Error(`${whyNoRecording(scene)}.`)
     app.stopPractice()
     app.recordingSceneId = scene.id
     app.recordingProjectId = id
@@ -723,6 +726,12 @@ export const clickRecording = async (
   if (action === 'record-next') app.capture.next()
   if (action === 'record-stop') app.capture.stop()
   if (action === 'retake-recording') {
+    // Taking it again needs a scene that can still take it.
+    const scene = app.snapshot.project.video?.scenes.find(
+      (entry) => entry.id === app.recordingSceneId
+    )
+    if (scene && whyNoRecording(scene))
+      throw new Error(`${whyNoRecording(scene)}.`)
     const moments = app.capture.moments
     app.capture.dispose()
     if (moments.length > 1) app.prepareRecordingPass(moments)

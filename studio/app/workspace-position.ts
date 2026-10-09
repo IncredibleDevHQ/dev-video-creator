@@ -33,3 +33,27 @@ export function workspaceUrl(
   }
   return next
 }
+
+/**
+ * The moment to show for the scene on show (review 6: one kept from another
+ * scene made Practice and chat do nothing, or send a time the scene doesn't
+ * have). A moment and time carried over from another scene, which nothing
+ * chose for this one, give way to its first moment; so does one out of its
+ * range. Its time goes with it, so the time chip and the chat agree.
+ */
+export const momentOnShow = (
+  scene: { id: string; moments: ReadonlyArray<{ start: number }> },
+  momentIndex: number,
+  second: number,
+  last?: { scene: string; index: number; second: number }
+) => {
+  const carried = Boolean(
+    last &&
+    last.scene !== scene.id &&
+    last.index === momentIndex &&
+    last.second === second
+  )
+  return carried || momentIndex < 0 || momentIndex >= scene.moments.length
+    ? { momentIndex: 0, second: scene.moments[0]?.start ?? 0 }
+    : { momentIndex, second }
+}

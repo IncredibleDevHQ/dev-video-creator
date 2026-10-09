@@ -155,7 +155,8 @@ dialog:has(.tpl-picker) {
   align-items: flex-end;
   gap: 4px 10px;
 }
-.dialog-body .tpl-direction .tpl-length label {
+/* Not the Length chips, which keep to their words (review 6). */
+.dialog-body .tpl-direction .tpl-length label:not(.tpl-length-chip) {
   display: block;
   margin: 0;
   min-width: 180px;

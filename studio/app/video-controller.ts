@@ -4,7 +4,7 @@ import { templateFromForm } from './template-picker'
 import { donePages } from '../shared/state'
 import { momentViewKey } from '../shared/model'
 import { animationSecond } from '../shared/scene-time'
-import { sceneDisplay } from '../shared/state'
+import { sceneDisplay, whyNoRecording } from '../shared/state'
 import { sceneAt, videoSecond } from '../shared/video-clock'
 import { api } from './api'
 import { activityDialog } from './activity-log'
@@ -582,6 +582,9 @@ ${(
     app.render()
     const state =
       app.snapshot.views?.moments[momentViewKey(scene.id, moment.id)]?.state
+    // A scene that can't take a recording offers none (review 6).
+    const why = whyNoRecording(scene)
+    const blocked = why ? ` disabled title="${escape(why)}"` : ''
     app.showDialog(
       `<p class="eyebrow">MOMENT ${app.momentIndex + 1}</p>
 <h2>
@@ -589,11 +592,11 @@ ${escape(moment.title || 'Your part')}</h2>
 <div class="moment-action-list">
 <button type="button" data-action="practice" data-scope="moment">Practice this moment</button>${
         state === 'recorded'
-          ? `<button type="button" data-retake="${app.momentIndex}">Retake this moment</button>`
+          ? `<button type="button" data-retake="${app.momentIndex}"${blocked}>Retake this moment</button>`
           : app.snapshot.views?.scenes[scene.id].openMomentIds.includes(
                 moment.id
               )
-            ? `<button type="button" data-action="record-moment" data-scope="moment">Record this moment</button>`
+            ? `<button type="button" data-action="record-moment" data-scope="moment"${blocked}>Record this moment</button>`
             : ''
       }</div>`
     )

@@ -59,6 +59,37 @@ it('refuses other sites, rebinding names and plain-text posts', () => {
   expect(ask('GET', {})).toBe('The studio answers only on this computer')
 })
 
+it('answers only on the studio’s own ports', () => {
+  // Another app on this computer, or the same name on another port.
+  expect(ask('GET', { host: 'localhost:8080' })).toBe(
+    'The studio answers only on this computer'
+  )
+  expect(ask('GET', { host: 'localhost' })).toBe(
+    'The studio answers only on this computer'
+  )
+  expect(
+    ask('POST', {
+      host: 'localhost:4180',
+      origin: 'http://localhost:3000',
+      'content-type': 'application/json'
+    })
+  ).toBe('The studio refuses requests from other sites')
+  // Ports set for this studio, and the one a request came in on.
+  expect(
+    ask('GET', { host: '127.0.0.1:4241' }, { MINIMAL_STUDIO_WEB_PORT: '4241' })
+  ).toBeNull()
+  expect(
+    foreignRequest(
+      {
+        method: 'GET',
+        headers: { host: '127.0.0.1:51234' },
+        socket: { localPort: 51234 }
+      },
+      {}
+    )
+  ).toBeNull()
+})
+
 it('answers on the harness origin’s name when one is set', () => {
   const env = { MINIMAL_STUDIO_HARNESS_ORIGIN: 'http://studio.internal:4320' }
   expect(

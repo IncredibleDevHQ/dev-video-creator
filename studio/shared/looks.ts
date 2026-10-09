@@ -98,7 +98,9 @@ export const FONT_CHOICES: Array<{ value: string; label: string }> = [
   { value: 'ui-monospace', label: 'Monospace' }
 ]
 
-// Fonts every computer shows without loading anything.
+// Fonts a Mac or a PC shows without loading anything. Windows' own Segoe UI
+// and Consolas are not among them (review 6: a look kept them, and another
+// font showed with no word).
 const SAFE = new Set([
   'arial',
   'helvetica',
@@ -107,9 +109,7 @@ const SAFE = new Set([
   'times new roman',
   'verdana',
   'trebuchet ms',
-  'courier new',
-  'segoe ui',
-  'consolas'
+  'courier new'
 ])
 const SERIF =
   /serif|tiempos|georgia|times|garamond|merriweather|lora|playfair|caslon|baskerville|minion|charter|spectral|crimson|libre/i
@@ -128,9 +128,11 @@ export const loadableFont = (family: string) => {
     return { value: name, replaced: false }
   const value = /mono|code|courier|menlo|consolas/i.test(name)
     ? 'ui-monospace'
-    : SERIF.test(name) && !/sans/i.test(name)
-      ? 'Georgia'
-      : 'Inter'
+    : /^segoe ui$/i.test(name)
+      ? 'system-ui'
+      : SERIF.test(name) && !/sans/i.test(name)
+        ? 'Georgia'
+        : 'Inter'
   return { value, replaced: true }
 }
 

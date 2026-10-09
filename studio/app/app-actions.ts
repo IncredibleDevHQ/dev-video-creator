@@ -283,6 +283,9 @@ export const installAppActions = (app: AppContext) => {
           throw new Error(
             'Finish or discard this take before browsing templates'
           )
+        // The gallery draws over the notes: they are saved first, or left
+        // only when the creator says so (review 6).
+        if (!(await saveBeforeLeaving(app))) return
         openTemplates(app)
         return
       }

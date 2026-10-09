@@ -46,10 +46,17 @@ export const acceptCandidate = async (id: string, sceneId: string) => {
     manifest?: unknown
     artifacts: import('./artifacts').ArtifactRef[]
   }>('creative-production-attempts', scene.acceptable)
+  // A scene with a creative plan is built as its animation, under the
+  // animation's own key (prepareSceneAnimation): its candidates carry that
+  // key, and the build looks for the accepted one there.
+  const built =
+    scene.creativePlan && scene.animationKey
+      ? `animation-${scene.animationKey}`
+      : scene.inputKey
   if (
     !candidate ||
     candidate.sceneId !== sceneId ||
-    candidate.inputKey !== scene.inputKey ||
+    candidate.inputKey !== built ||
     !candidate.soft
   )
     throw new Refusal('The candidate no longer fits this scene; try again')
@@ -57,14 +64,14 @@ export const acceptCandidate = async (id: string, sceneId: string) => {
     id,
     sceneId,
     'creative-production',
-    scene.inputKey,
+    built,
     null,
     candidate.artifacts
   )
   await writeRow('creative-productions', sceneId, {
     projectId: id,
     sceneId,
-    inputKey: scene.inputKey,
+    inputKey: built,
     planRecord: candidate.planRecord,
     manifest: candidate.manifest,
     artifacts: candidate.artifacts,

@@ -28,6 +28,8 @@ export interface AppContext {
   sourceHint: (value: string) => string
   fitSource: (field: HTMLTextAreaElement) => void
   momentIndex: number
+  /** The scene the moment and time were last shown for, and what they were. */
+  shownMoment?: { scene: string; index: number; second: number }
   second: number
   wholeVideo: boolean
   /** The creator folded the wireframe's scene card into a chip. */

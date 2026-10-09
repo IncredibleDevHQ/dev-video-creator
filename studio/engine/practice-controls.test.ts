@@ -44,3 +44,45 @@ it('practices the whole scene when asked, every moment in turn', async () => {
   )
   expect(practiceControls('ready')).not.toContain('moments')
 })
+
+it('puts Record beside Start practice, only when something can be recorded', async () => {
+  vi.mock('../app/api', () => ({ api: {} }))
+  const { parseHTML } = await import('linkedom')
+  const { paintPracticeActions } = await import('../app/recording-controller')
+  const { document } = parseHTML(
+    '<main><div class="video-actions"><div></div><div></div></div></main>'
+  )
+  const scene = { id: 's', phase: 'waiting', moments: [{ id: 'm1' }] }
+  const app = {
+    root: document.querySelector('main'),
+    practiceOpen: true,
+    startRehearsal: () => Promise.resolve(),
+    practiceCountdown: 0,
+    practice: { active: false },
+    practiceMomentIds: ['m1'],
+    selected: 0,
+    momentIndex: 0,
+    snapshot: {
+      project: { video: { scenes: [scene] } },
+      views: { scenes: { s: { openMomentIds: ['m1'] } } }
+    }
+  } as never
+  const row = () => document.querySelector('.video-actions>div:last-child')!
+  paintPracticeActions(app)
+  expect(row().innerHTML).toMatch(
+    /Start practice[\s\S]*data-action="record-moment"/
+  )
+  expect(row().innerHTML.match(/class="primary"/g)).toHaveLength(1)
+  // Nothing left to record, or a scene that can't take a take: no Record.
+  scene.phase = 'failed'
+  paintPracticeActions(app)
+  expect(row().innerHTML).not.toContain('record-moment')
+  scene.phase = 'waiting'
+  ;(
+    app as {
+      snapshot: { views: { scenes: { s: { openMomentIds: string[] } } } }
+    }
+  ).snapshot.views.scenes.s.openMomentIds = []
+  paintPracticeActions(app)
+  expect(row().innerHTML).not.toContain('record-moment')
+})

@@ -131,8 +131,16 @@ export const saveBeforeLeaving = async (
     const editor = app.root.querySelector<HTMLElement>('[data-notebook-editor]')
     if (leave && editor) {
       clearTimeout(stateOf(editor).timer)
+      // The edits are dropped for real: the editor shows the notes as last
+      // saved, so a view that stays never calls unsaved text "Saved".
+      const saved = app.snapshot?.project.source || ''
+      editors.get(editor)?.commands.setContent(saved, {
+        contentType: 'markdown',
+        emitUpdate: false
+      })
       editor.dataset.dirty = 'false'
-      delete editor.dataset.saveStatus
+      status(app, 'Saved')
+      showCount(app, saved)
     }
     return leave
   }

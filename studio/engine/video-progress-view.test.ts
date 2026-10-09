@@ -478,6 +478,15 @@ it('offers to make a scene left out of the video, and a way back to its wirefram
     'Your turn'
   ])
     expect(inVideo).toContain(control)
+  // Stopped, it can't take a recording: Retake says why, before the take.
+  scene.phase = 'failed'
+  scene.failure = 'production'
+  input.views = projectViews(input.project, input.events)
+  expect(render(input)).toContain(
+    '<button data-retake="0" class="retake-moment" disabled title="This scene stopped: try it again first">Retake</button>'
+  )
+  scene.phase = 'waiting'
+  delete scene.failure
   // Left out, the same scene offers only Make this scene.
   scene.phase = 'idle'
   input.views = projectViews(input.project, input.events)

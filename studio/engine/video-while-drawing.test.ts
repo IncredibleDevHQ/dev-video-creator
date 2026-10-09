@@ -140,3 +140,22 @@ it('leaves out the scenes the creator did not choose, drawn or not', async () =>
     ['idle', null]
   ])
 })
+
+it('leaves out a scene that waits for its wireframe, taking the ask back', async () => {
+  await seed('waiting-out')
+  await makeVideo('waiting-out', { presence: 'off', voice })
+  const { leaveOutScene, waitForPlanning } = await import('./video')
+  // The done page's scene is written meanwhile: let it finish first.
+  await waitForPlanning('waiting-out')
+  const waiting = (await loadProject('waiting-out'))!.project.video!.scenes[2]
+  expect(waiting).toMatchObject({ phase: 'idle', afterDrawing: true })
+  const left = await leaveOutScene('waiting-out', waiting.id)
+  const scene = left.project.video!.scenes[2]
+  expect(scene.phase).toBe('idle')
+  expect(scene.afterDrawing).toBeUndefined()
+  // Out of the video, it can't be left out again.
+  await expect(leaveOutScene('waiting-out', waiting.id)).rejects.toThrow(
+    'This scene is not in the video'
+  )
+  await waitForPlanning('waiting-out')
+})

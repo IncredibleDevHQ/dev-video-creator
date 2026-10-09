@@ -2,6 +2,7 @@ import type { HarnessChoice } from '../shared/api'
 import type { HarnessSelection } from '../shared/model'
 import { api } from './api'
 import { escape } from './ui'
+import { modelName } from '../shared/agent-models'
 
 export const agentNames = {
   'claude-code': 'Claude Code',
@@ -80,7 +81,7 @@ export class AgentSetup {
     const completed = ids.every((id) => this.states.get(id) === 'done')
     this.root.innerHTML = `<div class="agent-setup">
       <p class="agent-intro">Choose the agent and model that will create your wireframes.</p>
-      ${this.selected && !completed ? `<p class="agent-current">Selected agent: <strong>${agentNames[this.selected.adapter]}</strong>${this.selected.model ? ` · ${escape(this.selected.model)}` : ''}</p>` : ''}
+      ${this.selected && !completed ? `<p class="agent-current">Selected agent: <strong>${agentNames[this.selected.adapter]}</strong>${this.selected.model ? ` · ${escape(this.selected.label || modelName(this.selected.model))}` : ''}</p>` : ''}
       <button type="button" data-detect-agents ${this.detecting || this.saving ? 'disabled' : ''}>${this.detecting ? 'Searching this computer…' : completed ? 'Detect again' : 'Detect local agents'}</button>
       <form data-agent-form>
         <fieldset class="agent-options" ${this.detecting || this.saving ? 'disabled' : ''}>

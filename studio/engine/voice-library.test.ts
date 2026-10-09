@@ -206,7 +206,10 @@ it('recovers a lost creation response before deletion and retains evidence if re
   fetcher.mockImplementationOnce(
     async () => new Response('Unavailable', { status: 503 })
   )
-  await expect(deleteClone(clone.id)).rejects.toThrow('voice provider')
+  // The provider's refusal, in its own words.
+  await expect(deleteClone(clone.id)).rejects.toThrow(
+    'Fish Audio rejected the request (503): Unavailable'
+  )
   const retained = await readRow<VoiceClone>('voice-clones', clone.id)
   expect(retained?.state).toBe('failed')
   expect(retained?.referenceId).toBe('recovered-model')

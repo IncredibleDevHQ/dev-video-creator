@@ -25,9 +25,19 @@ it('keeps only a model the agent lists as available', async () => {
       }
     }
   ])
+  // Kept with the name the agent's list gives it, as the picker shows it,
+  // never a name sent in.
   await expect(
-    availableHarness({ adapter: 'claude-code', model: 'claude-opus-5-5' })
-  ).resolves.toEqual({ adapter: 'claude-code', model: 'claude-opus-5-5' })
+    availableHarness({
+      adapter: 'claude-code',
+      model: 'claude-opus-5-5',
+      label: 'Sent in'
+    })
+  ).resolves.toEqual({
+    adapter: 'claude-code',
+    model: 'claude-opus-5-5',
+    label: 'Opus 5.5'
+  })
   await expect(availableHarness({ adapter: 'claude-code' })).resolves.toEqual({
     adapter: 'claude-code'
   })

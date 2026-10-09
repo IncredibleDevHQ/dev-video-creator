@@ -200,6 +200,10 @@ it('leaves a provider’s words alone where they hold no key', () => {
       400
     )
   ).toBe('Received API Key = [key]; try [key]')
+  // A huge answer is searched no further than can be shown.
+  const started = Date.now()
+  gateway.withoutKeys('sk-'.repeat(40_000), '', 400)
+  expect(Date.now() - started).toBeLessThan(200)
   // A key is hidden before the text is cut, so none of it shows.
   const key = 'LONGSECRETKEY1234567'
   const cut = gateway.withoutKeys(`${'a'.repeat(395)}${key}`, key, 400)

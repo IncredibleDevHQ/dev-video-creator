@@ -1,6 +1,16 @@
 import type { Snapshot } from '../shared/api'
 import { escape } from './ui'
 import { buildPhase } from './wireframe-progress'
+/**
+ * Whether the notebook keeps to its notes: only while its article is read,
+ * or failed to read. A draft's Wireframe tab opens the empty stage, whose
+ * Create starts the run (review 6: every render sent it back to the notes).
+ */
+export const notesOnly = (snapshot: Snapshot) =>
+  Boolean(snapshot.sourceOnly) &&
+  !snapshot.project.slides.length &&
+  (snapshot.status === 'reading' || snapshot.status === 'failed')
+
 export const presentationProgress = (snapshot: Snapshot, pending = false) => {
   if (snapshot.status === 'failed')
     return `<div class="generation-progress" role="status"><h2>${snapshot.stopping ? 'Generation stopped' : 'Wireframes stopped'}</h2><p>${escape(snapshot.error || 'The last step could not finish.')}</p><p>Use the recovery action below to continue this notebook.</p></div>`

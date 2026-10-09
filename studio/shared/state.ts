@@ -209,6 +209,19 @@ export const projectViews = (project: Project, events: ProjectEvent[] = []) => {
   }
 }
 
+/**
+ * Why a scene can't take a recording now, in a few words, or nothing when
+ * it can: the buttons say it before a take, not after (review 6).
+ */
+export const whyNoRecording = (scene: Pick<Scene, 'phase'>) =>
+  ['waiting', 'produced'].includes(scene.phase)
+    ? ''
+    : scene.phase === 'failed'
+      ? 'This scene stopped: try it again first'
+      : scene.phase === 'idle'
+        ? 'This scene is left out of the video'
+        : 'Wait for this scene to finish changing'
+
 // Display contracts are computed with the engine snapshot. The shared fallback
 // supports older saved snapshots; app components do not carry their own rules.
 export const sceneDisplay = (

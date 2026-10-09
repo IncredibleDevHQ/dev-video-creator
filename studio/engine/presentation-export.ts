@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Project } from '../shared/model'
 import { readAsset, readRow, storeAsset, writeRow } from './persistence'
+import { Refusal } from './refusal'
 const escape = (text: string) =>
   text.replace(
     /[&<>"']/g,
@@ -19,7 +20,8 @@ export const presentationHtml = (
 export const renderPresentationPdf = async (
   project: Pick<Project, 'title' | 'slides'>
 ) => {
-  if (!project.slides.length) throw new Error('Add slides before exporting')
+  if (!project.slides.length)
+    throw new Refusal('Draw a wireframe before exporting')
   const { default: puppeteer } = await import('puppeteer')
   const browser = await puppeteer.launch({
     headless: true,

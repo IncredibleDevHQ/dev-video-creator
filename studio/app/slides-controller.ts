@@ -5,6 +5,9 @@ import { saveBeforeLeaving } from './notebook-editor'
 import { createPresentation } from './start-controller'
 import { closePopover, openPopover } from './popover'
 
+/** Whether the notebook on show is a draft, as it is now, not as it was. */
+const isDraft = (app: AppContext) => app.snapshot?.status === 'draft'
+
 export const installSlidesController = (app: AppContext) => {
   app.root.addEventListener('keydown', (event) => {
     // The content map, open over the wireframes, has keys of its own.
@@ -137,7 +140,7 @@ export const clickSlides = async (
   if (action === 'retry-slides') {
     if (app.pending) return
     // A notebook not yet made tries Create again, which saves the notes.
-    if (app.snapshot.status === 'draft') {
+    if (isDraft(app)) {
       await createPresentation(app)
       return
     }
@@ -145,20 +148,26 @@ export const clickSlides = async (
     // notes as last saved (review 6). It waits, once, while they save.
     app.pending = true
     target.disabled = true
+    let create = false
     try {
       const saved = await saveBeforeLeaving(app, {
         question:
           'Try again from the notes as last saved, without the edits since?',
         action: 'Try again without the edits'
       })
-      if (!saved) return
-      app.snapshot = await api.retrySlides(id)
-      app.stage = 'presentation'
+      // Saved edits make a notebook that never got its wireframes a draft
+      // again: then Try again is Create.
+      if (saved && isDraft(app)) create = true
+      else if (saved) {
+        app.snapshot = await api.retrySlides(id)
+        app.stage = 'presentation'
+      }
     } finally {
       app.pending = false
       target.disabled = false
       app.render()
     }
+    if (create) await createPresentation(app)
   }
   if (action === 'add-beat' && target.dataset.beat) {
     // A page for a beat no wireframe carries, drawn from what it must say.

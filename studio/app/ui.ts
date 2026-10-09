@@ -11,9 +11,10 @@ export const button = (
   label: string,
   action: string,
   primary = false,
-  disabled = false
+  disabled = false,
+  why = ''
 ) =>
-  `<button type="button" data-action="${action}" ${primary ? 'class="primary"' : ''} ${disabled ? 'disabled' : ''}>${label}</button>`
+  `<button type="button" data-action="${action}" ${primary ? 'class="primary"' : ''} ${disabled ? 'disabled' : ''}${disabled && why ? ` title="${escape(why)}"` : ''}>${label}</button>`
 
 /** Whether the creator is typing in a field inside this element. */
 export const typingIn = (root: Element) => {

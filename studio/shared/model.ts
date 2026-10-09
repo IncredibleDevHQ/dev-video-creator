@@ -9,6 +9,8 @@ export type Voice = { kind: 'record' } | { kind: 'ai' | 'clone'; id: string }
 export type HarnessSelection = {
   adapter: 'claude-code' | 'codex' | 'kimi'
   model?: string
+  /** The model's name as the agent's own list gives it, set by the engine. */
+  label?: string
 }
 export type VideoSettings = {
   presence: Presence

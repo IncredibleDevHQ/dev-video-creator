@@ -175,7 +175,17 @@ export const leaveOutScene = async (id: string, sceneId: string) => {
       throw new Refusal('Wait for the video to finish this step')
     if (scene.phase === 'producing')
       throw new Refusal('Wait for this scene to finish rendering')
-    transitionScene(scene, 'leave-out', current)
+    // Asked for once its wireframe is drawn: leaving it out takes the ask
+    // back (review 6: it failed with the vague error).
+    if (scene.phase === 'idle') {
+      if (!scene.afterDrawing)
+        throw new Refusal('This scene is not in the video')
+      delete scene.afterDrawing
+      addEvent(current, 'scene', 'Left out of the video', {
+        sceneId: scene.id,
+        activity: 'complete'
+      })
+    } else transitionScene(scene, 'leave-out', current)
     refreshVideoKeys(current.project)
   })
   for (const runId of await listNotebookRows('engine-runs', id)) {

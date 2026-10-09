@@ -40,11 +40,6 @@
   gap: 8px;
   flex: none;
 }
-.map-regroup {
-  padding: 4px 9px;
-  font-size: 15px;
-  line-height: 1;
-}
 .map-seg {
   display: flex;
   padding: 3px;
@@ -547,18 +542,6 @@
   padding: 1px 5px;
   border-radius: 5px;
   background: var(--ep);
-}
-.map-uses.is-unused {
-  color: var(--muted);
-  align-items: center;
-  gap: 5px;
-}
-.map-uses.is-unused::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: 1.5px dashed currentColor;
 }
 .map-made {
   margin-left: 6px;

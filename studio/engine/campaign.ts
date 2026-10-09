@@ -103,6 +103,19 @@ const teaserOf = (
  */
 export const postItem = async (id: string, raw: unknown) => {
   const itemId = String((raw as { item?: unknown })?.item || '')
+  // The words on screen are the ones that go out, and they are saved first,
+  // on their own: a post refused before it is sent (too long, no link or
+  // teaser yet) keeps what the creator typed (review 6: Post now sent the
+  // last kept words, and a refusal lost the edit).
+  const edited = (raw as { words?: unknown })?.words
+  if (typeof edited === 'string' && edited.trim())
+    await changeProject(id, (current) => {
+      const found = current.project.release?.campaign.find(
+        (entry) => entry.id === itemId
+      )
+      if (found && found.state !== 'posted' && found.state !== 'posting')
+        found.words = edited.trim().slice(0, 5000)
+    })
   let item: CampaignItem | undefined
   let words = ''
   let videoKey: string | undefined
@@ -124,11 +137,6 @@ export const postItem = async (id: string, raw: unknown) => {
       throw new Refusal(
         'YouTube’s goes out with the upload: use the bundle, or publish'
       )
-    // The words on screen are the ones that go out, saved first (review 6:
-    // Post now sent the last kept words).
-    const edited = (raw as { words?: unknown })?.words
-    if (typeof edited === 'string' && edited.trim())
-      found.words = edited.trim().slice(0, 5000)
     words = itemWords(current.project, found)
     const length = found.channel === 'x' ? xLength(words) : words.length
     if (length > CHANNEL_LIMITS[found.channel])

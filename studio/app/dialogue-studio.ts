@@ -498,7 +498,8 @@ export function dialogueStudio(
           (Math.min(position, total()) / axis()) * $('timeline').clientWidth
         )
     }
-    // Until the scene has its animation, say so, and offer to make it here.
+    // Until the scene has its animation, say so: it is made from the
+    // scene's menu.
     const making = c.animation === 'making',
       length = dialogueBoundary(moment)
     $('remaining').textContent = animationNote({

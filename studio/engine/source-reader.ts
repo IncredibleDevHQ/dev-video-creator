@@ -262,18 +262,20 @@ export const readSourceUrl = async (
     .slice(0, 6)
   const headingFont = cleanFontName(rendered?.headingFont || '')
   const bodyFont = cleanFontName(rendered?.bodyFont || '')
+  // A site that names no font of its own uses the system's, which every
+  // browser shows as it is (review 6: Segoe UI and Consolas stood in).
   const display =
     headingFont && !GENERIC_FONTS.has(headingFont.toLowerCase())
       ? headingFont
-      : fontsSeen[0] || 'Segoe UI'
+      : fontsSeen[0] || 'system-ui'
   const body =
     bodyFont && !GENERIC_FONTS.has(bodyFont.toLowerCase())
       ? bodyFont
-      : fontsSeen[1] || fontsSeen[0] || 'Segoe UI'
+      : fontsSeen[1] || fontsSeen[0] || 'system-ui'
   const mono =
     fontsSeen.find((f) =>
       /mono|code|courier|menlo|consolas|jetbrains|fira/i.test(f)
-    ) || 'Consolas'
+    ) || 'ui-monospace'
 
   // keep the best two logo candidates locally so the render can stage them
   for (const logo of logos.slice(0, 2)) {
