@@ -76,6 +76,30 @@ const xVideo = async (bytes: Buffer, wait = 2000) => {
   return id
 }
 
+/** No answer came to the request that publishes: the post may be out. */
+export class UncertainPost extends Error {}
+
+/**
+ * The request that publishes. A sign-in problem is refused before it is
+ * sent; once sent, a timeout or a dropped connection says nothing about
+ * whether it went out (review 6: it was offered again, and X charged twice).
+ */
+const publishRequest = async (
+  provider: 'x' | 'linkedin',
+  url: string,
+  init: RequestInit
+) => {
+  await accessToken(provider)
+  try {
+    return await accountFetch(provider, url, init)
+  } catch (error) {
+    if (error instanceof Refusal) throw error
+    throw new UncertainPost(
+      `${provider === 'x' ? 'X' : 'LinkedIn'} did not answer; the post may have gone out`
+    )
+  }
+}
+
 /** Posts on X; returns the post's link. */
 export const postToX = async (
   text: string,
@@ -84,7 +108,7 @@ export const postToX = async (
 ) => {
   const media = video ? await xVideo(video, options.wait) : null
   const body = await json(
-    await accountFetch('x', 'https://api.x.com/2/tweets', {
+    await publishRequest('x', 'https://api.x.com/2/tweets', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -178,7 +202,7 @@ export const postToLinkedIn = async (
   if (!id) throw new Refusal('Sign in to LinkedIn again')
   const author = `urn:li:person:${id}`
   const media = video ? await linkedinVideo(author, video) : null
-  const response = await accountFetch(
+  const response = await publishRequest(
     'linkedin',
     'https://api.linkedin.com/rest/posts',
     {

@@ -722,7 +722,14 @@ const dispatch = async (
         () => mapApi.teaser(arg),
         'Cutting a teaser from the made episode'
       )
-    case 'posts':
-      return map.run(() => mapApi.posts(arg), 'Drafting the posts')
+    case 'posts': {
+      // A draft running already is not asked for again.
+      const episode = map.view?.episodes.find((e) => e.notebook === arg)
+      if (episode?.drafting?.state === 'drafting') return
+      return map.run(
+        () => mapApi.posts(arg),
+        'Drafting the posts: about a minute'
+      )
+    }
   }
 }

@@ -7,6 +7,7 @@ import {
   connectAccount,
   disconnectAccount,
   finishConnect,
+  recordSignIn,
   saveAccountApp,
   saveXPrices,
   validProvider
@@ -73,12 +74,18 @@ const route = async (
       return ok(await disconnectAccount(provider))
     if (account[2] === 'callback' && method === 'GET') {
       const said = await finishConnect(provider, url.searchParams).then(
-        (name) =>
-          `Connected as ${name}. You can close this tab and go back to the studio.`,
-        (error: unknown) =>
-          error instanceof Refusal
-            ? error.message
-            : 'The sign-in did not finish. Try again from the studio.'
+        (name) => {
+          recordSignIn(provider, { ok: true })
+          return `Connected as ${name}. You can close this tab and go back to the studio.`
+        },
+        (error: unknown) => {
+          const why =
+            error instanceof Refusal
+              ? error.message
+              : 'The sign-in did not finish. Try again from the studio.'
+          recordSignIn(provider, { ok: false, error: why })
+          return why
+        }
       )
       response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
       response.end(

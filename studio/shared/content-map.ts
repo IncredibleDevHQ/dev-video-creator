@@ -70,6 +70,8 @@ export type MapEpisode = {
   }>
   /** The posts' words for each channel, once drafted. */
   posts: { x: string; linkedin: string; youtube: string } | null
+  /** Posts being drafted, or why the last draft failed. */
+  drafting?: { state: 'drafting' | 'failed'; error?: string } | null
 }
 
 /** Everything the canvas needs: the map's pages, its series and episodes. */

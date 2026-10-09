@@ -26,7 +26,16 @@ export type AccountView = {
   fromEnvironment: boolean
   /** The address to register as the app's redirect. */
   redirectUri: string
-  connected: { name: string; at: string; expiresAt?: string } | null
+  /** How the last sign-in ended, while the engine runs. */
+  lastSignIn?: { ok: boolean; error?: string; at: string }
+  connected: {
+    name: string
+    at: string
+    expiresAt?: string
+    /** Connected before a permission the studio now needs: why to sign in
+     * again (review 6: playlists). */
+    signInAgain?: string
+  } | null
 }
 
 /** X charges the app's owner per post; prices change, so they are set. */

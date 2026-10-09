@@ -338,10 +338,15 @@ export const derivedBlock = (view: MapView, episode: MapEpisode) => {
           `<li><span>Teaser for X · 9:16</span><button type="button" data-map="teaser:${episode.notebook}">Cut</button></li>`
         ]
       : []
-  const posts = episode.posts
-    ? `<li><span>Posts · X, LinkedIn, YouTube</span><button type="button" data-map="read-posts:${episode.notebook}">Read</button></li>`
-    : made
-      ? `<li><span>Posts · X, LinkedIn, YouTube</span><button type="button" data-map="posts:${episode.notebook}">Draft</button></li>`
-      : ''
+  // Drafting says so where the button was, and a failure says why.
+  const drafting = episode.drafting?.state === 'drafting'
+  const failed = episode.drafting?.state === 'failed'
+  const posts = drafting
+    ? `<li><span>Posts · X, LinkedIn, YouTube</span><em>drafting… about a minute</em></li>`
+    : episode.posts
+      ? `<li><span>Posts · X, LinkedIn, YouTube</span><button type="button" data-map="read-posts:${episode.notebook}">Read</button></li>`
+      : made
+        ? `<li${failed ? ` title="${escape(episode.drafting?.error || '')}"` : ''}><span>${failed ? 'Posts could not be drafted' : 'Posts · X, LinkedIn, YouTube'}</span><button type="button" data-map="posts:${episode.notebook}">${failed ? 'Draft again' : 'Draft'}</button></li>`
+        : ''
   return `<div class="map-lane-head"><i class="map-dot" style="--ep:${colorOf(view, episode.notebook)}"></i><b>Ep ${episode.number}</b><span class="map-lane-title">${escape(episode.title)}</span></div><ul class="map-derived">${teasers.join('')}${posts}</ul>`
 }

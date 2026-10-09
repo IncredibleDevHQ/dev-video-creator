@@ -6,7 +6,7 @@
 // uploads private; the studio says so, and the bundle stays the way out.
 import { youtubeDescription } from '../shared/release-plan'
 import { emptyRelease, type YouTubeUpload } from '../shared/release'
-import { accountFetch } from './accounts'
+import { accountFetch, canEditPlaylists } from './accounts'
 import { addEvent } from './activity'
 import { readAsset } from './persistence'
 import { changeProject, loadProject } from './projects'
@@ -138,7 +138,11 @@ export const uploadToYouTube = async (
   }
   // The video is up: a playlist YouTube refuses is a note, never a reason
   // to lose the video or upload it twice.
-  if (series)
+  if (series && !(await canEditPlaylists()))
+    notes.push(
+      `It was not added to the “${series.title}” playlist: sign in to YouTube again, so the studio may add videos to playlists.`
+    )
+  else if (series)
     try {
       const playlistId = await playlistFor(series.title)
       await ok(

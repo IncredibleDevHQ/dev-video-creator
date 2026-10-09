@@ -66,6 +66,10 @@ export const draftPosts = async (id: string) => {
   const project = snapshot.project
   const started = await changeProject(id, (current) => {
     const release = current.project.release || emptyRelease()
+    // One draft at a time: a second click while it runs pays for nothing
+    // (review 6).
+    if (release.drafting?.state === 'drafting')
+      throw new Refusal('The posts are being drafted')
     release.drafting = { state: 'drafting', at: new Date().toISOString() }
     current.project.release = release
   })

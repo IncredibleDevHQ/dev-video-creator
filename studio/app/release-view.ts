@@ -104,7 +104,11 @@ ${
     : `<details class="youtube-publish"><summary>Publish from the studio</summary>
 <form id="youtube-publish-form" class="youtube-publish-form">
 <label>Who sees it<select name="privacy"><option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label>
-<label>Publish at <small>optional; YouTube publishes it then</small><input name="publishAt" type="datetime-local" value="${localTime(snapshot.project.release?.at)}"></label>
+<label>Publish at <small>optional: it goes up private, and YouTube makes it public then</small><span class="publish-at"><input name="publishAt" type="datetime-local" value="">${
+        snapshot.project.release?.at
+          ? `<button type="button" class="quiet" data-action="use-release-date" data-at="${localTime(snapshot.project.release.at)}">Use the release date</button>`
+          : ''
+      }</span></label>
 <button>Upload to YouTube</button></form>
 <p class="release-note">Needs YouTube connected (Accounts). Until the studio’s Google project passes verification and YouTube’s audit, YouTube keeps these uploads private.</p></details>`
 }</section>`

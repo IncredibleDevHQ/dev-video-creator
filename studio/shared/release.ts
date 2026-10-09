@@ -48,7 +48,8 @@ export type CampaignItem = {
   offsetDays: number
   /** The time of day, local, as HH:MM. */
   time: string
-  state: 'draft' | 'approved' | 'dropped' | 'posting' | 'posted'
+  /** unknown: no answer came back; it may have gone out. */
+  state: 'draft' | 'approved' | 'dropped' | 'posting' | 'posted' | 'unknown'
   postedAt?: string
   postUrl?: string
   /** What went wrong, or needs checking, the last time it was posted. */

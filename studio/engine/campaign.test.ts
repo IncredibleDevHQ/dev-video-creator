@@ -298,3 +298,53 @@ it('claims an item before posting it, finds a teaser cut later, and checks the l
     note: 'The post on X was refused (403)'
   })
 })
+
+it('posts the words on screen, and treats a post with no answer as maybe out', async () => {
+  const base = project()
+  await writeRow('projects', 'launch', {
+    project: {
+      ...base,
+      release: {
+        ...base.release!,
+        at: '2026-10-20T09:00:00.000Z',
+        youtube: { state: 'uploaded', videoId: 'dQw4w9WgXcQ', at: '' }
+      }
+    },
+    status: 'ready',
+    error: null,
+    events: []
+  } satisfies Snapshot)
+  await planCampaignFor('launch')
+  await saveSetting('account-x', { access: 'x', name: '@acme', at: '' })
+  // The final request gets no answer.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (String(url).endsWith('/2/tweets'))
+        throw new DOMException('The operation timed out.', 'TimeoutError')
+      return new Response(null, { status: 204 })
+    })
+  )
+  await expect(
+    postItem('launch', { item: 'launch-x-0', words: 'Typed just now' })
+  ).rejects.toThrow('may have gone out')
+  const after = (await loadProject('launch'))!.project.release!.campaign.find(
+    (entry) => entry.id === 'launch-x-0'
+  )!
+  // The typed words were kept, and the post is not offered as failed.
+  expect(after.words).toBe('Typed just now')
+  expect(after.state).toBe('unknown')
+  expect(after.note).toContain('Check your feed')
+  await expect(postItem('launch', { item: 'launch-x-0' })).rejects.toThrow(
+    'Check your feed first'
+  )
+  // Seen in the feed: it went out.
+  const seen = await changeItem('launch', {
+    item: 'launch-x-0',
+    state: 'posted'
+  })
+  expect(
+    seen.project.release!.campaign.find((entry) => entry.id === 'launch-x-0')!
+      .state
+  ).toBe('posted')
+})

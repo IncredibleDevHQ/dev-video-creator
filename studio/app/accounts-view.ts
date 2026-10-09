@@ -29,7 +29,7 @@ const accountRow = (account: AccountView) => {
 <p class="account-note">${NOTES[account.provider]}</p>
 ${app}
 <p class="account-note">Make the app at <a href="${PROVIDER_CONSOLES[account.provider]}" target="_blank" rel="noopener">${new URL(PROVIDER_CONSOLES[account.provider]).host}</a> and register <code>${escape(account.redirectUri)}</code> as its redirect.</p>
-${expiresSoon(account) ? '<p class="account-warn">The connection ends within a week: sign in again.</p>' : ''}
+${expiresSoon(account) ? '<p class="account-warn">The connection ends within a week: sign in again.</p>' : ''}${account.connected?.signInAgain ? `<p class="account-warn">${escape(account.connected.signInAgain)}.</p>` : ''}${account.lastSignIn && !account.lastSignIn.ok ? `<p class="account-warn">The last sign-in did not finish: ${escape(account.lastSignIn.error || 'it was not completed')}.</p>` : ''}
 <div class="account-actions">${
     account.connected
       ? `<button type="button" class="quiet" data-action="disconnect-account" data-provider="${account.provider}">Disconnect</button><button type="button" data-action="connect-account" data-provider="${account.provider}">Sign in again</button>`

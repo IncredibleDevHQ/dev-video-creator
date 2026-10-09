@@ -10,6 +10,7 @@ import { postToLinkedIn, postToX } from './posting'
 import { CHANNEL_LIMITS, xLength } from './release'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
+import { UncertainPost } from './posting'
 import { loadSeries } from './series'
 
 /** Plans (or re-plans) the campaign; posted items stay as they went out. */
@@ -54,6 +55,11 @@ export const changeItem = (id: string, raw: unknown) => {
     }
     if (['draft', 'approved', 'dropped'].includes(String(value.state)))
       item.state = value.state as CampaignItem['state']
+    // Seen in the feed: it went out after all.
+    if (value.state === 'posted' && item.state === 'unknown') {
+      item.state = 'posted'
+      delete item.note
+    }
   })
 }
 
@@ -110,10 +116,19 @@ export const postItem = async (id: string, raw: unknown) => {
     if (found.state === 'posted') throw new Refusal('It has gone out already')
     if (found.state === 'posting') throw new Refusal('It is being posted now')
     if (found.state === 'dropped') throw new Refusal('Restore it first')
+    // No answer came back last time: post again only when the creator says
+    // it did not go out.
+    if (found.state === 'unknown' && !(raw as { again?: unknown })?.again)
+      throw new Refusal('Check your feed first: it may have gone out')
     if (found.channel === 'youtube')
       throw new Refusal(
         'YouTube’s goes out with the upload: use the bundle, or publish'
       )
+    // The words on screen are the ones that go out, saved first (review 6:
+    // Post now sent the last kept words).
+    const edited = (raw as { words?: unknown })?.words
+    if (typeof edited === 'string' && edited.trim())
+      found.words = edited.trim().slice(0, 5000)
     words = itemWords(current.project, found)
     const length = found.channel === 'x' ? xLength(words) : words.length
     if (length > CHANNEL_LIMITS[found.channel])
@@ -157,8 +172,15 @@ export const postItem = async (id: string, raw: unknown) => {
         (entry) => entry.id === itemId
       )
       if (!kept || kept.state !== 'posting') return
-      kept.state = before
-      kept.note = error instanceof Refusal ? error.message : 'It did not go out'
+      if (error instanceof UncertainPost) {
+        kept.state = 'unknown'
+        kept.note =
+          'No answer came back: it may have gone out. Check your feed before posting it again.'
+      } else {
+        kept.state = before
+        kept.note =
+          error instanceof Refusal ? error.message : 'It did not go out'
+      }
     }).catch(() => {})
     throw error
   }

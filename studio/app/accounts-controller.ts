@@ -45,19 +45,46 @@ export const clickAccounts = async (
   if (action === 'connect-account') {
     const { url } = await accountsApi.connect(provider)
     // The provider's page opens in the browser; it comes back to the engine.
-    window.open(url, '_blank', 'noopener')
+    // Opened without noopener so a blocked pop-up can be told apart; the new
+    // tab is cut loose from this one at once.
+    const label = target.textContent
+    const tab = window.open(url, '_blank')
+    if (!tab) {
+      target.insertAdjacentHTML(
+        'afterend',
+        '<p class="account-warn">The browser blocked the sign-in window: allow pop-ups for the studio, then try again.</p>'
+      )
+      return true
+    }
+    tab.opener = null
     target.textContent = 'Waiting for the sign-in…'
+    target.disabled = true
     const started = Date.now()
+    // How it ended, said in the dialog, and the button back on a timeout
+    // (review 6: it waited forever, and a failure was never shown).
     const check = async () => {
-      if (!app.dialog.open || Date.now() - started > 5 * 60_000) return
+      if (!app.dialog.open) return
       const view = await accountsApi.view()
       const account = view.accounts.find((item) => item.provider === provider)
+      const ended =
+        account?.lastSignIn &&
+        Date.parse(account.lastSignIn.at) >= started - 1000
       if (
-        account?.connected &&
-        Date.parse(account.connected.at) >= started - 1000
+        ended ||
+        (account?.connected &&
+          Date.parse(account.connected.at) >= started - 1000)
       )
-        showAccounts(app, view)
-      else setTimeout(() => void check().catch(() => {}), 2000)
+        return showAccounts(app, view)
+      if (Date.now() - started > 5 * 60_000) {
+        target.textContent = label
+        target.disabled = false
+        target.insertAdjacentHTML(
+          'afterend',
+          '<p class="account-warn">No sign-in came back within five minutes. Try again; if no window opened, allow pop-ups for the studio.</p>'
+        )
+        return
+      }
+      setTimeout(() => void check().catch(() => {}), 2000)
     }
     setTimeout(() => void check().catch(() => {}), 2000)
     return true

@@ -30,7 +30,9 @@ export const PROVIDERS: Record<Provider, ProviderConfig> = {
     scopes: [
       'https://www.googleapis.com/auth/youtube.readonly',
       'https://www.googleapis.com/auth/yt-analytics.readonly',
-      'https://www.googleapis.com/auth/youtube.upload'
+      'https://www.googleapis.com/auth/youtube.upload',
+      // Adding a video to the series' playlist needs this one (review 6).
+      'https://www.googleapis.com/auth/youtube.force-ssl'
     ],
     extra: { access_type: 'offline', prompt: 'consent' },
     env: ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET']
@@ -65,6 +67,8 @@ type Tokens = {
   /** The account's own id: LinkedIn's member id authors its posts. */
   id?: string
   at: string
+  /** The scopes the provider granted, space-separated. */
+  scopes?: string
 }
 
 export const validProvider = (raw: unknown): Provider => {
@@ -109,6 +113,17 @@ const tokensOf = async (provider: Provider) =>
   (await loadSetting(`account-${provider}`)) as Tokens | null
 
 /** What the page may know: apps set up, who is connected; never secrets. */
+// Each provider's last sign-in, for the dialog to say how it ended
+// (review 6: a failed one was never reported).
+const lastSignIns = new Map<
+  Provider,
+  { ok: boolean; error?: string; at: string }
+>()
+export const recordSignIn = (
+  provider: Provider,
+  result: { ok: boolean; error?: string }
+) => lastSignIns.set(provider, { ...result, at: new Date().toISOString() })
+
 export const accountsView = async (): Promise<AccountsView> => {
   const accounts: AccountView[] = []
   for (const provider of Object.keys(PROVIDERS) as Provider[]) {
@@ -120,12 +135,20 @@ export const accountsView = async (): Promise<AccountsView> => {
       hasSecret: Boolean(app?.clientSecret),
       fromEnvironment,
       redirectUri: redirectUri(provider),
+      ...(lastSignIns.has(provider)
+        ? { lastSignIn: lastSignIns.get(provider) }
+        : {}),
       connected: tokens
         ? {
             name: tokens.name,
             at: tokens.at,
             ...(provider === 'linkedin' && tokens.expiresAt
               ? { expiresAt: tokens.expiresAt }
+              : {}),
+            // Connected before playlists were asked for: sign in again.
+            ...(provider === 'google' &&
+            !/youtube\.force-ssl/.test(tokens.scopes || '')
+              ? { signInAgain: 'Sign in again to add videos to playlists' }
               : {})
           }
         : null
@@ -211,6 +234,7 @@ const tokenRequest = async (
     access_token: string
     refresh_token?: string
     expires_in?: number
+    scope?: string
   }
 }
 
@@ -273,6 +297,7 @@ export const finishConnect = async (
     access: tokens.access_token,
     ...(tokens.refresh_token ? { refresh: tokens.refresh_token } : {}),
     ...(tokens.expires_in ? { expiresAt: expiry(tokens.expires_in) } : {}),
+    ...(tokens.scope ? { scopes: tokens.scope } : {}),
     ...who,
     at: new Date().toISOString()
   }
@@ -283,6 +308,16 @@ export const finishConnect = async (
 export const disconnectAccount = async (provider: Provider) => {
   await saveSetting(`account-${provider}`, null)
   return accountsView()
+}
+
+/** Whether YouTube lets the studio add videos to playlists: a sign-in
+ * from before the playlist scope needs to be made again. */
+export const canEditPlaylists = async () => {
+  const tokens = await tokensOf('google')
+  return Boolean(
+    tokens?.scopes &&
+    /youtube\.force-ssl|auth\/youtube(\s|$)/.test(tokens.scopes)
+  )
 }
 
 /** A current access token, refreshed when it is about to expire. */

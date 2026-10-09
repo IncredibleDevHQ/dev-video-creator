@@ -75,7 +75,14 @@ const seed = async (id: string) => {
     error: null,
     events: []
   } satisfies Snapshot)
-  await saveSetting('account-google', { access: 'g', name: 'Acme', at: '' })
+  // Signed in with the playlist scope (review 6).
+  await saveSetting('account-google', {
+    access: 'g',
+    name: 'Acme',
+    at: '',
+    scopes:
+      'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.force-ssl'
+  })
 }
 
 type Call = { url: string; method: string; body?: string }
@@ -223,4 +230,24 @@ it('keeps the video when the playlist fails, and never uploads twice', async () 
   await expect(
     publishToYouTube('playlist', { privacy: 'public' })
   ).rejects.toThrow('on YouTube already')
+})
+
+it('asks a YouTube sign-in from before playlists to be made again', async () => {
+  const { canEditPlaylists, accountsView, recordSignIn } =
+    await import('./accounts')
+  await saveSetting('account-google', { access: 'g', name: 'Acme', at: '' })
+  expect(await canEditPlaylists()).toBe(false)
+  const google = (await accountsView()).accounts.find(
+    (account) => account.provider === 'google'
+  )
+  expect(google?.connected?.signInAgain).toContain('playlists')
+  // A failed sign-in is kept for the dialog to say.
+  recordSignIn('x', { ok: false, error: 'The sign-in was cancelled' })
+  const x = (await accountsView()).accounts.find(
+    (account) => account.provider === 'x'
+  )
+  expect(x?.lastSignIn).toMatchObject({
+    ok: false,
+    error: 'The sign-in was cancelled'
+  })
 })

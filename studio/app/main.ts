@@ -48,6 +48,7 @@ import {
 } from './video-controller'
 import { createRender } from './workspace-controller'
 import { workspacePosition } from './workspace-position'
+import { syncPublishForm } from './release-controller'
 installAppearance()
 const app = {} as AppContext
 app.root = document.querySelector<HTMLDivElement>('#app')!
@@ -110,6 +111,12 @@ app.dialogRevision = 0
 app.dialog = document.createElement('dialog')
 app.dialog.id = 'dialog'
 document.body.append(app.dialog)
+// A publish time set or cleared: the privacy choice follows it.
+app.dialog.addEventListener('input', (event) => {
+  const field = event.target as Element
+  if (field.matches?.('[name="publishAt"]'))
+    syncPublishForm(field.closest('form'))
+})
 app.dialog.addEventListener('close', () => {
   app.dialogRevision++
   app.pendingVideoSettings = null

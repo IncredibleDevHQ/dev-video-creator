@@ -60,6 +60,25 @@ const follow = (app: AppContext) => {
   }, 2000)
 }
 
+/** With a publish time the upload is private until then: the privacy
+ * choice is disabled and says so. */
+export const syncPublishForm = (form: Element | null | undefined) => {
+  const at = form?.querySelector<HTMLInputElement>('[name="publishAt"]')
+  const privacy = form?.querySelector<HTMLSelectElement>('[name="privacy"]')
+  if (!at || !privacy) return
+  privacy.disabled = Boolean(at.value)
+  if (at.value) privacy.value = 'private'
+}
+
+/** The words typed in an item's row, when its form is open. */
+const typedWords = (target: HTMLElement) => {
+  const row = target.closest('.campaign-item')
+  const field = row?.querySelector<HTMLTextAreaElement>(
+    'form.campaign-edit textarea[name="words"]'
+  )
+  return field ? field.value : null
+}
+
 const update = (app: AppContext, snapshot: Snapshot) => {
   app.snapshot = snapshot
   showRelease(app)
@@ -81,7 +100,9 @@ export const clickRelease = async (
       await studioApi.notebook(id, 'campaign', {
         action: 'change',
         item: target.dataset.item,
-        state: target.dataset.state
+        state: target.dataset.state,
+        // Approving keeps what was typed (review 6: it wiped it).
+        ...(typedWords(target) !== null ? { words: typedWords(target) } : {})
       })
     )
   if (action === 'campaign-post') {
@@ -89,7 +110,8 @@ export const clickRelease = async (
     const item = app.snapshot.project.release?.campaign.find(
       (entry) => entry.id === target.dataset.item
     )
-    const words = item?.words || ''
+    // The words on screen, as typed, are the ones confirmed and posted.
+    const words = typedWords(target) ?? item?.words ?? ''
     // Posting is public and, on X, charged: the creator sees the words and
     // the price, and says yes first.
     const prices = x
@@ -100,14 +122,15 @@ export const clickRelease = async (
         ? prices.postWithLink
         : prices.post
       : 0
+    const again = Boolean(target.dataset.again)
     const sure = await confirmAction({
-      title: `Post on ${x ? 'X' : 'LinkedIn'} now?`,
-      detail: `“${words.length > 160 ? `${words.slice(0, 160)}…` : words}” ${
+      title: again ? 'Post it again?' : `Post on ${x ? 'X' : 'LinkedIn'} now?`,
+      detail: `${again ? `No answer came back last time, so it may already be on ${x ? 'X' : 'LinkedIn'}: check your feed first, or it could show twice. ` : ''}“${words.length > 160 ? `${words.slice(0, 160)}…` : words}” ${
         x
           ? `It goes out from your X app, which is charged about $${cost.toFixed(3).replace(/0$/, '')} for it.`
           : 'It goes out on LinkedIn as you.'
       }`,
-      action: 'Post now'
+      action: again ? 'Post again' : 'Post now'
     })
     if (!sure) return
     await busy(target, async () =>
@@ -115,12 +138,23 @@ export const clickRelease = async (
         app,
         await studioApi.notebook(id, 'campaign', {
           action: 'post',
-          item: target.dataset.item
+          item: target.dataset.item,
+          words,
+          ...(again ? { again: true } : {})
         })
       )
     )
   }
 
+  // A publish time is chosen, never filled in: with one, YouTube keeps it
+  // private until then, so the privacy choice steps aside (review 6).
+  if (action === 'use-release-date') {
+    const form = target.closest('form')
+    const field = form?.querySelector<HTMLInputElement>('[name="publishAt"]')
+    if (field) field.value = target.dataset.at || ''
+    syncPublishForm(form)
+    return
+  }
   if (action === 'draft-posts')
     await busy(target, async () =>
       update(app, await studioApi.notebook(id, 'posts'))

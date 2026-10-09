@@ -568,6 +568,7 @@ export const mapView = async (mapId: string): Promise<MapView> => {
           ? { objectKey: t.objectKey }
           : {})
       })),
+      drafting: ep.project.release?.drafting ?? null,
       posts: ep.project.release?.posts
         ? {
             x: ep.project.release.posts.x,
