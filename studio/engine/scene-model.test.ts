@@ -113,3 +113,22 @@ it('lets a left-out scene take new inputs without saying so', () => {
   expect(p.video!.scenes[0].phase).toBe('idle')
   expect(p.video!.scenes[0].planKey).toBeTruthy()
 })
+
+it('keeps made scenes when only the name shown for their model changes', async () => {
+  const { scenePlanKey } = await import('./scene-model')
+  const p = project()
+  p.video!.settings.harness = { adapter: 'codex', model: 'gpt-6.1-sol' }
+  reconcileVideo(p, { project: p, events: [] })
+  const scene = p.video!.scenes[0]
+  const key = scenePlanKey(p, scene)
+  // The engine names the model as the agent's list does: nothing to write
+  // again (review 6: every made scene went back to be written).
+  p.video!.settings.harness = {
+    ...p.video!.settings.harness,
+    label: 'GPT-6.1-Sol'
+  }
+  expect(scenePlanKey(p, scene)).toBe(key)
+  // Another model does write it again.
+  p.video!.settings.harness = { adapter: 'codex', model: 'gpt-6.2' }
+  expect(scenePlanKey(p, scene)).not.toBe(key)
+})

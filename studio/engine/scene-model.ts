@@ -43,8 +43,14 @@ export const scenePlanKey = (project: Project, scene: Scene) => {
   } = pageContent(project.slides[index] || ({} as Slide))
   const used = readyCapture(capture)
   const slide = used ? { ...rest, capture: used.objectKey } : rest
+  const harness = project.video!.settings.harness
   return fingerprintOf({
-    harness: project.video!.settings.harness,
+    // What writes the scene, never how its model is named: a name shown for
+    // it must not send every scene back to be written (review 6).
+    harness: harness && {
+      adapter: harness.adapter,
+      ...(harness.model ? { model: harness.model } : {})
+    },
     slide: project.slides[index] ? slide : undefined,
     title: project.title,
     role: sceneRole(project, index),

@@ -160,9 +160,15 @@ it('preselects a sure template, and leaves an unsure one to the creator', async 
   const sure = await suggestTemplate('sure')
   expect(sure.project).toMatchObject({
     narrative: 'incident',
-    direction: { preset: 'short-dramatic', length: [120, 240] }
+    direction: { preset: 'short-dramatic' }
   })
+  // The notebook's length stays, as when the creator picks the template:
+  // not the suggestion's two to four minutes (review 6, NB-3).
+  expect(sure.project.direction?.length).not.toEqual([120, 240])
   expect(sure.suggestion?.preselected).toBe(true)
+  // Asked again after edits, the same first pick is still marked as its.
+  vi.stubGlobal('fetch', jev({ answers: answers(0.8) }))
+  expect((await suggestTemplate('sure')).suggestion?.preselected).toBe(true)
   await seed('unsure')
   vi.stubGlobal('fetch', jev({ answers: answers(0.4) }))
   const unsure = await suggestTemplate('unsure')

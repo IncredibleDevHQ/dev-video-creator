@@ -145,7 +145,9 @@ ${notebookOpeningView(app.opening.state)}`,
   )
   if (viewUrl.href !== location.href) history.replaceState(null, '', viewUrl)
   // With no agent chosen, find the one Create would use, once.
-  if (!app.snapshot.project.harness) lookForAgent(() => app.render())
+  // Once a session: the agent found, and the models each agent lists, for
+  // the names the notebook shows.
+  lookForAgent(() => app.render())
   replacePlayerView(
     app.root,
     `${workspaceHeader(

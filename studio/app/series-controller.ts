@@ -9,6 +9,7 @@ import {
 } from './series-view'
 import { studioApi } from './studio-api'
 import { busy, typingIn } from './ui'
+import { saveBeforeLeaving } from './notebook-editor'
 
 export const seriesApi = {
   list: () => studioApi.request<SeriesSummary[]>('/series'),
@@ -91,6 +92,9 @@ export const submitSeries = async (
     await showSeries(app, created.id)
   }
   if (form.id === 'episode-form' && form.dataset.series) {
+    // The new episode opens in place of the notes on show: they are saved
+    // first, or left only when the creator says so (review 6).
+    if (!(await saveBeforeLeaving(app))) return
     const part = values.get('part')
     const series = form.dataset.series
     const { notebook } = await busy(form.querySelector('button')!, () =>

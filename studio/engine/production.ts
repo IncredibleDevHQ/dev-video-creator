@@ -300,17 +300,8 @@ export const produceScene = async (id: string, sceneId: string) => {
           objectKey: asset.objectKey,
           posterKey: asset.posterKey
         }
+        // Once no scene is stopped, neither is the video (transitionScene).
         transitionScene(target, 'produced', current)
-        // The video stopped for a scene that is now made: once no scene is
-        // stopped, neither is the video (review 6: it still said so).
-        const video = current.project.video!
-        if (
-          video.phase === 'failed' &&
-          !video.scenes.some((scene) => scene.phase === 'failed')
-        ) {
-          video.phase = 'idle'
-          video.error = null
-        }
       })
     } catch (error) {
       await changeProject(id, (current) => {

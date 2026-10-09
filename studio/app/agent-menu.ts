@@ -3,7 +3,7 @@
 // mark each, and the model in a menu. Settings keeps the full page.
 import type { HarnessChoice } from '../shared/api'
 import type { HarnessSelection } from '../shared/model'
-import { agentNames } from './agent-setup'
+import { agentNames, rememberModels } from './agent-setup'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
@@ -89,6 +89,7 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
   void api
     .harnesses()
     .then((result) => {
+      rememberModels(result.available)
       choices = new Map(result.available.map((item) => [item.id, item]))
       if (!selected || !choices.get(selected.adapter)?.ok) {
         const first = order.find((item) => choices!.get(item)?.ok)

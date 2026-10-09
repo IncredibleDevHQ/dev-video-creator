@@ -98,6 +98,10 @@ export const FONT_CHOICES: Array<{ value: string; label: string }> = [
   { value: 'ui-monospace', label: 'Monospace' }
 ]
 
+/** A font's name as the font menu says it ("System sans", not system-ui). */
+export const fontName = (family: string) =>
+  FONT_CHOICES.find((choice) => choice.value === family)?.label || family
+
 // Fonts a Mac or a PC shows without loading anything. Windows' own Segoe UI
 // and Consolas are not among them (review 6: a look kept them, and another
 // font showed with no word).

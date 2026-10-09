@@ -317,6 +317,10 @@ const buildSlides = async (id: string) => {
       'sources',
       id
     )
+    // Read here only when no notes are kept: building from the notes, edited
+    // or not, is not a new read of the article (review 6: Refresh then
+    // replaced edits without asking).
+    const read = !source
     if (!source) {
       const input = snapshot.project.source
       source = /^https?:\/\//i.test(input)
@@ -329,7 +333,7 @@ const buildSlides = async (id: string) => {
       current.project.title = source!.title || 'Untitled video'
       current.project.source = source!.text
       if (source!.url) current.project.sourceUrl = source!.url
-      addEvent(current, 'slide', 'Source ready')
+      addEvent(current, 'slide', read ? 'Source ready' : 'Notes ready')
     })
     let outline: ReturnType<typeof sanitizeOutline>
     {

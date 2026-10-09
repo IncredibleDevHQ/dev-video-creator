@@ -337,6 +337,15 @@ it('renames only the blocks a rule plays: a pivot, a timing and a flag stay', ()
   expect(css).toContain(
     '{ transform-origin: center; animation: gauge-center 2s linear 999; }'
   )
+  // A block called "end" is played, but not renamed inside steps().
+  const end = idleLoop(
+    drawing,
+    loopWith(
+      '@keyframes end { 50% { opacity: .4 } } #needle { animation: end 2s steps(4, end) infinite }'
+    ),
+    'gauge'
+  ).loop!.css
+  expect(end).toContain('{ animation: gauge-end 2s steps(4, end) 999; }')
   // A block called "important" is no loop when the rule plays none.
   expect(
     idleLoop(

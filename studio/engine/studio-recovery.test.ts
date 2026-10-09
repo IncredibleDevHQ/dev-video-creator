@@ -80,8 +80,9 @@ it('marks work a restart cut off as stopped, and leaves the rest', () => {
   expect(release.teasers.map((item) => item.state)).toEqual(['failed', 'ready'])
   expect(release.drafting).toMatchObject({ state: 'failed', error: RESTARTED })
   // It may have gone out: back to approved, with a word to check first.
-  expect(release.campaign[0]).toMatchObject({ state: 'approved' })
-  expect(release.campaign[0].note).toContain('Check the channel')
+  // It may have gone out: posting it again asks first (review 6, REL-2).
+  expect(release.campaign[0]).toMatchObject({ state: 'unknown' })
+  expect(release.campaign[0].note).toContain('Check your feed')
   expect(release.youtube!.error).toContain('Check YouTube Studio first')
   // Nothing left to settle the second time.
   expect(settleNotebook(snapshot)).toBe(false)

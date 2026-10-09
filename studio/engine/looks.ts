@@ -18,7 +18,7 @@ const NO_IDENTITY: Branding = {
   logoKey: null
 }
 import { brandDomain, loadBrandLibrary } from './brand-library'
-import { loadableFont } from '../shared/looks'
+import { fontName, loadableFont } from '../shared/looks'
 import type { SourceRead } from './source-document'
 import { Refusal } from './refusal'
 
@@ -27,7 +27,7 @@ import { Refusal } from './refusal'
  * stand-in named once, the words agreeing with how many there are.
  */
 export const fontsStandingIn = (standing: Array<{ value: string }>) => {
-  const names = [...new Set(standing.map((font) => font.value))]
+  const names = [...new Set(standing.map((font) => fontName(font.value)))]
   return `${standing.length > 1 ? 'Its fonts' : 'One of its fonts'} can’t be loaded here, so ${names.join(' and ')} ${names.length > 1 ? 'stand' : 'stands'} in.`
 }
 

@@ -67,8 +67,20 @@ export const syncPublishForm = (form: Element | null | undefined) => {
   const at = form?.querySelector<HTMLInputElement>('[name="publishAt"]')
   const privacy = form?.querySelector<HTMLSelectElement>('[name="privacy"]')
   if (!at || !privacy) return
+  // One option chosen: a single choice lets the others go by itself.
+  const pick = (value: string) => {
+    const option = [...privacy.querySelectorAll('option')].find(
+      (item) => item.value === value
+    )
+    if (option) option.selected = true
+  }
+  // The creator's own choice waits while a time holds it at private, and
+  // comes back when the time is cleared.
+  if (at.value && !privacy.disabled) privacy.dataset.chosen = privacy.value
+  if (!at.value && privacy.disabled && privacy.dataset.chosen)
+    pick(privacy.dataset.chosen)
   privacy.disabled = Boolean(at.value)
-  if (at.value) privacy.value = 'private'
+  if (at.value) pick('private')
 }
 
 /** The words typed in an item's row, when its form is open. */
@@ -111,8 +123,10 @@ export const clickRelease = async (
     const item = app.snapshot.project.release?.campaign.find(
       (entry) => entry.id === target.dataset.item
     )
-    // The words on screen, as typed, are the ones confirmed and posted.
+    // The words on screen, as typed, are the ones confirmed and posted; an
+    // emptied box posts nothing.
     const words = typedWords(target) ?? item?.words ?? ''
+    if (!words.trim()) throw new Error('Write the post’s words first')
     // Posting is public and, on X, charged: the creator sees the words and
     // the price, and says yes first.
     const prices = x

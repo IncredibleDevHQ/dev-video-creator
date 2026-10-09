@@ -3,7 +3,7 @@
 // agent, the length and the look — each changed from a small menu.
 import type { Snapshot } from '../shared/api'
 import { STORY_SCENES, type StoryLength } from '../shared/model'
-import { agentNames, foundAgent } from './agent-setup'
+import { agentNames, foundAgent, modelLabelOf } from './agent-setup'
 import { modelLabel } from './agent-menu'
 import { api } from './api'
 import type { AppContext } from './app-context'
@@ -49,7 +49,7 @@ export const choicesRow = (snapshot: Snapshot, editable: boolean) => {
   // The found agent by name, as the header's pill says it.
   const found = foundAgent()
   const agent = harness
-    ? `${agentNames[harness.adapter]}${harness.model ? ` ${harness.label || modelLabel(harness.model)}` : ''}`
+    ? `${agentNames[harness.adapter]}${harness.model ? ` ${modelLabelOf(harness)}` : ''}`
     : found
       ? agentNames[found]
       : 'your agent'

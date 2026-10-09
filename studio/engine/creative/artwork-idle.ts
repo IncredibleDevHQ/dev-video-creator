@@ -102,6 +102,13 @@ const KEYWORDS = new Set([
 ])
 // A name in a value: a whole word that is not a function's.
 const NAME = /(?<![\w-])[a-z_-][\w-]*(?![\w-]|\s*\()/gi
+/** A value with `change` applied to its parts outside brackets only: a word
+ * inside steps(…) or cubic-bezier(…) is never a block's name. */
+const outsideBrackets = (value: string, change: (part: string) => string) =>
+  value
+    .split(/(\([^()]*\))/)
+    .map((part, index) => (index % 2 ? part : change(part)))
+    .join('')
 /** Marks the loop's style, so a check can measure the drawing at rest. */
 const LOOP_STYLE = '<style data-idle-loop="">'
 
@@ -228,12 +235,15 @@ export const idleLoop = (
       (property === 'animation' && !KEYWORDS.has(word)))
   const namesIn = (item: string) => {
     const property = item.slice(0, item.indexOf(':'))
-    return (
-      item
-        .slice(item.indexOf(':') + 1)
-        .replace(/ !important$/, '')
-        .match(NAME) || []
-    ).filter((word) => playsIn(property, word))
+    const words: string[] = []
+    outsideBrackets(
+      item.slice(item.indexOf(':') + 1).replace(/ !important$/, ''),
+      (part) => {
+        words.push(...(part.match(NAME) || []))
+        return part
+      }
+    )
+    return words.filter((word) => playsIn(property, word))
   }
   // A declaration with the blocks it plays named for the object, its loops
   // finite, and every other word as it was: a pivot at "center" or a
@@ -245,8 +255,10 @@ export const idleLoop = (
     let value = item.slice(colon + 1, item.length - flag.length)
     if (property === 'animation' || property === 'animation-iteration-count')
       value = value.replace(/(?<![\w-])infinite(?![\w-])/g, LOOPS)
-    value = value.replace(NAME, (word) =>
-      playsIn(property, word) ? named(word) : word
+    value = outsideBrackets(value, (part) =>
+      part.replace(NAME, (word) =>
+        playsIn(property, word) ? named(word) : word
+      )
     )
     return `${property}:${value}${flag}`
   }

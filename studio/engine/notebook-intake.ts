@@ -91,6 +91,8 @@ export const editNotebookSource = async (
     delete current.sourceFailure
     delete current.progress
     delete current.plannedSlides
+    // The story planned from the notes before goes with its outline.
+    delete current.plan
     addEvent(current, 'slide', 'Notebook notes edited')
   }).then((saved) => {
     suggestAfterEdits(id)
@@ -184,6 +186,8 @@ export const refreshNotebookSource = async (id: string) => {
     current.error = null
     delete current.sourceFailure
     delete current.plannedSlides
+    // The story planned from the notes before goes with its outline.
+    delete current.plan
     delete current.progress
     addEvent(current, 'slide', 'Refreshing the article from its original link')
   })

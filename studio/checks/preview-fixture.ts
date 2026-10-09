@@ -14,6 +14,8 @@ const apiPort = Number(process.env.MINIMAL_STUDIO_PORT || 4322),
   webPort = Number(process.env.MINIMAL_STUDIO_WEB_PORT || 4182)
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 process.env.MINIMAL_STUDIO_PORT = String(apiPort)
+// Its page is served on its own port: the engine answers that page too.
+process.env.MINIMAL_STUDIO_WEB_PORT = String(webPort)
 const { writeRow } = await import('../engine/persistence')
 const { normalizeMoments } = await import('../engine/moment-plan')
 const { reconcileVideo, refreshVideoKeys } =

@@ -251,17 +251,6 @@ export const clickStart = async (
     return
   }
   if (action === 'refresh-source') {
-    // Edited notes are the creator's: re-reading replaces them, so ask.
-    if (
-      notesEdited(app.snapshot!) &&
-      !(await confirmAction({
-        title: 'Re-read the article?',
-        detail:
-          'Your edits to the notes will be replaced by the article as it reads now.',
-        action: 'Re-read the article'
-      }))
-    )
-      return
     // Notes that can't be saved don't hold the re-read: it replaces them.
     // The button waits while they save.
     target.disabled = true
@@ -269,7 +258,18 @@ export const clickStart = async (
       question: 'Re-read the article anyway? It replaces the notes.',
       action: 'Re-read the article'
     })
-    if (!saved) {
+    // Edited notes are the creator's: re-reading replaces them, so ask, once
+    // they are saved, so an edit just typed counts too (review 6).
+    if (
+      !saved ||
+      (notesEdited(app.snapshot!) &&
+        !(await confirmAction({
+          title: 'Re-read the article?',
+          detail:
+            'Your edits to the notes will be replaced by the article as it reads now.',
+          action: 'Re-read the article'
+        })))
+    ) {
       target.disabled = false
       return
     }

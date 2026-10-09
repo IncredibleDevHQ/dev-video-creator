@@ -49,32 +49,39 @@ export const clickAccounts = async (
     // tab is cut loose from this one at once.
     const label = target.textContent
     const tab = window.open(url, '_blank')
-    if (!tab) {
+    // The desktop app opens it in the system browser and keeps no window, so
+    // there nothing is blocked; in a browser, no window means a blocked one.
+    if (!tab && !/\bElectron\//.test(navigator.userAgent)) {
       target.insertAdjacentHTML(
         'afterend',
         '<p class="account-warn">The browser blocked the sign-in window: allow pop-ups for the studio, then try again.</p>'
       )
       return true
     }
-    tab.opener = null
+    if (tab) tab.opener = null
     target.textContent = 'Waiting for the sign-in…'
     target.disabled = true
     const started = Date.now()
     // How it ended, said in the dialog, and the button back on a timeout
-    // (review 6: it waited forever, and a failure was never shown).
+    // (review 6: it waited forever, and a failure was never shown). A check
+    // that fails is tried again until the time is up.
     const check = async () => {
       if (!app.dialog.open) return
-      const view = await accountsApi.view()
-      const account = view.accounts.find((item) => item.provider === provider)
-      const ended =
-        account?.lastSignIn &&
-        Date.parse(account.lastSignIn.at) >= started - 1000
-      if (
-        ended ||
-        (account?.connected &&
-          Date.parse(account.connected.at) >= started - 1000)
-      )
-        return showAccounts(app, view)
+      try {
+        const view = await accountsApi.view()
+        const account = view.accounts.find((item) => item.provider === provider)
+        const ended =
+          account?.lastSignIn &&
+          Date.parse(account.lastSignIn.at) >= started - 1000
+        if (
+          ended ||
+          (account?.connected &&
+            Date.parse(account.connected.at) >= started - 1000)
+        )
+          return showAccounts(app, view)
+      } catch {
+        // Tried again below.
+      }
       if (Date.now() - started > 5 * 60_000) {
         target.textContent = label
         target.disabled = false
@@ -84,9 +91,9 @@ export const clickAccounts = async (
         )
         return
       }
-      setTimeout(() => void check().catch(() => {}), 2000)
+      setTimeout(() => void check(), 2000)
     }
-    setTimeout(() => void check().catch(() => {}), 2000)
+    setTimeout(() => void check(), 2000)
     return true
   }
   if (action === 'disconnect-account') {

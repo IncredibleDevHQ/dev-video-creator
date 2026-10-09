@@ -13,6 +13,23 @@ const ids = Object.keys(agentNames) as HarnessSelection['adapter'][]
 
 let detected: HarnessSelection['adapter'] | null | undefined
 let asking = false
+/** The models each agent on this computer lists, as the picker names them. */
+const listed = new Map<string, Array<{ id: string; label: string }>>()
+export const rememberModels = (choices: HarnessChoice[]) => {
+  for (const choice of choices)
+    if (choice.models?.options?.length)
+      listed.set(choice.id, choice.models.options)
+}
+/**
+ * A chosen model's name, as the picker gives it: from the agent's own list,
+ * else as the engine kept it, else its short name (review 6: the row said
+ * the raw id).
+ */
+export const modelLabelOf = (selection: HarnessSelection) =>
+  listed.get(selection.adapter)?.find((option) => option.id === selection.model)
+    ?.label ||
+  selection.label ||
+  modelName(selection.model)
 /** The agent Create would use when the notebook has none chosen: the first
  * found on this computer. Undefined until asked; null when none is found. */
 export const foundAgent = () => detected
@@ -22,6 +39,7 @@ export const lookForAgent = (then: () => void) => {
   void api
     .harnesses()
     .then((result) => {
+      rememberModels(result.available)
       detected =
         ids.find((id) => result.available.some((c) => c.id === id && c.ok)) ??
         null
@@ -81,7 +99,7 @@ export class AgentSetup {
     const completed = ids.every((id) => this.states.get(id) === 'done')
     this.root.innerHTML = `<div class="agent-setup">
       <p class="agent-intro">Choose the agent and model that will create your wireframes.</p>
-      ${this.selected && !completed ? `<p class="agent-current">Selected agent: <strong>${agentNames[this.selected.adapter]}</strong>${this.selected.model ? ` · ${escape(this.selected.label || modelName(this.selected.model))}` : ''}</p>` : ''}
+      ${this.selected && !completed ? `<p class="agent-current">Selected agent: <strong>${agentNames[this.selected.adapter]}</strong>${this.selected.model ? ` · ${escape(modelLabelOf(this.selected))}` : ''}</p>` : ''}
       <button type="button" data-detect-agents ${this.detecting || this.saving ? 'disabled' : ''}>${this.detecting ? 'Searching this computer…' : completed ? 'Detect again' : 'Detect local agents'}</button>
       <form data-agent-form>
         <fieldset class="agent-options" ${this.detecting || this.saving ? 'disabled' : ''}>
@@ -173,6 +191,7 @@ export class AgentSetup {
       ids.map(async (id) => {
         try {
           const result = await api.harnesses(id)
+          rememberModels(result.available)
           if (this.disposed) return
           this.choices.set(
             id,

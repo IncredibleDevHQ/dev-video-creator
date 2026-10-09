@@ -611,7 +611,10 @@ ${
                   ? button(
                       record,
                       'record-moment',
-                      view.action !== 'retry' && view.action !== 'make',
+                      // A disabled Record is not the scene's main action.
+                      view.action !== 'retry' &&
+                        view.action !== 'make' &&
+                        display.canRecord,
                       !display.canRecord,
                       whyNoRecording(scene)
                     )

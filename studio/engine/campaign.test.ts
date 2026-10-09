@@ -345,6 +345,10 @@ it('posts the words on screen, and treats a post with no answer as maybe out', a
   await expect(postItem('launch', { item: 'launch-x-0' })).rejects.toThrow(
     'Check your feed first'
   )
+  // An emptied box posts nothing, not the words kept before.
+  await expect(
+    postItem('launch', { item: 'launch-x-0', words: '  ', again: true })
+  ).rejects.toThrow('Write the post’s words first')
   // A post refused before it is sent keeps what was typed for it.
   const long = 'Typed again, and far too long for X. '.repeat(10)
   await expect(

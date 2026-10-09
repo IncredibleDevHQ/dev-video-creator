@@ -35,11 +35,21 @@ export const paintPracticeActions = (app: AppContext) => {
   // recorded (review 6: it showed, then failed with "No moments need
   // recording").
   const scene = app.snapshot?.project.video?.scenes[app.selected]
+  const open =
+    (scene && app.snapshot?.views?.scenes[scene.id]?.openMomentIds) || []
   const recordable =
     (phase === 'ready' || phase === 'finished') &&
     !!scene &&
-    !!app.snapshot?.views?.scenes[scene.id]?.openMomentIds.length &&
+    !!open.length &&
     !whyNoRecording(scene)
+  // What it records: the whole scene's open moments when practice plays the
+  // scene, else this moment, or the next one still to record.
+  const what =
+    app.practiceMomentIds.length > 1
+      ? 'scene'
+      : open.includes(scene?.moments[app.momentIndex]?.id || '')
+        ? 'moment'
+        : 'next'
   actions.innerHTML = `${practiceControls(
     phase,
     app.practiceMomentIds.length > 1
@@ -51,7 +61,7 @@ export const paintPracticeActions = (app: AppContext) => {
         : 'Next moment'
       : undefined,
     app.practiceMomentIds.length
-  )}${recordable ? recordControl() : ''}`
+  )}${recordable ? recordControl(what) : ''}`
 }
 
 /**

@@ -4,6 +4,7 @@
 // nothing is saved until Apply. It replaces the brand dialog before Create.
 import {
   FONT_CHOICES,
+  fontName,
   loadableFont,
   LOOKS,
   NEUTRAL_LOOK,
@@ -52,7 +53,9 @@ const fontMenu = (key: 'display' | 'body', value: string) => {
     : [
         {
           value,
-          label: font.replaced ? `${value} (shows as ${font.value})` : value
+          label: font.replaced
+            ? `${value} (shows as ${fontName(font.value)})`
+            : value
         },
         ...FONT_CHOICES
       ]

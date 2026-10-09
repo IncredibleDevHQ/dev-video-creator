@@ -47,10 +47,11 @@ export const settleNotebook = (
     }
   for (const item of release?.campaign || [])
     if (item.state === 'posting') {
-      // It may have gone out before the restart: the creator checks first.
-      item.state = 'approved'
+      // It may have gone out before the restart: as a post with no answer,
+      // the creator checks the feed, and posting again asks first.
+      item.state = 'unknown'
       item.note =
-        'The studio restarted while this was being posted. Check the channel before posting it again.'
+        'The studio restarted while this was being posted: it may have gone out. Check your feed before posting it again.'
       changed = true
     }
   if (release?.drafting?.state === 'drafting') {

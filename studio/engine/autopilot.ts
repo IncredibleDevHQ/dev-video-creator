@@ -1,5 +1,5 @@
 import { addEvent, type ActivityLedger } from './activity'
-import type { Scene, SceneStage } from '../shared/model'
+import type { Project, Scene, SceneStage } from '../shared/model'
 
 export type SceneSignal =
   | 'make'
@@ -137,6 +137,18 @@ export const transitionScene = (
   if (signal !== 'fail') {
     delete scene.lastCheck
     delete scene.acceptable
+    // The video stopped for scenes: once none is stopped and this one has
+    // settled, however it recovered (made, waiting for a take, left out,
+    // written again), neither is the video (review 6: it still said so).
+    const video = (ledger as { project: Partial<Project> }).project.video
+    if (
+      ['waiting', 'produced', 'idle'].includes(scene.phase) &&
+      video?.phase === 'failed' &&
+      !video.scenes.some((item) => item.phase === 'failed')
+    ) {
+      video.phase = 'idle'
+      video.error = null
+    }
   }
   addEvent(
     ledger,

@@ -65,3 +65,24 @@ it('keeps what a made scene was accepted with only while it still applies', () =
   expect(sceneCheck({ ...made, inputKey: 'k2' })).toBe('')
   expect(sceneCheck({ ...made, phase: 'idle' })).toBe('')
 })
+
+it('says the video stopped only while a scene is stopped, however the scene recovers', async () => {
+  const { transitionScene } = await import('./autopilot')
+  const stopped = scene({ failure: 'production', moments: [] })
+  const video = {
+    phase: 'failed',
+    error: 'A scene stopped. Other saved animations are ready.',
+    scenes: [stopped]
+  }
+  const ledger = {
+    project: { id: 'p', video },
+    events: []
+  } as unknown as Parameters<typeof transitionScene>[2]
+  // Tried again, it is still on its way: the video still says so.
+  transitionScene(stopped, 'produce', ledger)
+  expect(video.phase).toBe('failed')
+  // Back waiting for the creator's take: nothing is stopped any more.
+  transitionScene(stopped, 'animation-ready', ledger)
+  expect(stopped.phase).toBe('waiting')
+  expect(video).toMatchObject({ phase: 'idle', error: null })
+})

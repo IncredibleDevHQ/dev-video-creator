@@ -188,12 +188,13 @@ export const suggestTemplate = async (id: string) => {
       suggestion.preselected = true
       current.project.narrative = top
       const direction = suggestedDirection(top, suggestion)
-      // A length the creator chose stays: the template tells as many pages.
-      if (current.project.length)
-        direction.length = lengthForPages(
-          STORY_SCENES[current.project.length],
-          directionSettings(narrativeById(top)!, direction).elaboration
-        )
+      // The notebook's length stays, chosen or not: the template tells as
+      // many pages, as when the creator picks it (review 6: a new notebook
+      // went from about five minutes to twenty with no word).
+      direction.length = lengthForPages(
+        STORY_SCENES[current.project.length || 'medium'],
+        directionSettings(narrativeById(top)!, direction).elaboration
+      )
       current.project.direction = direction
       addEvent(
         current,
@@ -201,6 +202,14 @@ export const suggestTemplate = async (id: string) => {
         `Suggested the ${narrativeById(top)!.name} template`
       )
     }
+    // Asked again after edits: a template it picked, and still puts first,
+    // is still its pick (review 6: the chip lost "suggested").
+    if (
+      current.suggestion?.preselected &&
+      !current.project.templateChosen &&
+      current.project.narrative === suggestion.narratives[0]?.id
+    )
+      suggestion.preselected = true
     current.suggestion = suggestion
   })
 }

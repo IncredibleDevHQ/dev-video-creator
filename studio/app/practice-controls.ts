@@ -16,5 +16,13 @@ export function practiceControls(
   return `${button('Practice again', 'practice-replay', true)}`
 }
 
-export const recordControl = () =>
-  '<button type="button" class="record-entry" data-action="record-moment" aria-label="Record this moment" title="Open recording setup"><span class="record-entry-dot" aria-hidden="true"></span><span>Record</span></button>'
+/** Record, saying what it records: this moment, the next one still to
+ * record, or every moment of the scene still to record. */
+export const recordControl = (what: 'moment' | 'next' | 'scene' = 'moment') =>
+  `<button type="button" class="record-entry" data-action="record-moment" aria-label="${
+    what === 'scene'
+      ? 'Record the scene’s open moments'
+      : what === 'next'
+        ? 'Record the next open moment'
+        : 'Record this moment'
+  }" title="Open recording setup"><span class="record-entry-dot" aria-hidden="true"></span><span>Record</span></button>`

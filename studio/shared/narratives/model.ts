@@ -187,9 +187,12 @@ export const SPEAKER_LABELS: Record<SpeakerPlace, string> = {
 /** A length range in words: "45–90 s", "6–10 min". */
 export const lengthLabel = ([min, max]: LengthRange) => {
   if (max < 120) return `${min}–${max} s`
-  // Whole and half minutes (review 6: "1.3–2.2 min" read as noise).
+  // Whole and half minutes (review 6: "1.3–2.2 min" read as noise); ends
+  // that round to one say it once, as "about".
   const half = (seconds: number) => Math.max(0.5, Math.round(seconds / 30) / 2)
-  return `${half(min)}–${half(max)} min`
+  return half(min) === half(max)
+    ? `about ${half(max)} min`
+    : `${half(min)}–${half(max)} min`
 }
 
 /**

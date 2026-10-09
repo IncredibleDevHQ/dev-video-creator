@@ -108,7 +108,10 @@ export const postItem = async (id: string, raw: unknown) => {
   // teaser yet) keeps what the creator typed (review 6: Post now sent the
   // last kept words, and a refusal lost the edit).
   const edited = (raw as { words?: unknown })?.words
-  if (typeof edited === 'string' && edited.trim())
+  // An emptied box is not the old words: nothing goes out.
+  if (typeof edited === 'string' && !edited.trim())
+    throw new Refusal('Write the post’s words first')
+  if (typeof edited === 'string')
     await changeProject(id, (current) => {
       const found = current.project.release?.campaign.find(
         (entry) => entry.id === itemId

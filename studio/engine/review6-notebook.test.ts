@@ -30,6 +30,18 @@ it('counts the notes without the reader’s cut note', () => {
   // one character, or one space, to the creator.
   const written = String.raw`a\_b\* &amp; |  c   |  d  |`
   expect(notesLength(written)).toBe('a_b* & | c | d |'.length)
+  // A table's divider widened to its column, and a bare link written as a
+  // link to itself: as the reader wrote them.
+  expect(notesLength('| a | b |\n| -------- | :-------: |')).toBe(
+    notesLength('| a | b |\n| --- | :---: |')
+  )
+  expect(
+    notesLength('See [https://a.io/x](https://a.io/x) or <https://b.io>.')
+  ).toBe('See https://a.io/x or https://b.io.'.length)
+  // A link with its own words keeps them.
+  expect(notesLength('[the post](https://a.io/x)')).toBe(
+    '[the post](https://a.io/x)'.length
+  )
   expect(
     notesLength(
       'x'.repeat(NOTE_LIMIT - 3) +
@@ -75,6 +87,10 @@ it('says on the notebook’s look when a site’s fonts stand in', async () => {
   expect(fontsStandingIn([{ value: 'Georgia' }, { value: 'Inter' }])).toBe(
     'Its fonts can’t be loaded here, so Georgia and Inter stand in.'
   )
+  // A stand-in is named as the font menu names it.
+  expect(fontsStandingIn([{ value: 'system-ui' }])).toBe(
+    'One of its fonts can’t be loaded here, so System sans stands in.'
+  )
   const { LOOKS } = await import('../shared/looks')
   const site = {
     ...LOOKS[0],
@@ -99,6 +115,8 @@ it('says lengths in seconds or whole and half minutes', () => {
   expect(lengthLabel([45, 90])).toBe('45–90 s')
   expect(lengthLabel([80, 130])).toBe('1.5–2 min')
   expect(lengthLabel([360, 600])).toBe('6–10 min')
+  // Ends that round to one are said once.
+  expect(lengthLabel([125, 130])).toBe('about 2 min')
   // Ten wireframes told thoroughly stay about ten wireframes long.
   expect(lengthForPages(10, 'thorough')).toEqual([300, 600])
 })

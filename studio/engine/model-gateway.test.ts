@@ -204,6 +204,11 @@ it('leaves a provider’s words alone where they hold no key', () => {
   const started = Date.now()
   gateway.withoutKeys('sk-'.repeat(40_000), '', 400)
   expect(Date.now() - started).toBeLessThan(200)
+  // A long key that starts before the cut is hidden whole.
+  const long = `k${'9'.repeat(899)}`
+  expect(gateway.withoutKeys(`${'a'.repeat(300)}${long}`, long, 400)).toBe(
+    `${'a'.repeat(300)}[key]`
+  )
   // A key is hidden before the text is cut, so none of it shows.
   const key = 'LONGSECRETKEY1234567'
   const cut = gateway.withoutKeys(`${'a'.repeat(395)}${key}`, key, 400)

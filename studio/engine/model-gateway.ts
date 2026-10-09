@@ -444,13 +444,13 @@ export const imageGenerate = async ({
  */
 export const withoutKeys = (text: string, key: string, length: number) =>
   // Only what can be shown is searched, with room for a key that crosses
-  // the cut: a huge answer costs no more than a short one.
+  // the cut, however long: a huge answer costs no more than a short one.
   (key.length >= 16 || (key.length >= 6 && /\d/.test(key) && /[a-z]/i.test(key))
     ? text
-        .slice(0, length + 600)
+        .slice(0, length + Math.max(600, key.length))
         .split(key)
         .join('[key]')
-    : text.slice(0, length + 600)
+    : text.slice(0, length + Math.max(600, key.length))
   )
     .replace(
       /\bBearer\s+(?=[\w~+\/*=.-]*\d)[\w~+\/*=-]{16,}(?:\.[\w~+\/*=-]+)*/g,
