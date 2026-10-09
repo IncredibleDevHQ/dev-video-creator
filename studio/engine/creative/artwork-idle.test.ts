@@ -94,3 +94,43 @@ it('puts the loop around the parts it moves, so a pose or a move of the part sti
   )
   expect(svg).toContain('<stop offset="0" class="gauge-glint"/>')
 })
+
+it('takes a group the animation added around shapes, and wraps the same run in the drawing', () => {
+  const terminal = [
+    '<svg viewBox="0 0 80 60">',
+    '<g id="screen"><path d="M1 1h4"/><path d="M1 3h4"/><path d="M1 5h4"/><rect x="6" y="5" width="1" height="1"/></g>',
+    '</svg>'
+  ].join('')
+  // Quiver grouped the three lines to make them glow together, and made
+  // the cursor blink on its own.
+  const grouped = terminal
+    .replace(
+      '<svg viewBox="0 0 80 60">',
+      '<svg viewBox="0 0 80 60"><style>@keyframes glow { 50% { opacity: .8 } } @keyframes blink { 50% { opacity: 0 } } .glow { animation: glow 3s infinite } .blink { animation: blink 1s infinite }</style>'
+    )
+    .replace(
+      '<path d="M1 1h4"/><path d="M1 3h4"/><path d="M1 5h4"/>',
+      '<g id="code-lines" class="glow"><path d="M1 1h4"/><path d="M1 3h4"/><path d="M1 5h4"/></g>'
+    )
+    .replace('<rect ', '<rect class="blink" ')
+  const { loop, problem } = idleLoop(terminal, grouped, 'runaway')
+  expect(problem).toBeUndefined()
+  expect(loop!.classes).toEqual([
+    { index: 2, last: 4, names: ['runaway-glow'] },
+    { index: 5, names: ['runaway-blink'] }
+  ])
+  expect(withIdle(terminal, loop!)).toContain(
+    '<g id="screen"><g class="runaway-glow" data-idle=""><path d="M1 1h4"/><path d="M1 3h4"/><path d="M1 5h4"/></g><g class="runaway-blink" data-idle=""><rect x="6" y="5" width="1" height="1"/></g></g>'
+  )
+  // A wrapper and the one element it starts with nest, outer outside.
+  const nested = withIdle(terminal, {
+    css: '',
+    classes: [
+      { index: 2, last: 4, names: ['outer'] },
+      { index: 2, names: ['inner'] }
+    ]
+  })
+  expect(nested).toContain(
+    '<g class="outer" data-idle=""><g class="inner" data-idle=""><path d="M1 1h4"/></g><path d="M1 3h4"/>'
+  )
+})

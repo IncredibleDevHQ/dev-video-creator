@@ -26,8 +26,12 @@ export const idlePrompt = (
 export type IdleLoop = {
   /** The loop's CSS: its keyframes and the rules for its classes. */
   css: string
-  /** Each element the loop moves, by its place in the drawing, and its classes. */
-  classes: Array<{ index: number; names: string[] }>
+  /**
+   * What the loop moves, by place in the drawing, and its classes: one
+   * element, or a run of siblings from `index` to `last` that the animation
+   * grouped to move together.
+   */
+  classes: Array<{ index: number; last?: number; names: string[] }>
 }
 
 // Only motion survives: the loop moves and fades parts, nothing else.
@@ -88,16 +92,41 @@ export const idleLoop = (
   entity: string
 ): { loop?: IdleLoop; problem?: string } => {
   const base = svgElements(drawing)
-  const shapes = svgElements(animated).filter(
-    (element) => element.tag.toLowerCase() !== 'style'
-  )
-  if (
-    shapes.length !== base.length ||
-    shapes.some((element, index) => element.tag !== base[index].tag)
-  )
+  const full = svgElements(animated)
+  const baseIds = new Set(base.map((element) => element.attrs.get('id')))
+  // Each of the animation's elements matched to the drawing's, in order:
+  // the same tag at the same depth, one level deeper inside each group the
+  // animation added to move shapes together (a wrapper: a group with an id
+  // the drawing does not have, or one where the drawing has another shape).
+  const match = new Map<number, number>()
+  const wrappers = new Set<number>()
+  const deeper = (at: number) => {
+    let levels = 0
+    for (let up = full[at].parent; up >= 0; up = full[up].parent)
+      if (wrappers.has(up)) levels++
+    return levels
+  }
+  let next = 0
+  for (let at = 0; at < full.length; at++) {
+    const element = full[at]
+    if (element.tag.toLowerCase() === 'style') continue
+    const mine = base[next]
+    const fits =
+      mine !== undefined &&
+      element.tag === mine.tag &&
+      element.depth - deeper(at) === mine.depth
+    const id = element.attrs.get('id')
+    if (at > 0 && element.tag === 'g' && ((id && !baseIds.has(id)) || !fits)) {
+      wrappers.add(at)
+      continue
+    }
+    if (!fits) return { problem: 'it added, removed or regrouped shapes' }
+    match.set(at, next++)
+  }
+  if (next !== base.length)
     return { problem: 'it added, removed or regrouped shapes' }
   const css = [...animated.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)]
-    .map((match) => match[1])
+    .map((found) => found[1])
     .join('\n')
   const named = (name: string) =>
     name.startsWith(`${entity}-`) ? name : `${entity}-${name}`
@@ -111,32 +140,74 @@ export const idleLoop = (
     value
       .replace(/\binfinite\b/g, LOOPS)
       .replace(/[\w-]+/g, (word) => (frames.has(word) ? named(word) : word))
-  const byElement = new Map<number, Set<string>>()
-  const kept: string[] = []
-  const added = (index: number) => {
-    const mine = (base[index].attrs.get('class') || '').split(/\s+/)
-    return (shapes[index].attrs.get('class') || '')
+  // Where an animation element sits in the drawing: itself, or for a
+  // wrapper the run of siblings it holds (null when they are not a run).
+  const placeOf = (at: number): { index: number; last: number } | null => {
+    if (match.has(at)) return { index: match.get(at)!, last: match.get(at)! }
+    const inside = full
+      .map((_, child) => child)
+      .filter(
+        (child) =>
+          full[child].parent === at && full[child].tag.toLowerCase() !== 'style'
+      )
+      .map(placeOf)
+    if (!inside.length || inside.some((place) => !place)) return null
+    const places = inside as Array<{ index: number; last: number }>
+    const index = Math.min(...places.map((place) => place.index))
+    const last = Math.max(...places.map((place) => place.last))
+    const level = base[index].parent
+    const run = base
+      .map((element, sibling) => ({ element, sibling }))
+      .filter(
+        ({ element, sibling }) =>
+          element.parent === level && sibling >= index && sibling <= last
+      )
+    return base[last].parent === level &&
+      run.every(({ sibling }) =>
+        places.some((place) => sibling >= place.index && sibling <= place.last)
+      )
+      ? { index, last }
+      : null
+  }
+  const added = (at: number) => {
+    const mine = match.has(at)
+      ? (base[match.get(at)!].attrs.get('class') || '').split(/\s+/)
+      : []
+    return (full[at].attrs.get('class') || '')
       .split(/\s+/)
       .filter((name) => name && !mine.includes(name))
   }
-  // A selector the loop wrote: a class it put on some elements, or one
+  const places = new Map<
+    string,
+    { index: number; last: number; names: Set<string> }
+  >()
+  const mark = (place: { index: number; last: number }, name: string) => {
+    const key = `${place.index}:${place.last}`
+    if (!places.has(key)) places.set(key, { ...place, names: new Set() })
+    places.get(key)!.names.add(name)
+  }
+  const kept: string[] = []
+  // A selector the loop wrote: a class it put on elements or groups, or one
   // element's id. Never the frame itself.
   const targetsOf = (selector: string) => {
     const id = /^#([\w-]+)$/.exec(selector)?.[1]
-    if (id) {
-      const index = shapes.findIndex(
-        (element) => element.attrs.get('id') === id
-      )
-      return index > 0
-        ? { name: `${entity}-idle-${index}`, indices: [index] }
-        : null
-    }
     const name = /^\.([\w-]+)$/.exec(selector)?.[1]
-    if (!name) return null
-    const indices = shapes
-      .map((_, index) => index)
-      .filter((index) => index > 0 && added(index).includes(name))
-    return indices.length ? { name: named(name), indices } : null
+    const ats = id
+      ? full
+          .map((_, at) => at)
+          .filter((at) => at > 0 && full[at].attrs.get('id') === id)
+      : name
+        ? full
+            .map((_, at) => at)
+            .filter((at) => at > 0 && added(at).includes(name))
+        : []
+    const found = ats.map(placeOf)
+    if (!found.length || found.some((place) => !place)) return null
+    return {
+      // Named by its place in the drawing, which the animation does not change.
+      name: id ? `${entity}-idle-${found[0]!.index}` : named(name!),
+      places: found as Array<{ index: number; last: number }>
+    }
   }
   for (const rule of rules) {
     if (rule.prelude.startsWith('@')) continue
@@ -146,26 +217,29 @@ export const idleLoop = (
     if (!targets.length || targets.some((target) => !target)) continue
     const declarations = declarationsOf(rule.body, RULE_PROPERTIES)
     if (!declarations.some((item) => /^animation/i.test(item))) continue
-    for (const target of targets as Array<{ name: string; indices: number[] }>)
-      for (const index of target.indices) {
-        if (!byElement.has(index)) byElement.set(index, new Set())
-        byElement.get(index)!.add(target.name)
-      }
+    const sure = targets as Array<{
+      name: string
+      places: Array<{ index: number; last: number }>
+    }>
+    for (const target of sure)
+      for (const place of target.places) mark(place, target.name)
     kept.push(
-      `${(targets as Array<{ name: string }>).map((target) => `.${target.name}`).join(', ')} { ${declarations.map(renamed).join('; ')}; }`
+      `${sure.map((target) => `.${target.name}`).join(', ')} { ${declarations.map(renamed).join('; ')}; }`
     )
   }
   // An animation written on the element itself counts the same.
-  shapes.forEach((element, index) => {
-    if (index === 0) return
+  full.forEach((element, at) => {
+    if (at === 0 || element.tag.toLowerCase() === 'style') return
     const style = element.attrs.get('style') || ''
-    const own = base[index].attrs.get('style') || ''
+    const own = match.has(at)
+      ? base[match.get(at)!].attrs.get('style') || ''
+      : ''
     if (style === own || !/animation/i.test(style)) return
     const declarations = declarationsOf(style, RULE_PROPERTIES)
-    if (!declarations.some((item) => /^animation/i.test(item))) return
-    const name = `${entity}-idle-${index}-own`
-    if (!byElement.has(index)) byElement.set(index, new Set())
-    byElement.get(index)!.add(name)
+    const place = placeOf(at)
+    if (!place || !declarations.some((item) => /^animation/i.test(item))) return
+    const name = `${entity}-idle-${place.index}-own`
+    mark(place, name)
     kept.push(`.${name} { ${declarations.map(renamed).join('; ')}; }`)
   })
   if (!kept.length)
@@ -182,9 +256,13 @@ export const idleLoop = (
   return {
     loop: {
       css: kept.join('\n'),
-      classes: [...byElement]
-        .sort(([a], [b]) => a - b)
-        .map(([index, names]) => ({ index, names: [...names] }))
+      classes: [...places.values()]
+        .sort((a, b) => a.index - b.index || b.last - a.last)
+        .map(({ index, last, names }) => ({
+          index,
+          ...(last !== index ? { last } : {}),
+          names: [...names]
+        }))
     }
   }
 }
@@ -201,17 +279,27 @@ const PAINT =
 export const withIdle = (svg: string, loop: IdleLoop) => {
   const elements = svgElements(svg)
   if (!elements.length) return svg
-  type Op = { start: number; end: number; rank: number; text: string }
+  // A change at a place in the markup; `span` orders wrappers that start or
+  // end at one place, so the outer one stays outside.
+  type Op = {
+    start: number
+    end: number
+    rank: number
+    span: number
+    text: string
+  }
   const ops: Op[] = []
   const painted = (index: number): boolean => {
     for (let at = elements[index].parent; at >= 0; at = elements[at].parent)
       if (PAINT.test(elements[at].tag)) return true
     return false
   }
-  for (const { index, names } of loop.classes) {
+  for (const { index, last = index, names } of loop.classes) {
     const element = elements[index]
-    if (!element || index === 0) continue
+    if (!element || !elements[last] || index === 0) continue
     if (painted(index) || PAINT.test(element.tag)) {
+      // No wrapper goes inside paint: one element takes the class itself.
+      if (last !== index) continue
       const tag = svg.slice(element.at, element.at + element.length)
       const classed = / class\s*=\s*"([^"]*)"/.test(tag)
         ? tag.replace(
@@ -223,29 +311,37 @@ export const withIdle = (svg: string, loop: IdleLoop) => {
         start: element.at,
         end: element.at + element.length,
         rank: 0,
+        span: 0,
         text: classed
       })
       continue
     }
+    const span = last - index
     ops.push({
       start: element.at,
       end: element.at,
       rank: 1,
+      span,
       text: `<g class="${names.join(' ')}" data-idle="">`
     })
-    ops.push({ start: element.end, end: element.end, rank: 2, text: '</g>' })
+    const close = elements[last].end
+    ops.push({ start: close, end: close, rank: 2, span: -span, text: '</g>' })
   }
   const root = elements[0]
   ops.push({
     start: root.at + root.length,
     end: root.at + root.length,
     rank: 1,
+    span: Number.MAX_SAFE_INTEGER,
     text: `<style>${loop.css}</style>`
   })
-  // From the end, so each place is where it was; at one place, a tag's
-  // change first, then wrappers opening, then wrappers closing before them.
+  // From the end, so each place is where it was. At one place: a tag's
+  // change, then wrappers opening (inner before outer, so the outer one
+  // ends up first), then wrappers closing (outer before inner).
   let out = svg
-  for (const op of ops.sort((a, b) => b.start - a.start || a.rank - b.rank))
+  for (const op of ops.sort(
+    (a, b) => b.start - a.start || a.rank - b.rank || a.span - b.span
+  ))
     out = out.slice(0, op.start) + op.text + out.slice(op.end)
   return out
 }
