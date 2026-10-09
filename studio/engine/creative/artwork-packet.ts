@@ -14,7 +14,7 @@ import {
 
 const POSE_RULE = [
   'A pose is a state of a drawing that the app drew by editing the drawing itself, shape for shape, so it tweens smoothly.',
-  'Load <script src="compositions/artwork-poses.js"></script> after GSAP; then artworkPose(tl, ENTITY, POSE, at, seconds) turns the drawing into that pose on your timeline from second `at` (0.6 to 1.2 s reads as smooth; the ease defaults to power2.inOut), and artworkPose(tl, ENTITY, "rest", at, seconds) turns it back.',
+  'Load <script src="compositions/artwork-poses.js"></script> after GSAP; then artworkPose(tl, ENTITY, POSE, at, seconds) turns the drawing into that pose on your timeline from second `at`, ending within `seconds` (0.6 to 1.2 s reads as smooth; the ease defaults to power2.inOut), and artworkPose(tl, ENTITY, "rest", at, seconds) turns it back.',
   'A pose is a whole state: another pose returns what it does not change to rest.',
   'Start each on the cue that says it, and never tween the parts a pose moves (its moves) yourself while it plays.',
   'Give a posed drawing room to be seen: a pose inside an icon-sized drawing changes nothing the viewer can read.',

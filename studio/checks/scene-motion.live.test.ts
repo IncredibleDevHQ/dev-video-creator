@@ -39,7 +39,7 @@ it('refuses a moment that arrives at once and then holds while the voice goes on
   )
   expect(problems.map((problem) => problem.split(':')[0])).toEqual([
     'm1 holds one still frame for 8.5 s (1 s to 9.5 s into the moment)',
-    'm1 changes its picture once in 10 s'
+    'm1 changes its picture once in 10 s (1 short)'
   ])
 }, 120_000)
 

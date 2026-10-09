@@ -110,6 +110,20 @@ it('finds an empty frame while the voice speaks, and words the edge cuts', async
     pose(word('The model', 880))
   ]
   expect(motionDefects(moment, opening).map((d) => d.kind)).toContain('empty')
+  // A picture that enters half a second in has not left the frame empty;
+  // one that keeps it empty for a second has.
+  const lead = (blanks: number) =>
+    Array.from({ length: 12 }, (_, i) =>
+      i < blanks ? pose() : pose(word('The model', 700 + i * 20))
+    )
+  expect(motionDefects(moment, lead(2)).map((d) => d.kind)).not.toContain(
+    'empty'
+  )
+  expect(
+    motionDefects(moment, lead(3)).find((d) => d.kind === 'empty')?.message
+  ).toBe(
+    'm1 shows an empty frame for 1 s (0 s into the moment) while the voice speaks'
+  )
   // A push-in that leaves a label half outside the frame.
   const pushed = Array.from({ length: 12 }, (_, i) =>
     pose(

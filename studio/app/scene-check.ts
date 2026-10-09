@@ -7,7 +7,7 @@ import { escape } from './ui'
  * accepted with (review 6).
  */
 export const sceneCheck = (scene: Scene) =>
-  scene.phase === 'failed' && scene.lastCheck
+  scene.phase === 'failed' && scene.failure === 'production' && scene.lastCheck
     ? `<div class="scene-check" role="status"><span>The last check: ${escape(scene.lastCheck)}.</span>${
         scene.acceptable
           ? `<button type="button" data-action="accept-scene" title="Only the motion and frame checks refused it">Accept as is</button>`

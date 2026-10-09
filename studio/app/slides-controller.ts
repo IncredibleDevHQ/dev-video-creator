@@ -136,24 +136,22 @@ export const clickSlides = async (
   }
   if (action === 'retry-slides') {
     if (app.pending) return
-    // Notes that can't be saved don't hold Try again: it can go on from the
-    // notes as last saved (review 6). The button waits while they save.
-    target.disabled = true
-    const saved = await saveBeforeLeaving(app, {
-      question:
-        'Try again from the notes as last saved, without the edits since?',
-      action: 'Try again without the edits'
-    })
-    if (!saved) {
-      target.disabled = false
+    // A notebook not yet made tries Create again, which saves the notes.
+    if (app.snapshot.status === 'draft') {
+      await createPresentation(app)
       return
     }
+    // Notes that can't be saved don't hold Try again: it can go on from the
+    // notes as last saved (review 6). It waits, once, while they save.
+    app.pending = true
+    target.disabled = true
     try {
-      if (app.snapshot?.status === 'draft') {
-        await createPresentation(app)
-        return
-      }
-      app.pending = true
+      const saved = await saveBeforeLeaving(app, {
+        question:
+          'Try again from the notes as last saved, without the edits since?',
+        action: 'Try again without the edits'
+      })
+      if (!saved) return
       app.snapshot = await api.retrySlides(id)
       app.stage = 'presentation'
     } finally {

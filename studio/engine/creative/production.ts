@@ -475,22 +475,18 @@ ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-c
     scene.inputKey
   )
   if (saved) return restoreFiles(saved.artifacts)
-  // A run that stopped before submitting keeps the findings it was given.
-  await keepDraft(
-    project.id,
-    scene,
-    run.id,
-    record.id,
-    attempt || checked ? lastProblems : resumed?.problems || []
-  )
+  // A run that stopped before submitting keeps the findings it was given,
+  // and says them: its own, or the draft's when it checked nothing.
+  const findings = attempt || checked ? lastProblems : resumed?.problems || []
+  await keepDraft(project.id, scene, run.id, record.id, findings)
   // The stopped scene says what the last check found, and whether it can be
   // accepted as it was (review 6: it said only that time ran out).
   const failure = new HarnessStageError(
     run.failure,
     'The harness did not submit an accepted scene'
   ) as HarnessStageError & { lastCheck?: string; acceptable?: string }
-  if (lastProblems.length)
-    failure.lastCheck = plainCheck(lastProblems[0], scene.moments)
+  if (findings.length)
+    failure.lastCheck = plainCheck(findings[0], scene.moments)
   // Set by the submissions, which run in the harness's calls.
   const last = lastAttempt as { id: string; soft: boolean } | null
   if (last?.soft && !lastFromCheck) failure.acceptable = last.id

@@ -207,69 +207,97 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     readFileSync(new URL('./pose-player.js', import.meta.url), 'utf8')
   )(window, document)
   const calls: unknown[] = []
+  const pops: Array<Record<string, unknown>> = []
   const tl = {
     to: (element: Element, vars: Record<string, unknown>, at: number) =>
-      calls.push([
-        'to',
-        element.id || element.localName,
-        vars.attr,
-        at,
-        vars.ease
-      ]),
+      element.localName === 'svg'
+        ? pops.push({ ...vars, at })
+        : calls.push([
+            'to',
+            element.id || element.localName,
+            vars.attr,
+            at,
+            vars.ease,
+            vars.duration
+          ]),
     set: (element: Element, vars: Record<string, unknown>, at: number) =>
       calls.push(['set', element.id || element.localName, vars.attr, at]),
-    fromTo: (
-      element: Element,
-      _: unknown,
-      vars: Record<string, unknown>,
-      at: number
-    ) => calls.push(['pop', element.localName, vars.scale, at]),
     duration: () => 4
   }
   const play = (window as unknown as Record<string, Function>).artworkPose
   play(tl, 'gauge', 'glow', 1, 0.6)
   // A pose is a whole state: what it does not change goes to rest. The
-  // change runs through the shapes in turn, the turning needle overshoots
-  // and settles, and the drawing pops as it arrives.
+  // change runs through the shapes in turn, each later one shorter so the
+  // last arrives within the 0.6 s asked for, and the turning needle
+  // overshoots and settles.
+  const each = expect.closeTo(0.45, 6)
   expect(calls).toEqual([
-    ['to', 'stop', { 'stop-color': 'rgba(42,71,185,1)' }, 1, 'power2.inOut'],
+    [
+      'to',
+      'stop',
+      { 'stop-color': 'rgba(42,71,185,1)' },
+      1,
+      'power2.inOut',
+      each
+    ],
     [
       'to',
       'stop',
       { 'stop-color': 'rgba(173,197,250,1)' },
       1.05,
-      'power2.inOut'
+      'power2.inOut',
+      each
     ],
-    ['to', 'ring', { opacity: '1' }, 1.1, 'power2.inOut'],
+    ['to', 'ring', { opacity: '1' }, 1.1, 'power2.inOut', each],
     [
       'to',
       'needle',
       { transform: 'rotate(0 28.9 26.14)' },
       1.15,
-      'back.out(1.7)'
-    ],
-    ['pop', 'svg', 1.04, 1 + 0.6 * 0.6]
+      'back.out(1.7)',
+      each
+    ]
   ])
+  // The drawing pops as it arrives, from the scale the scene gave it, and
+  // settles back to it.
+  expect(pops).toEqual([
+    expect.objectContaining({
+      at: 1 + 0.6 * 0.6,
+      duration: 0.15,
+      yoyo: true,
+      repeat: 1
+    })
+  ])
+  ;(window as unknown as Record<string, unknown>).gsap = {
+    getProperty: (_: Element, axis: string) => (axis === 'scaleX' ? 0.5 : 2)
+  }
+  const art = document.querySelector('svg')
+  expect((pops[0].scaleX as Function)(0, art)).toBeCloseTo(0.52)
+  expect((pops[0].scaleY as Function)(0, art)).toBeCloseTo(2.08)
+  pops.length = 0
   calls.length = 0
   play(tl, 'gauge', 'limit', 2)
+  // By default it takes 0.8 s, the last shape arriving at 2.8.
   expect(calls).toContainEqual([
     'to',
     'needle',
     { transform: 'rotate(55 28.9 26.14)' },
     2.15,
-    'back.out(1.7)'
+    'back.out(1.7)',
+    expect.closeTo(0.65, 6)
   ])
   expect(calls).toContainEqual([
     'to',
     'ring',
     { opacity: '0.5' },
     2.1,
-    'power2.inOut'
+    'power2.inOut',
+    expect.closeTo(0.65, 6)
   ])
   // Back to rest: no pop.
-  calls.length = 0
+  pops.length = 0
   play(tl, 'gauge', 'rest', 3)
-  expect(calls.some((call) => (call as unknown[])[0] === 'pop')).toBe(false)
+  expect(pops).toEqual([])
   // Nothing placed, nothing played.
   expect(play(tl, 'nothing', 'limit', 0)).toBe(tl)
 })

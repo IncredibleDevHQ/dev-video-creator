@@ -239,14 +239,17 @@ export const motionDefects = (
       message: `${moment.id} holds one still frame for ${seconds(longest * every)} (${seconds(from * every)} to ${seconds((from + longest) * every)} into the moment)`
     })
   // An empty frame while the voice speaks, a second or more (review 6: a
-  // scene opened on one word, then nothing, while the voice asked).
+  // scene opened on one word, then nothing, while the voice asked). A run of
+  // blank samples lasts from its first to its last: a picture that enters
+  // half a second in has not left the frame empty.
   const area = frameArea(samples)
   const blank = longestRun(samples, (sample) => !showsSomething(sample, area))
-  if (blank.longest >= 2)
+  const empty = (blank.longest - 1) * every
+  if (empty >= 1)
     defects.push({
       kind: 'empty',
       moment: moment.id,
-      message: `${moment.id} shows an empty frame for ${seconds(blank.longest * every)} (${seconds(blank.from * every)} into the moment) while the voice speaks`
+      message: `${moment.id} shows an empty frame for ${seconds(empty)} (${seconds(blank.from * every)} into the moment) while the voice speaks`
     })
   // Words cut by the frame's edge and held there, as a push-in can leave
   // them (review 6: "augmented LLM" became "mented LLM").

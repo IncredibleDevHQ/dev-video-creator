@@ -434,6 +434,14 @@ export const imageGenerate = async ({
   return null
 }
 
+/** A provider's refusal, in its own words: what the user needs to fix. */
+const rejected = async (label: string, response: Response) => {
+  const detail = (await response.text().catch(() => '')).slice(0, 400)
+  return new Refusal(
+    `${label} rejected the request (${response.status})${detail ? `: ${detail}` : ''}`
+  )
+}
+
 export const modelFetch = async (
   task: ModelTask,
   init: { method?: string; body: string }
@@ -475,6 +483,7 @@ export const modelFetch = async (
       model,
       at: new Date().toISOString()
     })
+    if (!response.ok) throw await rejected(preset.label, response)
     return {
       ok: response.ok,
       status: response.status,
@@ -574,13 +583,7 @@ export const modelFetch = async (
     model,
     at: new Date().toISOString()
   })
-  if (!response.ok) {
-    // Surface the provider's own message: it is what the user needs to fix.
-    const detail = (await response.text().catch(() => '')).slice(0, 400)
-    throw new Refusal(
-      `${preset.label} rejected the request (${response.status})${detail ? `: ${detail}` : ''}`
-    )
-  }
+  if (!response.ok) throw await rejected(preset.label, response)
   const body = (await response.json()) as {
     choices?: Array<{
       message?: { content?: string | Array<{ type?: string; text?: string }> }

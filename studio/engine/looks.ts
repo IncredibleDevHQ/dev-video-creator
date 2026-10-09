@@ -22,6 +22,15 @@ import { loadableFont } from '../shared/looks'
 import type { SourceRead } from './source-document'
 import { Refusal } from './refusal'
 
+/**
+ * Which of a look's fonts can't be loaded here and what stands in: each
+ * stand-in named once, the words agreeing with how many there are.
+ */
+export const fontsStandingIn = (standing: Array<{ value: string }>) => {
+  const names = [...new Set(standing.map((font) => font.value))]
+  return `${standing.length > 1 ? 'Its fonts' : 'One of its fonts'} can’t be loaded here, so ${names.join(' and ')} ${names.length > 1 ? 'stand' : 'stands'} in.`
+}
+
 /** The look a notebook starts with, before the creator chooses one. */
 export const startingLook = async (
   source: SourceRead | null
@@ -41,7 +50,7 @@ export const startingLook = async (
       id: `saved:${saved.id}`,
       name: saved.brand.look?.name || saved.brand.name || domain!,
       description: standing.length
-        ? `Your saved look for ${domain}. Its fonts can’t be loaded here, so ${[...new Set(standing.map((font) => font.value))].join(' and ')} stand in.`
+        ? `Your saved look for ${domain}. ${fontsStandingIn(standing)}`
         : `Your saved look for ${domain}.`,
       palette: { ...saved.brand.palette, accent: saved.brand.accent },
       fonts: {
@@ -63,7 +72,7 @@ export const startingLook = async (
       name: source.site || domain || 'The site',
       // Only the fonts that stand in are named (one may load as it is).
       description: standing.length
-        ? `Colours read from ${site}. ${standing.length > 1 ? 'Its fonts' : 'One of its fonts'} can’t be loaded here, so ${[...new Set(standing.map((font) => font.value))].join(' and ')} ${standing.length > 1 ? 'stand' : 'stands'} in.`
+        ? `Colours read from ${site}. ${fontsStandingIn(standing)}`
         : `Colours and fonts read from ${site}.`,
       palette: {
         ground: source.palette.ground,

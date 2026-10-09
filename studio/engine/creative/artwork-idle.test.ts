@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { idleLoop, idlePrompt, withIdle } from './artwork-idle'
+import { atRest, idleLoop, idlePrompt, withIdle } from './artwork-idle'
 
 // A drawing as the product keeps it, and Quiver's animation of it: a loop
 // on its lamps (one class on both), its ring (by id) and its needle (on the
@@ -82,7 +82,9 @@ it('puts the loop around the parts it moves, so a pose or a move of the part sti
     // And a stop in a gradient, where no wrapper may go.
     classes: [...loop!.classes, { index: 3, names: ['gauge-glint'] }]
   })
-  expect(svg).toContain('<svg viewBox="0 0 80 60"><style>@keyframes gauge-')
+  expect(svg).toContain(
+    '<svg viewBox="0 0 80 60"><style data-idle-loop="">@keyframes gauge-'
+  )
   expect(svg).toContain(
     '<g class="gauge-blink" data-idle=""><circle cx="10" cy="10" r="2"/></g><g class="gauge-blink" data-idle=""><circle cx="16" cy="10" r="2"/></g>'
   )
@@ -133,4 +135,53 @@ it('takes a group the animation added around shapes, and wraps the same run in t
   expect(nested).toContain(
     '<g class="outer" data-idle=""><g class="inner" data-idle=""><path d="M1 1h4"/></g><path d="M1 3h4"/>'
   )
+})
+
+it('keeps only safe CSS from the animation: no markup, loads or odd names', () => {
+  const unsafe = drawing
+    .replace(
+      '<svg viewBox="0 0 80 60">',
+      `<svg viewBox="0 0 80 60"><style>
+@keyframes x&lt;y { 50% { opacity: .5 } }
+@keyframes ok { 50%, 60%) { opacity: 0 } 70% { transform: rotate(2deg) url(#a) } to { opacity: .4 } }
+.blink { animation: ok 1s infinite; transform-origin: 5px 5px; animation-delay: expression(alert(1)); transform-box: fill-box !important }
+</style>`
+    )
+    .replace(/<circle /g, '<circle class="blink" ')
+  expect(idleLoop(drawing, unsafe, 'gauge').loop!.css).toBe(
+    [
+      '@keyframes gauge-ok { to { opacity: .4; } }',
+      '.gauge-blink { animation: gauge-ok 1s 999; transform-origin: 5px 5px; transform-box: fill-box; }'
+    ].join('\n')
+  )
+  // Names take the object's in a form CSS can carry.
+  expect(idleLoop(drawing, animated, 'Rate Limiter!').loop!.classes[0]).toEqual(
+    { index: 5, names: ['rate-limiter-blink'] }
+  )
+})
+
+it('keeps words whole: a loop inside a text goes on the element itself', () => {
+  const label =
+    '<svg viewBox="0 0 80 60"><text x="4" y="20"><tspan id="dot">•</tspan><tspan>Live</tspan></text></svg>'
+  const pulsing = label
+    .replace(
+      '<svg viewBox="0 0 80 60">',
+      '<svg viewBox="0 0 80 60"><style>@keyframes pulse { 50% { opacity: .2 } } .pulse { animation: pulse 2s infinite }</style>'
+    )
+    .replace('<tspan id="dot">', '<tspan id="dot" class="pulse">')
+  const { loop, problem } = idleLoop(label, pulsing, 'badge')
+  expect(problem).toBeUndefined()
+  const svg = withIdle(label, loop!)
+  expect(svg).toContain(
+    '<text x="4" y="20"><tspan id="dot" class="badge-pulse">•</tspan><tspan>Live</tspan></text>'
+  )
+})
+
+it('measures a drawing at rest: the loop’s style goes, its wrappers stay', () => {
+  const { loop } = idleLoop(drawing, animated, 'gauge')
+  const page = `<div data-artwork="gauge">${withIdle(drawing, loop!)}</div><style>.scene { opacity: 1 }</style>`
+  const rest = atRest(page)
+  expect(rest).not.toContain('@keyframes')
+  expect(rest).toContain('<g class="gauge-blink" data-idle="">')
+  expect(rest).toContain('<style>.scene { opacity: 1 }</style>')
 })

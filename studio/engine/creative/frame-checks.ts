@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os'
 import { dirname, extname, join, normalize, sep } from 'node:path'
 import { RUNTIME_PATHS } from '../../render/runtime'
 import type { SketchFiles } from '../../render/types'
+import { atRest } from './artwork-idle'
 import {
   motionDefects,
   motionProblems,
@@ -408,13 +409,18 @@ export const measureSettledFrames = async (
     for (const [name, file] of Object.entries(files)) {
       const path = join(dir, name)
       await mkdir(dirname(path), { recursive: true })
+      // The drawings are measured at rest, without their idle loops.
+      const text =
+        typeof file === 'string' && /\.(?:html|svg)$/i.test(name)
+          ? atRest(file)
+          : file
       await writeFile(
         path,
-        typeof file === 'string'
+        typeof text === 'string'
           ? name === 'index.html'
-            ? file.replace(/(["'])\/runtime\//g, '$1./runtime/')
-            : file
-          : Buffer.from(file.base64, 'base64')
+            ? text.replace(/(["'])\/runtime\//g, '$1./runtime/')
+            : text
+          : Buffer.from(text.base64, 'base64')
       )
     }
     await mkdir(join(dir, 'runtime'), { recursive: true })

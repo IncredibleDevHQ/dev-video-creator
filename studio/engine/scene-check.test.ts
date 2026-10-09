@@ -18,19 +18,38 @@ const scene = (fields: Partial<Scene>) =>
   }) as Scene
 
 it('says the last check in plain words, with Accept as is when it can be taken', () => {
-  const html = sceneCheck(
-    scene({
-      lastCheck: 'Moment 3 needs one more visible change',
-      acceptable: 'candidate-1'
-    })
-  )
+  const stopped = scene({
+    failure: 'production',
+    lastCheck: 'Moment 3 needs one more visible change',
+    acceptable: 'candidate-1'
+  })
+  const html = sceneCheck(stopped)
   expect(html).toContain(
     'The last check: Moment 3 needs one more visible change.'
   )
   expect(html).toContain('data-action="accept-scene"')
   expect(
-    sceneCheck(scene({ lastCheck: 'Its code had a fault' }))
+    sceneCheck(
+      scene({ failure: 'production', lastCheck: 'Its code had a fault' })
+    )
   ).not.toContain('accept-scene')
+  // A scene stopped while being written says nothing of an older making.
+  expect(sceneCheck({ ...stopped, failure: 'planning' })).toBe('')
+})
+
+it('leaves a stop’s finding and candidate behind when the scene changes', async () => {
+  const { transitionScene } = await import('./autopilot')
+  const ledger = { project: { id: 'p' }, events: [] } as unknown as Parameters<
+    typeof transitionScene
+  >[2]
+  const stopped = scene({
+    failure: 'production',
+    lastCheck: 'Moment 3 needs one more visible change',
+    acceptable: 'candidate-1'
+  })
+  transitionScene(stopped, 'produce', ledger)
+  expect(stopped.lastCheck).toBeUndefined()
+  expect(stopped.acceptable).toBeUndefined()
 })
 
 it('keeps what a made scene was accepted with only while it still applies', () => {

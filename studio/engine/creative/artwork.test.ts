@@ -228,7 +228,7 @@ it('asks once to group the parts that came back unnamed, then keeps the drawing'
   const alive =
     packet['packet/assets/generated-rate-limiter/asset.svg'].toString()
   expect(alive).toContain(
-    '<style>@keyframes rate-limiter-breathe { 50% { transform: scale(1.04); } }'
+    '<style data-idle-loop="">@keyframes rate-limiter-breathe { 50% { transform: scale(1.04); } }'
   )
   expect(alive).toContain(
     '.rate-limiter-breathe { transform-origin: 5px 5px; animation: rate-limiter-breathe 3s ease-in-out 999; }'

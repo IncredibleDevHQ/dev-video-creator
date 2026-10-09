@@ -2,8 +2,8 @@
 name: scene-producer
 description: Produce one scene of a technical explainer video from its approved creative plan — the final, seekable Hyperframes composition on the scene's real clock (a generated voice, the creator's take, or silence by choice), with its final artwork. Use for the Produce Scene route. It never plans, approves, records, generates audio or exports.
 metadata:
-  version: "0.1.1"
-  hyperframes: "99221c50a5e5927ca243454b4e4f02f9adf7cfc6"
+  version: '0.1.1'
+  hyperframes: '99221c50a5e5927ca243454b4e4f02f9adf7cfc6'
 ---
 
 # Scene producer
@@ -84,7 +84,8 @@ for shape: load `compositions/artwork-poses.js` and call
 `artworkPose(tl, entity, pose, at, seconds)` on the cue that says the change,
 and the drawing tweens into it smoothly (`'rest'` turns it back): the
 change runs through its shapes in turn, what turns overshoots and settles,
-and the drawing pops a little as it arrives, so 0.8 to 1.2 s reads well.
+and the drawing pops a little as it arrives, all within the seconds you
+give it, so 0.8 to 1.2 s reads well.
 Prefer a pose to rebuilding that change by hand, leave the parts it moves
 to it while it plays, and give a posed drawing room: a pose inside an
 icon-sized drawing changes nothing the viewer can read.

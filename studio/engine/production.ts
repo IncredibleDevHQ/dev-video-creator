@@ -31,7 +31,12 @@ export const acceptCandidate = async (id: string, sceneId: string) => {
   const scene = snapshot?.project.video?.scenes.find(
     (item) => item.id === sceneId
   )
-  if (!scene || scene.phase !== 'failed' || !scene.acceptable)
+  if (
+    !scene ||
+    scene.phase !== 'failed' ||
+    scene.failure !== 'production' ||
+    !scene.acceptable
+  )
     throw new Refusal('This scene has no candidate to accept')
   const candidate = await readRow<{
     sceneId: string

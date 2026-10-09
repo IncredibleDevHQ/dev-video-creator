@@ -74,6 +74,16 @@
     for (var key in source) target[key] = source[key]
     return target
   }
+  // A scale a touch above the one the drawing has as the pop starts, so the
+  // pop keeps any scale the scene gave it.
+  function swell(axis) {
+    return function (index, target) {
+      var now = window.gsap
+        ? parseFloat(window.gsap.getProperty(target, axis))
+        : 1
+      return (isFinite(now) ? now : 1) * 1.04
+    }
+  }
 
   /**
    * Tween the drawing placed for `entity` into `pose` ('rest' for the
@@ -83,7 +93,8 @@
    * As a Lottie state change does: the change runs through the drawing's
    * shapes one after another rather than all at once, a part that turns or
    * moves overshoots a little and settles (`ease` overrides both), and the
-   * drawing gives a small pop as it arrives in a new state.
+   * drawing gives a small pop as it arrives in a new state. It all ends
+   * within `seconds`.
    */
   window.artworkPose = function (tl, entity, pose, at, seconds, ease) {
     var root = document.querySelector('[data-artwork="' + entity + '"]')
@@ -91,11 +102,13 @@
     var shapes = root.querySelectorAll('[data-posed]')
     var duration = typeof seconds === 'number' && seconds >= 0 ? seconds : 0.8
     var start = typeof at === 'number' ? at : tl.duration()
-    // The cascade spreads over at most half the change.
+    // The cascade spreads over at most half the change, inside it: a later
+    // shape starts later and takes less, so the last arrives on time.
     var stagger =
       shapes.length > 1
         ? Math.min(0.05, (duration * 0.5) / (shapes.length - 1))
         : 0
+    var each = duration - stagger * Math.max(0, shapes.length - 1)
     var i
     for (i = 0; i < shapes.length; i++) rest(shapes[i])
     for (i = 0; i < shapes.length; i++) {
@@ -111,7 +124,7 @@
         Object.keys(attr).length === 1 &&
         !any(style)
       var vars = {
-        duration: duration,
+        duration: each,
         ease: ease || (turns ? 'back.out(1.7)' : 'power2.inOut')
       }
       if (any(attr)) vars.attr = attr
@@ -123,32 +136,27 @@
         assign(assign({}, home.snapStyle), target.snapStyle || {})
       )
       if (any(snap))
-        tl.set(
-          element,
-          { attr: snap, immediateRender: false },
-          when + duration / 2
-        )
+        tl.set(element, { attr: snap, immediateRender: false }, when + each / 2)
       if (any(snapStyle))
         tl.set(
           element,
           assign({ immediateRender: false }, snapStyle),
-          when + duration / 2
+          when + each / 2
         )
     }
-    // The pop: the whole drawing swells a touch and settles as it arrives.
+    // The pop: the whole drawing swells a touch and settles as it arrives,
+    // from the scale and origin the scene gave it (its centre by default).
     var art = root.querySelector('svg')
     if (art && shapes.length && pose !== 'rest')
-      tl.fromTo(
+      tl.to(
         art,
-        { scale: 1 },
         {
-          scale: 1.04,
+          scaleX: swell('scaleX'),
+          scaleY: swell('scaleY'),
           duration: Math.min(0.2, duration / 4),
           ease: 'power1.out',
           yoyo: true,
-          repeat: 1,
-          transformOrigin: '50% 50%',
-          immediateRender: false
+          repeat: 1
         },
         start + duration * 0.6
       )

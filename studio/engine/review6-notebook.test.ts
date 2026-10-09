@@ -50,7 +50,17 @@ it('keeps a font only if it can load, else the nearest built-in', () => {
 })
 
 it('says on the notebook’s look when a site’s fonts stand in', async () => {
-  const { withLook } = await import('./looks')
+  const { withLook, fontsStandingIn } = await import('./looks')
+  // Each stand-in once, the words agreeing with how many there are.
+  expect(fontsStandingIn([{ value: 'Inter' }, { value: 'Inter' }])).toBe(
+    'Its fonts can’t be loaded here, so Inter stands in.'
+  )
+  expect(fontsStandingIn([{ value: 'Georgia' }])).toBe(
+    'One of its fonts can’t be loaded here, so Georgia stands in.'
+  )
+  expect(fontsStandingIn([{ value: 'Georgia' }, { value: 'Inter' }])).toBe(
+    'Its fonts can’t be loaded here, so Georgia and Inter stand in.'
+  )
   const { LOOKS } = await import('../shared/looks')
   const site = {
     ...LOOKS[0],

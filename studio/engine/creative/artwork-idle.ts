@@ -51,6 +51,22 @@ const FRAME_PROPERTIES = new Set(['transform', 'opacity'])
 // A loop runs this many times: longer than any scene, and finite, as a
 // seekable timeline needs.
 const LOOPS = '999'
+// What a loop may say, since it joins the drawing after the drawing's own
+// cleaning: names, numbers, transforms and timings. Nothing that loads,
+// escapes or ends the style, which inline SVG reads as markup.
+const SAFE_VALUE = /^[\w\s.,%()+-]+$/
+const FUNCTIONS =
+  /^(?:matrix(?:3d)?|translate(?:[xyz]|3d)?|scale(?:[xyz]|3d)?|rotate(?:[xyz]|3d)?|skew[xy]?|perspective|cubic-bezier|steps|linear)$/i
+const IDENT = /^-?[a-z_][\w-]*$/i
+const STEP = '(?:from|to|\\d*\\.?\\d+%)'
+const STEPS = new RegExp(`^${STEP}(?:\\s*,\\s*${STEP})*$`, 'i')
+const safeValue = (value: string) =>
+  SAFE_VALUE.test(value) &&
+  [...value.matchAll(/([\w-]+)\s*\(/g)].every((found) =>
+    FUNCTIONS.test(found[1])
+  )
+/** Marks the loop's style, so a check can measure the drawing at rest. */
+const LOOP_STYLE = '<style data-idle-loop="">'
 
 /** CSS as its top-level rules: what comes before each block, and the block. */
 const rulesOf = (css: string) => {
@@ -75,11 +91,26 @@ const rulesOf = (css: string) => {
   return rules
 }
 
+/** The declarations kept from a block: allowed properties, safe values. */
 const declarationsOf = (body: string, allowed: Set<string>) =>
-  body
-    .split(';')
-    .map((item) => item.trim())
-    .filter((item) => allowed.has(item.split(':')[0]?.trim().toLowerCase()))
+  body.split(';').flatMap((item) => {
+    const colon = item.indexOf(':')
+    const property = item.slice(0, colon).trim().toLowerCase()
+    const value = item
+      .slice(colon + 1)
+      .replace(/!\s*important\s*$/i, '')
+      .trim()
+    return colon > 0 && allowed.has(property) && safeValue(value)
+      ? [`${property}: ${value}`]
+      : []
+  })
+
+/** An object's name as CSS names may carry it. */
+const scopeOf = (entity: string) =>
+  entity
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'drawing'
 
 /**
  * The loop a Quiver animation added to the drawing: the classes it put on
@@ -128,13 +159,15 @@ export const idleLoop = (
   const css = [...animated.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi)]
     .map((found) => found[1])
     .join('\n')
+  const scope = scopeOf(entity)
   const named = (name: string) =>
-    name.startsWith(`${entity}-`) ? name : `${entity}-${name}`
+    name.startsWith(`${scope}-`) ? name : `${scope}-${name}`
   const rules = rulesOf(css)
   const frames = new Map(
     rules
       .filter((rule) => /^@(?:-webkit-)?keyframes\s/i.test(rule.prelude))
-      .map((rule) => [rule.prelude.split(/\s+/)[1], rule])
+      .map((rule) => [rule.prelude.split(/\s+/)[1], rule] as const)
+      .filter(([name]) => IDENT.test(name))
   )
   const renamed = (value: string) =>
     value
@@ -205,7 +238,7 @@ export const idleLoop = (
     if (!found.length || found.some((place) => !place)) return null
     return {
       // Named by its place in the drawing, which the animation does not change.
-      name: id ? `${entity}-idle-${found[0]!.index}` : named(name!),
+      name: id ? `${scope}-idle-${found[0]!.index}` : named(name!),
       places: found as Array<{ index: number; last: number }>
     }
   }
@@ -238,20 +271,20 @@ export const idleLoop = (
     const declarations = declarationsOf(style, RULE_PROPERTIES)
     const place = placeOf(at)
     if (!place || !declarations.some((item) => /^animation/i.test(item))) return
-    const name = `${entity}-idle-${place.index}-own`
+    const name = `${scope}-idle-${place.index}-own`
     mark(place, name)
     kept.push(`.${name} { ${declarations.map(renamed).join('; ')}; }`)
   })
   if (!kept.length)
     return { problem: 'it added no loop to the drawing’s parts' }
   for (const [name, rule] of frames) {
-    const steps = rulesOf(rule.body)
-      .map(
-        (step) =>
-          `${step.prelude} { ${declarationsOf(step.body, FRAME_PROPERTIES).join('; ')}; }`
-      )
-      .join(' ')
-    kept.unshift(`@keyframes ${named(name)} { ${steps} }`)
+    const steps = rulesOf(rule.body).flatMap((step) => {
+      const kept = declarationsOf(step.body, FRAME_PROPERTIES)
+      return STEPS.test(step.prelude) && kept.length
+        ? [`${step.prelude} { ${kept.join('; ')}; }`]
+        : []
+    })
+    kept.unshift(`@keyframes ${named(name)} { ${steps.join(' ')} }`)
   }
   return {
     loop: {
@@ -267,14 +300,17 @@ export const idleLoop = (
   }
 }
 
+// Where no wrapper may go: inside paint (gradients, clips, filters…) and
+// inside words, where a group is not drawn.
 const PAINT =
   /^(?:defs|lineargradient|radialgradient|pattern|clippath|mask|symbol|marker|filter)$/i
+const WORDS = /^(?:text|textpath)$/i
 
 /**
  * The drawing with its loop on it: the CSS in its own <style>, and each part
  * the loop moves inside a wrapper that carries the loop's classes, so a pose
- * or a move of the part itself still shows. Inside gradients and other
- * paint, where no wrapper may go, the class goes on the element.
+ * or a move of the part itself still shows. Inside paint and words, where no
+ * wrapper may go, each element the loop moves takes the classes itself.
  */
 export const withIdle = (svg: string, loop: IdleLoop) => {
   const elements = svgElements(svg)
@@ -289,31 +325,22 @@ export const withIdle = (svg: string, loop: IdleLoop) => {
     text: string
   }
   const ops: Op[] = []
-  const painted = (index: number): boolean => {
+  const enclosed = (index: number): boolean => {
     for (let at = elements[index].parent; at >= 0; at = elements[at].parent)
-      if (PAINT.test(elements[at].tag)) return true
+      if (PAINT.test(elements[at].tag) || WORDS.test(elements[at].tag))
+        return true
     return false
   }
+  // The classes elements take themselves, gathered so each tag changes once.
+  const own = new Map<number, Set<string>>()
   for (const { index, last = index, names } of loop.classes) {
     const element = elements[index]
     if (!element || !elements[last] || index === 0) continue
-    if (painted(index) || PAINT.test(element.tag)) {
-      // No wrapper goes inside paint: one element takes the class itself.
-      if (last !== index) continue
-      const tag = svg.slice(element.at, element.at + element.length)
-      const classed = / class\s*=\s*"([^"]*)"/.test(tag)
-        ? tag.replace(
-            / class\s*=\s*"([^"]*)"/,
-            (_, own: string) => ` class="${`${own} ${names.join(' ')}`.trim()}"`
-          )
-        : tag.replace(/\s*(\/?)>$/, ` class="${names.join(' ')}"$1>`)
-      ops.push({
-        start: element.at,
-        end: element.at + element.length,
-        rank: 0,
-        span: 0,
-        text: classed
-      })
+    if (enclosed(index) || PAINT.test(element.tag)) {
+      for (let at = index; at <= last; at++)
+        if (elements[at].parent === element.parent)
+          for (const name of names)
+            own.set(at, (own.get(at) || new Set()).add(name))
       continue
     }
     const span = last - index
@@ -327,13 +354,30 @@ export const withIdle = (svg: string, loop: IdleLoop) => {
     const close = elements[last].end
     ops.push({ start: close, end: close, rank: 2, span: -span, text: '</g>' })
   }
+  for (const [index, set] of own) {
+    const element = elements[index]
+    const names = [...set].join(' ')
+    const tag = svg.slice(element.at, element.at + element.length)
+    ops.push({
+      start: element.at,
+      end: element.at + element.length,
+      rank: 0,
+      span: 0,
+      text: / class\s*=\s*"([^"]*)"/.test(tag)
+        ? tag.replace(
+            / class\s*=\s*"([^"]*)"/,
+            (_, mine: string) => ` class="${`${mine} ${names}`.trim()}"`
+          )
+        : tag.replace(/\s*(\/?)>$/, ` class="${names}"$1>`)
+    })
+  }
   const root = elements[0]
   ops.push({
     start: root.at + root.length,
     end: root.at + root.length,
     rank: 1,
     span: Number.MAX_SAFE_INTEGER,
-    text: `<style>${loop.css}</style>`
+    text: `${LOOP_STYLE}${loop.css}</style>`
   })
   // From the end, so each place is where it was. At one place: a tag's
   // change, then wrappers opening (inner before outer, so the outer one
@@ -345,3 +389,12 @@ export const withIdle = (svg: string, loop: IdleLoop) => {
     out = out.slice(0, op.start) + op.text + out.slice(op.end)
   return out
 }
+
+/**
+ * Markup with the drawings' loops taken out: the drawings at rest, as the
+ * checks measure them. A loop is the drawing's life, not the scene's
+ * development, so it must neither hide a frozen picture nor count as a
+ * change; the render keeps it.
+ */
+export const atRest = (markup: string) =>
+  markup.replace(/<style data-idle-loop="">[\s\S]*?<\/style>/g, '')

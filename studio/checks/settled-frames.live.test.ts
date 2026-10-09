@@ -33,7 +33,7 @@ it('refuses a settled frame that cuts an actor or puts words on a shape', async 
     { id: 'm2', start: 1, end: 2 }
   ])
   expect(problems).toEqual([
-    'At the end of m1, actor is cut by the left edge: keep it, and the camera’s framing, at least 48 px inside the frame (if the scene shows a cut caption on purpose, wrap that depiction in data-intentional="why")',
+    'At the end of m1, actor is cut by the left edge: keep it inside the frame, and its words at least 16 px from every edge, the camera’s framing included (if the scene shows a cut caption on purpose, wrap that depiction in data-intentional="why")',
     'At the end of m1, “cap: five a second” sits on packet: move the words into clear space beside it (or, when the scene shows that defect on purpose, wrap it in data-intentional="why")'
   ])
 }, 60_000)

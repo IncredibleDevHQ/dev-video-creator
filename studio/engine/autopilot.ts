@@ -132,6 +132,12 @@ export const transitionScene = (
   const next = advanceScene(scene, signal)
   Object.assign(scene, next)
   if (!next.failure) delete scene.failure
+  // A stopped production's finding and candidate belong to that stop: any
+  // other change of the scene leaves them behind.
+  if (signal !== 'fail') {
+    delete scene.lastCheck
+    delete scene.acceptable
+  }
   addEvent(
     ledger,
     'scene',

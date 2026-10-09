@@ -126,10 +126,12 @@ describe('what each task last did', () => {
         body: JSON.stringify({ input: 'hi' })
       })
     ).json()
-    const coding = await gateway.modelFetch('coding', {
-      body: JSON.stringify({ input: 'hi' })
-    })
-    expect(coding.ok).toBe(false)
+    // A provider's refusal reaches the creator in its own words.
+    await expect(
+      gateway.modelFetch('coding', { body: JSON.stringify({ input: 'hi' }) })
+    ).rejects.toThrow(
+      'rejected the request (404): {"error":{"message":"The model does not exist"}}'
+    )
     const { results } = await gateway.publicModelSettings()
     expect(results.writing).toMatchObject({
       ok: true,
