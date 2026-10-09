@@ -60,8 +60,18 @@ const FUNCTIONS =
 const IDENT = /^-?[a-z_][\w-]*$/i
 const STEP = '(?:from|to|\\d*\\.?\\d+%)'
 const STEPS = new RegExp(`^${STEP}(?:\\s*,\\s*${STEP})*$`, 'i')
+// Brackets must close, or the browser drops the loop's later rules.
+const balanced = (value: string) => {
+  let depth = 0
+  for (const char of value) {
+    depth += char === '(' ? 1 : char === ')' ? -1 : 0
+    if (depth < 0) return false
+  }
+  return depth === 0
+}
 const safeValue = (value: string) =>
   SAFE_VALUE.test(value) &&
+  balanced(value) &&
   [...value.matchAll(/([\w-]+)\s*\(/g)].every((found) =>
     FUNCTIONS.test(found[1])
   )
@@ -105,12 +115,14 @@ const declarationsOf = (body: string, allowed: Set<string>) =>
       : []
   })
 
-/** An object's name as CSS names may carry it. */
-const scopeOf = (entity: string) =>
-  entity
+/** An object's name as CSS names may carry it: they start with a letter. */
+const scopeOf = (entity: string) => {
+  const slug = entity
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'drawing'
+    .replace(/^-|-$/g, '')
+  return !slug ? 'drawing' : /^[a-z]/.test(slug) ? slug : `art-${slug}`
+}
 
 /**
  * The loop a Quiver animation added to the drawing: the classes it put on
@@ -173,6 +185,26 @@ export const idleLoop = (
     value
       .replace(/\binfinite\b/g, LOOPS)
       .replace(/[\w-]+/g, (word) => (frames.has(word) ? named(word) : word))
+  // Each keyframes block's steps, where they are plain and move or fade.
+  const steps = new Map<string, string[]>()
+  for (const [name, rule] of frames) {
+    const list = rulesOf(rule.body).flatMap((step) => {
+      const moves = declarationsOf(step.body, FRAME_PROPERTIES)
+      return STEPS.test(step.prelude) && moves.length
+        ? [`${step.prelude} { ${moves.join('; ')}; }`]
+        : []
+    })
+    if (list.length) steps.set(name, list)
+  }
+  // A rule moves something only when it plays a block that kept a step.
+  const plays = (declarations: string[]) =>
+    declarations.some(
+      (item) =>
+        /^animation(?:-name)?:/.test(item) &&
+        (item.slice(item.indexOf(':') + 1).match(/[\w-]+/g) || []).some(
+          (word) => steps.has(word)
+        )
+    )
   // Where an animation element sits in the drawing: itself, or for a
   // wrapper the run of siblings it holds (null when they are not a run).
   const placeOf = (at: number): { index: number; last: number } | null => {
@@ -249,7 +281,7 @@ export const idleLoop = (
       .map((item) => targetsOf(item.trim()))
     if (!targets.length || targets.some((target) => !target)) continue
     const declarations = declarationsOf(rule.body, RULE_PROPERTIES)
-    if (!declarations.some((item) => /^animation/i.test(item))) continue
+    if (!plays(declarations)) continue
     const sure = targets as Array<{
       name: string
       places: Array<{ index: number; last: number }>
@@ -270,25 +302,21 @@ export const idleLoop = (
     if (style === own || !/animation/i.test(style)) return
     const declarations = declarationsOf(style, RULE_PROPERTIES)
     const place = placeOf(at)
-    if (!place || !declarations.some((item) => /^animation/i.test(item))) return
+    if (!place || !plays(declarations)) return
     const name = `${scope}-idle-${place.index}-own`
     mark(place, name)
     kept.push(`.${name} { ${declarations.map(renamed).join('; ')}; }`)
   })
   if (!kept.length)
     return { problem: 'it added no loop to the drawing’s parts' }
-  for (const [name, rule] of frames) {
-    const steps = rulesOf(rule.body).flatMap((step) => {
-      const kept = declarationsOf(step.body, FRAME_PROPERTIES)
-      return STEPS.test(step.prelude) && kept.length
-        ? [`${step.prelude} { ${kept.join('; ')}; }`]
-        : []
-    })
-    kept.unshift(`@keyframes ${named(name)} { ${steps.join(' ')} }`)
-  }
   return {
     loop: {
-      css: kept.join('\n'),
+      css: [
+        ...[...steps].map(
+          ([name, list]) => `@keyframes ${named(name)} { ${list.join(' ')} }`
+        ),
+        ...kept
+      ].join('\n'),
       classes: [...places.values()]
         .sort((a, b) => a.index - b.index || b.last - a.last)
         .map(({ index, last, names }) => ({
@@ -363,10 +391,11 @@ export const withIdle = (svg: string, loop: IdleLoop) => {
       end: element.at + element.length,
       rank: 0,
       span: 0,
-      text: / class\s*=\s*"([^"]*)"/.test(tag)
+      text: /\sclass\s*=\s*["']/.test(tag)
         ? tag.replace(
-            / class\s*=\s*"([^"]*)"/,
-            (_, mine: string) => ` class="${`${mine} ${names}`.trim()}"`
+            /\sclass\s*=\s*(["'])(.*?)\1/,
+            (_, quote: string, mine: string) =>
+              ` class=${quote}${`${mine} ${names}`.trim()}${quote}`
           )
         : tag.replace(/\s*(\/?)>$/, ` class="${names}"$1>`)
     })
@@ -397,4 +426,7 @@ export const withIdle = (svg: string, loop: IdleLoop) => {
  * change; the render keeps it.
  */
 export const atRest = (markup: string) =>
-  markup.replace(/<style data-idle-loop="">[\s\S]*?<\/style>/g, '')
+  markup.replace(
+    /<style\b[^>]*\sdata-idle-loop\b[^>]*>[\s\S]*?<\/style\s*>/gi,
+    ''
+  )

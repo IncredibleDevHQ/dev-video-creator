@@ -185,3 +185,51 @@ it('measures a drawing at rest: the loop’s style goes, its wrappers stay', () 
   expect(rest).toContain('<g class="gauge-blink" data-idle="">')
   expect(rest).toContain('<style>.scene { opacity: 1 }</style>')
 })
+
+it('leaves out what the browser would drop: open brackets, colour-only loops', () => {
+  const loopWith = (css: string) =>
+    drawing
+      .replace(
+        '<svg viewBox="0 0 80 60">',
+        `<svg viewBox="0 0 80 60"><style>${css}</style>`
+      )
+      .replace(/<circle /g, '<circle class="blink" ')
+  // An unclosed bracket would swallow the loop's later rules.
+  expect(
+    idleLoop(
+      drawing,
+      loopWith(
+        '@keyframes b { 50% { opacity: .2 } } .blink { animation: b 1s steps(2 infinite }'
+      ),
+      'gauge'
+    ).problem
+  ).toBe('it added no loop to the drawing’s parts')
+  // A loop that only changes colours moves nothing once colours are left out.
+  expect(
+    idleLoop(
+      drawing,
+      loopWith(
+        '@keyframes tint { 50% { fill: red } } .blink { animation: tint 1s infinite }'
+      ),
+      'gauge'
+    ).problem
+  ).toBe('it added no loop to the drawing’s parts')
+  // A name that starts with a digit is not a CSS name.
+  expect(idleLoop(drawing, animated, '3D printer').loop!.classes[0]).toEqual({
+    index: 5,
+    names: ['art-3d-printer-blink']
+  })
+})
+
+it('adds to a class however it is quoted, and finds the loop’s style however it is written', () => {
+  const label =
+    '<svg viewBox="0 0 80 60"><text x="4" y="20"><tspan id=\'dot\' class=\'q\'>•</tspan></text></svg>'
+  const svg = withIdle(label, {
+    css: '.badge-pulse { animation: badge-pulse 2s 999; }',
+    classes: [{ index: 2, names: ['badge-pulse'] }]
+  })
+  expect(svg).toContain("<tspan id='dot' class='q badge-pulse'>")
+  expect(atRest('<svg><STYLE  data-idle-loop >a{}</STYLE ><g/></svg>')).toBe(
+    '<svg><g/></svg>'
+  )
+})

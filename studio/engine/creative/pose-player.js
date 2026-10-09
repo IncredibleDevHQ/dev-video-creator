@@ -74,15 +74,26 @@
     for (var key in source) target[key] = source[key]
     return target
   }
-  // A scale a touch above the one the drawing has as the pop starts, so the
-  // pop keeps any scale the scene gave it.
-  function swell(axis) {
-    return function (index, target) {
-      var now = window.gsap
-        ? parseFloat(window.gsap.getProperty(target, axis))
-        : 1
-      return (isFinite(now) ? now : 1) * 1.04
-    }
+  // The middle of a drawing's frame in its own units, where its pop swells
+  // from: read from the drawing as drawn, so every seek agrees.
+  function middle(art) {
+    var box = (art.getAttribute('viewBox') || '').trim().split(/[\s,]+/)
+    var x = +box[0],
+      y = +box[1],
+      width = +box[2],
+      height = +box[3]
+    return box.length === 4 && width > 0 && height > 0 && isFinite(x + y)
+      ? x + width / 2 + ' ' + (y + height / 2)
+      : null
+  }
+  // Whether a pop from `from` to `to` leaves the drawing's other pops alone:
+  // two at once would jump from one to the other.
+  function free(pop, from, to) {
+    var taken = pop.__pops || (pop.__pops = [])
+    for (var i = 0; i < taken.length; i++)
+      if (from < taken[i][1] && taken[i][0] < to) return false
+    taken.push([from, to])
+    return true
   }
 
   /**
@@ -144,22 +155,36 @@
           when + each / 2
         )
     }
-    // The pop: the whole drawing swells a touch and settles as it arrives,
-    // from the scale and origin the scene gave it (its centre by default).
+    // The pop: the drawing swells a touch about its middle and settles as it
+    // arrives, inside the change. It scales the group the app put around the
+    // drawing for it, which nothing else moves, from its own size and back:
+    // a scale the scene gives the drawing stays, and every seek of the
+    // timeline shows the same frame.
+    var pop = root.querySelector('[data-pose-pop]')
     var art = root.querySelector('svg')
-    if (art && shapes.length && pose !== 'rest')
-      tl.to(
-        art,
-        {
-          scaleX: swell('scaleX'),
-          scaleY: swell('scaleY'),
-          duration: Math.min(0.2, duration / 4),
-          ease: 'power1.out',
-          yoyo: true,
-          repeat: 1
-        },
-        start + duration * 0.6
-      )
+    var beat = Math.min(0.2, duration * 0.2)
+    var from = start + duration * 0.6
+    if (
+      pop &&
+      art &&
+      shapes.length &&
+      pose !== 'rest' &&
+      beat > 0 &&
+      free(pop, from, from + 2 * beat)
+    ) {
+      var origin = middle(art)
+      var to = {
+        scale: 1.04,
+        duration: beat,
+        ease: 'power1.out',
+        yoyo: true,
+        repeat: 1,
+        immediateRender: false
+      }
+      if (origin) to.svgOrigin = origin
+      else to.transformOrigin = '50% 50%'
+      tl.fromTo(pop, { scale: 1 }, to, from)
+    }
     return tl
   }
 })()

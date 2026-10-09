@@ -1,7 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 import { parseHTML } from 'linkedom'
-import { pathForm, posedDrawing, rgba, svgElements } from './artwork-poses'
+import {
+  pathForm,
+  posedDrawing,
+  rgba,
+  svgElements,
+  withPop
+} from './artwork-poses'
 
 // A drawing as Quiver draws one, cleaned: a ring painted by a gradient and a
 // needle the plan names as a part.
@@ -199,7 +205,7 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     { id: 'glow', svg: two.replace('opacity=".5"', 'opacity="1"') }
   ])
   const { window, document } = parseHTML(
-    `<html><body><div data-artwork="gauge">${svg}</div></body></html>`
+    `<html><body><div data-artwork="gauge">${withPop(svg)}</div></body></html>`
   )
   new Function(
     'window',
@@ -210,18 +216,28 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
   const pops: Array<Record<string, unknown>> = []
   const tl = {
     to: (element: Element, vars: Record<string, unknown>, at: number) =>
-      element.localName === 'svg'
-        ? pops.push({ ...vars, at })
-        : calls.push([
-            'to',
-            element.id || element.localName,
-            vars.attr,
-            at,
-            vars.ease,
-            vars.duration
-          ]),
+      calls.push([
+        'to',
+        element.id || element.localName,
+        vars.attr,
+        at,
+        vars.ease,
+        vars.duration
+      ]),
     set: (element: Element, vars: Record<string, unknown>, at: number) =>
       calls.push(['set', element.id || element.localName, vars.attr, at]),
+    fromTo: (
+      element: Element,
+      from: Record<string, unknown>,
+      to: Record<string, unknown>,
+      at: number
+    ) =>
+      pops.push({
+        group: element.hasAttribute('data-pose-pop'),
+        from,
+        ...to,
+        at
+      }),
     duration: () => 4
   }
   const play = (window as unknown as Record<string, Function>).artworkPose
@@ -258,25 +274,37 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
       each
     ]
   ])
-  // The drawing pops as it arrives, from the scale the scene gave it, and
-  // settles back to it.
+  // The drawing pops about its middle as it arrives, ending with the
+  // change: its own group swells from its own size and back, with values
+  // fixed when the scene is built, so no seek or scale of the scene's
+  // changes it.
   expect(pops).toEqual([
-    expect.objectContaining({
-      at: 1 + 0.6 * 0.6,
-      duration: 0.15,
+    {
+      group: true,
+      from: { scale: 1 },
+      scale: 1.04,
+      duration: 0.12,
+      ease: 'power1.out',
       yoyo: true,
-      repeat: 1
-    })
+      repeat: 1,
+      immediateRender: false,
+      svgOrigin: '37 29',
+      at: 1 + 0.6 * 0.6
+    }
   ])
-  ;(window as unknown as Record<string, unknown>).gsap = {
-    getProperty: (_: Element, axis: string) => (axis === 'scaleX' ? 0.5 : 2)
-  }
-  const art = document.querySelector('svg')
-  expect((pops[0].scaleX as Function)(0, art)).toBeCloseTo(0.52)
-  expect((pops[0].scaleY as Function)(0, art)).toBeCloseTo(2.08)
+  expect((pops[0].at as number) + 2 * 0.12).toBeCloseTo(1.6)
+  // A pop that would overlap it is left out.
   pops.length = 0
+  play(tl, 'gauge', 'limit', 1.1, 0.6)
+  expect(pops).toEqual([])
   calls.length = 0
   play(tl, 'gauge', 'limit', 2)
+  expect(pops).toEqual([
+    expect.objectContaining({
+      at: 2 + 0.8 * 0.6,
+      duration: expect.closeTo(0.16, 6)
+    })
+  ])
   // By default it takes 0.8 s, the last shape arriving at 2.8.
   expect(calls).toContainEqual([
     'to',
@@ -294,10 +322,23 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     'power2.inOut',
     expect.closeTo(0.65, 6)
   ])
-  // Back to rest: no pop.
+  // Back to rest: no pop; nor without the group, as an older drawing has.
   pops.length = 0
   play(tl, 'gauge', 'rest', 3)
+  document.querySelector('[data-pose-pop]')!.removeAttribute('data-pose-pop')
+  play(tl, 'gauge', 'glow', 5)
   expect(pops).toEqual([])
   // Nothing placed, nothing played.
   expect(play(tl, 'nothing', 'limit', 0)).toBe(tl)
+})
+
+it('puts the drawing in a group for its pop, after its loop’s style', () => {
+  expect(
+    withPop(
+      '<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g id="a"/></svg>'
+    )
+  ).toBe(
+    '<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g data-pose-pop=""><g id="a"/></g></svg>'
+  )
+  expect(withPop('<svg viewBox="0 0 8 8"/>')).toBe('<svg viewBox="0 0 8 8"/>')
 })

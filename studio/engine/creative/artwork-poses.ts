@@ -644,3 +644,19 @@ export const posedDrawing = (
   }
   return { svg: annotated + svg.slice(cursor), poses: reports }
 }
+
+/**
+ * The drawing's content inside one group, which only the pose player moves:
+ * it scales that group for the small pop as a pose arrives, so the pop never
+ * touches a scale the scene gives the drawing, and every seek of the
+ * timeline shows the same frame. An idle loop's style stays first.
+ */
+export const withPop = (svg: string) => {
+  const open = /<svg\b[^>]*>/i.exec(svg)
+  const close = svg.search(/<\/svg\s*>\s*$/i)
+  if (!open || open[0].endsWith('/>') || close < 0) return svg
+  let at = open.index + open[0].length
+  const style = /^\s*<style\b[^>]*>[\s\S]*?<\/style\s*>/i.exec(svg.slice(at))
+  if (style) at += style[0].length
+  return `${svg.slice(0, at)}<g data-pose-pop="">${svg.slice(at, close)}</g>${svg.slice(close)}`
+}

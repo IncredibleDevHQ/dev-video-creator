@@ -147,6 +147,29 @@ describe('what each task last did', () => {
   })
 })
 
+it('says a provider’s refusal in its own words, with any key it echoes hidden', async () => {
+  await gateway.saveModelSettings({
+    provider: 'openai',
+    models: { writing: 'gpt-5.6-sol' }
+  })
+  vi.stubGlobal(
+    'fetch',
+    async () =>
+      new Response(
+        `{"error":{"message":"Incorrect API key provided: sk-envi****9f3a. Sent ${ENV_KEY} as Bearer ${ENV_KEY}"}}`,
+        { status: 401 }
+      )
+  )
+  const refusal = await gateway
+    .modelFetch('writing', { body: JSON.stringify({ input: 'hi' }) })
+    .catch((error: Error) => error)
+  expect(refusal).toBeInstanceOf(Error)
+  expect((refusal as Error).message).toContain(
+    'rejected the request (401): {"error":{"message":"Incorrect API key provided: [key]. Sent [key] as Bearer [key]"}}'
+  )
+  expect((refusal as Error).message).not.toMatch(/sk-env|9f3a/)
+})
+
 it('does not forward a saved key to a different provider', async () => {
   await gateway.saveModelSettings({
     provider: 'openai',

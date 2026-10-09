@@ -434,9 +434,16 @@ export const imageGenerate = async ({
   return null
 }
 
-/** A provider's refusal, in its own words: what the user needs to fix. */
-const rejected = async (label: string, response: Response) => {
-  const detail = (await response.text().catch(() => '')).slice(0, 400)
+/**
+ * A provider's refusal, in its own words: what the user needs to fix. A key
+ * it echoes, whole or masked, is hidden.
+ */
+const rejected = async (label: string, response: Response, key: string) => {
+  const text = (await response.text().catch(() => '')).slice(0, 400)
+  const detail = (key ? text.split(key).join('[key]') : text)
+    .replace(/\bBearer\s+[\w~+/*=[\]-]+(?:\.[\w~+/*=[\]-]+)*/gi, 'Bearer [key]')
+    .replace(/\b(?:sk|pk|rk|gsk|xai)[-_][\w*-]+(?:\.[\w*-]+)*/gi, '[key]')
+    .replace(/\bAIza[\w-]{10,}/g, '[key]')
   return new Refusal(
     `${label} rejected the request (${response.status})${detail ? `: ${detail}` : ''}`
   )
@@ -483,7 +490,8 @@ export const modelFetch = async (
       model,
       at: new Date().toISOString()
     })
-    if (!response.ok) throw await rejected(preset.label, response)
+    if (!response.ok)
+      throw await rejected(preset.label, response, settings.apiKey)
     return {
       ok: response.ok,
       status: response.status,
@@ -583,7 +591,8 @@ export const modelFetch = async (
     model,
     at: new Date().toISOString()
   })
-  if (!response.ok) throw await rejected(preset.label, response)
+  if (!response.ok)
+    throw await rejected(preset.label, response, settings.apiKey)
   const body = (await response.json()) as {
     choices?: Array<{
       message?: { content?: string | Array<{ type?: string; text?: string }> }
