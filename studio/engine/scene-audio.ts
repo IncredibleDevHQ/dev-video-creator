@@ -10,6 +10,7 @@ import { momentAudioKey } from './scene-model'
 import { loadStageCheckpoint, saveStageCheckpoint } from './artifacts'
 import { fingerprintOf } from './planning/fingerprint'
 import { takeFits } from '../shared/state'
+import { Refusal } from './refusal'
 export const prepareMomentAudio = async (
   projectId: string,
   sceneId: string,
@@ -26,7 +27,7 @@ export const prepareMomentAudio = async (
     (voice.kind === 'record' || moment.camera !== 'none') &&
     !takeFits(moment)
   )
-    throw new Error('Record this moment first')
+    throw new Refusal('Record this moment first')
   const checkpoint = await loadStageCheckpoint<Moment>(
     projectId,
     sceneId,
@@ -43,7 +44,8 @@ export const prepareMomentAudio = async (
     moment.camera === 'full' ||
     (voice.kind === 'record' && moment.camera === 'none')
   ) {
-    if (!take?.duration) throw new Error('The recording has no measured clock')
+    if (!take?.duration)
+      throw new Refusal('The recording has no measured clock')
     return {
       ...moment,
       audioKey: inputKey,
@@ -77,7 +79,7 @@ export const prepareMomentAudio = async (
     if (take) await writeFile(takePath, await readAsset(take.objectKey))
     let cameraTimes: Array<{ id: string; start: number; end: number }> = []
     if (segments.some((segment) => segment.camera)) {
-      if (!take?.duration) throw new Error('Record this moment first')
+      if (!take?.duration) throw new Refusal('Record this moment first')
       const saved = await loadStageCheckpoint<ReturnType<typeof takeClockOf>>(
         projectId,
         sceneId,
@@ -103,7 +105,7 @@ export const prepareMomentAudio = async (
           clock
         )
       if (clock.problems.length)
-        throw new Error(
+        throw new Refusal(
           'The recording does not cover this moment. Record it again.'
         )
       cameraTimes = clock.moments
@@ -117,7 +119,7 @@ export const prepareMomentAudio = async (
       if (segment.camera || voice.kind === 'record') {
         const timing = cameraTimes.find((time) => time.id === segment.id)
         if (!timing || !take)
-          throw new Error('The recording has no timing for this segment')
+          throw new Refusal('The recording has no timing for this segment')
         await runCommand('ffmpeg', [
           '-y',
           '-i',

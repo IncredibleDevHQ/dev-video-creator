@@ -1,6 +1,6 @@
 import type { Snapshot } from '../shared/api'
 import { escape } from './ui'
-import { wireframeStatus } from './wireframe-copy'
+import { buildPhase } from './wireframe-progress'
 export const presentationProgress = (snapshot: Snapshot) => {
   if (snapshot.status === 'failed')
     return `<div class="generation-progress" role="status"><h2>${snapshot.stopping ? 'Generation stopped' : 'Your wireframes need attention'}</h2><p>${escape(snapshot.error || 'The last step could not finish.')}</p><p>Use the recovery action below to continue this notebook.</p></div>`
@@ -9,10 +9,9 @@ export const presentationProgress = (snapshot: Snapshot) => {
   const event = [...snapshot.events]
     .reverse()
     .find((event) => event.kind === 'slide')
-  const message = snapshot.stopping
-    ? 'Stopping generation'
-    : snapshot.progress?.label || event?.message || 'Preparing your wireframes'
-  return `<div class="generation-progress" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><h2>${escape(wireframeStatus(message))}</h2><p>Each wireframe will appear here as it is generated.</p><small data-progress-since="${escape(snapshot.progress?.startedAt || event?.time || '')}">${escape(progressElapsed(snapshot.progress?.startedAt || event?.time || ''))}</small><p class="progress-return">You can leave this notebook and return from the start screen.</p></div>`
+  // The same words as the stage tab and the agent pill.
+  const message = buildPhase(snapshot)?.line || 'Preparing your wireframes'
+  return `<div class="generation-progress" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><h2>${escape(message)}</h2><p>Each wireframe will appear here as it is generated.</p><small data-progress-since="${escape(snapshot.progress?.startedAt || event?.time || '')}">${escape(progressElapsed(snapshot.progress?.startedAt || event?.time || ''))}</small><p class="progress-return">You can leave this notebook and return from the start screen.</p></div>`
 }
 export const progressElapsed = (time: string, now = Date.now()) => {
   const start = Date.parse(time)

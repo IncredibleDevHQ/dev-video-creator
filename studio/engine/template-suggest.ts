@@ -29,6 +29,7 @@ import { askJev, jevConfigured, type JevAnswer, type JevQuestion } from './jev'
 import { readRow } from './persistence'
 import { addEvent, changeProject, loadProject } from './projects'
 import type { SourceRead } from './source-document'
+import { Refusal } from './refusal'
 
 const ELABORATION: Elaboration[] = ['brief', 'standard', 'thorough']
 const DRAMA: Drama[] = ['calm', 'lively', 'dramatic']
@@ -159,17 +160,17 @@ export const readSuggestion = (
  */
 export const suggestTemplate = async (id: string) => {
   if (!jevConfigured())
-    throw new Error('Jev is not set up: add TYPESAFE_API_KEY to .env')
+    throw new Refusal('Jev is not set up: add TYPESAFE_API_KEY to .env')
   const source = await readRow<SourceRead>('sources', id)
   const snapshot = await loadProject(id)
-  if (!source || !snapshot) throw new Error('Read the source first')
+  if (!source || !snapshot) throw new Refusal('Read the source first')
   const words = source.text.split(/\s+/).filter(Boolean).length
   const answers = await askJev(
     { title: source.title, words, text: source.text.slice(0, 24_000) },
     suggestionQuestions()
   )
   const suggestion = readSuggestion(answers, undefined, words)
-  if (!suggestion) throw new Error('Jev did not suggest a template')
+  if (!suggestion) throw new Refusal('Jev did not suggest a template')
   return changeProject(id, (current) => {
     const open =
       ['draft', 'failed'].includes(current.status) &&

@@ -243,26 +243,6 @@
 .workspace-header {
   gap: 16px;
 }
-@media (max-width: 1100px) {
-  .workspace-header {
-    height: auto;
-    min-height: 64px;
-    flex-wrap: wrap;
-    padding: 12px 20px;
-  }
-  .workspace-header .header-actions {
-    margin-left: auto;
-  }
-  .workspace-header nav {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    margin: 0;
-  }
-  .workspace-header nav button {
-    flex: 1;
-  }
-}
 @media (max-width: 600px) {
   .notebook {
     width: calc(100% - 24px);

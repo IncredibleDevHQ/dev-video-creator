@@ -8,6 +8,7 @@ import {
 } from './persistence'
 import { changeProject, addEvent } from './projects'
 import { refreshVideoKeys, scenePlanKey } from './scene-model'
+import { Refusal } from './refusal'
 export const DEFAULT_BRANDING: Branding = {
   name: '',
   tagline: '',
@@ -30,10 +31,10 @@ export const validateBranding = async (value: unknown): Promise<Branding> => {
     !/^#[a-f0-9]{6}$/i.test(raw.accent) ||
     typeof raw.useAccent !== 'boolean'
   )
-    throw new Error('Check your branding fields')
+    throw new Refusal('Check your branding fields')
   if (raw.logoKey !== null) {
     if (!validObjectKey(raw.logoKey) || !/\.(png|jpg|webp)$/i.test(raw.logoKey))
-      throw new Error('Invalid logo')
+      throw new Refusal('Invalid logo')
     await readAsset(raw.logoKey)
   }
   if (
@@ -42,7 +43,7 @@ export const validateBranding = async (value: unknown): Promise<Branding> => {
       /^#[a-f0-9]{6}$/i.test(raw.palette![key as keyof typeof raw.palette])
     )
   )
-    throw new Error('Check your brand colours')
+    throw new Refusal('Check your brand colours')
   if (
     raw.fonts &&
     !['display', 'body', 'mono'].every(
@@ -51,7 +52,7 @@ export const validateBranding = async (value: unknown): Promise<Branding> => {
         raw.fonts![key as keyof typeof raw.fonts].length <= 100
     )
   )
-    throw new Error('Check your brand fonts')
+    throw new Refusal('Check your brand fonts')
   if (
     raw.look !== undefined &&
     (typeof raw.look?.id !== 'string' ||
@@ -59,7 +60,7 @@ export const validateBranding = async (value: unknown): Promise<Branding> => {
       raw.look.id.length > 100 ||
       raw.look.name.length > 100)
   )
-    throw new Error('Check the look')
+    throw new Refusal('Check the look')
   const brand = {
     ...(raw.palette ? { palette: raw.palette } : {}),
     ...(raw.fonts ? { fonts: raw.fonts } : {}),

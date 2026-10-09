@@ -4,7 +4,7 @@ import {
   videoDisplay
 } from '../shared/state'
 import type { Snapshot } from '../shared/api'
-import { wireframeProgress } from './wireframe-progress'
+import { buildPhase } from './wireframe-progress'
 
 /**
  * The short caption after a stage's name in the header: one plain word
@@ -18,13 +18,14 @@ const caption = (
   active: boolean
 ) => {
   const { project } = snapshot
-  if (label === 'Needs attention') return 'stopped'
+  if (label === 'Stopped') return 'stopped'
   if (stage === 'presentation') {
-    if (active)
-      return wireframeProgress(snapshot).checking ? 'checking' : 'drawing'
+    if (active) return buildPhase(snapshot)?.word || 'drawing'
     if (label === 'Not started') return 'next'
   }
   if (stage === 'video') {
+    // Busy, the tab says the step's verb; the pill says the rest.
+    if (active) return label.split(' ')[0].toLowerCase()
     const video = project.video
     if (!video) return snapshot.status === 'ready' ? 'next' : ''
     const views = snapshot.views || projectViews(project, snapshot.events)
@@ -65,7 +66,7 @@ export const stageStatus = (
     ? 'is-processing'
     : label === 'Ready'
       ? 'is-ready'
-      : label === 'Needs attention'
+      : label === 'Stopped'
         ? 'needs-attention'
         : 'is-idle'
   const text = overridden

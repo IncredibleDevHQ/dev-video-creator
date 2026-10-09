@@ -193,7 +193,7 @@ it('keeps presentation ready while video processing appears only in its own stat
   )
   expect(stageStatus(input, 'presentation')).toContain('Ready')
   expect(stageStatus(input, 'presentation')).not.toContain('is-processing')
-  expect(stageStatus(input, 'video')).toContain('Processing')
+  expect(stageStatus(input, 'video')).toContain('Making')
   expect(stageStatus(input, 'video', false)).toContain('Reconnecting')
   input.readOnly = true
   expect(stageStatus(input, 'video')).toContain('Saved')
@@ -242,7 +242,7 @@ it('retains the failed step marker after later recovery events', () => {
   )
   const html = render(input)
   expect(html).toContain(
-    'Video composition</p><span class="activity-stopped-label">Stalled'
+    'Video composition</p><span class="activity-stopped-label">Stopped'
   )
   expect(html).not.toContain('class="current"')
 })
@@ -284,7 +284,7 @@ it('keeps another scene’s processing out of the selected canvas', () => {
   const html = render(input)
   expect(html).not.toContain('video-run-status')
   expect(html).toContain('thumbnail scene-processing')
-  expect(stageStatus(input, 'video')).toContain('Processing')
+  expect(stageStatus(input, 'video')).toContain('Making')
 })
 
 it('shows live harness detail inside the current timeline step and retains it at a stall', () => {
@@ -305,7 +305,7 @@ it('shows live harness detail inside the current timeline step and retains it at
   expect(render(input)).toContain('Last update')
   input.project.video!.scenes[0].phase = 'failed'
   input.sceneProgress.scene.active = false
-  expect(render(input)).toContain('Stalled')
+  expect(render(input)).toContain('Stopped')
   expect(render(input)).toContain('activity-detail">Reviewing scene inputs')
   input.project.video!.scenes[0].phase = 'produced'
   expect(render(input)).not.toContain('activity-detail')
@@ -480,7 +480,7 @@ it('distinguishes scenes ready to assemble from active work and missing recordin
   input.views!.scenes.scene.openMomentIds = ['m1']
   expect(stageStatus(input, 'video')).toContain('Needs recording')
   scene.phase = 'producing'
-  expect(stageStatus(input, 'video')).toContain('Processing')
+  expect(stageStatus(input, 'video')).toContain('Making')
 })
 
 it('keeps the planned presenter space visible when animation exists but recording is missing', async () => {

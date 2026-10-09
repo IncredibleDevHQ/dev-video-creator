@@ -20,6 +20,7 @@ import {
   selectedVoice,
   useVoice
 } from './voice-library'
+import { Refusal } from './refusal'
 export const getStudioSettings = async (
   refreshVoices = false
 ): Promise<StudioSettings> => {
@@ -67,7 +68,7 @@ export const saveStudioSettings = async (body: unknown) => {
     voice?: unknown
     projectId?: string
   }
-  if (!patch || typeof patch !== 'object') throw new Error('Invalid settings')
+  if (!patch || typeof patch !== 'object') throw new Refusal('Invalid settings')
   if (Object.hasOwn(patch, 'harness')) {
     const harness =
       patch.harness === null ? null : await availableHarness(patch.harness)
@@ -78,7 +79,7 @@ export const saveStudioSettings = async (body: unknown) => {
   if (patch.models) {
     const models = patch.models
     if (!models.provider || !Object.hasOwn(MODEL_PRESETS, models.provider))
-      throw new Error('Choose a model provider')
+      throw new Refusal('Choose a model provider')
     const base = models.baseUrl || MODEL_PRESETS[models.provider].baseUrl
     const url = new URL(base)
     if (
@@ -86,7 +87,7 @@ export const saveStudioSettings = async (body: unknown) => {
       url.username ||
       url.password
     )
-      throw new Error('Enter the provider API URL without credentials')
+      throw new Refusal('Enter the provider API URL without credentials')
     if (
       !models.models ||
       !Object.values(models.models).every(
@@ -94,9 +95,9 @@ export const saveStudioSettings = async (body: unknown) => {
           typeof model === 'string' && model.trim() && model.length <= 200
       )
     )
-      throw new Error('Choose a model for each task')
+      throw new Refusal('Choose a model for each task')
     if (models.apiKey !== undefined && typeof models.apiKey !== 'string')
-      throw new Error('Invalid model API key')
+      throw new Refusal('Invalid model API key')
     await saveModelSettings(models)
   }
   await saveFishKey(patch.fishApiKey)
@@ -110,9 +111,9 @@ export const saveStudioSettings = async (body: unknown) => {
 export const validateVoiceChoice = (raw: unknown): Voice => {
   const voice = raw as Voice
   if (!voice || !['record', 'ai', 'clone'].includes(voice.kind))
-    throw new Error('Choose a voice')
+    throw new Refusal('Choose a voice')
   if (voice.kind === 'record') return { kind: 'record' }
   if (typeof voice.id !== 'string' || !voice.id.trim() || voice.id.length > 200)
-    throw new Error('Choose a voice')
+    throw new Refusal('Choose a voice')
   return { kind: voice.kind, id: voice.id }
 }

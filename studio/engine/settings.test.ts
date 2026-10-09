@@ -172,6 +172,6 @@ it('persists the creative harness and model for new notebooks and leaves the fir
   expect((await getStudioSettings()).harness).toEqual(settings.harness)
   await expect(
     saveStudioSettings({ harness: { adapter: 'unknown' } })
-  ).rejects.toThrow('supported harness')
+  ).rejects.toThrow('supported agent')
   expect((await saveStudioSettings({ harness: null })).harness).toBeNull()
 })

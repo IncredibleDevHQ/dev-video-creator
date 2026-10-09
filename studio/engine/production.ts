@@ -19,6 +19,7 @@ import {
   archiveFiles,
   restoreFiles
 } from './artifacts'
+import { Refusal } from './refusal'
 const active = new Map<string, Promise<void>>()
 export const produceScene = async (id: string, sceneId: string) => {
   const key = `${id}/${sceneId}`
@@ -33,16 +34,16 @@ export const produceScene = async (id: string, sceneId: string) => {
       !scene.moments.length ||
       !['waiting', 'produced', 'failed'].includes(scene.phase)
     )
-      throw new Error('This scene is not ready to produce')
+      throw new Refusal('This scene is not ready to produce')
     if (scene.phase === 'failed' && scene.failure !== 'production')
-      throw new Error('Write this scene first')
+      throw new Refusal('Write this scene first')
     if (
       !scene.creativePlan &&
       scene.moments.some(
         (moment) => momentState(moment, video.settings.voice) === 'to record'
       )
     )
-      throw new Error('Record the open moments first')
+      throw new Refusal('Record the open moments first')
     for (const moment of scene.moments)
       moment.plannedSeconds ??=
         moment.segments?.reduce((n, s) => n + s.estimate, 0) ||

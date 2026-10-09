@@ -7,6 +7,7 @@ import { fingerprintOf } from './planning/fingerprint'
 import { validateSourceReply } from './notebook-chat'
 import type { SourceRead } from './source-document'
 import { readRow } from './persistence'
+import { Refusal } from './refusal'
 export const saveDialogueExtension = (
   id: string,
   sceneId: string,
@@ -17,15 +18,19 @@ export const saveDialogueExtension = (
     const scene = snapshot.project.video?.scenes.find((s) => s.id === sceneId),
       moment = scene?.moments.find((m) => m.id === momentId)
     if (!scene || !moment || !snapshot.project.video)
-      throw new Error('This moment no longer exists')
+      throw new Refusal('This moment no longer exists')
     if (!['waiting', 'produced', 'failed'].includes(scene.phase))
-      throw new Error('Wait for this scene to finish before changing dialogue')
+      throw new Refusal(
+        'Wait for this scene to finish before changing dialogue'
+      )
     if (moment.camera === 'none')
-      throw new Error('Extra dialogue needs an on-camera moment')
+      throw new Refusal('Extra dialogue needs an on-camera moment')
     if (typeof body.text !== 'string' || body.text.length > 4000)
-      throw new Error('Keep the extension under 4000 characters')
+      throw new Refusal('Keep the extension under 4000 characters')
     if (body.recordingKey !== moment.recordingKey)
-      throw new Error('The dialogue changed. Reopen this moment before saving.')
+      throw new Refusal(
+        'The dialogue changed. Reopen this moment before saving.'
+      )
     const text = body.text.trim(),
       previous = moment.extension
     if (text === (previous?.text || '')) return
@@ -95,7 +100,7 @@ export async function suggestDialogueExtension(
     scene = snapshot?.project.video?.scenes.find((s) => s.id === sceneId),
     moment = scene?.moments.find((m) => m.id === momentId)
   if (!snapshot || !moment || moment.recordingKey !== body.recordingKey)
-    throw new Error('The dialogue changed. Reopen this moment.')
+    throw new Refusal('The dialogue changed. Reopen this moment.')
   if (
     typeof body.text !== 'string' ||
     body.text.length > 4000 ||
@@ -103,14 +108,15 @@ export async function suggestDialogueExtension(
     body.seconds < 5 ||
     body.seconds > 180
   )
-    throw new Error('Choose an extension of 5–180 seconds')
+    throw new Refusal('Choose an extension of 5–180 seconds')
   const selection = snapshot.project.harness
   if (!selection)
-    throw new Error(
+    throw new Refusal(
       'Choose an AI in notebook settings to get suggestions. You can still write your own dialogue.'
     )
   const key = `${id}/${sceneId}/${momentId}`
-  if (pending.has(key)) throw new Error('A suggestion is already being written')
+  if (pending.has(key))
+    throw new Refusal('A suggestion is already being written')
   pending.add(key)
   try {
     const source =

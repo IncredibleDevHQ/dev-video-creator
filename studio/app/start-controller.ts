@@ -5,6 +5,7 @@ import { themeControl } from './appearance'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import type { NotebookSummary } from '../shared/api'
+import { gear } from './camera-settings'
 import incredibleLogo from './assets/incredible-logo.svg'
 import { sourceComposer, updateSourceComposer } from './source-composer'
 import { rollingHeadline } from './rolling-headline'
@@ -100,7 +101,7 @@ export const createRenderStartScreen = (app: AppContext) => () => {
     `<header class="home">
 <a class="brand" href="/" aria-label="Incredible Studio">
 <img src="${incredibleLogo}" alt="">Incredible</a>
-<div class="header-actions">${themeControl()}${button('Templates', 'open-templates')}${button('Settings', 'settings')}</div></header>
+<div class="header-actions">${themeControl()}${button('Templates', 'open-templates')}<button type="button" data-action="settings" class="icon-button" aria-label="Settings" title="Settings">${gear}</button></div></header>
 <main class="start has-story${firstVisit ? '' : ' has-recent'}">
 ${rollingHeadline()}
 <form id="source">

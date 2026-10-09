@@ -6,6 +6,7 @@ import { readRow, writeRow, storeAsset } from './persistence'
 import { fingerprintOf, quotedIn } from './planning/fingerprint'
 import { runValidatedJsonStage } from './creative/stage'
 import { modelFetch } from './model-gateway'
+import { Refusal } from './refusal'
 export type SourceReply = { reply: string; evidence: string[] }
 export const validateSourceReply = (raw: unknown, source: SourceRead) => {
   const value = raw as SourceReply
@@ -30,11 +31,13 @@ export const chatNotebook = async (id: string, request: ChatRequest) => {
     !request.instruction.trim() ||
     request.instruction.length > 4000
   )
-    throw new Error('Ask a question about this source in up to 4000 characters')
+    throw new Refusal(
+      'Ask a question about this source in up to 4000 characters'
+    )
   const snapshot = await loadProject(id)
-  if (!snapshot) throw new Error('Notebook not found')
+  if (!snapshot) throw new Refusal('Notebook not found')
   const source = await readRow<SourceRead>('sources', id)
-  if (!source) throw new Error('Finish reading the source first')
+  if (!source) throw new Refusal('Finish reading the source first')
   const inputKey = fingerprintOf({
     source: source.text,
     instruction: request.instruction
@@ -113,7 +116,7 @@ export const chatNotebook = async (id: string, request: ChatRequest) => {
       answer = report.value
     }
     if ((await readRow<SourceRead>('sources', id))?.text !== source.text)
-      throw new Error(
+      throw new Refusal(
         'The source changed while this reply was being written. Ask again.'
       )
     await writeRow('source-chat-replies', randomUUID(), {

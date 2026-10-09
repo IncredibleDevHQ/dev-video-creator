@@ -19,6 +19,7 @@ const NO_IDENTITY: Branding = {
 }
 import { brandDomain, loadBrandLibrary } from './brand-library'
 import type { SourceRead } from './source-document'
+import { Refusal } from './refusal'
 
 /** The look a notebook starts with, before the creator chooses one. */
 export const startingLook = async (
@@ -100,7 +101,7 @@ export const validateLook = (raw: unknown): Look => {
         look.fonts[key as keyof Look['fonts']].length <= 100
     )
   )
-    throw new Error('Choose a look, or three colours and two fonts')
+    throw new Refusal('Choose a look, or three colours and two fonts')
   return {
     id: look.id,
     name: look.name.trim(),

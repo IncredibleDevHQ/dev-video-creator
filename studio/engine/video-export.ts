@@ -10,6 +10,7 @@ import { joinScenes } from '../render/join'
 import { storeAsset } from './persistence'
 import { loadStageCheckpoint, saveStageCheckpoint } from './artifacts'
 import { readAsset } from './persistence'
+import { Refusal } from './refusal'
 const running = new Map<string, Promise<void>>()
 export const updateTransition = (
   id: string,
@@ -33,7 +34,7 @@ export const updateTransition = (
         'zoom'
       ].includes(String(transition))
     )
-      throw new Error('Choose a scene transition')
+      throw new Refusal('Choose a scene transition')
     video.transitions[index] = transition as Transition
     refreshVideoKeys(current.project)
     addEvent(current, 'video', 'Transition updated')
@@ -86,13 +87,13 @@ export const produceVideo = async (id: string) => {
         ).length
         s.project.video!.phase = failed ? 'failed' : 'idle'
         s.project.video!.error = failed
-          ? `${failed} scenes need attention. Other saved animations are ready.`
+          ? `${failed === 1 ? 'A scene' : `${failed} scenes`} stopped. Other saved animations are ready.`
           : null
         addEvent(
           s,
           'video',
           failed
-            ? 'Scene preparation finished with scenes needing attention.'
+            ? 'Scene preparation finished; some scenes stopped.'
             : 'Scene preparation finished. Add remaining recordings in any order.'
         )
       })
@@ -116,7 +117,7 @@ export const produceVideo = async (id: string) => {
       !videoView(current.project).enabled ||
       videoView(current.project).action !== 'produce-video'
     )
-      throw new Error('Produce every scene first')
+      throw new Refusal('Produce every scene first')
     const video = current.project.video!
     expected = video.inputKey
     video.phase = 'joining'

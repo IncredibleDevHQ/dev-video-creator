@@ -9,6 +9,7 @@ import {
 } from './persistence'
 import { validateBranding } from './branding'
 import { readSourceUrl } from './source-reader'
+import { Refusal } from './refusal'
 
 export const brandDomain = (url: string): string | null => {
   try {
@@ -33,7 +34,7 @@ export const saveLibraryBrand = async (raw: unknown): Promise<SavedBrand> => {
   const brand = await validateBranding(input?.brand)
   const domain = input.domain ? brandDomain(`https://${input.domain}`) : null
   if (input.domain && domain !== input.domain)
-    throw new Error('Use a normalised website domain')
+    throw new Refusal('Use a normalised website domain')
   return withOperationLock('brand-library', async () => {
     const library = await loadBrandLibrary()
     const existing = input.overwriteId
@@ -43,12 +44,14 @@ export const saveLibraryBrand = async (raw: unknown): Promise<SavedBrand> => {
       input.overwriteId &&
       (!existing || existing.updatedAt !== input.expectedUpdatedAt)
     )
-      throw new Error('This saved brand changed. Reload before overwriting it.')
+      throw new Refusal(
+        'This saved brand changed. Reload before overwriting it.'
+      )
     if (
       domain &&
       library.some((item) => item.domain === domain && item.id !== existing?.id)
     )
-      throw new Error(
+      throw new Refusal(
         'A brand is already saved for this domain. Restore it or explicitly overwrite it.'
       )
     const entry: SavedBrand = {
@@ -69,7 +72,7 @@ export const saveLibraryBrand = async (raw: unknown): Promise<SavedBrand> => {
 export const redetectBrand = async (id: string) => {
   const source = await readRow<SourceRead>('sources', id)
   if (!source?.url || !brandDomain(source.url))
-    throw new Error('This notebook has no website to detect')
+    throw new Refusal('This notebook has no website to detect')
   const detected = await readSourceUrl(source.url, { projectId: id })
   return {
     ...source,

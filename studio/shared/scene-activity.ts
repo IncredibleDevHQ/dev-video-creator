@@ -104,7 +104,7 @@ export const sceneActivityDisplay = (
       : !connected
         ? 'Reconnecting to live activity…'
         : sceneDisplay(snapshot, scene).failed
-          ? 'Paused at the step below'
+          ? 'Stopped at the step below'
           : active
             ? 'Creating your scene'
             : recordingSaved

@@ -1,18 +1,19 @@
 import type { ChatRequest, SlideEdit } from '../shared/api'
 import type { ChatAnchor } from '../shared/model'
+import { Refusal } from './refusal'
 
 export const requestObject = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new Error('Send a JSON object')
+    throw new Refusal('Send a JSON object')
   return value as Record<string, unknown>
 }
 const stringField = (body: Record<string, unknown>, name: string) => {
-  if (typeof body[name] !== 'string') throw new Error(`Missing ${name}`)
+  if (typeof body[name] !== 'string') throw new Refusal(`Missing ${name}`)
   return body[name]
 }
 export const numberField = (body: Record<string, unknown>, name: string) => {
   if (typeof body[name] !== 'number' || !Number.isFinite(body[name]))
-    throw new Error(`Invalid ${name}`)
+    throw new Refusal(`Invalid ${name}`)
   return body[name]
 }
 export const chatRequest = (body: Record<string, unknown>): ChatRequest => {
@@ -28,7 +29,7 @@ export const chatRequest = (body: Record<string, unknown>): ChatRequest => {
       momentId: stringField(raw, 'momentId'),
       second: numberField(raw, 'second')
     }
-  else throw new Error('Choose a notebook, slide or video moment')
+  else throw new Refusal('Choose a notebook, slide or video moment')
   const request: ChatRequest = {
     anchor,
     instruction: stringField(body, 'instruction')
@@ -54,7 +55,7 @@ export const slideRequest = (body: Record<string, unknown>): SlideEdit => {
       action
     )
   )
-    throw new Error('Choose a slide action')
+    throw new Refusal('Choose a slide action')
   return {
     action: action as SlideEdit['action'],
     ...(body.narration === undefined
@@ -76,7 +77,7 @@ export const extensionRequest = (body: Record<string, unknown>) => ({
 export const recordingParts = (
   value: unknown
 ): import('../shared/api').RecordedPart[] => {
-  if (!Array.isArray(value)) throw new Error('Send recording parts')
+  if (!Array.isArray(value)) throw new Refusal('Send recording parts')
   return value.map((item) => {
     const part = requestObject(item)
     return {

@@ -20,7 +20,8 @@ import { openAgentMenu } from './agent-menu'
 import { openDirectionMenu, openLengthMenu } from './notebook-choices'
 import { suggestedDirection } from '../shared/narratives'
 import { closeLookPanel, openLookPanel } from './look-panel'
-import { closePopover } from './popover'
+import { closePopover, openPopover } from './popover'
+import { headerMore } from './workspace-header'
 import { openPresenter } from './presenter-view'
 import { clickVideo, submitVideo } from './video-controller'
 import { syncSceneChoice } from './scene-link'
@@ -216,6 +217,15 @@ export const installAppActions = (app: AppContext) => {
       }
       if (action === 'rehearse') {
         openPresenter(app)
+        return
+      }
+      if (action === 'header-more' && app.snapshot) {
+        openPopover(
+          target,
+          'header-more',
+          headerMore(app.snapshot, app.stage),
+          'header-more-popover'
+        )
         return
       }
       if (action === 'open-map-of' && target.dataset.map) {

@@ -10,7 +10,7 @@
   font-size: 13px;
   gap: 8px;
 }
-.workspace-header:has(.theme-control) nav {
+.workspace-header nav {
   position: static;
   transform: none;
   margin: 0;
@@ -32,6 +32,7 @@
   margin-left: auto;
   gap: 12px;
   flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 .workspace-header .header-agent {
   height: 30px;
@@ -95,13 +96,29 @@
     padding-left: 6px;
   }
 }
-@media (max-width: 860px) {
+/* Narrower, Map, Look and Rehearse keep only their icons. */
+@media (max-width: 1365px) {
+  .workspace-header .header-look {
+    justify-content: center;
+    width: 30px;
+    padding: 6px;
+  }
+  .workspace-header .header-look span {
+    display: none;
+  }
+  .workspace-header .agent-pill {
+    max-width: 220px;
+  }
+}
+/* The one wrap point: the stage tabs take a row of their own. */
+@media (max-width: 1180px) {
   .workspace-header {
     height: auto;
     padding: 8px 12px;
     flex-wrap: wrap;
+    row-gap: 6px;
   }
-  .workspace-header:has(.theme-control) nav {
+  .workspace-header nav {
     order: 3;
     width: 100%;
     justify-content: center;
@@ -130,4 +147,28 @@
     border: 0;
     padding-left: 0;
   }
+}
+/* The header's ••• menu: the wireframes' export, and the theme. */
+.header-more-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+.header-more-list > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13px;
+}
+.header-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
 }

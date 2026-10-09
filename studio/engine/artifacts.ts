@@ -7,6 +7,7 @@ import {
   validObjectKey
 } from './persistence'
 import type { SketchFiles } from '../render/types'
+import { Refusal } from './refusal'
 export type ArtifactRef = {
   id: string
   objectKey: string
@@ -83,7 +84,7 @@ export const archiveFiles = async (
 ): Promise<ArtifactRef[]> => {
   const result: ArtifactRef[] = []
   for (const [name, file] of Object.entries(files)) {
-    if (!validObjectKey(name)) throw new Error('Invalid artifact file')
+    if (!validObjectKey(name)) throw new Refusal('Invalid artifact file')
     const extension = name.match(/\.[a-z0-9]+$/i)?.[0] || '.bin'
     const body =
       typeof file === 'string'
@@ -121,7 +122,7 @@ export const restoreFiles = async (
   const files: SketchFiles = {}
   for (const ref of refs) {
     if (!validObjectKey(ref.name) || files[ref.name] !== undefined)
-      throw new Error('Invalid artifact manifest')
+      throw new Refusal('Invalid artifact manifest')
     const body = await readAsset(ref.objectKey)
     files[ref.name] = /^(text\/|application\/json|image\/svg\+xml)/.test(
       ref.contentType

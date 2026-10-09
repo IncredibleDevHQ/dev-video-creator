@@ -8,11 +8,18 @@ import { closePopover, openPopover } from './popover'
 export const installSlidesController = (app: AppContext) => {
   app.root.addEventListener('keydown', (event) => {
     // The content map, open over the wireframes, has keys of its own.
+    if (!app.snapshot || app.stage !== 'presentation' || app.mapCanvas.isOpen)
+      return
+    // Keys pressed in a field or on a control are that control's: Enter on a
+    // tab or a header button presses it. A wireframe in the rail, or nothing
+    // in particular, takes the wireframe keys.
+    const target = event.target as Element
+    const onTile = Boolean(target.closest?.('.rail .thumbnail'))
     if (
-      !app.snapshot ||
-      app.stage !== 'presentation' ||
-      app.mapCanvas.isOpen ||
-      /INPUT|TEXTAREA/.test((event.target as Element).tagName)
+      !onTile &&
+      target.closest?.(
+        'input, textarea, select, button, a, summary, [role="tab"], [role="button"], [contenteditable="true"], [contenteditable=""]'
+      )
     )
       return
     const command = event.metaKey || event.ctrlKey

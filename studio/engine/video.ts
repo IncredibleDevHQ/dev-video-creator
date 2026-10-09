@@ -33,25 +33,26 @@ import { loadStageCheckpoint, saveStageCheckpoint } from './artifacts'
 import { validateHarnessSelection } from './harness/preference'
 import { planCreativeScene } from './creative/scene'
 import { transitionScene } from './autopilot'
+import { Refusal } from './refusal'
 const running = new Map<string, Promise<void>>()
 const isPresence = (value: unknown): value is Presence =>
   ['off', 'low', 'high'].includes(String(value))
 export const validateVideoSettings = (value: unknown): VideoSettings => {
   const raw = value as VideoSettings
   if (!raw || !isPresence(raw.presence))
-    throw new Error('Choose your on-camera setting')
+    throw new Refusal('Choose your on-camera setting')
   if (!raw.voice || !['record', 'ai', 'clone'].includes(raw.voice.kind))
-    throw new Error('Choose a voice')
+    throw new Refusal('Choose a voice')
   if (
     raw.voice.kind !== 'record' &&
     (typeof raw.voice.id !== 'string' ||
       !raw.voice.id.trim() ||
       raw.voice.id.length > 200)
   )
-    throw new Error('Choose a voice')
+    throw new Refusal('Choose a voice')
   const narrative = raw.narrative ? narrativeById(raw.narrative) : undefined
   if (raw.narrative && !narrative)
-    throw new Error('Choose one of the templates, or none')
+    throw new Refusal('Choose one of the templates, or none')
   return {
     ...(raw.harness ? { harness: validateHarnessSelection(raw.harness) } : {}),
     ...(narrative
@@ -79,7 +80,7 @@ const chosenScenes = (body: unknown, slideIds: string[]) => {
     !raw.length ||
     raw.some((id) => typeof id !== 'string' || !slideIds.includes(id))
   )
-    throw new Error('Choose at least one wireframe to make')
+    throw new Refusal('Choose at least one wireframe to make')
   return new Set(raw as string[])
 }
 export const makeVideo = async (id: string, settings: unknown) => {
@@ -87,10 +88,10 @@ export const makeVideo = async (id: string, settings: unknown) => {
   await resolveVoice(valid.voice)
   const snapshot = await changeProject(id, (current) => {
     if (current.project.video)
-      throw new Error('This project already has a video')
+      throw new Refusal('This project already has a video')
     // While the deck is drawn, a video opens once every page has a draft.
     if (!videoOpens(current))
-      throw new Error(
+      throw new Refusal(
         current.status === 'building'
           ? 'The video opens once every wireframe has a first draft'
           : 'Finish your slides first'
@@ -149,8 +150,8 @@ export const makeScene = async (id: string, sceneId: string) => {
     const scene = current.project.video?.scenes.find(
       (scene) => scene.id === sceneId
     )
-    if (!scene) throw new Error('Scene not found')
-    if (scene.phase !== 'idle') throw new Error('This scene is already made')
+    if (!scene) throw new Refusal('Scene not found')
+    if (scene.phase !== 'idle') throw new Refusal('This scene is already made')
     transitionScene(scene, 'make', current)
     refreshVideoKeys(current.project)
   })
@@ -165,11 +166,11 @@ export const leaveOutScene = async (id: string, sceneId: string) => {
   const snapshot = await changeProject(id, (current) => {
     const video = current.project.video
     const scene = video?.scenes.find((scene) => scene.id === sceneId)
-    if (!video || !scene) throw new Error('Scene not found')
+    if (!video || !scene) throw new Refusal('Scene not found')
     if (['preparing', 'joining'].includes(video.phase || ''))
-      throw new Error('Wait for the video to finish this step')
+      throw new Refusal('Wait for the video to finish this step')
     if (scene.phase === 'producing')
-      throw new Error('Wait for this scene to finish rendering')
+      throw new Refusal('Wait for this scene to finish rendering')
     transitionScene(scene, 'leave-out', current)
     refreshVideoKeys(current.project)
   })
@@ -459,7 +460,7 @@ export const retryScene = async (id: string, sceneId: string) => {
       (scene) => scene.id === sceneId
     )
     if (!scene || scene.phase !== 'failed')
-      throw new Error('This scene does not need a retry')
+      throw new Refusal('This scene does not need a retry')
     transitionScene(scene, 'retry', current)
   })
   schedulePlanning(id)
@@ -471,11 +472,11 @@ export const previewPresence = async (
   presence: unknown
 ): Promise<ReplanPreview> => {
   if (presence !== null && !isPresence(presence))
-    throw new Error('Choose your on-camera setting')
+    throw new Refusal('Choose your on-camera setting')
   const snapshot = await loadProject(id)
   const video = snapshot?.project.video
   const scene = video?.scenes.find((scene) => scene.id === sceneId)
-  if (!scene || !video) throw new Error('Scene not found')
+  if (!scene || !video) throw new Refusal('Scene not found')
   // The scene's default: the direction's for its place, or the notebook's.
   const following = scenePresence(
     {
@@ -502,16 +503,16 @@ export const replanPresence = async (
   presence: unknown
 ) => {
   if (presence !== null && !isPresence(presence))
-    throw new Error('Choose your on-camera setting')
+    throw new Refusal('Choose your on-camera setting')
   const snapshot = await changeProject(id, (current) => {
     const scene = current.project.video?.scenes.find(
       (scene) => scene.id === sceneId
     )
-    if (!scene) throw new Error('Scene not found')
+    if (!scene) throw new Refusal('Scene not found')
     if (
       ['writing', 'replanning', 'changing', 'producing'].includes(scene.phase)
     )
-      throw new Error(
+      throw new Refusal(
         'Wait for this scene to finish before changing its camera setting'
       )
     delete scene.editMomentId
@@ -537,9 +538,9 @@ export const setSceneBeats = async (
   const snapshot = await changeProject(id, (current) => {
     const video = current.project.video
     const scene = video?.scenes.find((item) => item.id === sceneId)
-    if (!video || !scene) throw new Error('Scene not found')
+    if (!video || !scene) throw new Refusal('Scene not found')
     const narrative = narrativeById(video.settings.narrative)
-    if (!narrative) throw new Error('Choose a template for the video first')
+    if (!narrative) throw new Refusal('Choose a template for the video first')
     if (
       beats !== null &&
       (!Array.isArray(beats) ||
@@ -547,11 +548,13 @@ export const setSceneBeats = async (
         new Set(beats).size !== beats.length ||
         beats.some((beat) => !narrative.beats.some((item) => item.id === beat)))
     )
-      throw new Error('Choose beats of the video’s template')
+      throw new Refusal('Choose beats of the video’s template')
     if (
       ['writing', 'replanning', 'changing', 'producing'].includes(scene.phase)
     )
-      throw new Error('Wait for this scene to finish before changing its beats')
+      throw new Refusal(
+        'Wait for this scene to finish before changing its beats'
+      )
     delete scene.editMomentId
     scene.beats = beats as string[] | null
     scene.planKey = scenePlanKey(current.project, scene)
@@ -575,15 +578,17 @@ export const setSceneShot = async (
   const snapshot = await changeProject(id, (current) => {
     const video = current.project.video
     const scene = video?.scenes.find((item) => item.id === sceneId)
-    if (!video || !scene) throw new Error('Scene not found')
+    if (!video || !scene) throw new Refusal('Scene not found')
     if (!narrativeById(video.settings.narrative))
-      throw new Error('Choose a template for the video first')
+      throw new Refusal('Choose a template for the video first')
     if (shot !== null && !shotById(String(shot)))
-      throw new Error('Choose one of the shots')
+      throw new Refusal('Choose one of the shots')
     if (
       ['writing', 'replanning', 'changing', 'producing'].includes(scene.phase)
     )
-      throw new Error('Wait for this scene to finish before changing its shot')
+      throw new Refusal(
+        'Wait for this scene to finish before changing its shot'
+      )
     delete scene.editMomentId
     scene.shot = shot as string | null
     scene.planKey = scenePlanKey(current.project, scene)
@@ -601,7 +606,7 @@ export const chatVideo = async (id: string, request: ChatRequest) => {
     request.anchor?.stage !== 'video' ||
     !request.instruction?.trim()
   )
-    throw new Error('Choose a moment and add an instruction')
+    throw new Refusal('Choose a moment and add an instruction')
   const anchor = request.anchor
   const trim = takeTrimRange(request.instruction)
   if (trim) return trimTake(id, anchor, trim, request.instruction.trim())
@@ -610,7 +615,7 @@ export const chatVideo = async (id: string, request: ChatRequest) => {
       request.instruction.trim()
     )
   )
-    throw new Error(
+    throw new Refusal(
       'Give the seconds to keep, for example: “trim take from 1 to 5 seconds”. The take is unchanged.'
     )
   const snapshot = await changeProject(id, (current) => {
@@ -627,9 +632,9 @@ export const chatVideo = async (id: string, request: ChatRequest) => {
       anchor.second < moment.start ||
       anchor.second > moment.end
     )
-      throw new Error('Choose a moment in this scene')
+      throw new Refusal('Choose a moment in this scene')
     if (!['waiting', 'produced', 'failed'].includes(scene.phase))
-      throw new Error('Wait for this scene to finish changing')
+      throw new Refusal('Wait for this scene to finish changing')
     scene.editMomentId = moment.id
     scene.instructions = [
       ...(scene.instructions || []),
@@ -655,14 +660,14 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
   await resolveVoice(valid.voice)
   const snapshot = await changeProject(id, (current) => {
     const video = current.project.video
-    if (!video) throw new Error('Make the video first')
+    if (!video) throw new Refusal('Make the video first')
     if (
       ['preparing', 'joining'].includes(video.phase || '') ||
       video.scenes.some((scene) =>
         ['writing', 'replanning', 'changing', 'producing'].includes(scene.phase)
       )
     )
-      throw new Error(
+      throw new Refusal(
         'Wait for the active scene work to finish before changing notebook settings. Saved work is kept.'
       )
     const oldPresence = video.settings.presence

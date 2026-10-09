@@ -28,6 +28,7 @@ import {
   type OutlineScene
 } from './source-outline'
 import { renderPage, type pageBrandFrom } from './source-page'
+import { Refusal } from './refusal'
 
 type Retained = {
   source: ReturnType<typeof readSourceNarrative>
@@ -39,24 +40,24 @@ const CHANGED = 'This wireframe changed while it was being changed.'
 
 export const chatSlide = async (id: string, request: ChatRequest) => {
   if (request?.anchor?.stage !== 'presentation')
-    throw new Error('Select a wireframe first')
+    throw new Refusal('Select a wireframe first')
   if (
     typeof request.instruction !== 'string' ||
     !request.instruction.trim() ||
     request.instruction.length > 4000
   )
-    throw new Error('Add an instruction of up to 4000 characters')
+    throw new Refusal('Add an instruction of up to 4000 characters')
   const slideId = request.anchor.slideId
   const changed = await changeProject(id, (current) => {
     const slide = current.project.slides.find((item) => item.id === slideId)
-    if (!slide) throw new Error('Select a wireframe first')
+    if (!slide) throw new Refusal('Select a wireframe first')
     // A blank wireframe is drawn from what the creator says it is about,
     // once the others are drawn.
     if (
       !['ready', 'building', 'failed'].includes(current.status) ||
       (!slide.svg && current.status !== 'ready')
     )
-      throw new Error('Wait for this wireframe to be drawn')
+      throw new Refusal('Wait for this wireframe to be drawn')
     const change: SlideChange = {
       id: randomUUID(),
       slideId,
@@ -89,11 +90,11 @@ export const answerEvidence = async (id: string, raw: unknown) => {
   const what = String(value.what || '').trim()
   const answer = String(value.answer || '').trim()
   if (!answer || answer.length > 2000)
-    throw new Error('Add an answer of up to 2000 characters')
+    throw new Refusal('Add an answer of up to 2000 characters')
   await changeProject(id, (current) => {
     const slide = current.project.slides.find((item) => item.id === slideId)
     if (!slide?.needs?.some((need) => need.what === what && !need.source))
-      throw new Error('This wireframe does not ask for that')
+      throw new Refusal('This wireframe does not ask for that')
     slide.answers = [
       ...(slide.answers || []).filter((item) => item.what !== what),
       { what, answer }
@@ -217,14 +218,14 @@ const origin = () =>
 
 const reviseSlide = async (id: string, change: SlideChange) => {
   const snapshot = await loadProject(id)
-  if (!snapshot) throw new Error('Notebook not found')
+  if (!snapshot) throw new Refusal('Notebook not found')
   const index = snapshot.project.slides.findIndex(
     (slide) => slide.id === change.slideId
   )
-  if (index < 0) throw new Error('This wireframe was deleted')
+  if (index < 0) throw new Refusal('This wireframe was deleted')
   const slide = snapshot.project.slides[index]
   const retained = await readRow<Retained>('outlines', id)
-  if (!retained) throw new Error('Source not found')
+  if (!retained) throw new Refusal('Source not found')
   const revisionKey = (project: Snapshot['project']) =>
     fingerprintOf({
       slide: drawingOf(

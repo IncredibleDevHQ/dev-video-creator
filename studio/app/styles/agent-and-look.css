@@ -32,7 +32,7 @@ header {
   border-bottom-color: var(--header-line);
 }
 header nav,
-.workspace-header:has(.theme-control) nav {
+.workspace-header nav {
   background: var(--header-track);
 }
 header nav button {
@@ -87,14 +87,16 @@ header nav button:disabled {
   opacity: 0.5;
 }
 
-/* The notebook's name, after the logo. */
+/* The notebook's name, after the logo: it keeps room of its own, so the
+   status and the tools never squeeze it to a letter (review 6). */
 .workspace-header .notebook-identity {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  max-width: min(320px, calc(50vw - 360px));
+  flex: 1 1 160px;
+  min-width: 120px;
+  max-width: none;
 }
 .workspace-header .header-sep {
   color: var(--header-line);
@@ -105,6 +107,10 @@ header nav button:disabled {
   font-size: 13px;
   font-weight: 600;
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .workspace-header .brand {
   margin-right: -6px;
@@ -122,7 +128,9 @@ header nav button:disabled {
   color: var(--header-ink);
   font-size: 12px;
   white-space: nowrap;
-  max-width: 300px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 260px;
 }
 .agent-pill .agent-dot {
   width: 7px;
@@ -152,6 +160,7 @@ header nav button:disabled {
 }
 .agent-pill .agent-activity {
   color: var(--header-muted);
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }

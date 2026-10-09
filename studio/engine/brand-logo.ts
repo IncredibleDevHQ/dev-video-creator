@@ -3,13 +3,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { runCommand } from './voice'
 import { storeAsset } from './persistence'
+import { Refusal } from './refusal'
 export const uploadLogo = async (body: Buffer, contentType: string) => {
   if (
     !body.length ||
     body.length > 5000000 ||
     !['image/png', 'image/jpeg', 'image/webp'].includes(contentType)
   )
-    throw new Error('Choose a PNG, JPEG or WebP logo under 5 MB')
+    throw new Refusal('Choose a PNG, JPEG or WebP logo under 5 MB')
   const dir = await mkdtemp(join(tmpdir(), 'minimal-brand-logo-'))
   try {
     const input = join(dir, 'image')

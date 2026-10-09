@@ -87,7 +87,7 @@ export const sceneView = (
         : scene.phase === 'idle'
           ? ''
           : scene.phase === 'failed'
-            ? 'Needs attention'
+            ? 'Stopped'
             : active
               ? label
               : produced
@@ -101,8 +101,7 @@ export const sceneView = (
   })
   if (waiting) return view('Starts once its wireframe is done', 'wait')
   if (scene.phase === 'idle') return view('Not in the video yet', 'make')
-  if (scene.phase === 'failed')
-    return view(scene.error || 'Needs attention', 'retry')
+  if (scene.phase === 'failed') return view(scene.error || 'Stopped', 'retry')
   if (scene.phase === 'queued') return view('Queued', 'wait')
   if (scene.phase === 'writing') return view('Writing the scene', 'wait')
   if (scene.phase === 'changing') return view('Changing', 'wait')
@@ -249,11 +248,21 @@ export const videoDisplay = (
   const needsRecording = video.scenes.some(
     (scene) => views.scenes[scene.id]?.openMomentIds.length
   )
+  // What is happening, in the words the header's agent pill repeats.
+  const working = video.scenes.filter(
+    (scene) => sceneDisplay(snapshot, scene).active
+  )
   const label = active
-    ? 'Processing'
+    ? views.video.state === 'Preparing scenes' || video.phase === 'preparing'
+      ? 'Preparing scenes'
+      : views.video.state === 'Producing video' || video.phase === 'joining'
+        ? 'Producing the video'
+        : working.length === 1
+          ? `Making scene ${video.scenes.indexOf(working[0]) + 1}`
+          : `Making ${working.length} scenes`
     : video.phase === 'failed' ||
         video.scenes.some((scene) => scene.phase === 'failed')
-      ? 'Needs attention'
+      ? 'Stopped'
       : !made.length
         ? 'No scenes made'
         : views.video.action === 'export'
@@ -267,7 +276,6 @@ export const videoDisplay = (
                 : 'Ready to prepare'
   // One name for finishing the video, whatever step is next (review 5: the
   // button read "Prepare scenes", then "Produce video · 0/1").
-  const count = `${views.video.producedScenes}/${views.video.madeScenes ?? made.length}`
   const actionLabel =
     views.video.state === 'Preparing scenes'
       ? 'Preparing scenes…'
@@ -275,9 +283,7 @@ export const videoDisplay = (
         ? 'Producing the video…'
         : views.video.action === 'export'
           ? 'Export MP4'
-          : !made.length
-            ? 'Finish the video'
-            : `Finish the video · ${count}`
+          : 'Finish the video'
   return { label, active, actionLabel }
 }
 export const presentationDisplay = (
@@ -290,7 +296,7 @@ export const presentationDisplay = (
         : snapshot.status === 'ready'
           ? 'Ready'
           : snapshot.status === 'failed'
-            ? 'Needs attention'
+            ? 'Stopped'
             : snapshot.stopping
               ? 'Stopping'
               : 'Processing',

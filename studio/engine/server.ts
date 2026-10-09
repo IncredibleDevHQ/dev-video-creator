@@ -90,6 +90,8 @@ import {
   recordingParts
 } from './request-body'
 import { validateHarnessSelection } from './harness/preference'
+import { foreignRequest } from './request-guard'
+import { Refusal } from './refusal'
 const send = (response: ServerResponse, status: number, value: unknown) => {
   response.writeHead(status, { 'Content-Type': 'application/json' })
   response.end(JSON.stringify(value))
@@ -103,13 +105,15 @@ export const createStudioServer = (
         return send(response, 403, {
           error: 'This is a saved review. Generation and editing are disabled.'
         })
+      const foreign = foreignRequest(request)
+      if (foreign) return send(response, 403, { error: foreign })
       const url = new URL(request.url || '/', 'http://localhost')
       if (url.pathname === '/api/settings/logo' && request.method === 'PUT') {
         const chunks: Uint8Array[] = []
         let size = 0
         for await (const chunk of request) {
           size += chunk.length
-          if (size > 5000000) throw new Error('Logo too large')
+          if (size > 5000000) throw new Refusal('Choose a logo under 5 MB')
           chunks.push(new Uint8Array(chunk))
         }
         return send(
@@ -129,7 +133,8 @@ export const createStudioServer = (
         let size = 0
         for await (const chunk of request) {
           size += chunk.length
-          if (size > 25000000) throw new Error('Voice recording too large')
+          if (size > 25000000)
+            throw new Refusal('Keep the voice recording under 25 MB')
           chunks.push(new Uint8Array(chunk))
         }
         return send(
@@ -150,16 +155,19 @@ export const createStudioServer = (
         /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/recordings$/
       )
       if (recordingRoute && request.method === 'PUT') {
-        const parts = recordingParts(
-          JSON.parse(
-            String(request.headers['x-studio-parts'] || '[]')
-          ) as unknown
-        )
+        let named: unknown
+        try {
+          named = JSON.parse(String(request.headers['x-studio-parts'] || '[]'))
+        } catch {
+          throw new Refusal('Send the recording parts as JSON')
+        }
+        const parts = recordingParts(named)
         const chunks: Uint8Array[] = []
         let size = 0
         for await (const chunk of request) {
           size += chunk.length
-          if (size > 150_000_000) throw new Error('Recording too large')
+          if (size > 150_000_000)
+            throw new Refusal('Keep the recording under 150 MB')
           chunks.push(new Uint8Array(chunk))
         }
         return send(
@@ -183,12 +191,17 @@ export const createStudioServer = (
         let size = 0
         for await (const chunk of request) {
           size += chunk.length
-          if (size > 2_000_000) throw new Error('Request too large')
+          if (size > 2_000_000) throw new Refusal('This request is too large')
           chunks.push(new Uint8Array(chunk))
         }
-        body = requestObject(
-          JSON.parse(Buffer.concat(chunks).toString()) as unknown
-        )
+        const text = Buffer.concat(chunks).toString()
+        let parsed: unknown = {}
+        try {
+          parsed = text.trim() ? JSON.parse(text) : {}
+        } catch {
+          throw new Refusal('Send the request as JSON')
+        }
+        body = requestObject(parsed)
       }
       const extensionRoute = url.pathname.match(
         /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/moments\/([a-zA-Z0-9_-]+)\/extension(?:\/(suggest))?$/
@@ -555,11 +568,16 @@ export const createStudioServer = (
         return
       }
       send(response, 404, { error: 'Not found' })
-    } catch {
-      send(response, 400, {
-        error:
-          'Unable to complete this request. Check the input and your AI settings.'
-      })
+    } catch (error) {
+      // A refusal is meant for the creator and says why; anything else is the
+      // studio's own failure, logged here and answered in general words.
+      if (error instanceof Refusal)
+        return send(response, 400, { error: error.message })
+      console.error(error)
+      if (!response.headersSent)
+        send(response, 500, {
+          error: 'Studio could not complete this request. Try again.'
+        })
     }
   })
 if (

@@ -180,3 +180,34 @@ it('releases live stream slots and replays saved state when reconnected', async 
     await new Promise<void>((resolve) => bounded.close(() => resolve()))
   }
 })
+it('refuses another site’s form post before routing it', async () => {
+  const response = await fetch(
+    `http://127.0.0.1:${address.port}/api/projects/deck/retry`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain', Origin: 'https://example.com' },
+      body: '{}'
+    }
+  )
+  expect(response.status).toBe(403)
+  expect((await response.json()).error).toBe(
+    'The studio refuses requests from other sites'
+  )
+})
+it('passes a refusal’s words through, and answers 500 for its own failures', async () => {
+  const { Refusal } = await import('./refusal')
+  slides.mockRejectedValueOnce(
+    new Refusal('Your wireframes do not need a retry')
+  )
+  const refused = await post('deck/retry')
+  expect(refused.status).toBe(400)
+  expect((await refused.json()).error).toBe(
+    'Your wireframes do not need a retry'
+  )
+  const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
+  slides.mockRejectedValueOnce(new Error('disk on fire'))
+  const failed = await post('deck/retry')
+  expect(failed.status).toBe(500)
+  expect((await failed.json()).error).not.toContain('disk')
+  quiet.mockRestore()
+})

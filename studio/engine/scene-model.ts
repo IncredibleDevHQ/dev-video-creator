@@ -187,7 +187,12 @@ export const reconcileVideo = (
     const key = scenePlanKey(project, scene)
     if (scene.planKey !== key) {
       scene.planKey = key
-      transitionScene(scene, 'invalidate', ledger)
+      // Left out of the video, a scene takes its new inputs quietly: only a
+      // scene in the video says it must be made again.
+      if (scene.phase === 'idle') {
+        scene.error = null
+        delete scene.failure
+      } else transitionScene(scene, 'invalidate', ledger)
       scene.produced = null
     }
     // A scene left out waits for its page quietly: failing it would queue

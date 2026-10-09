@@ -27,6 +27,7 @@ import {
   narrationClock,
   systemVoiceAvailable
 } from './voice'
+import { Refusal } from './refusal'
 const active = new Map<string, Promise<void>>()
 let systemChoices: Promise<VoiceChoice[]> | null = null
 const localVoices = () =>
@@ -122,17 +123,17 @@ export const resolveVoice = async (
   if (voice.kind === 'clone') {
     const clone = await readRow<VoiceClone>('voice-clones', voice.id)
     if (clone?.state !== 'ready' || !clone.referenceId)
-      throw new Error(
+      throw new Refusal(
         'Your voice clone is not ready. Choose a voice in Settings'
       )
     if (!(await voiceProviderAvailable()))
-      throw new Error('Add your Fish Audio key in Settings')
+      throw new Refusal('Add your Fish Audio key in Settings')
     return { referenceId: clone.referenceId }
   }
   if (voice.id === 'default') return {}
   const { choices } = await voiceCatalogue()
   const choice = choices.find((choice) => choice.id === voice.id)
-  if (!choice) throw new Error('Choose an available AI voice in Settings')
+  if (!choice) throw new Refusal('Choose an available AI voice in Settings')
   return choice.provider === 'fish'
     ? { referenceId: choice.id.slice(5) }
     : { systemVoice: choice.name }
@@ -145,7 +146,7 @@ export const useVoice = async (voice: Voice) => {
 export const previewVoice = async (voice: Voice) => {
   const options = await resolveVoice(voice)
   if (voice.kind === 'record')
-    throw new Error('Choose a generated voice to hear its sample')
+    throw new Refusal('Choose a generated voice to hear its sample')
   if (voice.kind === 'clone')
     return (await readRow<VoiceClone>('voice-clones', voice.id))!.sampleKey!
   const id = fingerprintOf({ voice, text: VOICE_SAMPLE })
@@ -180,7 +181,7 @@ const finishClone = async (clone: VoiceClone) => {
         await fish(`/model/${encodeURIComponent(clone.referenceId)}`)
       ).json()) as typeof model
     else {
-      if (!clone.recordingKey) throw new Error('Record your voice again')
+      if (!clone.recordingKey) throw new Refusal('Record your voice again')
       // Adopt a private model after an interrupted request instead of creating a duplicate.
       const title = `Studio voice ${clone.id}`
       const prior = (await (
@@ -208,12 +209,12 @@ const finishClone = async (clone: VoiceClone) => {
           await fish('/model', { method: 'POST', body: form })
         ).json()) as typeof model
       }
-      if (!model._id) throw new Error('No voice was created')
+      if (!model._id) throw new Refusal('No voice was created')
       clone.referenceId = model._id
       clone.state = 'training'
       await writeRow('voice-clones', clone.id, clone)
     }
-    if (model.state === 'failed') throw new Error('Voice creation failed')
+    if (model.state === 'failed') throw new Refusal('Voice creation failed')
     if (model.state !== 'trained') {
       clone.state = 'training'
       await writeRow('voice-clones', clone.id, clone)
@@ -270,17 +271,17 @@ export const createClone = async (
   consent: boolean
 ) => {
   if (!consent)
-    throw new Error(
+    throw new Refusal(
       'Confirm that this is your voice and you agree to create a clone'
     )
   if (!(await voiceProviderAvailable()))
-    throw new Error('Add your Fish Audio key in Settings first')
+    throw new Refusal('Add your Fish Audio key in Settings first')
   if (
     !body.length ||
     body.length > 25000000 ||
     !/^(audio|video)\/(webm|mp4|wav|mpeg|ogg)/.test(contentType)
   )
-    throw new Error('Upload a voice recording')
+    throw new Refusal('Upload a voice recording')
   const dir = await mkdtemp(join(tmpdir(), 'minimal-voice-clone-'))
   try {
     const input = join(dir, 'recording')
@@ -301,7 +302,7 @@ export const createClone = async (
     ])
     const duration = await probeSeconds(output)
     if (duration < 25 || duration > 90)
-      throw new Error('Read the script for about 30 seconds, then try again')
+      throw new Refusal('Read the script for about 30 seconds, then try again')
     const asset = await storeAsset({
       body: await readFile(output),
       contentType: 'audio/wav',
@@ -378,7 +379,7 @@ const removeClone = async (id: string) => {
 
 export const deleteClone = async (id: string) => {
   if (active.has(id))
-    throw new Error('Wait for the current voice operation to finish')
+    throw new Refusal('Wait for the current voice operation to finish')
   const work = withOperationLock(`voice-clone:${id}`, () => removeClone(id))
   active.set(id, work)
   try {

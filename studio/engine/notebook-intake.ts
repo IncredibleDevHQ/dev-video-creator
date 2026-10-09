@@ -19,6 +19,7 @@ import { creativeContext } from './creative/stage'
 import type { SourceRead } from './source-document'
 import { startingLook, withLook } from './looks'
 import { loadHarnessPreference as savedHarness } from './harness/preference'
+import { Refusal } from './refusal'
 
 export const editNotebookSource = async (
   id: string,
@@ -26,16 +27,16 @@ export const editNotebookSource = async (
   title: unknown
 ) => {
   if (typeof text !== 'string' || !text.trim() || text.length > 24_000)
-    throw new Error('Add notes up to 24,000 characters')
+    throw new Refusal('Add notes up to 24,000 characters')
   if (typeof title !== 'string' || !title.trim() || title.length > 160)
-    throw new Error('Add a notebook title up to 160 characters')
+    throw new Refusal('Add a notebook title up to 160 characters')
   return changeProject(id, async (current) => {
     if (
       !['draft', 'failed'].includes(current.status) ||
       current.project.slides.length ||
       current.project.video
     )
-      throw new Error('Edit the notes before creating slides')
+      throw new Refusal('Edit the notes before creating slides')
     const runs = await Promise.all(
       (await listNotebookRows('engine-runs', id)).map((runId) =>
         readRow<EngineRun>('engine-runs', runId)
@@ -44,7 +45,9 @@ export const editNotebookSource = async (
     if (
       runs.some((run) => run && ['preparing', 'running'].includes(run.status))
     )
-      throw new Error('Wait for generation to finish before editing the notes')
+      throw new Refusal(
+        'Wait for generation to finish before editing the notes'
+      )
     const retained = await readRow<SourceRead>('sources', id)
     const revised = readSourceNarrative(text, title.trim())
     const source: SourceRead = {
@@ -133,10 +136,10 @@ export const refreshNotebookSource = async (id: string) => {
       current.project.slides.length ||
       current.project.video
     )
-      throw new Error('Refresh the article before creating slides')
+      throw new Refusal('Refresh the article before creating slides')
     const url = current.project.sourceUrl || current.project.source
     if (!/^https?:\/\//i.test(url))
-      throw new Error('This notebook has no article link to refresh')
+      throw new Refusal('This notebook has no article link to refresh')
     const runs = await Promise.all(
       (await listNotebookRows('engine-runs', id)).map((runId) =>
         readRow<EngineRun>('engine-runs', runId)
@@ -145,7 +148,7 @@ export const refreshNotebookSource = async (id: string) => {
     if (
       runs.some((run) => run && ['preparing', 'running'].includes(run.status))
     )
-      throw new Error(
+      throw new Refusal(
         'Wait for the current generation to finish before refreshing the article'
       )
     // An interrupted build may have planned, but not drawn, its slides.
@@ -172,27 +175,29 @@ export const availableHarness = async (raw: unknown) => {
     harness.adapter
   )
   if (!choice?.ok)
-    throw new Error(
+    throw new Refusal(
       'This local agent is unavailable. Detect agents again in Settings.'
     )
+  // When the agent lists its models, only a listed, available one is kept.
+  const options = choice.models?.options || []
   if (
-    choice.models?.options.some(
-      (model) => model.id === harness.model && model.unavailable
-    )
+    harness.model &&
+    options.length &&
+    !options.some((model) => model.id === harness.model && !model.unavailable)
   )
-    throw new Error('Choose an available model for this agent')
+    throw new Refusal('Choose an available model for this agent')
   return harness
 }
 
 export const setNotebookLength = (id: string, raw: unknown) => {
   if (!['short', 'medium', 'long'].includes(String(raw)))
-    throw new Error('Choose a short, medium or long story')
+    throw new Refusal('Choose a short, medium or long story')
   return changeProject(id, (current) => {
     if (
       !['draft', 'failed'].includes(current.status) ||
       current.project.slides.length
     )
-      throw new Error('Choose the length before the wireframes are drawn')
+      throw new Refusal('Choose the length before the wireframes are drawn')
     current.project.length = raw as StoryLength
   })
 }
@@ -208,7 +213,7 @@ export const setNotebookTemplate = async (id: string, raw: unknown) => {
     ? narrativeById(String(value.narrative))
     : undefined
   if (value.narrative && !narrative)
-    throw new Error('Choose one of the templates, or none')
+    throw new Refusal('Choose one of the templates, or none')
   const direction = narrative
     ? validDirection(narrative, value.direction ?? { preset: narrative.preset })
     : undefined
@@ -217,7 +222,7 @@ export const setNotebookTemplate = async (id: string, raw: unknown) => {
       !['draft', 'failed'].includes(current.status) ||
       current.project.slides.length
     )
-      throw new Error('Choose the template before the wireframes are drawn')
+      throw new Refusal('Choose the template before the wireframes are drawn')
     if (narrative) {
       current.project.narrative = narrative.id
       current.project.direction = direction
@@ -245,7 +250,7 @@ export const detectedHarness = async (): Promise<HarnessSelection> => {
     found.includes(id)
   )
   if (!adapter)
-    throw new Error(
+    throw new Refusal(
       'No agent was found on this computer. Install Claude Code, Codex or Kimi and sign in, then choose it from the agent menu.'
     )
   return { adapter }
@@ -253,7 +258,7 @@ export const detectedHarness = async (): Promise<HarnessSelection> => {
 
 export const startPresentation = async (id: string, raw?: unknown) => {
   const saved = await loadProject(id)
-  if (!saved) throw new Error('Notebook not found')
+  if (!saved) throw new Refusal('Notebook not found')
   const harness = await availableHarness(
     raw ?? saved.project.harness ?? (await detectedHarness())
   )
@@ -262,7 +267,7 @@ export const startPresentation = async (id: string, raw?: unknown) => {
     : await startingLook(await readRow<SourceRead>('sources', id))
   const snapshot = await changeProject(id, (current) => {
     if (current.status !== 'draft' || current.project.slides.length)
-      throw new Error('This notebook is not ready to start a presentation')
+      throw new Refusal('This notebook is not ready to start a presentation')
     if (look && !current.project.branding?.look)
       current.project.branding = withLook(current.project.branding, look)
     current.project.harness = harness
@@ -296,7 +301,7 @@ export const setNotebookHarness = async (
         )
       )
     )
-      throw new Error(
+      throw new Refusal(
         'Wait for the current generation to finish before changing agents'
       )
     current.project.harness = harness

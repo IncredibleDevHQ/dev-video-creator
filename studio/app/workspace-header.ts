@@ -1,7 +1,7 @@
 import { themeControl } from './appearance'
 import { agentNames } from './agent-setup'
 import type { Snapshot } from '../shared/api'
-import { doneCount } from './wireframe-progress'
+import { buildPhase } from './wireframe-progress'
 import { videoOpens } from '../shared/state'
 import { escape, button } from './ui'
 import { gear } from './camera-settings'
@@ -21,11 +21,27 @@ const play =
   '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>'
 const mapIcon =
   '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="7" height="6" rx="1.5"/><rect x="3" y="14" width="7" height="6" rx="1.5"/><rect x="14" y="9" width="7" height="6" rx="1.5"/><path d="M10 7h2a2 2 0 0 1 2 2v1M10 17h2a2 2 0 0 0 2-2v-1"/></svg>'
-const wireframeTools = (status: Snapshot['status']) =>
-  `<button type="button" data-action="open-map" class="header-look" title="The content map: notes, episodes, and where each page is used" ${status !== 'ready' && status !== 'building' ? 'disabled' : ''}>${mapIcon}<span>Map</span></button>` +
-  `<button type="button" data-action="look-panel" class="header-look" title="Colours and fonts">${palette}<span>Look</span></button>` +
-  `<button type="button" data-action="rehearse" class="header-look" title="Rehearse with the script: ← → P F Esc" ${status === 'reading' ? 'disabled' : ''}>${play}<span>Rehearse</span></button>` +
-  `<button type="button" data-action="export" class="header-export icon-button" aria-label="Export wireframes" title="Export wireframes" ${status !== 'ready' ? 'disabled' : ''}>${exportIcon}</button>`
+const dots =
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>'
+// Narrower, the tools keep their icons and name themselves in the tooltip.
+const wireframeTools = (snapshot: Snapshot) => {
+  const { status } = snapshot
+  const drawn = snapshot.project.slides.some((slide) => slide.svg)
+  return (
+    `<button type="button" data-action="open-map" class="header-look" aria-label="Map" title="The content map: notes, episodes, and where each page is used" ${status !== 'ready' && status !== 'building' ? 'disabled' : ''}>${mapIcon}<span>Map</span></button>` +
+    `<button type="button" data-action="look-panel" class="header-look" aria-label="Look" title="Colours and fonts">${palette}<span>Look</span></button>` +
+    `<button type="button" data-action="rehearse" class="header-look" aria-label="Rehearse" title="${drawn ? 'Rehearse with the script: ← → P F Esc' : 'Rehearse once a wireframe is drawn'}" ${drawn ? '' : 'disabled'}>${play}<span>Rehearse</span></button>`
+  )
+}
+
+/** What waits behind ••• in the header: the theme, and the wireframes'
+ * export on the Wireframe stage. */
+export const headerMore = (snapshot: Snapshot, stage: string) =>
+  `<div class="header-more-list" role="menu" aria-label="More">${
+    stage === 'presentation'
+      ? `<button type="button" role="menuitem" data-action="export" ${snapshot.status !== 'ready' ? 'disabled' : ''}>${exportIcon}<span>Export wireframes (PDF)</span></button>`
+      : ''
+  }<div class="header-more-row"><span>Appearance</span>${themeControl()}</div></div>`
 
 /**
  * What the agent is doing, in a few words, for the header pill — the one
@@ -33,27 +49,12 @@ const wireframeTools = (status: Snapshot['status']) =>
  */
 export const agentActivity = (snapshot: Snapshot) => {
   const { project } = snapshot
-  if (snapshot.status === 'reading') return 'reading the article'
-  if (snapshot.status === 'building') {
-    if (snapshot.stopping) return 'stopping'
-    const total = snapshot.plannedSlides || 0
-    // Drafts are shown as they arrive; only pages the checks kept are done.
-    const done = doneCount(snapshot)
-    if (!total) {
-      const last = [...snapshot.events]
-        .reverse()
-        .find((event) => event.kind === 'slide')?.message
-      return last && /Planning the story/.test(last)
-        ? 'planning the story'
-        : 'reading the article'
-    }
-    const now = (snapshot.drawing || []).map((index) => index + 1)
-    if (now.length)
-      return `drawing ${now.length > 1 ? `${now.slice(0, -1).join(', ')} and ${now.at(-1)}` : now[0]} of ${total}${done ? ` · ${done} done` : ''}`
-    return done >= total
-      ? 'checking the wireframes'
-      : `drawing ${done + 1} of ${total}`
-  }
+  // The same phase as the tab and the card; only the pill counts pages.
+  const phase = buildPhase(snapshot)
+  if (phase)
+    return phase.count
+      ? `${phase.word} ${phase.count}`
+      : phase.line.toLowerCase()
   const working = snapshot.changes?.find((change) => change.state === 'working')
   if (working) {
     const index = project.slides.findIndex(
@@ -122,15 +123,15 @@ export const workspaceHeader = (
       )}</button>`
     })
     .join('')}</nav>
-<div class="header-actions">${agentPill(snapshot, liveConnected)}<div class="header-utilities">${themeControl()}${
+<div class="header-actions">${agentPill(snapshot, liveConnected)}<div class="header-utilities">${
     project.video
       ? `<button type="button" data-action="video-settings" class="icon-button" aria-label="Notebook settings" title="Notebook settings">${gear}</button>`
       : `<button type="button" data-action="settings" class="icon-button" aria-label="Settings" title="Settings">${gear}</button>`
-  }</div><div class="header-stage-actions">${
+  }<button type="button" data-action="header-more" data-popover="header-more" class="icon-button" aria-label="More" title="More">${dots}</button></div><div class="header-stage-actions">${
     stage === 'notebook'
       ? notebookNextAction(snapshot)
       : stage === 'presentation'
-        ? wireframeTools(status) +
+        ? wireframeTools(snapshot) +
           button(
             project.video ? 'Continue video →' : 'Make the video →',
             'make-video',

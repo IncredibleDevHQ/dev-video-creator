@@ -2,6 +2,7 @@ import type { Moment, Presence } from '../shared/model'
 import { presenceProblems } from './planning/presence'
 import { comparableText, fingerprintOf } from './planning/fingerprint'
 import { recordingKeyOf } from './scene-model'
+import { Refusal } from './refusal'
 export const momentPlanSchema = {
   type: 'object',
   additionalProperties: false,
@@ -66,14 +67,14 @@ export const normalizeMoments = (
   previous: Moment[] = []
 ): Moment[] => {
   if (!raw || typeof raw !== 'object' || !Array.isArray((raw as any).moments))
-    throw new Error('The scene has no moments')
+    throw new Refusal('The scene has no moments')
   const entries = (raw as { moments: Record<string, unknown>[] }).moments
   if (!entries.length || entries.length > 16)
-    throw new Error('A scene needs 1–16 moments')
+    throw new Refusal('A scene needs 1–16 moments')
   let clock = 0
   const used = new Set<string>()
   const moments = entries.map((entry, index): Moment => {
-    if (!entry || typeof entry !== 'object') throw new Error('Invalid moment')
+    if (!entry || typeof entry !== 'object') throw new Refusal('Invalid moment')
     const lines = String(entry.lines || '').trim()
     const seconds = Number(entry.seconds)
     if (
@@ -83,7 +84,7 @@ export const normalizeMoments = (
       seconds < 2 ||
       seconds > 90
     )
-      throw new Error(
+      throw new Refusal(
         'Each moment needs words and a length between 2 and 90 seconds'
       )
     if (
@@ -92,12 +93,12 @@ export const normalizeMoments = (
       ) ||
       !['full-screen', 'corner', 'beside-slide'].includes(String(entry.layout))
     )
-      throw new Error('Invalid camera staging')
+      throw new Refusal('Invalid camera staging')
     if (
       entry.overlay !== null &&
       !['title-card', 'lower-third', 'end-card'].includes(String(entry.overlay))
     )
-      throw new Error('Invalid overlay')
+      throw new Refusal('Invalid overlay')
     // Submitted semantic IDs survive reordering. For older/no-ID candidates,
     // recover the prior identity by its spoken content, rather than its index.
     const retainedId = previous.find(
@@ -110,7 +111,7 @@ export const normalizeMoments = (
       (typeof submittedId !== 'string' ||
         !/^[a-zA-Z0-9_-]{1,160}$/.test(submittedId))
     )
-      throw new Error('Invalid moment identity')
+      throw new Refusal('Invalid moment identity')
     const baseId =
       retainedId ||
       `${sceneId}-moment-${fingerprintOf({ title: entry.title, lines })}`
@@ -119,7 +120,7 @@ export const normalizeMoments = (
       let suffix = 1
       while (used.has(id)) id = `${baseId}-${++suffix}`
     }
-    if (used.has(id)) throw new Error('Moment identities must be unique')
+    if (used.has(id)) throw new Refusal('Moment identities must be unique')
     used.add(id)
     const moment: Moment = {
       id,
@@ -149,7 +150,7 @@ export const normalizeMoments = (
           !Number.isFinite(segment.seconds) ||
           segment.seconds <= 0
         )
-          throw new Error('Invalid spoken segment')
+          throw new Refusal('Invalid spoken segment')
         return {
           id: `${moment.id}-segment-${index + 1}`,
           lines: segment.lines.trim(),
@@ -162,7 +163,7 @@ export const normalizeMoments = (
           moment.segments.map((segment) => segment.lines).join(' ')
         ) !== comparableText(lines)
       )
-        throw new Error(
+        throw new Refusal(
           'Spoken segments must contain the exact moment lines in order'
         )
       if (
@@ -171,7 +172,7 @@ export const normalizeMoments = (
             seconds
         ) > 0.2
       )
-        throw new Error('Segment lengths must add up to the moment length')
+        throw new Refusal('Segment lengths must add up to the moment length')
       const shown = moment.segments.map((segment) => segment.camera)
       const first = shown.findIndex(Boolean)
       const last = shown.lastIndexOf(true)
@@ -195,10 +196,10 @@ export const normalizeMoments = (
                     .slice(shown.indexOf(false), shown.lastIndexOf(false) + 1)
                     .every((value) => !value)
       if (!valid)
-        throw new Error('Spoken segments do not match the camera window')
+        throw new Refusal('Spoken segments do not match the camera window')
     } else {
       if (!['none', 'full'].includes(moment.camera))
-        throw new Error(
+        throw new Refusal(
           'Start, end and both camera windows need spoken segments'
         )
       moment.segments = [

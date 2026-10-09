@@ -42,7 +42,7 @@ export const sceneActivityRail = (
             : ''
       }</span><div><p>${step.label}</p>${
         state === 'stopped'
-          ? '<span class="activity-stopped-label">Stalled</span>'
+          ? '<span class="activity-stopped-label">Stopped</span>'
           : ''
       }${
         awaiting

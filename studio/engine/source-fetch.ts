@@ -1,4 +1,5 @@
 // Source transport and browser observation.
+import { Refusal } from './refusal'
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36 IncredibleStudio/2'
 export const assertPublicUrl = (raw: string) => {
@@ -6,10 +7,10 @@ export const assertPublicUrl = (raw: string) => {
   try {
     url = new URL(raw.trim())
   } catch {
-    throw new Error('That is not a link the studio can open')
+    throw new Refusal('That is not a link the studio can open')
   }
   if (!/^https?:$/.test(url.protocol))
-    throw new Error('Only http and https links can be read')
+    throw new Refusal('Only http and https links can be read')
   const host = url.hostname.toLowerCase()
   // The private-network guard stands in normal launches; scripted checks run
   // a fixture brand site on loopback under the test-hooks flag (the same flag
@@ -24,7 +25,9 @@ export const assertPublicUrl = (raw: string) => {
       host === '::1' ||
       host === '[::1]')
   ) {
-    throw new Error('Links to this machine or a private network cannot be read')
+    throw new Refusal(
+      'Links to this machine or a private network cannot be read'
+    )
   }
   return url
 }

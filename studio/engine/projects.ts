@@ -53,6 +53,7 @@ import { outlineSchema, outlinePrompt, sanitizeOutline } from './source-outline'
 import { pageBrandFrom, renderPage } from './source-page'
 import { identityOf } from './branding'
 import { startingLook, withLook } from './looks'
+import { Refusal } from './refusal'
 const queues = new Map<string, Promise<unknown>>()
 /**
  * A video saved before narratives (October 2026) named a template, and its
@@ -94,7 +95,7 @@ export const changeProject = async (
     .catch(() => {})
     .then(async () => {
       const snapshot = await loadProject(id)
-      if (!snapshot) throw new Error('Project not found')
+      if (!snapshot) throw new Refusal('Project not found')
       await update(snapshot)
       snapshot.views = projectViews(snapshot.project, snapshot.events)
       snapshot.views.video.display = videoDisplay(snapshot)
@@ -114,7 +115,7 @@ export const createProject = async (
   harness?: HarnessSelection,
   sourceOnly = false
 ): Promise<Snapshot> => {
-  if (!input.trim()) throw new Error('Add a link or some text')
+  if (!input.trim()) throw new Refusal('Add a link or some text')
   harness = harness
     ? validateHarnessSelection(harness)
     : (await loadHarnessPreference()) || undefined
@@ -196,7 +197,7 @@ const drawingStop = (reason: unknown, snapshot: Snapshot) => {
 export const stopSlides = async (id: string) => {
   await changeProject(id, (current) => {
     if (current.status !== 'building')
-      throw new Error('These wireframes are not being drawn')
+      throw new Refusal('These wireframes are not being drawn')
     current.stopping = true
     addEvent(current, 'slide', 'Stopping. Drawn wireframes are kept.')
   })
@@ -215,7 +216,7 @@ export const stopSlides = async (id: string) => {
 export const retrySlides = async (id: string) => {
   const snapshot = await changeProject(id, (current) => {
     if (building.has(id))
-      throw new Error('Wait for generation to stop before continuing')
+      throw new Refusal('Wait for generation to stop before continuing')
     if (current.status !== 'failed')
       throw new Error('Your wireframes do not need a retry')
     current.stopping = false
@@ -240,7 +241,7 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
     text.trim().length < 40 ||
     text.length > 500000
   )
-    throw new Error('Paste the article text, rather than only its link')
+    throw new Refusal('Paste the article text, rather than only its link')
   const snapshot = await changeProject(id, async (current) => {
     if (
       current.status !== 'failed' ||
@@ -248,11 +249,11 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
       current.project.slides.length ||
       current.project.video
     )
-      throw new Error('This notebook does not need replacement source text')
+      throw new Refusal('This notebook does not need replacement source text')
     const sourceUrl = current.project.sourceUrl || current.project.source
     const url = new URL(sourceUrl)
     if (!['https:', 'http:'].includes(url.protocol))
-      throw new Error('The original source link is invalid')
+      throw new Refusal('The original source link is invalid')
     const source = {
       ...readSourceNarrative(text.trim()),
       url: sourceUrl,
@@ -553,7 +554,7 @@ const addSlide = (project: Snapshot['project'], beatId?: string) => {
     ? narrative?.beats.find((item) => item.id === beatId)
     : null
   if (beatId && !beat)
-    throw new Error('Choose a beat of this notebook’s template')
+    throw new Refusal('Choose a beat of this notebook’s template')
   if (!beat)
     return project.slides.push({ id: randomUUID(), title: '', svg: null })
   const order = narrative!.beats.map((item) => item.id)
@@ -579,11 +580,11 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       const slide = snapshot.project.slides.find(
         (item) => item.id === edit.slideId
       )
-      if (!slide) throw new Error('Wireframe not found')
+      if (!slide) throw new Refusal('Wireframe not found')
       if (snapshot.status !== 'ready')
-        throw new Error('Edit the script once the wireframes are ready')
+        throw new Refusal('Edit the script once the wireframes are ready')
       if (typeof edit.narration !== 'string')
-        throw new Error('Add the script for this wireframe')
+        throw new Refusal('Add the script for this wireframe')
       // In an episode, the creator edits the page's own words; the episode's
       // lines before and after it stay around them.
       if (slide.base !== undefined) {
@@ -596,12 +597,12 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       return
     }
     if (snapshot.status === 'building')
-      throw new Error('Wait for the wireframes to finish')
+      throw new Refusal('Wait for the wireframes to finish')
     const slides = snapshot.project.slides
     const index = slides.findIndex((slide) => slide.id === edit.slideId)
     const restored = snapshot.deletedSlide
     if (edit.action === 'undo-delete') {
-      if (!snapshot.deletedSlide) throw new Error('No slide to restore')
+      if (!snapshot.deletedSlide) throw new Refusal('No slide to restore')
       slides.splice(
         Math.min(snapshot.deletedSlide.index, slides.length),
         0,
@@ -612,7 +613,7 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       delete snapshot.deletedSlide
     } else if (edit.action === 'add') addSlide(snapshot.project, edit.beat)
     else {
-      if (index < 0) throw new Error('Slide not found')
+      if (index < 0) throw new Refusal('Slide not found')
       if (edit.action === 'delete') {
         const video = snapshot.project.video
         snapshot.deletedSlide = {
@@ -641,7 +642,7 @@ export const editSlide = (id: string, edit: SlideEdit) =>
           edit.index! < 0 ||
           edit.index! >= slides.length
         )
-          throw new Error('Invalid position')
+          throw new Refusal('Invalid position')
         slides.splice(edit.index!, 0, slides.splice(index, 1)[0])
       }
     }

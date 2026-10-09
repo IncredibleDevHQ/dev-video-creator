@@ -17,6 +17,7 @@ import {
 } from './persistence'
 import { refreshVideoKeys, synchronizeClock } from './scene-model'
 import { momentNeedsRecording } from '../shared/state'
+import { Refusal } from './refusal'
 const checkParts = (
   snapshot: Snapshot,
   sceneId: string,
@@ -25,21 +26,21 @@ const checkParts = (
   const video = snapshot.project.video
   const scene = video?.scenes.find((scene) => scene.id === sceneId)
   if (!scene || !video || !['waiting', 'produced'].includes(scene.phase))
-    throw new Error('Wait for this scene to finish changing')
+    throw new Refusal('Wait for this scene to finish changing')
   if (
     !Array.isArray(parts) ||
     !parts.length ||
     parts.length > 16 ||
     new Set(parts.map((part) => part.momentId)).size !== parts.length
   )
-    throw new Error('Invalid recording moments')
+    throw new Refusal('Invalid recording moments')
   let last = 0
   for (const part of parts) {
     const moment = scene.moments.find((moment) => moment.id === part.momentId)
     if (!moment || moment.recordingKey !== part.recordingKey)
-      throw new Error('This script changed. Record the updated moment.')
+      throw new Refusal('This script changed. Record the updated moment.')
     if (!momentNeedsRecording(moment, video.settings.voice))
-      throw new Error('This moment is voiced automatically')
+      throw new Refusal('This moment is voiced automatically')
     if (
       !Number.isFinite(part.from) ||
       !Number.isFinite(part.to) ||
@@ -47,7 +48,7 @@ const checkParts = (
       part.to - part.from < 0.4 ||
       part.to > 1800
     )
-      throw new Error('Invalid recording boundaries')
+      throw new Refusal('Invalid recording boundaries')
     last = part.to
   }
   return scene
@@ -61,9 +62,9 @@ const saveRecordingLocked = async (
   uploadId?: string
 ) => {
   if (uploadId && !/^[a-zA-Z0-9-]{16,64}$/.test(uploadId))
-    throw new Error('Invalid recording upload identifier')
+    throw new Refusal('Invalid recording upload identifier')
   const before = await loadProject(id)
-  if (!before) throw new Error('Project not found')
+  if (!before) throw new Refusal('Project not found')
   const scene = checkParts(before, sceneId, parts)
   const mime = contentType.split(';')[0]
   if (
@@ -77,7 +78,7 @@ const saveRecordingLocked = async (
     !body.length ||
     body.length > 150_000_000
   )
-    throw new Error('Use a camera or microphone recording')
+    throw new Refusal('Use a camera or microphone recording')
   const temporary = await mkdtemp(join(tmpdir(), 'minimal-take-'))
   try {
     const input = join(temporary, 'input')
@@ -85,7 +86,7 @@ const saveRecordingLocked = async (
     await writeFile(input, new Uint8Array(body))
     const made = await normalizeTake(input, normalized)
     if (parts.at(-1)!.to > made.duration + 0.3)
-      throw new Error('Recording is shorter than its moment boundaries')
+      throw new Refusal('Recording is shorter than its moment boundaries')
     if (
       scene.moments.some(
         (moment) =>
@@ -94,7 +95,7 @@ const saveRecordingLocked = async (
       ) &&
       !made.picture
     )
-      throw new Error('This moment needs a camera recording')
+      throw new Refusal('This moment needs a camera recording')
     const size = made.picture ? await pictureSize(normalized) : null
     const raw = await storeAsset({
       body,

@@ -27,6 +27,7 @@ import {
   cssFonts
 } from './source-brand'
 import { githubDocumentOf, readGithubDocument } from './source-github'
+import { Refusal } from './refusal'
 export const readSourceUrl = async (
   raw: string,
   options: { projectId?: string } = {}
@@ -47,7 +48,7 @@ export const readSourceUrl = async (
     !/html/i.test(html.contentType) &&
     !/<html/i.test(html.text.slice(0, 2000))
   )
-    throw new Error('That link is not a web page')
+    throw new Refusal('That link is not a web page')
   const base = html.finalUrl
   const { document } = parseHTML(html.text)
   const meta = (name: string) =>

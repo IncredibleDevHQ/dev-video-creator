@@ -91,3 +91,25 @@ it('closes the video on the last scene in the cut', async () => {
   ).toEqual(['title', 'body', 'ending'])
   expect(sceneRole(project([]), 3)).toBe('ending')
 })
+
+it('lets a left-out scene take new inputs without saying so', () => {
+  const p = project()
+  const ledger = { project: p, events: [] as Array<{ message: string }> }
+  // Only scene b is made; a and c are left out.
+  reconcileVideo(p, ledger as never, new Set(['b']))
+  expect(p.video!.scenes.map((scene) => scene.phase)).toEqual([
+    'idle',
+    'queued',
+    'idle'
+  ])
+  ledger.events.length = 0
+  // Every page's role changes when the title changes: one log, for b only.
+  p.title = 'Tokens, again'
+  reconcileVideo(p, ledger as never)
+  const logged = ledger.events.filter(
+    (event) => event.message === 'Scene inputs changed'
+  )
+  expect(logged).toHaveLength(1)
+  expect(p.video!.scenes[0].phase).toBe('idle')
+  expect(p.video!.scenes[0].planKey).toBeTruthy()
+})

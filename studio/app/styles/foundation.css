@@ -144,14 +144,17 @@ header .primary {
   align-items: center;
 }
 .header-actions > [data-action='settings'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
+  height: 32px;
   padding: 6px;
-  font-size: 0;
-}
-.header-actions > [data-action='settings']::before {
-  content: '⚙';
-  font-size: 18px;
   color: #aeb8b3;
+}
+.header-actions > [data-action='settings'] svg {
+  width: 17px;
+  height: 17px;
 }
 .header-actions .video-settings {
   border-color: #3b4343;
