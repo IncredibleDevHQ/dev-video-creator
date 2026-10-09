@@ -1,0 +1,96 @@
+import { expect, it } from 'vitest'
+import { idleLoop, idlePrompt, withIdle } from './artwork-idle'
+
+// A drawing as the product keeps it, and Quiver's animation of it: a loop
+// on its lamps (one class on both), its ring (by id) and its needle (on the
+// element itself), with a colour and a complex rule that are not kept.
+const drawing = [
+  '<svg viewBox="0 0 80 60">',
+  '<defs><linearGradient id="g"><stop offset="0"/></linearGradient></defs>',
+  '<g id="lamps" data-part="lamps"><circle cx="10" cy="10" r="2"/><circle cx="16" cy="10" r="2"/></g>',
+  '<g id="ring"><path d="M0 0h10"/></g>',
+  '<g id="needle" data-part="needle"><path d="M5 5l4 4"/></g>',
+  '</svg>'
+].join('')
+const animated = drawing
+  .replace(
+    '<svg viewBox="0 0 80 60">',
+    `<svg viewBox="0 0 80 60"><style>
+@keyframes blink { 0%, 100% { opacity: 1; fill: red } 50% { opacity: .3 } }
+@keyframes breathe { 50% { transform: scale(1.04) } }
+@keyframes tremble { 50% { transform: rotate(4deg) } }
+.blink { animation: blink 1.5s steps(2) infinite; fill: red; }
+#ring { transform-origin: 5px 0px; animation: breathe 3s ease-in-out infinite; }
+.lamps circle:nth-child(2) { animation: blink 1s infinite; }
+</style>`
+  )
+  .replace(/<circle /g, '<circle class="blink" ')
+  .replace(
+    '<g id="needle" data-part="needle">',
+    '<g id="needle" data-part="needle" style="transform-origin: 5px 5px; animation: tremble 2s infinite">'
+  )
+
+it('asks for a quiet loop of the object’s own parts, motion only', () => {
+  const prompt = idlePrompt('A rate limiter gauge.', [
+    { id: 'needle', what: 'the gauge needle' }
+  ])
+  expect(prompt).toContain('drawing of A rate limiter gauge:')
+  expect(prompt).toContain('the gauge needle')
+  expect(prompt).toContain('Animate only opacity and transform, never colours')
+})
+
+it('takes the loop Quiver added: motion only, named for the object, finite', () => {
+  const { loop, problem } = idleLoop(drawing, animated, 'gauge')
+  expect(problem).toBeUndefined()
+  expect(loop!.classes).toEqual([
+    { index: 5, names: ['gauge-blink'] },
+    { index: 6, names: ['gauge-blink'] },
+    { index: 7, names: ['gauge-idle-7'] },
+    { index: 9, names: ['gauge-idle-9-own'] }
+  ])
+  expect(loop!.css).toContain(
+    '@keyframes gauge-blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }'
+  )
+  expect(loop!.css).toContain(
+    '.gauge-blink { animation: gauge-blink 1.5s steps(2) 999; }'
+  )
+  expect(loop!.css).toContain(
+    '.gauge-idle-7 { transform-origin: 5px 0px; animation: gauge-breathe 3s ease-in-out 999; }'
+  )
+  expect(loop!.css).toContain(
+    '.gauge-idle-9-own { transform-origin: 5px 5px; animation: gauge-tremble 2s 999; }'
+  )
+  // Colours and rules it can't place are left out.
+  expect(loop!.css).not.toContain('red')
+  expect(loop!.css).not.toContain('nth-child')
+})
+
+it('refuses an animation that redrew the drawing, or moved nothing of it', () => {
+  expect(
+    idleLoop(drawing, animated.replace('</svg>', '<rect/></svg>'), 'gauge')
+      .problem
+  ).toBe('it added, removed or regrouped shapes')
+  expect(idleLoop(drawing, drawing, 'gauge').problem).toBe(
+    'it added no loop to the drawing’s parts'
+  )
+})
+
+it('puts the loop around the parts it moves, so a pose or a move of the part still shows', () => {
+  const { loop } = idleLoop(drawing, animated, 'gauge')
+  const svg = withIdle(drawing, {
+    ...loop!,
+    // And a stop in a gradient, where no wrapper may go.
+    classes: [...loop!.classes, { index: 3, names: ['gauge-glint'] }]
+  })
+  expect(svg).toContain('<svg viewBox="0 0 80 60"><style>@keyframes gauge-')
+  expect(svg).toContain(
+    '<g class="gauge-blink" data-idle=""><circle cx="10" cy="10" r="2"/></g><g class="gauge-blink" data-idle=""><circle cx="16" cy="10" r="2"/></g>'
+  )
+  expect(svg).toContain(
+    '<g class="gauge-idle-7" data-idle=""><g id="ring"><path d="M0 0h10"/></g></g>'
+  )
+  expect(svg).toContain(
+    '<g class="gauge-idle-9-own" data-idle=""><g id="needle" data-part="needle"><path d="M5 5l4 4"/></g></g>'
+  )
+  expect(svg).toContain('<stop offset="0" class="gauge-glint"/>')
+})

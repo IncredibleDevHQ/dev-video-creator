@@ -75,13 +75,26 @@ const provider = createServer((request, response) => {
       body
     })
     const routed = routes.findIndex((item) => body.includes(item.says))
+    // An animation, as Quiver's: the drawing given, with a loop in a
+    // <style> on its first group (and a colour, which is not kept).
+    const animate = () =>
+      Buffer.from(JSON.parse(body).svg_source.base64, 'base64')
+        .toString()
+        .replace(
+          /<svg\b[^>]*>/,
+          (open) =>
+            `${open}<style>@keyframes breathe { 50% { transform: scale(1.04); fill: red } } .breathe { transform-origin: 5px 5px; animation: breathe 3s ease-in-out infinite; fill: red }</style>`
+        )
+        .replace('<g ', '<g class="breathe" ')
     const next =
       routed >= 0
         ? {
             status: 200,
             body: { data: [{ svg: routes.splice(routed, 1)[0].svg }] }
           }
-        : answers.shift() || { status: 500, body: { code: 'none' } }
+        : request.url === '/v1/svgs/animations'
+          ? { status: 200, body: { data: [{ svg: animate() }] } }
+          : answers.shift() || { status: 500, body: { code: 'none' } }
     response.writeHead(next.status, { 'content-type': 'application/json' })
     response.end(JSON.stringify(next.body))
   })
@@ -181,7 +194,8 @@ it('asks once to group the parts that came back unnamed, then keeps the drawing'
   })
   expect(received.map((call) => call.path)).toEqual([
     '/v1/svgs/generations',
-    '/v1/svgs/edits'
+    '/v1/svgs/edits',
+    '/v1/svgs/animations'
   ])
   // The key travels in the header only.
   expect(received[0].authorization).toBe('Bearer test-key')
@@ -192,12 +206,15 @@ it('asks once to group the parts that came back unnamed, then keeps the drawing'
       file: 'assets/generated-rate-limiter/asset.svg',
       parts: ['needle', 'gate'],
       missing: [],
-      objectKey: 'art-1.svg'
+      objectKey: 'art-1.svg',
+      idle: { objectKey: 'art-2.svg' }
     }
   ])
   expect(progress).toEqual([
     "Drawing the scene's objects (0 of 1)",
-    "Drawing the scene's objects (1 of 1)"
+    "Drawing the scene's objects (1 of 1)",
+    'Bringing the objects to life (0 of 1)',
+    'Bringing the objects to life (1 of 1)'
   ])
   // The same plan draws nothing new.
   received.length = 0
@@ -206,10 +223,19 @@ it('asks once to group the parts that came back unnamed, then keeps the drawing'
   ).toEqual(drawn)
   expect(received).toEqual([])
   const packet = await artworkPacket(drawn)
-  expect(
+  // Its idle loop is in it: motion only, named for the object, finite, on
+  // a wrapper around the part it moves.
+  const alive =
     packet['packet/assets/generated-rate-limiter/asset.svg'].toString()
-  ).toBe(
-    '<svg viewBox="0 0 480 360"><g id="needle" data-part="needle"><path d="M0 0h10"/></g><g id="gate" data-part="gate"><path d="M1 1h2"/></g></svg>'
+  expect(alive).toContain(
+    '<style>@keyframes rate-limiter-breathe { 50% { transform: scale(1.04); } }'
+  )
+  expect(alive).toContain(
+    '.rate-limiter-breathe { transform-origin: 5px 5px; animation: rate-limiter-breathe 3s ease-in-out 999; }'
+  )
+  expect(alive).not.toContain('fill: red')
+  expect(alive).toContain(
+    '<g class="rate-limiter-breathe" data-idle=""><g id="needle" data-part="needle"><path d="M0 0h10"/></g></g><g id="gate" data-part="gate">'
   )
   const manifest = JSON.parse(packet['packet/ARTWORK.json'].toString())
   expect(manifest.objects).toEqual([
@@ -220,10 +246,12 @@ it('asks once to group the parts that came back unnamed, then keeps the drawing'
       place: '<div data-artwork="rate-limiter"></div>',
       viewBox: '0 0 480 360',
       parts: ['needle', 'gate'],
-      missing: []
+      missing: [],
+      idle: 'its own loop, in the drawing'
     }
   ])
   expect(manifest.rule).toContain('[data-part="PART"]')
+  expect(manifest.rule).toContain('alive by itself')
 })
 
 it('puts each drawing into its empty placeholder, sized to fill it, and leaves the rest', () => {
@@ -257,17 +285,17 @@ it('finds parts under the ids a drawing gave them, and draws each object alone',
     treatment
   })
   // Both parts were found, so no second request regrouped them.
-  expect(received.map((call) => call.path)).toEqual(['/v1/svgs/generations'])
+  expect(received.map((call) => call.path)).not.toContain('/v1/svgs/edits')
   expect(drawn).toMatchObject({ parts: ['needle', 'gate'], missing: [] })
   expect(JSON.parse(received[0].body).prompt).toContain(
     'Draw this one object alone'
   )
-  expect(
-    (await artworkPacket([drawn]))[
-      'packet/assets/generated-rate-limiter/asset.svg'
-    ].toString()
-  ).toBe(
-    '<svg><defs><linearGradient id="rate-limiter-paint0"/></defs><g id="rate-limiter-Needle_1" data-part="needle"><path fill="url(#rate-limiter-paint0)"/></g><g id="rate-limiter-gate--part-1" data-part="gate"/><g id="rate-limiter-gate--part-2" data-part="gate"/><g id="rate-limiter-gauge-shadow"/></svg>'
+  // Scoped and marked as found, inside the loop's wrapper.
+  const svg = (await artworkPacket([drawn]))[
+    'packet/assets/generated-rate-limiter/asset.svg'
+  ].toString()
+  expect(svg).toContain(
+    '<defs><linearGradient id="rate-limiter-paint0"/></defs><g class="rate-limiter-breathe" data-idle=""><g id="rate-limiter-Needle_1" data-part="needle"><path fill="url(#rate-limiter-paint0)"/></g></g><g id="rate-limiter-gate--part-1" data-part="gate"/><g id="rate-limiter-gate--part-2" data-part="gate"/><g id="rate-limiter-gauge-shadow"/></svg>'
   )
 })
 
@@ -433,7 +461,8 @@ it('draws each pose from the drawing, asks again once when it cannot tween, and 
       objectKey: expect.any(String)
     }
   ])
-  expect(progress.slice(-1)).toEqual(["Drawing the objects' poses (2 of 2)"])
+  // Its two poses and its idle loop.
+  expect(progress.slice(-1)).toEqual(['Bringing the objects to life (3 of 3)'])
   // The same plan asks for nothing again.
   received.length = 0
   const [again] = await drawSceneArtwork({

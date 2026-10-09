@@ -24,6 +24,8 @@ type Element = {
   at: number
   length: number
   closed: boolean
+  /** Where it ends: after its closing tag, or its start tag when empty. */
+  end: number
 }
 
 const TOKEN =
@@ -36,7 +38,9 @@ export const svgElements = (svg: string): Element[] => {
   const open: number[] = []
   for (const match of svg.matchAll(TOKEN)) {
     if (match[1]) {
-      open.pop()
+      const closing = open.pop()
+      if (closing !== undefined)
+        elements[closing].end = match.index + match[0].length
       continue
     }
     if (!match[2]) continue
@@ -56,7 +60,8 @@ export const svgElements = (svg: string): Element[] => {
       attrs,
       at: match.index,
       length: match[0].length,
-      closed: match[4] === '/'
+      closed: match[4] === '/',
+      end: match.index + match[0].length
     })
     if (match[4] !== '/') open.push(elements.length - 1)
   }

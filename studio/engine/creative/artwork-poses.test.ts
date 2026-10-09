@@ -209,19 +209,46 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
   const calls: unknown[] = []
   const tl = {
     to: (element: Element, vars: Record<string, unknown>, at: number) =>
-      calls.push(['to', element.id || element.localName, vars.attr, at]),
+      calls.push([
+        'to',
+        element.id || element.localName,
+        vars.attr,
+        at,
+        vars.ease
+      ]),
     set: (element: Element, vars: Record<string, unknown>, at: number) =>
       calls.push(['set', element.id || element.localName, vars.attr, at]),
+    fromTo: (
+      element: Element,
+      _: unknown,
+      vars: Record<string, unknown>,
+      at: number
+    ) => calls.push(['pop', element.localName, vars.scale, at]),
     duration: () => 4
   }
   const play = (window as unknown as Record<string, Function>).artworkPose
   play(tl, 'gauge', 'glow', 1, 0.6)
-  // A pose is a whole state: what it does not change goes to rest.
+  // A pose is a whole state: what it does not change goes to rest. The
+  // change runs through the shapes in turn, the turning needle overshoots
+  // and settles, and the drawing pops as it arrives.
   expect(calls).toEqual([
-    ['to', 'stop', { 'stop-color': 'rgba(42,71,185,1)' }, 1],
-    ['to', 'stop', { 'stop-color': 'rgba(173,197,250,1)' }, 1],
-    ['to', 'ring', { opacity: '1' }, 1],
-    ['to', 'needle', { transform: 'rotate(0 28.9 26.14)' }, 1]
+    ['to', 'stop', { 'stop-color': 'rgba(42,71,185,1)' }, 1, 'power2.inOut'],
+    [
+      'to',
+      'stop',
+      { 'stop-color': 'rgba(173,197,250,1)' },
+      1.05,
+      'power2.inOut'
+    ],
+    ['to', 'ring', { opacity: '1' }, 1.1, 'power2.inOut'],
+    [
+      'to',
+      'needle',
+      { transform: 'rotate(0 28.9 26.14)' },
+      1.15,
+      'back.out(1.7)'
+    ],
+    ['pop', 'svg', 1.04, 1 + 0.6 * 0.6]
   ])
   calls.length = 0
   play(tl, 'gauge', 'limit', 2)
@@ -229,9 +256,20 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     'to',
     'needle',
     { transform: 'rotate(55 28.9 26.14)' },
-    2
+    2.15,
+    'back.out(1.7)'
   ])
-  expect(calls).toContainEqual(['to', 'ring', { opacity: '0.5' }, 2])
+  expect(calls).toContainEqual([
+    'to',
+    'ring',
+    { opacity: '0.5' },
+    2.1,
+    'power2.inOut'
+  ])
+  // Back to rest: no pop.
+  calls.length = 0
+  play(tl, 'gauge', 'rest', 3)
+  expect(calls.some((call) => (call as unknown[])[0] === 'pop')).toBe(false)
   // Nothing placed, nothing played.
   expect(play(tl, 'nothing', 'limit', 0)).toBe(tl)
 })

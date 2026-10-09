@@ -11,7 +11,8 @@ import { createHash } from 'node:crypto'
 import { request as httpRequest } from 'node:http'
 import { request as httpsRequest } from 'node:https'
 import { readRow, writeRow, storeAsset, readAsset } from '../persistence'
-import { posedDrawing, type PoseReport } from './artwork-poses'
+import { posedDrawing } from './artwork-poses'
+import { idleLoop, idlePrompt } from './artwork-idle'
 import type { SceneTreatmentV1 } from './scene-treatment'
 
 const BASE_URL = () => process.env.QUIVER_BASE_URL || 'https://api.quiver.ai'
@@ -42,6 +43,8 @@ export type DrawnObject = {
   objectKey?: string
   error?: string
   poses?: DrawnPose[]
+  /** Its idle loop, as Quiver animated the drawing (a Lottie-like life). */
+  idle?: { objectKey?: string; error?: string }
 }
 type CachedArtwork = {
   objectKey: string
@@ -389,7 +392,7 @@ const cacheKey = (object: PlanObject, look: string, source?: Buffer) =>
     .slice(0, 32)
 
 /** A kept drawing as a packet cleans it: what its poses are drawn from. */
-const cleanDrawing = (svg: string, entity: string, parts: string[]) =>
+export const cleanDrawing = (svg: string, entity: string, parts: string[]) =>
   scopeIds(safeSvg(svg), entity, parts)
 
 /**
@@ -434,12 +437,51 @@ const poseKey = (drawing: string, what: string) =>
     .digest('hex')
     .slice(0, 32)
 
+/** An idle loop is kept by the drawing it animates and what it asks. */
+const idleKey = (drawing: string, prompt: string) =>
+  createHash('sha256')
+    .update(
+      JSON.stringify({
+        model: MODEL(),
+        drawing: createHash('sha256').update(drawing).digest('hex'),
+        prompt,
+        version: 1
+      })
+    )
+    .digest('hex')
+    .slice(0, 32)
+
 /**
- * Each drawn object's poses, a few at a time, from its kept drawing. A pose
- * that cannot be drawn keeps its error, for the build to work around.
+ * The object's idle loop: Quiver animates its drawing, and the loop is kept
+ * when it moved the drawing's own parts and kept its shapes; asked again
+ * once otherwise.
+ */
+const drawIdle = async (entity: string, drawing: string, prompt: string) => {
+  let problem = ''
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const animated = await request('/v1/svgs/animations', {
+      svg_source: { base64: Buffer.from(drawing).toString('base64') },
+      prompt: problem
+        ? `${prompt} Your last answer could not be used: ${problem}. Start again from this drawing.`
+        : prompt
+    })
+    problem = idleLoop(drawing, animated, entity).problem || ''
+    if (!problem) return animated
+  }
+  throw new Error(`The idle loop could not be used: ${problem}`)
+}
+
+type ExtraJob =
+  | { kind: 'pose'; item: DrawnObject; pose: DrawnPose }
+  | { kind: 'idle'; item: DrawnObject; prompt: string }
+
+/**
+ * Each drawn object's poses and idle loop, a few at a time, from its kept
+ * drawing. One that cannot be drawn keeps its error, for the build to work
+ * around.
  */
 const drawPoses = async (
-  jobs: Array<{ item: DrawnObject; pose: DrawnPose }>,
+  jobs: ExtraJob[],
   input: {
     projectId: string
     sceneId: string
@@ -447,7 +489,7 @@ const drawPoses = async (
   }
 ) => {
   let done = 0
-  await input.onProgress?.(`Drawing the objects' poses (0 of ${jobs.length})`)
+  await input.onProgress?.(`Bringing the objects to life (0 of ${jobs.length})`)
   const drawings = new Map<string, Promise<string>>()
   const drawingOf = (item: DrawnObject) => {
     if (!drawings.has(item.entity))
@@ -459,41 +501,58 @@ const drawPoses = async (
       )
     return drawings.get(item.entity)!
   }
+  // Each kept by what it was made from: the drawing, and what was asked.
+  const keep = async (
+    table: string,
+    id: string,
+    make: () => Promise<string>
+  ) => {
+    let cached = await readRow<CachedPose>(table, id)
+    if (!cached) {
+      const asset = await storeAsset({
+        body: Buffer.from(await make()),
+        contentType: 'image/svg+xml',
+        extension: '.svg',
+        kind: 'scene-artwork',
+        projectId: input.projectId,
+        sceneId: input.sceneId
+      })
+      cached = {
+        objectKey: asset.objectKey,
+        model: MODEL(),
+        createdAt: new Date().toISOString()
+      }
+      await writeRow(table, id, cached)
+    }
+    return cached.objectKey
+  }
   const queue = [...jobs]
   const work = async () => {
     for (let job = queue.shift(); job; job = queue.shift()) {
+      const into = job.kind === 'pose' ? job.pose : (job.item.idle ??= {})
       try {
         const drawing = await drawingOf(job.item)
-        const id = poseKey(drawing, job.pose.what)
-        let cached = await readRow<CachedPose>('generated-poses', id)
-        if (!cached) {
-          const svg = await drawPose(
-            job.item.entity,
-            job.item.parts,
-            drawing,
-            job.pose.what
-          )
-          const asset = await storeAsset({
-            body: Buffer.from(svg),
-            contentType: 'image/svg+xml',
-            extension: '.svg',
-            kind: 'scene-artwork',
-            projectId: input.projectId,
-            sceneId: input.sceneId
-          })
-          cached = {
-            objectKey: asset.objectKey,
-            model: MODEL(),
-            createdAt: new Date().toISOString()
-          }
-          await writeRow('generated-poses', id, cached)
-        }
-        job.pose.objectKey = cached.objectKey
+        into.objectKey =
+          job.kind === 'pose'
+            ? await keep(
+                'generated-poses',
+                poseKey(drawing, job.pose.what),
+                () =>
+                  drawPose(
+                    job.item.entity,
+                    job.item.parts,
+                    drawing,
+                    job.pose.what
+                  )
+              )
+            : await keep('generated-idles', idleKey(drawing, job.prompt), () =>
+                drawIdle(job.item.entity, drawing, job.prompt)
+              )
       } catch (error) {
-        job.pose.error = error instanceof Error ? error.message : String(error)
+        into.error = error instanceof Error ? error.message : String(error)
       }
       await input.onProgress?.(
-        `Drawing the objects' poses (${++done} of ${jobs.length})`
+        `Bringing the objects to life (${++done} of ${jobs.length})`
       )
     }
   }
@@ -575,12 +634,25 @@ export const drawSceneArtwork = async (input: {
   const result = objects.map(
     (object) => drawn.find((item) => item.entity === object.entity)!
   )
-  // Then the poses the plan names, each drawn from its object's drawing.
-  const jobs = result.flatMap((item, index) => {
-    const poses = posesOf(objects[index])
-    if (!item.objectKey || !poses.length) return []
-    item.poses = poses.map((pose) => ({ id: pose.id, what: pose.what }))
-    return item.poses.map((pose) => ({ item, pose }))
+  // Then each drawing's idle loop and the poses the plan names, each made
+  // from its object's drawing.
+  const jobs = result.flatMap((item, index): ExtraJob[] => {
+    if (!item.objectKey) return []
+    const object = objects[index]
+    const poses = posesOf(object)
+    item.poses = poses.length
+      ? poses.map((pose) => ({ id: pose.id, what: pose.what }))
+      : undefined
+    return [
+      {
+        kind: 'idle',
+        item,
+        prompt: idlePrompt(object.role, partsOf(object))
+      },
+      ...(item.poses || []).map(
+        (pose): ExtraJob => ({ kind: 'pose', item, pose })
+      )
+    ]
   })
   if (jobs.length) await drawPoses(jobs, input)
   return result
@@ -633,102 +705,4 @@ export const inlineArtwork = (
   return { html: page, placed }
 }
 
-const POSE_RULE = [
-  'A pose is a state of a drawing that the app drew by editing the drawing itself, shape for shape, so it tweens smoothly.',
-  'Load <script src="compositions/artwork-poses.js"></script> after GSAP; then artworkPose(tl, ENTITY, POSE, at, seconds) turns the drawing into that pose on your timeline from second `at` (0.6 to 1.2 s reads as smooth; the ease defaults to power2.inOut), and artworkPose(tl, ENTITY, "rest", at, seconds) turns it back.',
-  'A pose is a whole state: another pose returns what it does not change to rest.',
-  'Start each on the cue that says it, and never tween the parts a pose moves (its moves) yourself while it plays.',
-  'Give a posed drawing room to be seen: a pose inside an icon-sized drawing changes nothing the viewer can read.',
-  'A pose with an error was not drawn: show that change with the parts instead.'
-].join(' ')
-
-/** A pose as the build's packet lists it: what it moves, or why it is not there. */
-const poseEntry = (pose: DrawnPose, reports?: PoseReport[]) => {
-  const report = reports?.find((item) => item.id === pose.id)
-  return report && !report.problems.length
-    ? {
-        id: pose.id,
-        what: pose.what,
-        moves: report.parts,
-        motion: report.smooth
-          ? 'smooth'
-          : 'smooth, with some changes switching halfway'
-      }
-    : {
-        id: pose.id,
-        what: pose.what,
-        error:
-          pose.error ||
-          `It could not be tweened from the drawing: ${report?.problems.join('; ') || 'it was not drawn'}`
-      }
-}
-
-/** The drawings and what to do with them, for the build's packet. */
-export const artworkPacket = async (drawn: DrawnObject[]) => {
-  const files: Record<string, Buffer> = {}
-  const posed = new Map<string, PoseReport[]>()
-  // Kept drawings are cleaned again, so one drawn before a cleaning rule
-  // existed meets it without being drawn again.
-  for (const item of drawn) {
-    if (!item.objectKey) continue
-    const clean = async (key: string) =>
-      cleanDrawing((await readAsset(key)).toString(), item.entity, item.parts)
-    let svg = await clean(item.objectKey)
-    // Each pose's values go onto the shapes it changes, for the pose player.
-    const poses: Array<{ id: string; svg: string }> = []
-    for (const pose of item.poses || [])
-      if (pose.objectKey)
-        poses.push({ id: pose.id, svg: await clean(pose.objectKey) })
-    if (poses.length) {
-      const result = posedDrawing(svg, poses)
-      svg = result.svg
-      posed.set(item.entity, result.poses)
-    }
-    files[`packet/${item.file}`] = Buffer.from(svg)
-  }
-  if (!drawn.length) return files
-  const posing = [...posed.values()].some((reports) =>
-    reports.some((report) => !report.problems.length)
-  )
-  files['packet/ARTWORK.json'] = Buffer.from(
-    JSON.stringify(
-      {
-        rule: [
-          'These objects were drawn for this scene from the plan.',
-          'Place each one with an empty <div data-artwork="ENTITY"></div>, sized and positioned where the object goes, in the aspect of its viewBox: when you submit, the app puts the drawing into it exactly as drawn, sized to fill it, so never paste or retype its path data.',
-          'Its manifest layer names it as asset { "libraryKey": "generated-ENTITY" }, with no path: the drawing is inline.',
-          'Animate each named part by its data-part attribute ([data-artwork="ENTITY"] [data-part="PART"]; a part may be several groups that move together), never redraw a drawn object from plain shapes, and keep it clear of text and other layers.',
-          'A part listed as missing is not separable: move the whole drawing instead.',
-          'An object with an error has no drawing: draw it yourself and say so in manifest.unmet.',
-          ...(posing ? [POSE_RULE] : [])
-        ].join(' '),
-        objects: drawn.map((item) => ({
-          entity: item.entity,
-          ...(item.objectKey
-            ? {
-                file: item.file,
-                libraryKey: drawnKey(item.entity),
-                place: `<div data-artwork="${item.entity}"></div>`,
-                viewBox: viewBoxOf(
-                  files[`packet/${item.file}`]?.toString() || ''
-                )
-              }
-            : {}),
-          parts: item.parts,
-          missing: item.missing,
-          ...(item.poses?.length
-            ? {
-                poses: item.poses.map((pose) =>
-                  poseEntry(pose, posed.get(item.entity))
-                )
-              }
-            : {}),
-          ...(item.error ? { error: item.error } : {})
-        }))
-      },
-      null,
-      2
-    )
-  )
-  return files
-}
+export { artworkPacket } from './artwork-packet'

@@ -78,7 +78,12 @@
   /**
    * Tween the drawing placed for `entity` into `pose` ('rest' for the
    * drawing as drawn) on timeline `tl`, from second `at` for `seconds`
-   * (0.8 by default), with `ease` (power2.inOut by default). Returns tl.
+   * (0.8 by default). Returns tl.
+   *
+   * As a Lottie state change does: the change runs through the drawing's
+   * shapes one after another rather than all at once, a part that turns or
+   * moves overshoots a little and settles (`ease` overrides both), and the
+   * drawing gives a small pop as it arrives in a new state.
    */
   window.artworkPose = function (tl, entity, pose, at, seconds, ease) {
     var root = document.querySelector('[data-artwork="' + entity + '"]')
@@ -86,18 +91,32 @@
     var shapes = root.querySelectorAll('[data-posed]')
     var duration = typeof seconds === 'number' && seconds >= 0 ? seconds : 0.8
     var start = typeof at === 'number' ? at : tl.duration()
+    // The cascade spreads over at most half the change.
+    var stagger =
+      shapes.length > 1
+        ? Math.min(0.05, (duration * 0.5) / (shapes.length - 1))
+        : 0
     var i
     for (i = 0; i < shapes.length; i++) rest(shapes[i])
     for (i = 0; i < shapes.length; i++) {
       var element = shapes[i]
       var home = rest(element)
       var target = (pose !== 'rest' && read(element, pose)) || home
-      var vars = { duration: duration, ease: ease || 'power2.inOut' }
+      var when = start + i * stagger
       var attr = assign(assign({}, home.attr), target.attr || {})
+      var style = assign(assign({}, home.style), target.style || {})
+      // Only a turn or a move overshoots: a colour must not.
+      var turns =
+        attr.transform !== undefined &&
+        Object.keys(attr).length === 1 &&
+        !any(style)
+      var vars = {
+        duration: duration,
+        ease: ease || (turns ? 'back.out(1.7)' : 'power2.inOut')
+      }
       if (any(attr)) vars.attr = attr
-      assign(vars, css(assign(assign({}, home.style), target.style || {})))
-      if (vars.attr || any(home.style) || any(target.style || {}))
-        tl.to(element, vars, start)
+      assign(vars, css(style))
+      if (vars.attr || any(style)) tl.to(element, vars, when)
       // What cannot tween changes halfway through.
       var snap = assign(assign({}, home.snap), target.snap || {})
       var snapStyle = css(
@@ -107,15 +126,32 @@
         tl.set(
           element,
           { attr: snap, immediateRender: false },
-          start + duration / 2
+          when + duration / 2
         )
       if (any(snapStyle))
         tl.set(
           element,
           assign({ immediateRender: false }, snapStyle),
-          start + duration / 2
+          when + duration / 2
         )
     }
+    // The pop: the whole drawing swells a touch and settles as it arrives.
+    var art = root.querySelector('svg')
+    if (art && shapes.length && pose !== 'rest')
+      tl.fromTo(
+        art,
+        { scale: 1 },
+        {
+          scale: 1.04,
+          duration: Math.min(0.2, duration / 4),
+          ease: 'power1.out',
+          yoyo: true,
+          repeat: 1,
+          transformOrigin: '50% 50%',
+          immediateRender: false
+        },
+        start + duration * 0.6
+      )
     return tl
   }
 })()

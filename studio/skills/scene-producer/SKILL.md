@@ -82,10 +82,18 @@ path data, and keep it clear of text and other layers.
 An object's `poses` there are states the app drew from its drawing, shape
 for shape: load `compositions/artwork-poses.js` and call
 `artworkPose(tl, entity, pose, at, seconds)` on the cue that says the change,
-and the drawing tweens into it smoothly (`'rest'` turns it back). Prefer a
-pose to rebuilding that change by hand, leave the parts it moves to it
-while it plays, and give a posed drawing room: a pose inside an icon-sized
-drawing changes nothing the viewer can read.
+and the drawing tweens into it smoothly (`'rest'` turns it back): the
+change runs through its shapes in turn, what turns overshoots and settles,
+and the drawing pops a little as it arrives, so 0.8 to 1.2 s reads well.
+Prefer a pose to rebuilding that change by hand, leave the parts it moves
+to it while it plays, and give a posed drawing room: a pose inside an
+icon-sized drawing changes nothing the viewer can read.
+
+A drawn object is alive by itself, as a Lottie icon is: when its `idle` in
+`ARTWORK.json` is its own loop, its lamps blink, its ring breathes or its
+needle trembles on the scene's clock from the start. Add no idle wobble,
+float or pulse of your own to it; give it its entrance, its moves and its
+poses, and keep it large enough for that life to be seen.
 
 ## The picture develops with the voice
 
