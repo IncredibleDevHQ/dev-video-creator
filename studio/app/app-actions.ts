@@ -10,12 +10,7 @@ import { clickSeries, submitSeries } from './series-controller'
 import { clickRelease, submitRelease } from './release-controller'
 import { clickAccounts, submitAccounts } from './accounts-controller'
 import { clickSlides, submitSlides } from './slides-controller'
-import {
-  clickStart,
-  submitStart,
-  createPresentation,
-  showHowItWorks
-} from './start-controller'
+import { clickStart, submitStart, showHowItWorks } from './start-controller'
 import { openAgentMenu } from './agent-menu'
 import { openDirectionMenu, openLengthMenu } from './notebook-choices'
 import {

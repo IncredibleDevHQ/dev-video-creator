@@ -104,7 +104,7 @@ export const produceVideo = async (id: string) => {
           s,
           'video',
           failed
-            ? 'Scene preparation finished; some scenes stopped.'
+            ? `Scene preparation finished; ${failed === 1 ? 'a scene' : `${failed} scenes`} stopped.`
             : 'Scene preparation finished. Add remaining recordings in any order.'
         )
         joinNext = !failed

@@ -126,8 +126,11 @@ ${notebookOpeningView(app.opening.state)}`,
   if (
     shownScene &&
     (app.momentIndex < 0 || app.momentIndex >= shownScene.moments.length)
-  )
+  ) {
+    // Its time goes with it, so the time chip and the chat's anchor agree.
     app.momentIndex = 0
+    app.second = shownScene.moments[0]?.start ?? 0
+  }
   const viewUrl = workspaceUrl(
     new URL(location.href),
     project,
@@ -174,7 +177,12 @@ ${escape(project.title)}</h1>
               app.selected,
               app.pendingChats.has(project.id),
               app.liveConnected,
-              { plan: app.selectedPlan, pin: app.pin, pipOpen: !app.pipClosed }
+              {
+                plan: app.selectedPlan,
+                pin: app.pin,
+                pipOpen: !app.pipClosed,
+                creating: app.pending
+              }
             )
     }</main>`,
     previousPlayer

@@ -23,7 +23,14 @@
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
+}
+/* The chip is a flex row: its words carry the ellipsis, beside the mark. */
+.transcript-header .tpl-scene-chip > span,
+.transcript-header .shot-chip > span {
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .transcript-header button {
   padding: 5px 8px;
@@ -352,6 +359,27 @@
 .recording-nudge strong {
   color: var(--text);
   white-space: nowrap;
+}
+/* What stopped a scene, beside Try again; or what it was accepted with. */
+.scene-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.scene-check span {
+  min-width: 0;
+}
+.scene-check.is-notice {
+  color: var(--muted);
+}
+.scene-check button {
+  flex: none;
+  padding: 5px 10px;
+  font-size: 12px;
 }
 .recording-script {
   margin: 20px 0;

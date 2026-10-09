@@ -91,7 +91,11 @@ export const planCampaign = (
         `That is the run. ${project.title} closes it. ${LINK}`
       )
     )
-  const kept = release.campaign.filter((entry) => entry.state === 'posted')
+  // Posted items stay, and so do ones that may have gone out (review 6: a
+  // new plan offered them as drafts to post again).
+  const kept = release.campaign.filter(
+    (entry) => entry.state === 'posted' || entry.state === 'unknown'
+  )
   return [
     ...kept,
     ...plan.filter((entry) => !kept.some((done) => done.id === entry.id))

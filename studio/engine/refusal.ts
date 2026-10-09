@@ -4,3 +4,13 @@
  * other error stays the server's generic reply.
  */
 export class Refusal extends Error {}
+
+/** Work whose errors are the creator's to read, such as a shared validator's. */
+export const asRefusal = <T>(work: () => T): T => {
+  try {
+    return work()
+  } catch (error) {
+    if (error instanceof Refusal) throw error
+    throw new Refusal(error instanceof Error ? error.message : String(error))
+  }
+}

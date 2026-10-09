@@ -4,7 +4,7 @@
 // page (which has a way back), and a video can start with only some scenes.
 import type { Snapshot } from '../shared/api'
 import type { Scene, Slide } from '../shared/model'
-import { sceneDisplay } from '../shared/state'
+import { sceneDisplay, videoOpens } from '../shared/state'
 import { escape, button } from './ui'
 
 export const sceneOfSlide = (snapshot: Snapshot, slideId?: string) =>
@@ -61,7 +61,9 @@ export const sceneLink = (
   pipOpen: boolean
 ): { line: string; pip: string } => {
   const slide = snapshot.project.slides[index]
-  if (!slide?.svg || snapshot.status !== 'ready') return { line: '', pip: '' }
+  // The line shows once a video can open: every page has a first draft, as
+  // the Make the video buttons agree (review 6).
+  if (!slide?.svg || !videoOpens(snapshot)) return { line: '', pip: '' }
   const number = index + 1
   const scene = sceneOfSlide(snapshot, slide.id)
   const line = (words: string, actions: string, kind = 'none') => ({
@@ -102,7 +104,7 @@ export const sceneLink = (
       : status.kind === 'queued'
         ? `Scene ${number} is queued`
         : status.kind === 'failed'
-          ? `Scene ${number}: ${escape(scene.error || 'needs attention')}`
+          ? `Scene ${number}: ${escape(scene.error || 'stopped')}`
           : `Scene ${number} is written; finish it on the Video page`,
     openScene,
     status.kind

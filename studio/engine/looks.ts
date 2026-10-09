@@ -30,14 +30,27 @@ export const startingLook = async (
   const saved = domain
     ? (await loadBrandLibrary()).find((entry) => entry.domain === domain)
     : undefined
-  if (saved?.brand.palette && saved.brand.fonts)
+  if (saved?.brand.palette && saved.brand.fonts) {
+    const fonts = {
+      display: loadableFont(saved.brand.fonts.display),
+      body: loadableFont(saved.brand.fonts.body),
+      mono: loadableFont(saved.brand.fonts.mono)
+    }
+    const standing = [fonts.display, fonts.body].filter((font) => font.replaced)
     return {
       id: `saved:${saved.id}`,
       name: saved.brand.look?.name || saved.brand.name || domain!,
-      description: `Your saved look for ${domain}.`,
+      description: standing.length
+        ? `Your saved look for ${domain}. Its fonts can’t be loaded here, so ${[...new Set(standing.map((font) => font.value))].join(' and ')} stand in.`
+        : `Your saved look for ${domain}.`,
       palette: { ...saved.brand.palette, accent: saved.brand.accent },
-      fonts: saved.brand.fonts
+      fonts: {
+        display: fonts.display.value,
+        body: fonts.body.value,
+        mono: fonts.mono.value
+      }
     }
+  }
   if (source?.palette.provenance === 'extracted') {
     // A site's own fonts can't be loaded: the nearest built-in stands in,
     // and the look says so.
@@ -81,7 +94,15 @@ export const withLook = (
     secondary: look.palette.secondary
   },
   fonts: { ...look.fonts },
-  look: { id: look.id, name: look.name }
+  // A look of the studio's own describes itself; one read from a site or
+  // saved keeps its words, which say when its fonts stand in.
+  look: {
+    id: look.id,
+    name: look.name,
+    ...(LOOKS.some((item) => item.id === look.id) || !look.description
+      ? {}
+      : { note: look.description })
+  }
 })
 
 export const paletteOf = (

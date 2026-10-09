@@ -31,9 +31,10 @@ import {
 import { fingerprintOf } from './planning/fingerprint'
 import { loadStageCheckpoint, saveStageCheckpoint } from './artifacts'
 import { validateHarnessSelection } from './harness/preference'
+import { availableHarness } from './notebook-intake'
 import { planCreativeScene } from './creative/scene'
 import { transitionScene } from './autopilot'
-import { Refusal } from './refusal'
+import { Refusal, asRefusal } from './refusal'
 const running = new Map<string, Promise<void>>()
 const isPresence = (value: unknown): value is Presence =>
   ['off', 'low', 'high'].includes(String(value))
@@ -58,9 +59,11 @@ export const validateVideoSettings = (value: unknown): VideoSettings => {
     ...(narrative
       ? {
           narrative: narrative.id,
-          direction: validDirection(
-            narrative,
-            raw.direction ?? { preset: narrative.preset }
+          direction: asRefusal(() =>
+            validDirection(
+              narrative,
+              raw.direction ?? { preset: narrative.preset }
+            )
           )
         }
       : {}),
@@ -85,6 +88,7 @@ const chosenScenes = (body: unknown, slideIds: string[]) => {
 }
 export const makeVideo = async (id: string, settings: unknown) => {
   const valid = validateVideoSettings(settings)
+  if (valid.harness) valid.harness = await availableHarness(valid.harness)
   await resolveVoice(valid.voice)
   const snapshot = await changeProject(id, (current) => {
     if (current.project.video)
@@ -663,6 +667,7 @@ export const chatVideo = async (id: string, request: ChatRequest) => {
 
 export const updateVideoSettings = async (id: string, settings: unknown) => {
   const valid = validateVideoSettings(settings)
+  if (valid.harness) valid.harness = await availableHarness(valid.harness)
   await resolveVoice(valid.voice)
   const snapshot = await changeProject(id, (current) => {
     const video = current.project.video

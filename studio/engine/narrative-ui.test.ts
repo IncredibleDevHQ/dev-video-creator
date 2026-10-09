@@ -591,6 +591,27 @@ it('names a scene’s shot, offers the others, and follows the direction', async
   expect(middle.querySelector('.settings-note')?.textContent?.trim()).toBe(
     'Following the template’s direction · Off'
   )
+  // The scene's menu makes its animation when it can; a left-out scene's
+  // offers only Make this scene (review 6).
+  const ready = {
+    ...video.scenes[1],
+    phase: 'waiting',
+    creativePlan: { record: 'r' },
+    animationKey: 'k'
+  } as never
+  const menu2 = (inVideo: boolean) =>
+    parseHTML(
+      `<div>${sceneSettings(ready, video.settings, 1, inVideo, 3)}</div>`
+    ).document
+  expect(menu2(true).querySelector('[data-action="make-animation"]')).not.toBe(
+    null
+  )
+  const left = menu2(false)
+  expect(left.querySelector('[data-presence]')).toBeNull()
+  expect(left.querySelector('[data-action="make-animation"]')).toBeNull()
+  expect(
+    left.querySelector('[data-action="make-scene"]')?.textContent?.trim()
+  ).toBe('Make this scene')
 })
 
 it('says what Jev suggests once, and where it reads a page differently', async () => {

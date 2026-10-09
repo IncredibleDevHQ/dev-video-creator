@@ -11,6 +11,7 @@ import {
   inlineArtwork
 } from './artwork'
 import { POSE_PLAYER, posePlayer } from './artwork-poses'
+import { ACCEPTED_WITH_WARNING, plainCheck } from './check-words'
 import { collectCreativeFiles } from './files'
 import type { Project, Scene } from '../../shared/model'
 import type { SketchFiles } from '../../render/types'
@@ -44,10 +45,6 @@ export const retainedContentSeed = async (
   }
   return seed
 }
-/** A check's finding in a few words: what, before the how. */
-const firstClause = (problem = '') =>
-  (problem.split(': ')[0] || problem).slice(0, 110)
-
 export const collectProduction = (
   directory: string,
   supplied: Record<string, Buffer>,
@@ -212,6 +209,8 @@ export const buildCreativeProduction = async (
     // Structural findings are hard; the settled frames' are soft, and a
     // scene refused only for them can be accepted as is (review 6).
     const hard = report.problems.length
+    // Findings let through: said when the build is accepted (review 6).
+    const lenient: string[] = []
     if (!report.problems.length) {
       const frames = await settledFrameReport(files, context.clock.moments, {
         skip: presenterFilled
@@ -221,20 +220,24 @@ export const buildCreativeProduction = async (
         )
         return { problems: [], nearly: [] }
       })
-      if (late) report.warnings.push(...frames.problems)
-      else report.problems.push(...frames.problems)
+      if (late) {
+        report.warnings.push(...frames.problems)
+        lenient.push(...frames.problems)
+      } else report.problems.push(...frames.problems)
       // One change short is fixed with the rest; alone, it is accepted and
       // said as a warning.
       if (report.problems.length) report.problems.push(...frames.nearly)
-      else
+      else {
         report.warnings.push(
           ...frames.nearly.map(
             (problem) => `Accepted one change short: ${problem}`
           )
         )
+        lenient.push(...frames.nearly)
+      }
     }
     report.ok = report.problems.length === 0
-    return { files, report, soft: !hard && !report.ok }
+    return { files, report, soft: !hard && !report.ok, lenient }
   }
   const submit = async (directory: string) => {
     if (++attempt > 6)
@@ -244,10 +247,10 @@ export const buildCreativeProduction = async (
     await onProgress?.(`Checking the animation, attempt ${attempt}`)
     // Late in the budget the frame findings are recorded, not refused, so a
     // scene is not lost to one stubborn label.
-    const { files, report, soft } = await check(directory, attempt > 4)
+    const { files, report, soft, lenient } = await check(directory, attempt > 4)
     if (!report.ok)
       await onProgress?.(
-        `The check asked for ${report.problems.length} fix${report.problems.length === 1 ? '' : 'es'}: ${firstClause(report.problems[0])}`
+        `The check asked for ${report.problems.length} fix${report.problems.length === 1 ? '' : 'es'}: ${plainCheck(report.problems[0], scene.moments)}`
       )
     // Refused candidates are archived too: a harness correcting its files
     // cannot erase the preceding attempt.
@@ -296,6 +299,11 @@ export const buildCreativeProduction = async (
       artifacts
     })
     accepted = files
+    // Accepted with a finding let through: said where the creator sees it.
+    if (lenient.length)
+      await onProgress?.(
+        `${ACCEPTED_WITH_WARNING}${plainCheck(lenient[0], scene.moments)}`
+      )
     return {
       accepted: true,
       warnings: report.warnings,
@@ -422,6 +430,13 @@ ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-c
         inputSchema: submissionSchema,
         call: async () => {
           const { report } = await check(directory)
+          // A run that stops before it submits still says what was found.
+          if (!report.ok) {
+            lastProblems = report.problems
+            await onProgress?.(
+              `A check while writing asked for ${report.problems.length} fix${report.problems.length === 1 ? '' : 'es'}: ${plainCheck(report.problems[0], scene.moments)}`
+            )
+          }
           return {
             ok: report.ok,
             problems: report.problems,
@@ -458,7 +473,7 @@ ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-c
     scene,
     run.id,
     record.id,
-    attempt ? lastProblems : resumed?.problems || []
+    lastProblems.length ? lastProblems : resumed?.problems || []
   )
   // The stopped scene says what the last check found, and whether it can be
   // accepted as it was (review 6: it said only that time ran out).
@@ -466,7 +481,8 @@ ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-c
     run.failure,
     'The harness did not submit an accepted scene'
   ) as HarnessStageError & { lastCheck?: string; acceptable?: string }
-  if (lastProblems.length) failure.lastCheck = firstClause(lastProblems[0])
+  if (lastProblems.length)
+    failure.lastCheck = plainCheck(lastProblems[0], scene.moments)
   // Set by the submissions, which run in the harness's calls.
   const last = lastAttempt as { id: string; soft: boolean } | null
   if (last?.soft) failure.acceptable = last.id

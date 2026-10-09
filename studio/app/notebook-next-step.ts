@@ -8,7 +8,7 @@ export const notebookNextStep = (snapshot: Snapshot) => {
     return {
       title: 'Reading your article',
       description: 'Your notes will appear here when the article is ready.',
-      label: 'Reading source…',
+      label: 'Reading the source…',
       action: 'view-slides',
       disabled: true
     }

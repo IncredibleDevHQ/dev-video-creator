@@ -112,10 +112,8 @@ it('plays a moment before its scene has an animation, reading the words over the
   expect($('animation').textContent).toContain(
     'Wireframe · animation not made yet'
   )
-  // The way to the animation is right there.
-  const make = document.querySelector('[data-ds-make]') as HTMLElement
-  expect(make.getAttribute('data-action')).toBe('make-animation')
-  expect(make.hasAttribute('hidden')).toBe(false)
+  // Practice offers one action; the animation is made from the scene's menu.
+  expect(document.querySelector('[data-action="make-animation"]')).toBeNull()
   $('play').dispatchEvent(new window.Event('click', { bubbles: true }))
   vi.advanceTimersByTime(2000)
   expect(studio.isPlaying()).toBe(true)
@@ -128,14 +126,11 @@ it('plays a moment before its scene has an animation, reading the words over the
   expect($('time').textContent).toBe('0:04.0 / 0:04.0')
 })
 
-it('says the animation is being made, and stops offering to make it', () => {
+it('says the animation is being made', () => {
   animation = 'making'
   studio.mount()
   expect(document.querySelector('[data-ds="remaining"]')!.textContent).toBe(
     'Making the animation… it plays here when ready'
-  )
-  expect(document.querySelector('[data-ds-make]')!.hasAttribute('hidden')).toBe(
-    true
   )
 })
 

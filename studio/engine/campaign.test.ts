@@ -79,6 +79,13 @@ it('plans around the release: teasers before, launch on the day, a clip and a qu
   })
   expect(again[0]).toEqual(posted)
   expect(again.at(-1)).toMatchObject({ kind: 'recap', offsetDays: 10 })
+  // One that may have gone out stays too, never offered as a new draft.
+  const maybe = { ...items[1], state: 'unknown' as const }
+  expect(
+    plan
+      .planCampaign(project({ campaign: [maybe] }))
+      .find((entry) => entry.id === maybe.id)
+  ).toEqual(maybe)
 })
 
 it('dates each item from the release, and knows which are due', () => {

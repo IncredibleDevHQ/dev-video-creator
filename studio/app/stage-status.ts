@@ -20,7 +20,8 @@ const caption = (
   const { project } = snapshot
   if (label === 'Stopped') return 'stopped'
   if (stage === 'presentation') {
-    if (active) return buildPhase(snapshot)?.word || 'drawing'
+    const phase = buildPhase(snapshot)
+    if (active || phase?.word === 'reading') return phase?.word || 'drawing'
     if (label === 'Not started') return 'next'
   }
   if (stage === 'video') {

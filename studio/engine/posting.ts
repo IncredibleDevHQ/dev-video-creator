@@ -77,7 +77,7 @@ const xVideo = async (bytes: Buffer, wait = 2000) => {
 }
 
 /** No answer came to the request that publishes: the post may be out. */
-export class UncertainPost extends Error {}
+export class UncertainPost extends Refusal {}
 
 /**
  * The request that publishes. A sign-in problem is refused before it is

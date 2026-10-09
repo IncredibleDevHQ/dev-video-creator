@@ -331,7 +331,7 @@ export const retryClone = async (id: string) => {
   const clone = await withOperationLock(`voice-clone:${id}`, async () => {
     const current = await readRow<VoiceClone>('voice-clones', id)
     if (!current || current.state !== 'failed')
-      throw new Error('This clone does not need a retry')
+      throw new Refusal('This clone does not need a retry')
     current.state = 'creating'
     current.error = null
     current.attemptStartedAt = new Date().toISOString()

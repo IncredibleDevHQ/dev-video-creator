@@ -19,7 +19,7 @@ import { creativeContext } from './creative/stage'
 import type { SourceRead } from './source-document'
 import { startingLook, withLook } from './looks'
 import { loadHarnessPreference as savedHarness } from './harness/preference'
-import { Refusal } from './refusal'
+import { Refusal, asRefusal } from './refusal'
 import { NOTE_LIMIT, notesLength } from '../shared/notes'
 
 // Edits save as the creator types; the suggestion is asked for once they
@@ -238,7 +238,12 @@ export const setNotebookTemplate = async (id: string, raw: unknown) => {
   if (value.narrative && !narrative)
     throw new Refusal('Choose one of the templates, or none')
   const direction = narrative
-    ? validDirection(narrative, value.direction ?? { preset: narrative.preset })
+    ? asRefusal(() =>
+        validDirection(
+          narrative,
+          value.direction ?? { preset: narrative.preset }
+        )
+      )
     : undefined
   const snapshot = await changeProject(id, (current) => {
     if (
@@ -253,6 +258,7 @@ export const setNotebookTemplate = async (id: string, raw: unknown) => {
       delete current.project.narrative
       delete current.project.direction
     }
+    current.project.templateChosen = true
   })
   await deleteRow('outlines', id)
   return snapshot

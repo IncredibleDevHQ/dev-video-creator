@@ -5,6 +5,7 @@ import { campaignSection } from './campaign-view'
 import { confirmAction } from './confirm-action'
 import { numbersSection } from './numbers-view'
 import { releaseBusy, releaseDialog } from './release-view'
+import { api } from './api'
 import { studioApi } from './studio-api'
 import { busy, typingIn } from './ui'
 import type { AccountsView } from '../shared/accounts'
@@ -133,17 +134,23 @@ export const clickRelease = async (
       action: again ? 'Post again' : 'Post now'
     })
     if (!sure) return
-    await busy(target, async () =>
-      update(
-        app,
-        await studioApi.notebook(id, 'campaign', {
-          action: 'post',
-          item: target.dataset.item,
-          words,
-          ...(again ? { again: true } : {})
-        })
+    try {
+      await busy(target, async () =>
+        update(
+          app,
+          await studioApi.notebook(id, 'campaign', {
+            action: 'post',
+            item: target.dataset.item,
+            words,
+            ...(again ? { again: true } : {})
+          })
+        )
       )
-    )
+    } catch (reason) {
+      // What the post's row now says (it may have gone out) shows at once.
+      if (app.snapshot?.project.id === id) update(app, await api.load(id))
+      throw reason
+    }
   }
 
   // A publish time is chosen, never filled in: with one, YouTube keeps it

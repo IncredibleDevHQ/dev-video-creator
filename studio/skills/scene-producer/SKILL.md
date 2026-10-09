@@ -134,6 +134,11 @@ that frame. It refuses a build where, at a moment's end:
   node, the entry's `meaning.label` and `detail` in `VISUAL_CAST.json`); an
   empty card reads as a placeholder.
 
+It also samples every moment as it plays: words held within 16 px of the
+frame's edge for a second or more, as a push-in can leave them, are refused
+there too. Keep a push-in's target and its labels inside that safe area for
+the whole move, not only where it ends.
+
 When the scene shows one of these defects on purpose (the story is about a
 caption cut off at the edge, or a label sitting on a diagram), wrap that
 depiction in an element with `data-intentional="why it is shown"`: the

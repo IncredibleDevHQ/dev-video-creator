@@ -254,9 +254,6 @@
   line-height: 1.6;
   background: var(--rail);
 }
-.workspace-header {
-  gap: 16px;
-}
 @media (max-width: 600px) {
   .notebook {
     width: calc(100% - 24px);
@@ -275,10 +272,6 @@
   .notebook-toolbar .note-edit-status {
     width: 100%;
     padding-top: 4px;
-  }
-  .workspace-header .header-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
   }
 }
 

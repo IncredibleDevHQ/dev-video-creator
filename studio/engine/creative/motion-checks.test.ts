@@ -119,4 +119,17 @@ it('finds an empty frame while the voice speaks, and words the edge cuts', async
   )
   const cut = motionDefects(moment, pushed).find((d) => d.kind === 'cut')
   expect(cut?.message).toContain('“augmented LLM”')
+  // In view but crowding the edge, held through the move: outside the safe
+  // area, as at a moment's end. Inside it, the label is fine.
+  const crowded = (x: number) =>
+    Array.from({ length: 12 }, (_, i) =>
+      pose(
+        word('Retrieval', i < 4 ? 1000 + i * 50 : x),
+        word('Memory', 500 + i * 40)
+      )
+    )
+  const kinds = (x: number) =>
+    motionDefects(moment, crowded(x)).map((defect) => defect.kind)
+  expect(kinds(1920 - 320 - 6)).toContain('cut')
+  expect(kinds(1920 - 320 - 40)).not.toContain('cut')
 })

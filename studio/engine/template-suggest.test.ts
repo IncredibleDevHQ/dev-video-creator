@@ -174,6 +174,29 @@ it('preselects a sure template, and leaves an unsure one to the creator', async 
   expect((await suggestTemplate('chosen')).project.narrative).toBe('launch')
 })
 
+it('picks a template only on the first ask, never over the creator’s choice', async () => {
+  process.env.TYPESAFE_API_KEY = 'test-key'
+  // Planned without a template by hand: a sure ask after an edit keeps it so.
+  await seed('none', { templateChosen: true })
+  vi.stubGlobal('fetch', jev({ answers: answers(0.95) }))
+  const none = await suggestTemplate('none')
+  expect(none.project.narrative).toBeUndefined()
+  expect(none.suggestion?.preselected).toBe(false)
+  // An unsure first ask, then a sure one after an edit: the second waits in
+  // the menu.
+  await seed('later')
+  vi.stubGlobal('fetch', jev({ answers: answers(0.4) }))
+  await suggestTemplate('later')
+  vi.stubGlobal('fetch', jev({ answers: answers(0.95) }))
+  expect((await suggestTemplate('later')).project.narrative).toBeUndefined()
+  // A first sure ask keeps the length the creator set: as many pages.
+  await seed('long', { length: 'long' })
+  vi.stubGlobal('fetch', jev({ answers: answers(0.95) }))
+  const long = await suggestTemplate('long')
+  expect(long.project.narrative).toBe('incident')
+  expect(long.project.direction?.length).not.toEqual([120, 240])
+})
+
 it('reads which beat each wireframe carries', async () => {
   process.env.TYPESAFE_API_KEY = 'test-key'
   await seed('pages', {

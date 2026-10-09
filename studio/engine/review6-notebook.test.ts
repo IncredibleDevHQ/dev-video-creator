@@ -25,6 +25,13 @@ it('counts the notes without the reader’s cut note', () => {
   const cut = `${kept} … [cut: the article goes on for 4,512 more characters]`
   expect(notesLength(cut)).toBe(NOTE_LIMIT)
   expect(notesLength(`${kept}y`)).toBe(NOTE_LIMIT + 1)
+  // As the editor's markdown writes it back: the cut note's brackets and
+  // other characters escaped, each still one character to the creator.
+  expect(
+    notesLength(
+      `${'x'.repeat(NOTE_LIMIT - 4)}a\_b\* … \[cut: the article goes on for 4,512 more characters\]`
+    )
+  ).toBe(NOTE_LIMIT)
 })
 
 it('keeps a font only if it can load, else the nearest built-in', () => {
@@ -36,6 +43,28 @@ it('keeps a font only if it can load, else the nearest built-in', () => {
   })
   expect(loadableFont('styreneA')).toEqual({ value: 'Inter', replaced: true })
   expect(loadableFont('JetBrains Mono').value).toBe('ui-monospace')
+})
+
+it('says on the notebook’s look when a site’s fonts stand in', async () => {
+  const { withLook } = await import('./looks')
+  const { LOOKS } = await import('../shared/looks')
+  const site = {
+    ...LOOKS[0],
+    id: 'site',
+    name: 'anthropic.com',
+    description:
+      'Colours read from anthropic.com. Its fonts can’t be loaded here, so Georgia and Inter stand in.'
+  }
+  expect(withLook(undefined, site).look).toEqual({
+    id: 'site',
+    name: 'anthropic.com',
+    note: site.description
+  })
+  // A look of the studio's own describes itself.
+  expect(withLook(undefined, LOOKS[0]).look).toEqual({
+    id: LOOKS[0].id,
+    name: LOOKS[0].name
+  })
 })
 
 it('says lengths in seconds or whole and half minutes', () => {

@@ -126,7 +126,9 @@ const group = async (id: string) => {
           ? error.message
           : 'The agent could not group the map'
       current.project.grouping = { state: 'failed', error: said }
-      addEvent(current, 'slide', `Could not group the map by topic: ${said}`)
+      addEvent(current, 'slide', `Could not group the map by topic: ${said}`, {
+        activity: 'failed'
+      })
     }).catch(() => {})
   }
 }

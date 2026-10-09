@@ -455,6 +455,14 @@ it('offers to make a scene left out of the video, and a way back to its wirefram
   expect(html).toContain('Scene 1: ')
   expect(html).toContain(', not in the video"')
   expect(html).not.toContain('Not made')
+  // Only Make this scene: nothing else that would fail on it (review 6).
+  expect(html).not.toContain('data-action="practice"')
+  expect(html).not.toContain('data-action="record-moment"')
+  expect(html).not.toContain('data-action="moment-actions"')
+  expect(html).not.toContain('Your turn')
+  expect(html).toMatch(/<input id="video-instruction"[^>]*disabled>/)
+  // No template text leaks into the page.
+  expect(html).not.toMatch(/>\s*\}\s*</)
 })
 
 it('distinguishes scenes ready to assemble from active work and missing recordings', () => {

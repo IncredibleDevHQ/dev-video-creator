@@ -1,12 +1,17 @@
 import type { Snapshot } from '../shared/api'
 import { escape } from './ui'
 import { buildPhase } from './wireframe-progress'
-export const presentationProgress = (snapshot: Snapshot) => {
+export const presentationProgress = (snapshot: Snapshot, pending = false) => {
   if (snapshot.status === 'failed')
-    return `<div class="generation-progress" role="status"><h2>${snapshot.stopping ? 'Generation stopped' : 'Your wireframes need attention'}</h2><p>${escape(snapshot.error || 'The last step could not finish.')}</p><p>Use the recovery action below to continue this notebook.</p></div>`
+    return `<div class="generation-progress" role="status"><h2>${snapshot.stopping ? 'Generation stopped' : 'Wireframes stopped'}</h2><p>${escape(snapshot.error || 'The last step could not finish.')}</p><p>Use the recovery action below to continue this notebook.</p></div>`
   // A tab only changes the view: the run starts from this button (review 6).
   if (snapshot.status === 'draft')
-    return `<div class="generation-progress"><h2>No wireframes yet</h2><p>Your agent reads the notes, plans the story and draws each wireframe. For a long article that takes about fifteen minutes.</p><button type="button" class="primary" data-action="create-presentation" ${snapshot.readOnly ? 'disabled' : ''}>Create wireframes →</button></div>`
+    return `<div class="generation-progress"><h2>No wireframes yet</h2><p>Your agent reads the notes, plans the story and draws each wireframe. For a long article that takes about fifteen minutes.</p>${
+      // Pressed, it says so at once, as the header's Create does (review 6).
+      pending
+        ? '<button type="button" class="primary" data-action="create-presentation" disabled aria-busy="true">Creating…</button>'
+        : `<button type="button" class="primary" data-action="create-presentation" ${snapshot.readOnly ? 'disabled' : ''}>Create wireframes →</button>`
+    }</div>`
   if (snapshot.status === 'ready')
     return '<div class="generation-progress"><h2>Start with a wireframe</h2><p>Add a wireframe, then tell us what it should explain.</p></div>'
   const event = [...snapshot.events]

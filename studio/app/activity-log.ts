@@ -43,7 +43,7 @@ export const activitySteps = (snapshot: Snapshot) => {
 
 // What each agent call was for, in the product's words, in workflow order.
 const STAGE_WORDS: Array<[string, string]> = [
-  ['brief', 'Reading the article'],
+  ['brief', 'Reading the source'],
   ['story', 'Story'],
   ['revise-story', 'Story changes'],
   ['page', 'Wireframes'],

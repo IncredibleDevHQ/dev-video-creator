@@ -42,6 +42,7 @@ export const mapPage = (title: string) => `<div class="map-page">
 <a class="brand map-brand" href="/" aria-label="Incredible Studio: all notebooks" title="All notebooks"><img src="${incredibleLogo}" alt=""></a>
 <div class="map-title"><strong>Content map</strong><span data-map-slot="title">${escape(title)}</span></div>
 <nav class="map-stages" aria-label="Stages" data-map-slot="stages"></nav>
+<button type="button" class="quiet map-back" data-map="close" title="Back to the wireframes">← Wireframe</button>
 <button type="button" class="quiet map-notes-toggle" data-map="notes" aria-expanded="false">Notes</button>
 <div class="map-tools" data-map-slot="tools"></div>
 ${themeControl()}
@@ -346,7 +347,7 @@ export const derivedBlock = (view: MapView, episode: MapEpisode) => {
     : episode.posts
       ? `<li><span>Posts · X, LinkedIn, YouTube</span><button type="button" data-map="read-posts:${episode.notebook}">Read</button></li>`
       : made
-        ? `<li${failed ? ` title="${escape(episode.drafting?.error || '')}"` : ''}><span>${failed ? 'Posts could not be drafted' : 'Posts · X, LinkedIn, YouTube'}</span><button type="button" data-map="posts:${episode.notebook}">${failed ? 'Draft again' : 'Draft'}</button></li>`
+        ? `<li><span>${failed ? `Posts could not be drafted${episode.drafting?.error ? `: ${escape(episode.drafting.error)}` : ''}` : 'Posts · X, LinkedIn, YouTube'}</span><button type="button" data-map="posts:${episode.notebook}">${failed ? 'Draft again' : 'Draft'}</button></li>`
         : ''
   return `<div class="map-lane-head"><i class="map-dot" style="--ep:${colorOf(view, episode.notebook)}"></i><b>Ep ${episode.number}</b><span class="map-lane-title">${escape(episode.title)}</span></div><ul class="map-derived">${teasers.join('')}${posts}</ul>`
 }

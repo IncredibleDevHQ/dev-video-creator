@@ -16,7 +16,6 @@ import {
 } from './scene-timeline'
 import {
   animationNote,
-  cameraOn,
   caretToEnd,
   enableControls,
   fitStage,
@@ -512,8 +511,6 @@ export function dialogueStudio(
       count: c.scene.moments.length,
       left: moment.start + length - second
     })
-    const make = panel.querySelector<HTMLButtonElement>('[data-ds-make]')
-    if (make) make.hidden = !!(video() || making || editing || cameraOn(root))
     if (editing) return
     const active = scene
       ? (wordStarts[index] ?? 0) +

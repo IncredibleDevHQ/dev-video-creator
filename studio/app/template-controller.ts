@@ -35,9 +35,13 @@ export const galleryContext = (app: AppContext) => {
       preset: told?.direction?.preset
     },
     back: project ? 'Back to notebook' : 'Back home',
-    // The suggestion for this post leads the gallery (review 6).
+    // The suggestion for this post leads the gallery (review 6), as sure of
+    // each as the notebook's row is.
     suggested: (app.snapshot?.suggestion?.narratives || [])
-      .filter(({ id }, index) => narrativeById(id) && index < 3)
+      .filter(
+        ({ id, p }, index) =>
+          narrativeById(id) && index < 3 && (index === 0 || p >= 0.1)
+      )
       .map(({ id }) => id)
   }
 }

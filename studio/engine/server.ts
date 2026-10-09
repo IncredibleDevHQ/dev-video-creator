@@ -8,6 +8,7 @@ import { mapRoute } from './map-routes'
 import { afterEpisodeEdit } from './map-episodes'
 import { settleInterruptedWork } from './studio-recovery'
 import {
+  availableHarness,
   startPresentation,
   refreshNotebookSource,
   editNotebookSource
@@ -285,9 +286,10 @@ export const createStudioServer = (
           201,
           await createProject(
             String(body?.source || ''),
+            // A listed, available model only, as Settings keeps (review 6).
             body.harness === undefined
               ? undefined
-              : validateHarnessSelection(body.harness),
+              : await availableHarness(body.harness),
             body.sourceOnly !== false
           )
         )

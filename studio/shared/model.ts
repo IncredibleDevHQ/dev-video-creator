@@ -120,6 +120,8 @@ export type Scene = {
   /** The last candidate, refused only by soft checks: it can be accepted as
    * it is (review 6). */
   acceptable?: string
+  /** A finding the made scene was accepted with, kept in view (review 6). */
+  notice?: string
 }
 export type Slide = {
   draft?: boolean
@@ -181,6 +183,9 @@ export type Project = {
   /** The story the wireframes are planned for, and how it is told. */
   narrative?: string
   direction?: Direction
+  /** The creator picked the template, or none, by hand: a suggestion no
+   * longer picks one for them (review 6). */
+  templateChosen?: boolean
   /** Linked repos: the local agent answers the pages' requests from them. */
   repos?: import('./repos').RepoLink[]
   /** The series this notebook is an episode of. */

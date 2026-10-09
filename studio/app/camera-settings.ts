@@ -29,30 +29,54 @@ export const sceneSettings = (
     ? 'the template’s direction'
     : 'notebook default'
   return html`<p class="eyebrow">SCENE ${index + 1}</p>
-    <h2>On camera</h2>
-    <p class="settings-note">
-      ${scene.presence
-        ? 'Custom for this scene'
-        : `Following ${source} · ${cameraChoices[following].title}`}
-    </p>
-    <div class="camera-options">
-      ${(Object.keys(cameraChoices) as Presence[])
-        .map(
-          (value) =>
-            html`<button
-              type="button"
-              data-presence="${value}"
-              aria-pressed="${(scene.presence || following) === value}"
-            >
-              <strong>${cameraChoices[value].title}</strong
-              ><span>${cameraChoices[value].description}</span>
+    ${
+      // A left-out scene offers only Make this scene: changing its camera
+      // there would fail (review 6).
+      inVideo
+        ? html`<h2>On camera</h2>
+            <p class="settings-note">
+              ${scene.presence
+                ? 'Custom for this scene'
+                : `Following ${source} · ${cameraChoices[following].title}`}
+            </p>
+            <div class="camera-options">
+              ${(Object.keys(cameraChoices) as Presence[])
+                .map(
+                  (value) =>
+                    html`<button
+                      type="button"
+                      data-presence="${value}"
+                      aria-pressed="${(scene.presence || following) === value}"
+                    >
+                      <strong>${cameraChoices[value].title}</strong
+                      ><span>${cameraChoices[value].description}</span>
+                    </button>`
+                )
+                .join('')}
+            </div>
+            ${scene.presence
+              ? `<button type="button" class="quiet" data-presence="inherit">Use ${source}</button>`
+              : ''}`
+        : ''
+    }
+    ${
+      // Practice offers one action; making the animation is the scene's
+      // (review 6).
+      inVideo &&
+      scene.creativePlan &&
+      scene.animation?.inputKey !== scene.animationKey &&
+      !['writing', 'changing', 'replanning', 'producing', 'queued'].includes(
+        scene.phase
+      )
+        ? html`<h2 class="scene-membership-title">Animation</h2>
+            <p class="settings-note">
+              Make it now to practice over it; it plays on the stage when ready.
+            </p>
+            <button type="button" class="quiet" data-action="make-animation">
+              Make the animation
             </button>`
-        )
-        .join('')}
-    </div>
-    ${scene.presence
-      ? `<button type="button" class="quiet" data-presence="inherit">Use ${source}</button>`
-      : ''}
+        : ''
+    }
     <h2 class="scene-membership-title">In the video</h2>
     ${inVideo
       ? html`<p class="settings-note">

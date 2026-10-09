@@ -31,7 +31,7 @@ export const currentLook = (app: AppContext): Look => {
   return {
     id: branding.look?.id || 'custom',
     name: branding.look?.name || named?.name || 'Your look',
-    description: named?.description || '',
+    description: named?.description || branding.look?.note || '',
     palette: { ...branding.palette, accent: branding.accent },
     fonts: branding.fonts || NEUTRAL_LOOK.fonts
   }

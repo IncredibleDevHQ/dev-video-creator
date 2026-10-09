@@ -16,6 +16,7 @@ import { transcriptWords } from './transcript-follow'
 import { standInControls } from './stand-in-playback'
 import { layeredControls } from './layered-playback'
 import { recordingHandoff } from './recording-handoff'
+import { sceneCheck } from './scene-check'
 import { presenterLayoutStyle } from '../shared/presenter-layout'
 import { recordingPlan } from './recording-target'
 import {
@@ -211,6 +212,9 @@ export const videoScreen = (
       : display.actionLabel +
         (display.actionLabel === 'Finish scene' ? ` ${selected + 1}` : '')
   const busy = display.busy
+  // A left-out scene offers only Make this scene (review 6: its other
+  // controls failed).
+  const leftOut = sceneDisplay(snapshot, scene).inVideo === false
   const reply = [...snapshot.events]
     .reverse()
     .find(
@@ -284,7 +288,8 @@ export const videoScreen = (
 <span class="scene-meta">${
         entry.moments.length ? `${Math.round(entry.moments.at(-1)!.end)}s` : ''
       } ${
-        index === 0
+        // The title page opens the cut only when it is in it (review 6).
+        index === 0 && !left
           ? '<b>TITLE</b>'
           : index === lastIn && !left
             ? '<b>END</b>'
@@ -532,11 +537,15 @@ export const videoScreen = (
           )
         )}</small>
 </button>
-<button type="button" class="moment-card-menu" data-action="moment-actions" data-menu-moment="${index}" aria-label="Actions for moment ${
-          index + 1
-        }" aria-haspopup="dialog" ${
-          capture.phase !== 'idle' || busy ? 'disabled' : ''
-        }>⋯</button>
+${
+  leftOut
+    ? ''
+    : `<button type="button" class="moment-card-menu" data-action="moment-actions" data-menu-moment="${index}" aria-label="Actions for moment ${
+        index + 1
+      }" aria-haspopup="dialog" ${
+        capture.phase !== 'idle' || busy ? 'disabled' : ''
+      }>⋯</button>`
+}
 </div>`
     )
     .join('')}${
@@ -549,7 +558,7 @@ export const videoScreen = (
       : ''
   }</div>
 </div>${
-    view?.openMomentIds.length && capture.phase === 'idle'
+    view?.openMomentIds.length && capture.phase === 'idle' && !leftOut
       ? `<div class="recording-nudge">
 <strong>Your turn</strong>
 <span>${view.openMomentIds.length} ${
@@ -557,7 +566,7 @@ export const videoScreen = (
         } your recording to finish this scene.</span>
 </div>`
       : ''
-  }<div class="video-actions">
+  }${sceneCheck(scene)}<div class="video-actions">
 <div>${button('← Wireframe', 'open-wireframe')}${
     view?.produced
       ? `<a class="download-scene" href="/api/projects/${encodeURIComponent(
@@ -581,40 +590,48 @@ export const videoScreen = (
           )}${button('Save take', 'save-take', true)}`
         : capture.phase === 'uploading'
           ? button('Saving…', 'save-take', true, true)
-          : `${button(
-              practicing
-                ? 'Stop practice'
-                : practiceScene && scene.moments.length > 1
-                  ? 'Practice scene'
-                  : moment
-                    ? `Practice moment ${momentIndex + 1}`
-                    : 'Practice',
-              'practice',
-              false,
-              !scene.moments.length
-            )}${
-              // Moments wait for the creator: recording is the next step
-              // (review 6: it looked like its neighbours).
-              view?.openMomentIds.length && view.action !== 'record'
-                ? button(record, 'record-moment', true, !display.canRecord)
-                : ''
-            }${
-              // One way to finish (review 5): the header finishes the
-              // video; a scene's own button shows only for its own step,
-              // or to finish one of several scenes.
-              view?.action === 'download' ||
-              ((view?.action === 'produce' || view?.action === 'wait') &&
-                (views?.video.madeScenes ?? video.scenes.length) === 1)
-                ? ''
-                : button(
-                    mainLabel,
-                    'scene-next',
-                    view?.action === 'record' ||
-                      view?.action === 'retry' ||
-                      view?.action === 'make',
-                    !view || view.action === 'wait'
-                  )
-            }`
+          : leftOut
+            ? button(mainLabel, 'scene-next', true, false)
+            : `${button(
+                practicing
+                  ? 'Stop practice'
+                  : practiceScene && scene.moments.length > 1
+                    ? 'Practice scene'
+                    : moment
+                      ? `Practice moment ${momentIndex + 1}`
+                      : 'Practice',
+                'practice',
+                false,
+                !scene.moments.length
+              )}${
+                // Moments wait for the creator: recording is the next step
+                // (review 6: it looked like its neighbours).
+                // One primary: a Try again or Make beside it leads instead.
+                view?.openMomentIds.length && view.action !== 'record'
+                  ? button(
+                      record,
+                      'record-moment',
+                      view.action !== 'retry' && view.action !== 'make',
+                      !display.canRecord
+                    )
+                  : ''
+              }${
+                // One way to finish (review 5): the header finishes the
+                // video; a scene's own button shows only for its own step,
+                // or to finish one of several scenes.
+                view?.action === 'download' ||
+                ((view?.action === 'produce' || view?.action === 'wait') &&
+                  (views?.video.madeScenes ?? video.scenes.length) === 1)
+                  ? ''
+                  : button(
+                      mainLabel,
+                      'scene-next',
+                      view?.action === 'record' ||
+                        view?.action === 'retry' ||
+                        view?.action === 'make',
+                      !view || view.action === 'wait'
+                    )
+              }`
   }</div>
 </div>${
     reviewing
@@ -644,9 +661,9 @@ export const videoScreen = (
     (moment ? moment.camera === 'none' : video.settings.presence === 'off')
       ? '“say this part more slowly”'
       : '“move me left”'
-  }" ${moment && !busy ? '' : 'disabled'}>
+  }" ${moment && !busy && !leftOut ? '' : 'disabled'}>
 <button aria-label="Send instruction" ${
-    moment && !busy ? '' : 'disabled'
+    moment && !busy && !leftOut ? '' : 'disabled'
   }>↑</button>
 </form>
 <div class="reply" role="status" aria-live="polite">
@@ -659,16 +676,7 @@ export const videoScreen = (
           : '') ||
       agentWords(snapshot, video.error) ||
       ''
-  )}${
-    // What the last check found, so the creator can help (review 6).
-    scene.phase === 'failed' && scene.lastCheck
-      ? ` The last check asked: ${escape(scene.lastCheck)}.`
-      : ''
-  }</span>${
-    scene.phase === 'failed' && scene.acceptable
-      ? `<button type="button" data-action="accept-scene" title="Only the motion and frame checks refused it">Accept as is</button>`
-      : ''
-  }${button('Activity', 'history')}</div>
+  )}</span>${button('Activity', 'history')}</div>
 
 </div>
 <aside class="transcript" ${focused ? 'inert' : ''}>
@@ -738,7 +746,10 @@ export const makeVideoDialog = (
   },
   look?: Branding,
   /** The template the wireframes were planned from, chosen by default. */
-  planned?: { narrative?: string; direction?: VideoSettings['direction'] }
+  planned?: { narrative?: string; direction?: VideoSettings['direction'] },
+  /** A wireframe of this notebook for the template's card, when no
+   * wireframes are chosen here (the video's settings). */
+  preview?: string
 ) => {
   const presence = current?.presence || 'high'
   const voice = current?.voice || settings.voice.selected
@@ -748,7 +759,7 @@ export const makeVideoDialog = (
     : (takePickedTemplate() ?? (planned?.narrative ? planned : undefined))
   return `<h2>Make the video</h2>
 <form id="video-form">
-${templatePicker(story, look, choice?.slides.find((slide) => slide.svg)?.svg ?? undefined)}${onCameraChoice(story)}
+${templatePicker(story, look, preview ?? choice?.slides.find((slide) => slide.svg)?.svg ?? undefined)}${onCameraChoice(story)}
 <fieldset class="tpl-presence"${story?.narrative ? ' hidden disabled' : ''}>
 <legend>On camera</legend>${(['off', 'low', 'high'] as const)
     .map(

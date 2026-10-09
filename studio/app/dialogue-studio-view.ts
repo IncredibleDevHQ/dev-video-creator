@@ -25,8 +25,6 @@ export const studioMarkup = () =>
     '<div class="ds-animation-state">',
     '<span data-ds="remaining">',
     '</span>',
-    '<button type="button" class="quiet" data-action="make-animation" data-ds-make hidden>Make the animation',
-    '</button>',
     '<div class="ds-zoom" data-ds="zoom" role="group" aria-label="Timeline zoom" hidden>',
     '<button type="button" data-ds-zoom="out" aria-label="Zoom out" title="Zoom out">−',
     '</button>',
@@ -366,10 +364,3 @@ export function placePanel(root: HTMLElement, panel: HTMLElement) {
   root.querySelector('.video-stage .layered-controls')?.remove()
   root.querySelector('.stage-area')?.classList.add('has-dialogue-studio')
 }
-
-/** Whether the recorder has the camera on: the studio then offers nothing
- * but the recording. */
-export const cameraOn = (root: HTMLElement) =>
-  Boolean(
-    root.querySelector('[data-capture-phase]:not([data-capture-phase="idle"])')
-  )

@@ -125,6 +125,8 @@ export const presentationScreen = (
     pin?: ChangeTarget | null
     /** Whether the scene's picture-in-picture card is open, not a chip. */
     pipOpen?: boolean
+    /** Create was pressed and is starting. */
+    creating?: boolean
   } = {}
 ) => {
   const { project, status } = snapshot
@@ -277,7 +279,7 @@ export const presentationScreen = (
                     <h2>What is this wireframe about?</h2>
                     <p>Tell the studio below.</p>
                   </div>`
-                : presentationProgress(snapshot))}
+                : presentationProgress(snapshot, view.creating))}
         </div>
         ${link.pip}
       </div>

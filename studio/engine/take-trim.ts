@@ -8,6 +8,7 @@ import { loadProject, changeProject, addEvent } from './projects'
 import { readAsset, storeAsset, writeRow } from './persistence'
 import { composeTakes, pictureSize } from './take-clock'
 import { refreshVideoKeys } from './scene-model'
+import { Refusal } from './refusal'
 
 /** Only an explicit, whole-message edit is executed without creative planning. */
 export function takeTrimRange(
@@ -38,12 +39,12 @@ export async function trimTake(
     anchor.second < moment.start ||
     anchor.second > moment.end
   )
-    throw new Error('Choose a moment in this scene')
+    throw new Refusal('Choose a moment in this scene')
   if (!['waiting', 'produced', 'failed'].includes(scene.phase))
-    throw new Error('Wait for this scene to finish changing')
+    throw new Refusal('Wait for this scene to finish changing')
   const take = moment.take
   if (!take || take.recordingKey !== moment.recordingKey)
-    throw new Error('Record this moment before trimming its take')
+    throw new Refusal('Record this moment before trimming its take')
   if (
     !Number.isFinite(range.from) ||
     !Number.isFinite(range.to) ||
@@ -52,7 +53,7 @@ export async function trimTake(
     !take.duration ||
     range.to > take.duration
   )
-    throw new Error(
+    throw new Refusal(
       `Keep at least 0.4 seconds within this take (${
         take.duration?.toFixed(2) || 'unknown'
       } seconds).`
@@ -105,7 +106,7 @@ export async function trimTake(
         selected.recordingKey !== take.recordingKey ||
         !['waiting', 'produced', 'failed'].includes(target.phase)
       )
-        throw new Error(
+        throw new Refusal(
           'This moment changed while trimming. Your current take was kept.'
         )
       selected.take = trimmed

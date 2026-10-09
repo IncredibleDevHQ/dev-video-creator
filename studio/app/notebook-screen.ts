@@ -39,7 +39,7 @@ ${titled ? '' : `<h1>${escape(title)}</h1>`}
 ${notebookHint(snapshot, editable)}</div>
 ${editable ? notebookToolbar() : ''}
 <div class="notebook-body">
-${status === 'reading' ? '<p class="source-reading" role="status"><span class="spinner" aria-hidden="true"></span> Reading your source…</p>' : ''}
+${status === 'reading' ? '<p class="source-reading" role="status"><span class="spinner" aria-hidden="true"></span> Reading the source…</p>' : ''}
 ${snapshot.sourceOnly && snapshot.error ? `<div class="source-error" role="alert"><p>${escape(snapshot.error)}</p>${snapshot.sourceFailure ? button('Paste article text', 'paste-source', true) : ''}</div>` : ''}
 <div class="source-document" ${editable ? ` data-notebook-editor="${escape(project.id)}" data-source-revision="${noteRevision(project.source)}"` : ''}>
 ${sourceMarkdown(project.source, project.title)}</div>

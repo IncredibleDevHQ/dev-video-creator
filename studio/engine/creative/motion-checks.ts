@@ -135,7 +135,12 @@ const showsSomething = (sample: Pose, area: number) =>
       (item[6] ||
         (item[2] * item[3] < area * 0.8 && item[2] * item[3] >= area * 0.002))
   )
-/** Words the frame's edge cuts: drawn, readable, partly outside it. */
+/** Words keep this far inside the frame, as at a moment's end (frame-checks). */
+const SAFE_MARGIN = 16
+/**
+ * Words the frame's edge cuts or crowds: drawn, readable, in view but not
+ * inside its safe area, as a push-in can leave them (review 6).
+ */
 const cutWords = (sample: Pose) => {
   const [width, height] = sample.frame || [0, 0]
   if (!width) return []
@@ -143,7 +148,11 @@ const cutWords = (sample: Pose) => {
     if (!item || !item[6] || item[4] < 10) return false
     const [x, y, w, h] = item
     const inside = x < width && y < height && x + w > 0 && y + h > 0
-    const out = x < -4 || y < -4 || x + w > width + 4 || y + h > height + 4
+    const out =
+      x < SAFE_MARGIN ||
+      y < SAFE_MARGIN ||
+      x + w > width - SAFE_MARGIN ||
+      y + h > height - SAFE_MARGIN
     return inside && out
   })
 }
@@ -232,7 +241,7 @@ export const motionDefects = (
 const HOW: Record<MotionDefect['kind'], string> = {
   empty:
     'keep what the voice is talking about on screen: hold the question or the title until the next picture enters',
-  cut: 'keep a push-in’s target and its labels inside the frame’s safe area: zoom in less, or move the labels in',
+  cut: `keep a push-in’s target and its labels inside the frame’s safe area, at least ${SAFE_MARGIN} px from every edge for the whole move: zoom in less, or move the labels in`,
   frozen:
     'develop the picture there as the voice goes on: start the plan’s next change on the sentence that says it (CLOCK.json cues), rather than everything at the moment’s start',
   sparse: `give each idea the voice develops its own visible change as it is said, at least one every ${SECONDS_PER_CHANGE} s: a value travels its path, a bar fills as its number is said, a label moves to what it names, a part of a drawing acts`

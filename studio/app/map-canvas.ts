@@ -252,15 +252,17 @@ export class MapCanvas {
       action ? 7000 : 3200
     )
   }
-  /** Runs a change, then shows the map as it is now. */
+  /** Runs a change, then shows the map as it is now. True when it went through. */
   async run(work: () => Promise<unknown>, said?: string | (() => string)) {
     try {
       await work()
       if (said) this.toast(typeof said === 'function' ? said() : said)
       this.snapshot = await api.load(this.mapId)
       await this.refresh()
+      return true
     } catch (reason) {
       this.hooks.error(reason)
+      return false
     }
   }
   episodeOf(copy: string) {
@@ -318,9 +320,11 @@ export class MapCanvas {
     )
       return
     this.sel = { t: 'lane', id: from.notebook }
-    await this.run(() =>
+    // Undo is offered only for a removal that happened (review 6).
+    const removed = await this.run(() =>
       mapApi.copies(from.notebook, { action: 'remove', slide: copy })
     )
+    if (!removed) return
     this.undo = { episode: from.notebook }
     this.toast('Removed from the episode. The map keeps the page.', {
       label: 'Undo',

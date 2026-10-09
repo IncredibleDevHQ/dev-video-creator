@@ -14,7 +14,7 @@ import { replacePlayerView } from './player-view'
 import { button, escape } from './ui'
 import { seriesApi } from './series-controller'
 import { seriesSection } from './series-view'
-import { installNotebookEditor, flushNotebookEdits } from './notebook-editor'
+import { installNotebookEditor, saveBeforeLeaving } from './notebook-editor'
 import { confirmAction } from './confirm-action'
 
 export const createRefreshNotebooks = (app: AppContext) => async () => {
@@ -63,7 +63,7 @@ export const createFitSource =
 
 const notebookState = (item: NotebookSummary) =>
   item.status === 'reading'
-    ? 'Reading source'
+    ? 'Reading the source'
     : item.status === 'draft'
       ? 'Ready to create wireframes'
       : item.status === 'failed'
@@ -262,9 +262,14 @@ export const clickStart = async (
       }))
     )
       return
+    // Notes that can't be saved don't hold the re-read: it replaces them.
+    const saved = await saveBeforeLeaving(app, {
+      question: 'Re-read the article anyway? It replaces the notes.',
+      action: 'Re-read the article'
+    })
+    if (!saved) return
     target.disabled = true
     try {
-      await flushNotebookEdits(app)
       const snapshot = await api.refreshSource(id)
       if (app.snapshot?.project.id === id) {
         app.stage = 'notebook'
@@ -302,7 +307,13 @@ export const createPresentation = async (app: AppContext) => {
   app.pending = true
   app.render()
   try {
-    await flushNotebookEdits(app)
+    // Notes that can't be saved don't hold Create: it can go on from the
+    // notes as last saved (review 6).
+    const saved = await saveBeforeLeaving(app, {
+      question: 'Create from the notes as last saved, without the edits since?',
+      action: 'Create without the edits'
+    })
+    if (!saved) return
     const snapshot = await api.createPresentation(id)
     if (app.snapshot?.project.id !== id) return
     app.stage = 'presentation'

@@ -7,8 +7,9 @@ export type Branding = {
   palette?: { ground: string; text: string; secondary: string }
   fonts?: { display: string; body: string; mono: string }
   logoKey: string | null
-  /** The named look the palette and fonts came from (review 5). */
-  look?: { id: string; name: string }
+  /** The named look the palette and fonts came from (review 5), and what
+   * it says of them: a site's fonts that stand in for its own (review 6). */
+  look?: { id: string; name: string; note?: string }
 }
 export type VoiceClone = {
   id: string

@@ -11,7 +11,7 @@ import { join } from 'node:path'
 import type { HarnessModels } from './types'
 
 export { CLAUDE_MODELS } from '../../shared/agent-models'
-import { CLAUDE_MODELS } from '../../shared/agent-models'
+import { CLAUDE_MODELS, modelName } from '../../shared/agent-models'
 
 // Dotted numeric versions, compared part by part ("2.1.280" > "2.1.278").
 export const compareVersions = (a: string, b: string) => {
@@ -53,7 +53,12 @@ export const kimiModelsFrom = (config: string): HarnessModels => {
   return {
     default: fallback,
     source: 'From your Kimi settings.',
-    options: options.map((id) => ({ id, label: id }))
+    // Plain names in the picker; the id it runs is in the tooltip.
+    options: options.map((id) => ({
+      id,
+      label: modelName(id),
+      ...(modelName(id) !== id ? { hint: id } : {})
+    }))
   }
 }
 
@@ -77,7 +82,15 @@ export const codexModelsFrom = (config: string): HarnessModels => {
   return {
     default: null,
     source: 'From your Codex settings.',
-    options: model ? [{ id: model, label: `${model} (your Codex config)` }] : []
+    options: model
+      ? [
+          {
+            id: model,
+            label: modelName(model),
+            hint: 'The model in your Codex config'
+          }
+        ]
+      : []
   }
 }
 

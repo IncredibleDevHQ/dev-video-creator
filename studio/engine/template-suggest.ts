@@ -22,9 +22,11 @@ import {
   type LengthRange,
   type PresetId,
   type TemplateSuggestion,
+  lengthForPages,
   lengthForWords,
   suggestedDirection
 } from '../shared/narratives'
+import { STORY_SCENES } from '../shared/model'
 import { askJev, jevConfigured, type JevAnswer, type JevQuestion } from './jev'
 import { readRow } from './persistence'
 import { addEvent, changeProject, loadProject } from './projects'
@@ -172,15 +174,27 @@ export const suggestTemplate = async (id: string) => {
   const suggestion = readSuggestion(answers, undefined, words)
   if (!suggestion) throw new Refusal('Jev did not suggest a template')
   return changeProject(id, (current) => {
+    // Only a notebook's first suggestion picks its template, and never over
+    // the creator's own choice (review 6: an ask after an edit undid "Plan
+    // without a template").
     const open =
       ['draft', 'failed'].includes(current.status) &&
       !current.project.slides.length &&
-      !current.project.narrative
+      !current.project.narrative &&
+      !current.project.templateChosen &&
+      !current.suggestion
     if (open && suggestion.confidence >= SUGGEST_CONFIDENCE) {
       const top = suggestion.narratives[0].id
       suggestion.preselected = true
       current.project.narrative = top
-      current.project.direction = suggestedDirection(top, suggestion)
+      const direction = suggestedDirection(top, suggestion)
+      // A length the creator chose stays: the template tells as many pages.
+      if (current.project.length)
+        direction.length = lengthForPages(
+          STORY_SCENES[current.project.length],
+          directionSettings(narrativeById(top)!, direction).elaboration
+        )
+      current.project.direction = direction
       addEvent(
         current,
         'slide',

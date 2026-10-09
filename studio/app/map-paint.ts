@@ -200,7 +200,7 @@ export const paintWorld = (map: MapCanvas) => {
           html:
             episode.picking?.state === 'picking'
               ? `Choosing pages for “${escape(episode.picking.about)}”…`
-              : 'Drop pages here, or select this lane and paste. Nothing is made until you press Make.',
+              : 'Drop pages here, or select this lane and paste. Nothing is made until you press Make video.',
           data: { lane: episode.notebook }
         })
       episode.copies.forEach((copy, index) => {

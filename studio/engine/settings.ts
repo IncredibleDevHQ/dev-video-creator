@@ -81,7 +81,12 @@ export const saveStudioSettings = async (body: unknown) => {
     if (!models.provider || !Object.hasOwn(MODEL_PRESETS, models.provider))
       throw new Refusal('Choose a model provider')
     const base = models.baseUrl || MODEL_PRESETS[models.provider].baseUrl
-    const url = new URL(base)
+    let url: URL
+    try {
+      url = new URL(base)
+    } catch {
+      throw new Refusal('Enter the provider API URL as a full address')
+    }
     if (
       !['http:', 'https:'].includes(url.protocol) ||
       url.username ||

@@ -112,15 +112,21 @@ export const flushNotebookEdits = async (app: AppContext) => {
  * whether to leave without the edits rather than holding the creator in the
  * notebook. True to go on.
  */
-export const saveBeforeLeaving = async (app: AppContext) => {
+export const saveBeforeLeaving = async (
+  app: AppContext,
+  ask = {
+    question: 'Leave anyway, and lose the edits since the last save?',
+    action: 'Leave without saving'
+  }
+) => {
   try {
     await flushNotebookEdits(app)
     return true
   } catch (reason) {
     const leave = await confirmAction({
       title: 'Your notes are not saved',
-      detail: `${reason instanceof Error ? reason.message : 'They could not be saved'}. Leave anyway, and lose the edits since the last save?`,
-      action: 'Leave without saving'
+      detail: `${reason instanceof Error ? reason.message : 'They could not be saved'}. ${ask.question}`,
+      action: ask.action
     })
     const editor = app.root.querySelector<HTMLElement>('[data-notebook-editor]')
     if (leave && editor) {

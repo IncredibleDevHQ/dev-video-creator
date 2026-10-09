@@ -143,7 +143,7 @@ export const createProject = async (
     error: null,
     events: []
   }
-  addEvent(snapshot, 'slide', 'Reading your source')
+  addEvent(snapshot, 'slide', 'Reading the source')
   await writeRow('projects', id, snapshot)
   if (sourceOnly) scheduleSource(id)
   else scheduleSlides(id)
@@ -221,7 +221,7 @@ export const retrySlides = async (id: string) => {
     if (building.has(id))
       throw new Refusal('Wait for generation to stop before continuing')
     if (current.status !== 'failed')
-      throw new Error('Your wireframes do not need a retry')
+      throw new Refusal('Your wireframes do not need a retry')
     current.stopping = false
     current.status = 'building'
     current.error = null

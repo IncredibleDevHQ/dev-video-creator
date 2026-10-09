@@ -5,6 +5,7 @@ type SceneAnimation = NonNullable<import('../shared/model').Scene['animation']>
 import { prepareSceneAnimation, finishSceneAnimation } from './animation'
 import { generationFailure } from './generation-errors'
 import { buildCreativeProduction } from './creative/production'
+import { ACCEPTED_WITH_WARNING } from './creative/check-words'
 import { randomUUID } from 'node:crypto'
 import { loadProject, changeProject, addEvent } from './projects'
 import { refreshVideoKeys } from './scene-model'
@@ -96,6 +97,7 @@ export const produceScene = async (id: string, sceneId: string) => {
         moment.end - moment.start
     delete scene.lastCheck
     delete scene.acceptable
+    delete scene.notice
     transitionScene(scene, 'produce', current)
     refreshVideoKeys(current.project)
     expected = scene.inputKey
@@ -105,12 +107,15 @@ export const produceScene = async (id: string, sceneId: string) => {
       const target = current.project.video?.scenes.find(
         (scene) => scene.id === sceneId
       )
-      if (target?.phase === 'producing' && target.inputKey === expected)
+      if (target?.phase === 'producing' && target.inputKey === expected) {
         addEvent(current, 'scene', message, {
           sceneId,
           activity: 'processing',
           stage
         })
+        // A build accepted with a finding keeps it in view on the scene.
+        if (message.startsWith(ACCEPTED_WITH_WARNING)) target.notice = message
+      }
     })
   const work = (async () => {
     try {

@@ -64,7 +64,17 @@ export const validateBranding = async (value: unknown): Promise<Branding> => {
   const brand = {
     ...(raw.palette ? { palette: raw.palette } : {}),
     ...(raw.fonts ? { fonts: raw.fonts } : {}),
-    ...(raw.look ? { look: { id: raw.look.id, name: raw.look.name } } : {}),
+    ...(raw.look
+      ? {
+          look: {
+            id: raw.look.id,
+            name: raw.look.name,
+            ...(typeof raw.look.note === 'string' && raw.look.note.length <= 400
+              ? { note: raw.look.note }
+              : {})
+          }
+        }
+      : {}),
     name: raw.name.trim(),
     tagline: raw.tagline.trim(),
     accent: raw.accent,

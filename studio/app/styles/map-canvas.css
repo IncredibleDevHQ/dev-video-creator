@@ -560,27 +560,6 @@
   border-radius: 50%;
   border: 1.5px dashed currentColor;
 }
-.map-flag,
-.map-badge {
-  position: absolute;
-  top: 13px;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-}
-.map-flag {
-  left: 13px;
-}
-.map-badge {
-  right: 13px;
-}
-.map-flag.is-new,
-.map-flag.is-adds {
-  color: var(--accent);
-}
 .map-made {
   margin-left: 6px;
   color: var(--accent);
@@ -588,13 +567,6 @@
 }
 .map-from-note {
   margin-left: 4px;
-}
-.map-badge.is-stale,
-.map-badge.is-failed {
-  color: var(--danger, #b91c1c);
-}
-.map-badge.is-busy {
-  color: #b7791f;
 }
 .map-num {
   display: inline-flex;

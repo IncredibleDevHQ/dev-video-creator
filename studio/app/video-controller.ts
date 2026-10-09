@@ -393,7 +393,10 @@ ${button('Try again', 'video-settings', true)}`
         settings,
         app.pendingVideoSettings || app.snapshot.project.video!.settings,
         undefined,
-        app.snapshot.project.branding
+        app.snapshot.project.branding,
+        undefined,
+        // The card shows this notebook, here as when the video was made.
+        app.snapshot.project.slides.find((slide) => slide.svg)?.svg ?? undefined
       )
     )
     const form = app.dialog.querySelector<HTMLFormElement>(
@@ -437,11 +440,22 @@ ${button('Try again', 'video-settings', true)}`
       // Back from the gallery, the scenes, camera and voice chosen before.
       restoreMakeChoices(app.dialog)
       syncSceneChoice(app.dialog)
-      // The first chosen scene is in sight (review 6: it was below four rows).
-      app.dialog
-        .querySelector('.scene-choice input[name=scene]:checked')
-        ?.closest('li')
-        ?.scrollIntoView({ block: 'nearest' })
+      // The first chosen scene and the chosen voice are in sight, each
+      // within its own list (review 6: the scene was below four rows).
+      for (const [list, chosen] of [
+        ['.scene-choice ul', 'input[name=scene]:checked'],
+        ['.voice-rows > div', 'input[name=voice]:checked']
+      ]) {
+        const rows = app.dialog.querySelector<HTMLElement>(list)
+        const row = rows
+          ?.querySelector(chosen)
+          ?.closest<HTMLElement>('li, label')
+        if (rows && row)
+          rows.scrollTop +=
+            row.getBoundingClientRect().top -
+            rows.getBoundingClientRect().top -
+            rows.clientHeight / 2
+      }
     }
   }
   if (action === 'make-scene' && target.dataset.sceneId) {
@@ -466,10 +480,11 @@ ${button('Try again', 'video-settings', true)}`
     app.second = 0
     app.render()
   }
-  // From practice: make the scene's animation without leaving practice; the
-  // stage shows it when it is ready.
+  // From the scene's menu: make its animation; practice and the stage show
+  // it when it is ready.
   if (action === 'make-animation') {
     const scene = app.snapshot.project.video?.scenes[app.selected]
+    if (app.dialog.open) app.dialog.close()
     if (scene) {
       app.snapshot = await api.produceScene(id, scene.id)
       app.render()
