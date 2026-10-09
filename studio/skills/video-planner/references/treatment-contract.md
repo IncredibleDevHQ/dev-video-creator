@@ -144,6 +144,13 @@ Use only the channels a moment needs; `null` means the channel is unused.
   moments move, as `[{ "id": "needle", "what": "the gauge needle, pivoting
   at the dial centre" }]`, with lowercase ids no other object in the scene
   uses, so the drawing separates them and the animation moves them.
+  When its moments change it into a state — a needle at the limit, a gate
+  shut, a lamp lit, a tank full — name up to three `poses`, as
+  `[{ "id": "at-limit", "what": "the needle swung far right into the red,
+  the ring glowing orange" }]`: each a change within the object, said from
+  the drawing at rest. The product draws each pose by editing the drawing,
+  shape for shape, so the scene tweens into it smoothly and back. Moving the
+  object across the frame is the scene's, not a pose.
   A cast ingredient whose verification is `mismatch` is a reference only.
   An affordance (a part the page animates) says what can move, never what
   the scene must do with it.

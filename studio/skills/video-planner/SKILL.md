@@ -192,7 +192,9 @@ Build a rough, seekable preview of one scene plan — a sketch, not the scene.
   device, a person — are drawn, neither built from plain shapes nor reused
   flat: choose `generate`, or `enrich` for a verified cast ingredient so it
   keeps the page's silhouette and meaning, and name the `parts` their
-  moments move. Every actor then shares one drawn style. Keep `native` for
+  moments move and the `poses` they change into (a needle at the limit, a
+  gate shut, a lamp lit): the product draws each pose from the drawing, so
+  the scene tweens into it smoothly. Every actor then shares one drawn style. Keep `native` for
   what must be exact: charts, counts, code, labels, connector paths and the
   dots that travel along them.
 - The registry's components and blocks are ready-made motion graphics:

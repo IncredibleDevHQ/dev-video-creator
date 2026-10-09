@@ -62,6 +62,9 @@ const received: Array<{ path: string; authorization?: string; body: string }> =
   []
 const answer = (status: number, body: unknown) => answers.push({ status, body })
 const drawing = (svg: string) => answer(200, { data: [{ svg }] })
+// Answers for the request whose body says this, whatever order they come in.
+const routes: Array<{ says: string; svg: string }> = []
+const route = (says: string, svg: string) => routes.push({ says, svg })
 const provider = createServer((request, response) => {
   let body = ''
   request.on('data', (chunk) => (body += chunk))
@@ -71,7 +74,14 @@ const provider = createServer((request, response) => {
       authorization: request.headers.authorization,
       body
     })
-    const next = answers.shift() || { status: 500, body: { code: 'none' } }
+    const routed = routes.findIndex((item) => body.includes(item.says))
+    const next =
+      routed >= 0
+        ? {
+            status: 200,
+            body: { data: [{ svg: routes.splice(routed, 1)[0].svg }] }
+          }
+        : answers.shift() || { status: 500, body: { code: 'none' } }
     response.writeHead(next.status, { 'content-type': 'application/json' })
     response.end(JSON.stringify(next.body))
   })
@@ -90,6 +100,7 @@ beforeEach(() => {
   rows.clear()
   assets.clear()
   answers.length = 0
+  routes.length = 0
   received.length = 0
   process.env.QUIVER_API_KEY = 'test-key'
 })
@@ -348,4 +359,182 @@ it('asks a plan for its drawn parts only when a provider draws them', () => {
   ])
   // Without a provider nothing is drawn, so nothing more is asked.
   expect(partProblems(false)).toEqual([])
+})
+
+const posing = {
+  ...treatment,
+  objects: [
+    {
+      ...gauge,
+      poses: [
+        { id: 'shut', what: 'the valve gate closed across the pipe' },
+        { id: 'limit', what: 'the needle at the limit' }
+      ]
+    }
+  ]
+} as unknown as SceneTreatmentV1
+const marked =
+  '<svg viewBox="0 0 480 360"><g id="needle" data-part="needle"><path d="M0 0h10"/></g><g id="gate" data-part="gate"><path d="M1 1h2"/></g></svg>'
+
+it('draws each pose from the drawing, asks again once when it cannot tween, and keeps it', async () => {
+  drawing(grouped)
+  route(
+    'valve gate closed',
+    grouped.replace('<g id="gate">', '<g id="gate" transform="rotate(90 1 1)">')
+  )
+  route(
+    'needle at the limit',
+    grouped.replace('</svg>', '<circle r="1"/></svg>')
+  )
+  route(
+    'needle at the limit',
+    grouped.replace(
+      '<g id="needle">',
+      '<g id="needle" transform="rotate(40 0 0)">'
+    )
+  )
+  const progress: string[] = []
+  const [drawn] = await drawSceneArtwork({
+    projectId: 'p',
+    sceneId: 's',
+    treatment: posing,
+    onProgress: (message) => progress.push(message)
+  })
+  const edits = received
+    .filter((call) => call.path === '/v1/svgs/edits')
+    .map((call) => JSON.parse(call.body))
+  expect(edits).toHaveLength(3)
+  // Each pose is an edit of the drawing itself, asked for as a keyframe.
+  expect(edits[0]).toMatchObject({
+    model: 'arrow-2',
+    max_review_steps: 2,
+    reasoning_effort: 'medium'
+  })
+  for (const edit of edits)
+    expect(Buffer.from(edit.svg_source.base64, 'base64').toString()).toBe(
+      marked
+    )
+  expect(edits[0].prompt).toContain('Keep every element')
+  // The second ask says why the first could not be tweened.
+  expect(
+    edits.find((edit) => edit.prompt.includes('could not be tweened')).prompt
+  ).toContain(
+    'it has 6 elements where the drawing has 5: it added or removed shapes'
+  )
+  expect(drawn.poses).toEqual([
+    {
+      id: 'shut',
+      what: 'the valve gate closed across the pipe',
+      objectKey: expect.any(String)
+    },
+    {
+      id: 'limit',
+      what: 'the needle at the limit',
+      objectKey: expect.any(String)
+    }
+  ])
+  expect(progress.slice(-1)).toEqual(["Drawing the objects' poses (2 of 2)"])
+  // The same plan asks for nothing again.
+  received.length = 0
+  const [again] = await drawSceneArtwork({
+    projectId: 'p',
+    sceneId: 's',
+    treatment: posing
+  })
+  expect(received).toEqual([])
+  expect(again.poses).toEqual(drawn.poses)
+  // The packet puts each pose on the drawing and says how to play it.
+  const packet = await artworkPacket([drawn])
+  expect(
+    packet['packet/assets/generated-rate-limiter/asset.svg'].toString()
+  ).toContain(
+    '<g id="gate" data-part="gate" transform="rotate(0 1 1)" data-posed="" data-pose-shut="{&quot;attr&quot;:{&quot;transform&quot;:&quot;rotate(90 1 1)&quot;}}">'
+  )
+  const manifest = JSON.parse(packet['packet/ARTWORK.json'].toString())
+  expect(manifest.objects[0].poses).toEqual([
+    {
+      id: 'shut',
+      what: 'the valve gate closed across the pipe',
+      moves: ['gate'],
+      motion: 'smooth'
+    },
+    {
+      id: 'limit',
+      what: 'the needle at the limit',
+      moves: ['needle'],
+      motion: 'smooth'
+    }
+  ])
+  expect(manifest.rule).toContain('artworkPose(tl, ENTITY, POSE, at, seconds)')
+})
+
+it('keeps a pose’s error when it cannot be tweened twice, and offers no player', async () => {
+  drawing(grouped)
+  route('valve gate closed', grouped.replace('</svg>', '<circle r="1"/></svg>'))
+  route('valve gate closed', grouped.replace('0 0 480 360', '0 0 10 10'))
+  const one = {
+    ...posing,
+    objects: [{ ...gauge, poses: [posing.objects[0].poses![0]] }]
+  } as unknown as SceneTreatmentV1
+  const [drawn] = await drawSceneArtwork({
+    projectId: 'p',
+    sceneId: 's',
+    treatment: one
+  })
+  const error =
+    'The pose could not be tweened from the drawing: it changed the viewBox'
+  expect(drawn.poses).toEqual([
+    { id: 'shut', what: 'the valve gate closed across the pipe', error }
+  ])
+  const manifest = JSON.parse(
+    (await artworkPacket([drawn]))['packet/ARTWORK.json'].toString()
+  )
+  expect(manifest.objects[0].poses).toEqual([
+    { id: 'shut', what: 'the valve gate closed across the pipe', error }
+  ])
+  expect(manifest.rule).not.toContain('artworkPose')
+})
+
+it('keeps a drawn object’s poses, a few and plainly named', () => {
+  const plan = normalizeTreatment({
+    objects: [
+      {
+        ...gauge,
+        poses: [
+          { id: 'shut', what: 'the gate closed' },
+          { id: '', what: 'dropped' }
+        ]
+      }
+    ]
+  })
+  expect(plan.objects[0].poses).toEqual([
+    { id: 'shut', what: 'the gate closed' }
+  ])
+  const context = {
+    brief: { purpose: {}, units: [], evidence: [], coverage: [], entities: [] },
+    scene: 's',
+    originScenes: [],
+    videoScenes: [],
+    catalog: { entries: [] },
+    bundleSkills: [],
+    bundleReferences: [],
+    delivery: null,
+    assetKeys: [],
+    drawsArtwork: true
+  }
+  const poses = ['rest', 'Shut', 'open', 'open'].map((id) => ({
+    id,
+    what: `the gate ${id}`
+  }))
+  expect(
+    validateTreatment(
+      { objects: [{ ...gauge, poses }] },
+      context as never
+    ).problems.filter((problem) => problem.includes(' pose'))
+  ).toEqual([
+    'object rate-limiter names 4 poses: keep the three its moments need most',
+    'object rate-limiter names pose "open" twice',
+    'object rate-limiter pose "Shut" must be a lowercase id (letters, digits, hyphens)',
+    'object rate-limiter names a pose "rest", which is the drawing as drawn: name the pose for the state it shows'
+  ])
 })

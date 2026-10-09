@@ -10,6 +10,7 @@ import {
   drawnKey,
   inlineArtwork
 } from './artwork'
+import { POSE_PLAYER, posePlayer } from './artwork-poses'
 import { collectCreativeFiles } from './files'
 import type { Project, Scene } from '../../shared/model'
 import type { SketchFiles } from '../../render/types'
@@ -314,6 +315,9 @@ export const buildCreativeProduction = async (
     onProgress
   })
   const artwork = await artworkPacket(drawn)
+  // Drawn poses play through the app's pose player, installed beside blocks.
+  if (drawn.some((item) => item.poses?.some((pose) => pose.objectKey)))
+    productionSeed[`production/${POSE_PLAYER}`] = await posePlayer()
   for (const item of drawn)
     if (item.objectKey) {
       drawings[item.entity] = artwork[`packet/${item.file}`].toString()

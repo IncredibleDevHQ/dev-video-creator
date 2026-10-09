@@ -198,6 +198,10 @@ export type SceneTreatmentV1 = {
     // For artwork the product draws (generate, enrich): the parts the scene
     // moves, each drawn as its own group with this id.
     parts?: Array<{ id: string; what: string }>
+    // And the states its moments change it into (a needle at the limit, a
+    // gate shut), each drawn from the drawing by an edit so the scene tweens
+    // into it smoothly.
+    poses?: Array<{ id: string; what: string }>
   }>
   treatments: { presenter: string; text: string; camera: string }
   skills: Array<{ skill: string; references: string[]; why: string }>

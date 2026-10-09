@@ -489,6 +489,26 @@ export const validateTreatment = (
         problems.push(
           `object ${object.entity} part "${id}" must be a lowercase id (letters, digits, hyphens)`
         )
+      // Each pose is drawn by an edit of the drawing: a few, plainly named.
+      const poses = (object.poses || []).map((pose) => pose.id)
+      if (poses.length > 3)
+        problems.push(
+          `object ${object.entity} names ${poses.length} poses: keep the three its moments need most`
+        )
+      for (const id of poses.filter(
+        (value, index) => poses.indexOf(value) !== index
+      ))
+        problems.push(`object ${object.entity} names pose "${id}" twice`)
+      for (const id of poses.filter(
+        (value) => !/^[a-z][a-z0-9-]*$/.test(value)
+      ))
+        problems.push(
+          `object ${object.entity} pose "${id}" must be a lowercase id (letters, digits, hyphens)`
+        )
+      if (poses.includes('rest'))
+        problems.push(
+          `object ${object.entity} names a pose "rest", which is the drawing as drawn: name the pose for the state it shows`
+        )
       // The drawings share one page, so a part id names one part in it.
       for (const id of new Set(ids)) {
         const owner = partOwners.get(id)

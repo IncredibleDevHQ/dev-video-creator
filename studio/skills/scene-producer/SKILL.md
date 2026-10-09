@@ -79,6 +79,13 @@ layered artwork: place each one as its rule says and animate its named
 parts by their `data-part` attribute (a needle turns, a light blinks, a
 gate closes). Never redraw a drawn object from plain shapes or retype its
 path data, and keep it clear of text and other layers.
+An object's `poses` there are states the app drew from its drawing, shape
+for shape: load `compositions/artwork-poses.js` and call
+`artworkPose(tl, entity, pose, at, seconds)` on the cue that says the change,
+and the drawing tweens into it smoothly (`'rest'` turns it back). Prefer a
+pose to rebuilding that change by hand, leave the parts it moves to it
+while it plays, and give a posed drawing room: a pose inside an icon-sized
+drawing changes nothing the viewer can read.
 
 ## The picture develops with the voice
 
