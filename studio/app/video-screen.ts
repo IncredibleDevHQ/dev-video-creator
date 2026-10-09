@@ -38,7 +38,7 @@ import type { Branding, StudioSettings } from '../shared/settings'
 import { momentViewKey } from '../shared/model'
 import { videoOpens } from '../shared/state'
 import type { Moment, Scene, Slide, VideoSettings } from '../shared/model'
-import { voiceChoices } from './voice-choice'
+import { voiceRows } from './voice-choice'
 import type { Snapshot } from '../shared/api'
 import type { Recording } from './recording'
 import { cameraAt } from '../shared/camera-window'
@@ -748,7 +748,7 @@ export const makeVideoDialog = (
     : (takePickedTemplate() ?? (planned?.narrative ? planned : undefined))
   return `<h2>Make the video</h2>
 <form id="video-form">
-${templatePicker(story, look)}${onCameraChoice(story)}
+${templatePicker(story, look, choice?.slides.find((slide) => slide.svg)?.svg ?? undefined)}${onCameraChoice(story)}
 <fieldset class="tpl-presence"${story?.narrative ? ' hidden disabled' : ''}>
 <legend>On camera</legend>${(['off', 'low', 'high'] as const)
     .map(
@@ -766,11 +766,10 @@ ${templatePicker(story, look)}${onCameraChoice(story)}
 </label>`
     )
     .join('')}</fieldset>
-<label>Voice when you are off camera<select name="voice">${voiceChoices(
+<fieldset class="voice-rows"><legend>Voice when you are off camera</legend><div>${voiceRows(
     settings,
     voice
-  )}</select>
-</label><p class="two-voices" ${
+  )}</div></fieldset><p class="two-voices" ${
     voice.kind !== 'ai' || presence === 'off' ? 'hidden' : ''
   }>Your voice on camera and an AI voice elsewhere will sound different.</p>${
     choice

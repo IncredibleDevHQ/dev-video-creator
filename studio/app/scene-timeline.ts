@@ -26,29 +26,64 @@ export const icon = (name: string) =>
 export const time = (n: number) =>
   `${Math.floor(Math.max(0, n) / 60)}:${(Math.max(0, n) % 60).toFixed(1).padStart(4, '0')}`
 
-/** One moment's phrases on the Voice track, from where it starts there. */
+/** The pixels a chip needs to show two words or so, its padding included. */
+const READABLE = 110
+
+/** A chip's text, or only its tooltip when it is too narrow to show it. */
+const chipLabel = (text: string, px: number) =>
+  `title="${escape(text)}"${px < 44 ? ` aria-label="${escape(text)}">` : `>${escape(text)}`}`
+
+/**
+ * One moment's words on the Voice track, from where it starts there, in
+ * chips that read at this zoom (pixels to a second): a chip to each word
+ * once each one fits, otherwise its phrases, joined until each chip is wide
+ * enough to read (review 6: at Fit they were cut to “Sc” or “a…”).
+ */
 export function phraseButtons(
   m: Moment,
   from: number,
   a: number,
   b: number,
   length: number,
-  extra: string
+  extra: string,
+  perSecond: number
 ) {
   const base = m.extension?.baseLines ?? m.lines,
-    phrases = base.match(/[^,.;!?]+[,.;!?]*/g) || [base],
-    count = wordsOf(base).length
+    words = wordsOf(base),
+    count = Math.max(1, words.length),
+    wide = (n: number) => (n / count) * b * perSecond,
+    split =
+      words.length > 1 && wide(1) >= 24 + (6.5 * words.join('').length) / count,
+    chips: { text: string; at: number; n: number }[] = []
   let word = 0
+  for (const piece of split
+    ? words
+    : base.match(/[^,.;!?]+[,.;!?]*/g) || [base]) {
+    const n = wordsOf(piece).length,
+      last = chips[chips.length - 1]
+    if (last && (!n || (!split && wide(last.n) < READABLE))) {
+      last.text += ` ${piece.trim()}`
+      last.n += n
+    } else chips.push({ text: piece.trim(), at: word, n })
+    word += n
+  }
+  // A last chip too short to read joins the one before it.
+  const tail = !split && chips.length > 1 ? chips[chips.length - 1] : null
+  if (tail && wide(tail.n) < READABLE) {
+    chips.pop()
+    chips[chips.length - 1].text += ` ${tail.text}`
+    chips[chips.length - 1].n += tail.n
+  }
   return (
-    phrases
-      .map((phrase) => {
-        const at = (word / count) * b
-        word += wordsOf(phrase).length
-        return `<button type="button" data-jump="${from + at}" style="left:${((from + at) / a) * 100}%;width:calc(${(((word / count) * b - at) / a) * 100}% - 4px)" title="${escape(phrase.trim())}">${escape(phrase.trim())}</button>`
+    chips
+      .filter((chip) => chip.n)
+      .map((chip) => {
+        const at = (chip.at / count) * b
+        return `<button type="button" data-jump="${from + at}" style="left:${((from + at) / a) * 100}%;width:calc(${(((chip.n / count) * b) / a) * 100}% - 4px)" ${chipLabel(chip.text.trim(), wide(chip.n))}</button>`
       })
       .join('') +
     (extra
-      ? `<button type="button" class="ds-extra" data-jump="${from + b}" style="left:${((from + b) / a) * 100}%;width:calc(${((length - b) / a) * 100}% - 4px)">${escape(extra)}</button>`
+      ? `<button type="button" class="ds-extra" data-jump="${from + b}" style="left:${((from + b) / a) * 100}%;width:calc(${((length - b) / a) * 100}% - 4px)" ${chipLabel(extra, (length - b) * perSecond)}</button>`
       : '')
   )
 }
@@ -131,7 +166,8 @@ export function sceneParts(
           a,
           dialogueBoundary(m),
           m.end - m.start,
-          m.extension?.text || ''
+          m.extension?.text || '',
+          perSecond
         )
       )
       .join('')

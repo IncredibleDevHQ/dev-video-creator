@@ -40,6 +40,102 @@ let picked: TemplateChoice | undefined
 export const pickTemplate = (choice: TemplateChoice | undefined) => {
   picked = choice
 }
+/** The make dialog's choices, kept while the gallery is open (review 6:
+ * picking a template reset them): every field, by name and value. */
+type Field = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+let kept: {
+  narrative: string
+  checked: string[]
+  values: [string, string][]
+  open: boolean[]
+} | null = null
+const fieldsOf = (form: HTMLFormElement) => [
+  ...form.querySelectorAll<Field>('input[name], select[name], textarea[name]')
+]
+const toggles = (field: Field): field is HTMLInputElement =>
+  field.type === 'radio' || field.type === 'checkbox'
+const narrativeOf = (form: HTMLFormElement) =>
+  form.querySelector<HTMLInputElement>('input[name="narrative"]:checked')
+export const keepMakeChoices = (dialog: ParentNode) => {
+  const form = dialog.querySelector<HTMLFormElement>('#video-form')
+  if (!form) return false
+  const fields = fieldsOf(form)
+  kept = {
+    narrative: narrativeOf(form)?.value ?? '',
+    checked: fields
+      .filter((field) => toggles(field) && field.checked)
+      .map((field) => `${field.name}=${field.value}`),
+    values: fields
+      .filter((field) => !toggles(field))
+      .map((field) => [field.name, field.value]),
+    open: [...form.querySelectorAll('details')].map((item) => item.open)
+  }
+  return true
+}
+/** Whether the gallery was opened from the make dialog. */
+export const keptMakeChoices = () => kept !== null
+/**
+ * Back from the gallery, the dialog as it was left. A different story
+ * picked there brings its own direction; the scenes, the camera and the
+ * voice stay as chosen.
+ */
+export const restoreMakeChoices = (dialog: ParentNode) => {
+  const form = dialog.querySelector<HTMLFormElement>('#video-form')
+  const was = kept
+  kept = null
+  if (!form || !was) return
+  const same = (narrativeOf(form)?.value ?? '') === was.narrative
+  const own = ['scene', 'presence', 'voice', was.narrative ? 'oncamera' : '']
+  const fields = fieldsOf(form).filter(
+    (field) => same || own.includes(field.name)
+  )
+  const chosen = (field: Field) =>
+    was.checked.includes(`${field.name}=${field.value}`)
+  for (const field of fields) {
+    if (!toggles(field)) {
+      const value = was.values.find(([name]) => name === field.name)?.[1]
+      if (value === undefined) continue
+      if (field.tagName === 'SELECT')
+        field
+          .querySelectorAll('option')
+          .forEach((option) => (option.selected = option.value === value))
+      else field.value = value
+    } else if (
+      field.type === 'checkbox' ||
+      // A radio group changes only when its chosen value is still there.
+      fields.some(
+        (other) =>
+          other.type === 'radio' &&
+          other.name === field.name &&
+          !(other as HTMLInputElement).disabled &&
+          chosen(other)
+      )
+    )
+      field.checked = chosen(field)
+  }
+  if (same)
+    form
+      .querySelectorAll('details')
+      .forEach((item, i) => (item.open = was.open[i] ?? item.open))
+  // From no template, the presence chosen there becomes the story's camera.
+  const presence = was.checked
+    .find((choice) => choice.startsWith('presence='))
+    ?.slice(9) as Presence | undefined
+  const cameras = [
+    ...form.querySelectorAll<HTMLInputElement>('input[name="oncamera"]')
+  ]
+  const camera = cameras.find((radio) => radio.checked)?.value as OnCamera
+  if (!was.narrative && presence && camera && presenceFor(camera) !== presence)
+    for (const radio of cameras)
+      radio.checked = radio.value === CAMERA_FOR[presence]
+  syncTemplateFields(form, narrativeOf(form))
+}
+const CAMERA_FOR: Record<Presence, OnCamera> = {
+  off: 'none',
+  low: 'ends',
+  high: 'leads'
+}
+
 export const takePickedTemplate = () => {
   const choice = picked
   picked = undefined
@@ -94,19 +190,29 @@ const directionFields = (narrative: Narrative, chosen?: Direction) => {
         .join('')}
     </div>
     <div class="tpl-length">
-      <label
-        >Length<select name="length">
-          ${lengthsFor(narrative, settings.length)
-            .map((range) =>
-              option(
-                range.join(','),
-                lengthLabel(range),
-                range.join(',') === length
-              )
+      <span class="tpl-length-label" id="tpl-length-label">Length</span>
+      <div
+        class="tpl-chips"
+        role="radiogroup"
+        aria-labelledby="tpl-length-label"
+      >
+        ${
+          // The studio's own chips, not a browser select (review 6).
+          [
+            ...lengthsFor(narrative, settings.length).map((range) => ({
+              value: range.join(','),
+              label: lengthLabel(range)
+            })),
+            { value: 'own', label: 'Your own range…' }
+          ]
+            .map(
+              (item) =>
+                `<label class="tpl-length-chip"><input type="radio" name="length" value="${item.value}"${item.value === length ? ' checked' : ''}><span>${escape(item.label)}</span></label>`
             )
-            .join('')}${option('own', 'Your own range…', false)}
-        </select></label
-      ><span class="tpl-length-own" hidden
+            .join('')
+        }
+      </div>
+      <span class="tpl-length-own" hidden
         ><input
           type="number"
           name="length-from"
@@ -174,7 +280,9 @@ const browseMark = `<svg viewBox="0 0 320 180"><g class="tpl-browse-mark">${[
  */
 export const templatePicker = (
   choice: TemplateChoice | undefined,
-  look?: Branding
+  look?: Branding,
+  /** The notebook's first wireframe, shown in the chosen template's card. */
+  preview?: string
 ) => {
   const narrative = narrativeById(choice?.narrative)
   return html`<fieldset class="tpl-picker" style="${lookStyle(look)}">
@@ -205,8 +313,14 @@ export const templatePicker = (
               value="${narrative.id}"
               checked
             />
-            <span class="tpl-option-thumb" aria-hidden="true"
-              >${templateSketch(narrative.beats[0].example)}</span
+            <span
+              class="tpl-option-thumb${preview ? ' is-page' : ''}"
+              aria-hidden="true"
+              >${
+                // This notebook's own page, never another story's sample
+                // (review 6); the gallery keeps the samples.
+                preview || templateSketch(narrative.beats[0].example)
+              }</span
             >
             <span class="tpl-option-text"
               ><b>${escape(narrative.name)}</b
@@ -323,12 +437,17 @@ export const syncTemplateFields = (
   }
   if (field?.name === 'preset' && field.dataset.settings) {
     const settings = JSON.parse(field.dataset.settings)
-    // Picking an option deselects the rest of a single select.
+    // Picking an option deselects the rest of a single select; the length
+    // is a set of chips.
     const set = (name: string, value: string) => {
       const item = form.querySelector<HTMLOptionElement>(
         `select[name="${name}"] option[value="${value}"]`
       )
       if (item) item.selected = true
+      const chip = form.querySelector<HTMLInputElement>(
+        `input[name="${name}"][value="${value}"]`
+      )
+      if (chip) chip.checked = true
     }
     set('length', settings.length.join(','))
     set('elaboration', settings.elaboration)
@@ -342,8 +461,10 @@ export const syncTemplateFields = (
       .forEach((box) => (box.checked = settings.leads.includes(box.value)))
   }
   const own = form.querySelector<HTMLElement>('.tpl-length-own')
-  const length = form.querySelector<HTMLSelectElement>('select[name="length"]')
-  if (own && length) own.hidden = length.value !== 'own'
+  const length = [
+    ...form.querySelectorAll<HTMLInputElement>('input[name="length"]')
+  ].find((input) => input.checked)
+  if (own) own.hidden = length?.value !== 'own'
 }
 
 /** Which beats a scene carries, in the scene's header; empty without a template. */

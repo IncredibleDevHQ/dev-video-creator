@@ -116,16 +116,19 @@ dialog:has(.tpl-picker) {
   flex-wrap: wrap;
   gap: 6px;
 }
-.dialog-body .tpl-direction .tpl-chip {
+.dialog-body .tpl-direction .tpl-chip,
+.dialog-body .tpl-direction .tpl-length-chip {
   position: relative;
   margin: 0;
 }
-.dialog-body .tpl-chip input {
+.dialog-body .tpl-chip input,
+.dialog-body .tpl-length-chip input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
 }
-.tpl-chip span {
+.tpl-chip span,
+.tpl-length-chip span {
   display: inline-block;
   padding: 5px 12px;
   border: 1px solid var(--line);
@@ -134,13 +137,15 @@ dialog:has(.tpl-picker) {
   font-size: 13px;
   cursor: pointer;
 }
-.tpl-chip input:checked + span {
+.tpl-chip input:checked + span,
+.tpl-length-chip input:checked + span {
   border-color: var(--accent);
   background: var(--selected);
   color: inherit;
   font-weight: 600;
 }
-.tpl-chip input:focus-visible + span {
+.tpl-chip input:focus-visible + span,
+.tpl-length-chip input:focus-visible + span {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -273,4 +278,9 @@ dialog:has(.tpl-picker) {
 }
 .shot-menu button small {
   flex-basis: 100%;
+}
+.tpl-length-label {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 600;
 }

@@ -11,13 +11,21 @@ export const parseVoice = (value: string): Voice => {
   if (!['ai', 'clone'].includes(kind) || !id) throw new Error('Choose a voice')
   return { kind: kind as 'ai' | 'clone', id }
 }
-export const voiceChoices = (settings: StudioSettings, selected: Voice) => {
-  const option = (voice: Voice, label: string) =>
-    `<option value="${escape(voiceValue(voice))}" ${voiceValue(voice) === voiceValue(selected) ? 'selected' : ''}>${escape(label)}</option>`
-  const legacy =
-    selected.kind === 'ai' && selected.id === 'default'
-      ? option(selected, 'System default voice')
-      : ''
+type VoiceItem = {
+  value: string
+  label: string
+  selected: boolean
+  /** The chosen voice is gone: it shows, but cannot be chosen again. */
+  missing?: boolean
+}
+/** The voices to choose from, the chosen one marked. */
+const voiceList = (settings: StudioSettings, selected: Voice): VoiceItem[] => {
+  const item = (voice: Voice, label: string): VoiceItem => ({
+    value: voiceValue(voice),
+    label,
+    selected: voiceValue(voice) === voiceValue(selected)
+  })
+  const legacy = selected.kind === 'ai' && selected.id === 'default'
   const available =
     selected.kind === 'record' ||
     legacy ||
@@ -30,24 +38,43 @@ export const voiceChoices = (settings: StudioSettings, selected: Voice) => {
     settings.voice.choices.some(
       (choice) => selected.kind === 'ai' && choice.id === selected.id
     )
-  const missing = available
-    ? ''
-    : `<option selected disabled value="${escape(voiceValue(selected))}">Voice unavailable · choose a replacement</option>`
-  return (
-    missing +
-    option({ kind: 'record' }, 'I record it') +
-    legacy +
-    settings.voice.clones
+  return [
+    ...(available
+      ? []
+      : [
+          {
+            value: voiceValue(selected),
+            label: 'Voice unavailable · choose a replacement',
+            selected: true,
+            missing: true
+          }
+        ]),
+    item({ kind: 'record' }, 'I record it'),
+    ...(legacy ? [item(selected, 'System default voice')] : []),
+    ...settings.voice.clones
       .filter((clone) => clone.state === 'ready')
-      .map((clone) => option({ kind: 'clone', id: clone.id }, 'My voice clone'))
-      .join('') +
-    settings.voice.choices
-      .map((choice) =>
-        option(
-          { kind: 'ai', id: choice.id },
-          `${choice.name} · ${choice.language}`
-        )
-      )
-      .join('')
-  )
+      .map((clone) => item({ kind: 'clone', id: clone.id }, 'My voice clone')),
+    ...settings.voice.choices.map((choice) =>
+      item({ kind: 'ai', id: choice.id }, `${choice.name} · ${choice.language}`)
+    )
+  ]
 }
+
+export const voiceChoices = (settings: StudioSettings, selected: Voice) =>
+  voiceList(settings, selected)
+    .map((voice) =>
+      voice.missing
+        ? `<option selected disabled value="${escape(voice.value)}">${escape(voice.label)}</option>`
+        : `<option value="${escape(voice.value)}" ${voice.selected ? 'selected' : ''}>${escape(voice.label)}</option>`
+    )
+    .join('')
+
+/** The same voices as radio rows, the studio's own menu rather than a
+ * browser select (review 6). */
+export const voiceRows = (settings: StudioSettings, selected: Voice) =>
+  voiceList(settings, selected)
+    .map(
+      (voice) =>
+        `<label class="voice-row${voice.missing ? ' is-missing' : ''}"><input type="radio" name="voice" value="${escape(voice.value)}" ${voice.selected ? 'checked' : ''} ${voice.missing ? 'disabled' : ''}><span>${escape(voice.label)}</span></label>`
+    )
+    .join('')

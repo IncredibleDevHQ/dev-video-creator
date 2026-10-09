@@ -43,14 +43,14 @@ export const sceneShotMenu = (project: Project, sceneId: string) => {
     </button>`
   return html`<p class="popover-title">Shot</p>
     <p class="popover-note">
-      How this scene is built. The orchestrator chose
-      ${escape(shot.suggested.name)}, because ${escape(shot.why)}.
+      How this scene is built. We suggest ${escape(shot.suggested.name)} because
+      ${escape(shot.why)}.
     </p>
     <div class="tpl-slot-menu shot-menu" role="radiogroup" aria-label="Shot">
       ${choice(
         '',
-        'The orchestrator’s choice',
-        shot.suggested.name,
+        `Suggested: ${shot.suggested.name}`,
+        'Follows the scene’s place in the story',
         shot.chosenBy === 'orchestrator'
       )}
       ${SHOTS.filter((item) => item.id !== 'title-reveal' || shot.index === 0)

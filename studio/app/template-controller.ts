@@ -4,7 +4,7 @@ import { api } from './api'
 import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
 import { confirmAction } from './confirm-action'
-import { pickTemplate, sceneBeatMenu } from './template-picker'
+import { keepMakeChoices, pickTemplate, sceneBeatMenu } from './template-picker'
 import { sceneShotMenu } from './shot-picker'
 import { shotById } from '../shared/orchestration'
 import { narrativeById, type PresetId } from '../shared/narratives'
@@ -44,6 +44,8 @@ export const galleryContext = (app: AppContext) => {
 
 export const openTemplates = (app: AppContext, narrative?: string) => {
   app.stopPractice()
+  // From the make dialog, its choices wait for it to come back.
+  if (app.dialog.open) keepMakeChoices(app.dialog)
   if (app.dialog.open) app.dialog.close()
   closePopover()
   app.templateGallery.open(galleryContext(app), narrative)
@@ -130,7 +132,7 @@ export const clickTemplates = async (
       !(await confirmAction({
         title: shot
           ? `Build it as ${shotById(shot)?.name}?`
-          : 'Use the orchestrator’s shot?',
+          : 'Use the suggested shot?',
         detail:
           'This scene is planned again for its new shot: new words and a new animation. Takes whose words still match are kept.',
         action: 'Plan it again'

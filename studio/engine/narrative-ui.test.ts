@@ -6,7 +6,10 @@ vi.mock('../app/assets/incredible-logo.svg', () => ({ default: 'logo.svg' }))
 const { parseHTML } = await import('linkedom')
 const { makeVideoDialog } = await import('../app/video-screen')
 const {
+  keepMakeChoices,
+  keptMakeChoices,
   pickTemplate,
+  restoreMakeChoices,
   sceneBeatChip,
   sceneBeatMenu,
   syncTemplateFields,
@@ -14,7 +17,8 @@ const {
 } = await import('../app/template-picker')
 const { lookStyle, templateGalleryPage } =
   await import('../app/template-gallery-view')
-const { NARRATIVES, STORY_GROUPS } = await import('../shared/narratives')
+const { NARRATIVES, STORY_GROUPS, directionSettings, narrativeById } =
+  await import('../shared/narratives')
 const { TemplateGallery } = await import('../app/template-gallery')
 
 const settings = {
@@ -102,8 +106,12 @@ it('offers no template, the chosen one with how to tell it, and the gallery', ()
   expect(
     picked.querySelector('input[name="preset"][checked]')?.getAttribute('value')
   ).toBe('briefing')
+  // The length is chips now (review 6), the chosen one checked.
   expect(
-    picked.querySelector('select[name="length"] option[selected]')?.textContent
+    picked
+      .querySelector('input[name="length"][checked]')
+      ?.closest('label')
+      ?.textContent?.trim()
   ).toBe('2–4 min')
   expect(
     picked
@@ -123,7 +131,10 @@ it('offers no template, the chosen one with how to tell it, and the gallery', ()
   })
   expect(names(own, '.tpl-chip span')).not.toContain('Short and dramatic')
   expect(
-    own.querySelector('select[name="length"] option[selected]')?.textContent
+    own
+      .querySelector('input[name="length"][checked]')
+      ?.closest('label')
+      ?.textContent?.trim()
   ).toBe('5–7 min')
 })
 
@@ -198,9 +209,10 @@ it('takes on a direction’s settings when it is picked', () => {
     'input[name="preset"][value="short-dramatic"]'
   )!
   syncTemplateFields(form, short)
-  expect(
-    doc.querySelector<HTMLSelectElement>('select[name="length"]')?.value
-  ).toBe('45,90')
+  const lengths = () => [
+    ...doc.querySelectorAll<HTMLInputElement>('input[name="length"]')
+  ]
+  expect(lengths().find((input) => input.checked)?.value).toBe('45,90')
   expect(
     doc.querySelector<HTMLSelectElement>('select[name="drama"]')?.value
   ).toBe('dramatic')
@@ -209,10 +221,10 @@ it('takes on a direction’s settings when it is picked', () => {
       ?.checked
   ).toBe(true)
   // Your own length opens its two fields; no template hides the rest.
-  doc.querySelector<HTMLOptionElement>(
-    'select[name="length"] option[value="own"]'
-  )!.selected = true
-  syncTemplateFields(form, doc.querySelector('select[name="length"]'))
+  // As a browser does for a radio group: one checked, the rest not.
+  const own = lengths().find((input) => input.value === 'own')!
+  for (const input of lengths()) input.checked = input === own
+  syncTemplateFields(form, own)
   expect(doc.querySelector('.tpl-length-own')?.hasAttribute('hidden')).toBe(
     false
   )
@@ -225,6 +237,83 @@ it('takes on a direction’s settings when it is picked', () => {
     true
   )
   expect(doc.querySelector('.tpl-presence')?.hasAttribute('hidden')).toBe(false)
+})
+
+it('keeps the make dialog’s choices while the gallery is open', () => {
+  const voices = {
+    voice: {
+      selected: { kind: 'record' },
+      clones: [],
+      choices: [{ id: 'system:Daniel', name: 'Daniel', language: 'en-GB' }]
+    }
+  } as unknown as StudioSettings
+  const slides = ['a', 'b', 'c'].map((id) => ({ id, title: id })) as never
+  const open = () => {
+    const doc = parseHTML(
+      `<div>${makeVideoDialog(
+        voices,
+        undefined,
+        { slides, selected: null, only: false },
+        undefined,
+        { narrative: 'incident', direction: { preset: 'briefing' } }
+      )}</div>`
+    ).document
+    // As a browser does: what the markup checks starts checked.
+    for (const input of doc.querySelectorAll('input'))
+      input.checked = input.hasAttribute('checked')
+    return doc
+  }
+  const inputs = (doc: Document, name: string) => [
+    ...doc.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`)
+  ]
+  // As a browser does for a radio group: one checked, the rest not.
+  const choose = (doc: Document, name: string, value: string) =>
+    inputs(doc, name).forEach(
+      (input) => (input.checked = input.value === value)
+    )
+  const state = (doc: Document) => ({
+    scenes: inputs(doc, 'scene')
+      .filter((input) => input.checked)
+      .map((input) => input.value),
+    ...Object.fromEntries(
+      ['oncamera', 'voice', 'length', 'preset'].map((name) => [
+        name,
+        inputs(doc, name).find((input) => input.checked)?.value
+      ])
+    )
+  })
+  const before = open()
+  inputs(before, 'scene')[1].checked = false
+  choose(before, 'oncamera', 'none')
+  choose(before, 'voice', 'ai:system:Daniel')
+  choose(before, 'length', '45,90')
+  expect(keepMakeChoices(before)).toBe(true)
+  expect(keptMakeChoices()).toBe(true)
+  // Left without a pick, the dialog comes back as it was left.
+  const back = open()
+  restoreMakeChoices(back)
+  expect(keptMakeChoices()).toBe(false)
+  expect(state(back)).toEqual({
+    scenes: ['a', 'c'],
+    oncamera: 'none',
+    voice: 'ai:system:Daniel',
+    length: '45,90',
+    preset: 'briefing'
+  })
+  // Another story brings its own direction; scenes, camera and voice stay.
+  keepMakeChoices(back)
+  pickTemplate({ narrative: 'security', direction: { preset: 'explainer' } })
+  const other = open()
+  restoreMakeChoices(other)
+  expect(state(other)).toEqual({
+    scenes: ['a', 'c'],
+    oncamera: 'none',
+    voice: 'ai:system:Daniel',
+    length: directionSettings(narrativeById('security')!, {
+      preset: 'explainer'
+    }).length.join(','),
+    preset: 'explainer'
+  })
 })
 
 it('draws previews in the notebook’s look', () => {
@@ -490,8 +579,9 @@ it('names a scene’s shot, offers the others, and follows the direction', async
   expect(options.map((item) => item.getAttribute('data-shot'))).not.toContain(
     'title-reveal'
   )
+  // The choice is named, not the system that made it (review 6).
   expect(menu.querySelector('.popover-note')?.textContent).toContain(
-    'The orchestrator chose'
+    'We suggest'
   )
   // A briefing keeps you off camera between the first and last scenes.
   const video = told.video!

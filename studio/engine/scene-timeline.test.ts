@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import type { Moment, Scene } from '../shared/model'
 vi.mock('../app/api', () => ({ api: {} }))
-const { animationAt, sceneParts, sceneWords, steerAnimation } =
+const { animationAt, phraseButtons, sceneParts, sceneWords, steerAnimation } =
   await import('../app/scene-timeline')
 
 // A synthetic scene of three moments: the second runs on past its
@@ -131,4 +131,45 @@ it('draws the whole scene as one timeline, its moments cut apart', () => {
   expect(parts.phrases).toContain('data-jump="4"')
   const words = sceneWords(scene.moments)
   expect(words.starts).toEqual([0, 3, 8])
+})
+
+it('keeps the Voice track’s chips readable at every zoom', () => {
+  const m = moment(
+    'm',
+    0,
+    7,
+    'A stream starts at the edge, a Worker steers it from there, and the result goes back.'
+  )
+  const chips = (perSecond: number) =>
+    [
+      ...phraseButtons(m, 0, 7, 7, 7, '', perSecond).matchAll(
+        /title="([^"]+)"/g
+      )
+    ].map((match) => match[1])
+  // At Fit, its phrases join into one chip rather than cuts like “Sc”.
+  expect(chips(8)).toEqual([m.lines])
+  // Zoomed in, a chip to each phrase.
+  expect(chips(60)).toEqual([
+    'A stream starts at the edge,',
+    'a Worker steers it from there,',
+    'and the result goes back.'
+  ])
+  // Zoomed far in, a chip to each word.
+  expect(chips(260)).toHaveLength(17)
+  // Too narrow to show any text, a chip keeps it for its tooltip only.
+  expect(phraseButtons(m, 0, 7, 7, 7, '', 3)).toMatch(
+    /aria-label="[^"]+"><\/button>/
+  )
+  // Short phrases join until each chip reads.
+  const short = moment(
+    's',
+    0,
+    6,
+    'Scenes start here, then, a turn, and so, the end.'
+  )
+  expect(
+    [
+      ...phraseButtons(short, 0, 6, 6, 6, '', 60).matchAll(/title="([^"]+)"/g)
+    ].map((match) => match[1])
+  ).toEqual(['Scenes start here, then,', 'a turn, and so, the end.'])
 })

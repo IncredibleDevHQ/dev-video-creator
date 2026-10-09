@@ -167,7 +167,8 @@ export function momentTimeline(
   a: number,
   length: number,
   extra: string,
-  animated: boolean
+  animated: boolean,
+  perSecond: number
 ) {
   return {
     ruler: Array.from({ length: Math.ceil(a / 2) }, (_, i) =>
@@ -177,7 +178,7 @@ export function momentTimeline(
     ).join(''),
     animation: `${icon('video')}<span>${animated ? 'Animation' : 'Wireframe · animation not made yet'} <small>${b.toFixed(1)}s</small></span><span>↔</span>`,
     phrases:
-      phraseButtons(m, 0, a, b, length, extra) +
+      phraseButtons(m, 0, a, b, length, extra, perSecond) +
       (!extra && m.camera !== 'none'
         ? `<button type="button" class="ds-add" data-ds="add" style="left:calc(${(b / a) * 100}% + 6px);right:0">${icon('plus')} Keep talking</button>`
         : '')

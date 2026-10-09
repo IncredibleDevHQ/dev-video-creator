@@ -49,6 +49,8 @@ import {
 import { createRender } from './workspace-controller'
 import { workspacePosition } from './workspace-position'
 import { syncPublishForm } from './release-controller'
+import { keptMakeChoices } from './template-picker'
+import { clickVideo } from './video-controller'
 installAppearance()
 const app = {} as AppContext
 app.root = document.querySelector<HTMLDivElement>('#app')!
@@ -131,7 +133,15 @@ app.settingsScreen = new Settings(
 )
 app.templateGallery = new TemplateGallery(
   app.root,
-  () => app.render(),
+  // Left without a pick, the make dialog it was opened from comes back.
+  () => {
+    app.render()
+    if (keptMakeChoices() && app.snapshot && !app.snapshot.project.video) {
+      const make = document.createElement('button')
+      make.dataset.action = 'make-video'
+      void clickVideo(app, make, 'make-video').catch(app.error)
+    }
+  },
   (narrative, preset) =>
     void useTemplate(app, narrative, preset).catch(app.error)
 )

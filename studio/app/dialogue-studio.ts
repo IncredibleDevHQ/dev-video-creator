@@ -413,10 +413,10 @@ export function dialogueStudio(
     else {
       const b = boundary(),
         a = axis(),
-        parts = momentTimeline(m, b, a, total(), text(), Boolean(video()))
+        width = Math.max($('scroll').clientWidth, a * 65),
+        parts = momentTimeline(m, b, a, total(), text(), !!video(), width / a)
       $('timeline').style.setProperty('--boundary', `${(b / a) * 100}%`)
-      $('timeline').style.width =
-        `${Math.max($('scroll').clientWidth, a * 65)}px`
+      $('timeline').style.width = `${width}px`
       $('ruler').innerHTML = parts.ruler
       $('boundary').textContent = 'Animation ends'
       $('animation').innerHTML = parts.animation
