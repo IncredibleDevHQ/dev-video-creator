@@ -233,7 +233,9 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
       at: number
     ) =>
       pops.push({
-        group: element.hasAttribute('data-pose-pop'),
+        layer: [...document.querySelectorAll('[data-pose-layer]')].indexOf(
+          element
+        ),
         from,
         ...to,
         at
@@ -275,32 +277,33 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     ]
   ])
   // The drawing pops about its middle as it arrives, ending with the
-  // change: its own group swells from its own size and back, with values
-  // fixed when the scene is built, so no seek or scale of the scene's
-  // changes it.
+  // change: a layer only the player moves swells from the drawing as drawn
+  // and back, by numbers fixed when the scene is built, so no seek and no
+  // scale of the scene's changes it.
   expect(pops).toEqual([
     {
-      group: true,
-      from: { scale: 1 },
-      scale: 1.04,
+      layer: 0,
+      from: { attr: { transform: 'matrix(1 0 0 1 0 0)' } },
+      attr: { transform: 'matrix(1.04 0 0 1.04 -1.48 -1.16)' },
       duration: 0.12,
       ease: 'power1.out',
       yoyo: true,
       repeat: 1,
       immediateRender: false,
-      svgOrigin: '37 29',
       at: 1 + 0.6 * 0.6
     }
   ])
   expect((pops[0].at as number) + 2 * 0.12).toBeCloseTo(1.6)
-  // A pop that would overlap it is left out.
+  // Pops take the layers in turn, so two that overlap add up.
   pops.length = 0
   play(tl, 'gauge', 'limit', 1.1, 0.6)
-  expect(pops).toEqual([])
+  expect(pops).toEqual([expect.objectContaining({ layer: 1 })])
   calls.length = 0
+  pops.length = 0
   play(tl, 'gauge', 'limit', 2)
   expect(pops).toEqual([
     expect.objectContaining({
+      layer: 2,
       at: 2 + 0.8 * 0.6,
       duration: expect.closeTo(0.16, 6)
     })
@@ -332,13 +335,15 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
   expect(play(tl, 'nothing', 'limit', 0)).toBe(tl)
 })
 
-it('puts the drawing in a group for its pop, after its loop’s style', () => {
+it('puts the drawing in a group with layers for its pops, after its loop’s style', () => {
+  const layers =
+    '<g data-pose-layer="" transform="matrix(1 0 0 1 0 0)">'.repeat(3)
   expect(
     withPop(
       '<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g id="a"/></svg>'
     )
   ).toBe(
-    '<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g data-pose-pop=""><g id="a"/></g></svg>'
+    `<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g data-pose-pop="">${layers}<g id="a"/></g></g></g></g></svg>`
   )
   expect(withPop('<svg viewBox="0 0 8 8"/>')).toBe('<svg viewBox="0 0 8 8"/>')
 })

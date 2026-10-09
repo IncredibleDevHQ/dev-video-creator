@@ -74,26 +74,22 @@
     for (var key in source) target[key] = source[key]
     return target
   }
-  // The middle of a drawing's frame in its own units, where its pop swells
-  // from: read from the drawing as drawn, so every seek agrees.
-  function middle(art) {
+  // The middle of a drawing in its own units, where its pop swells from: its
+  // frame's, else its content's as the scene is built, so every seek agrees.
+  function middle(art, content) {
     var box = (art.getAttribute('viewBox') || '').trim().split(/[\s,]+/)
     var x = +box[0],
       y = +box[1],
       width = +box[2],
       height = +box[3]
-    return box.length === 4 && width > 0 && height > 0 && isFinite(x + y)
-      ? x + width / 2 + ' ' + (y + height / 2)
-      : null
-  }
-  // Whether a pop from `from` to `to` leaves the drawing's other pops alone:
-  // two at once would jump from one to the other.
-  function free(pop, from, to) {
-    var taken = pop.__pops || (pop.__pops = [])
-    for (var i = 0; i < taken.length; i++)
-      if (from < taken[i][1] && taken[i][0] < to) return false
-    taken.push([from, to])
-    return true
+    if (box.length === 4 && width > 0 && height > 0 && isFinite(x + y))
+      return [x + width / 2, y + height / 2]
+    try {
+      var drawn = content.getBBox()
+      if (drawn.width > 0 && drawn.height > 0)
+        return [drawn.x + drawn.width / 2, drawn.y + drawn.height / 2]
+    } catch (error) {}
+    return null
   }
 
   /**
@@ -156,34 +152,41 @@
         )
     }
     // The pop: the drawing swells a touch about its middle and settles as it
-    // arrives, inside the change. It scales the group the app put around the
-    // drawing for it, which nothing else moves, from its own size and back:
-    // a scale the scene gives the drawing stays, and every seek of the
-    // timeline shows the same frame.
-    var pop = root.querySelector('[data-pose-pop]')
+    // arrives, inside the change. It scales one of the layers the app put
+    // around the drawing's content, which nothing else moves, in turn, from
+    // the drawing as drawn and back, with numbers fixed here: a scale the
+    // scene gives the drawing stays, pops that overlap add up, and every seek
+    // of the timeline shows the same frame.
     var art = root.querySelector('svg')
+    var layers = root.querySelectorAll('[data-pose-pop] [data-pose-layer]')
     var beat = Math.min(0.2, duration * 0.2)
-    var from = start + duration * 0.6
-    if (
-      pop &&
-      art &&
-      shapes.length &&
-      pose !== 'rest' &&
-      beat > 0 &&
-      free(pop, from, from + 2 * beat)
-    ) {
-      var origin = middle(art)
-      var to = {
-        scale: 1.04,
-        duration: beat,
-        ease: 'power1.out',
-        yoyo: true,
-        repeat: 1,
-        immediateRender: false
-      }
-      if (origin) to.svgOrigin = origin
-      else to.transformOrigin = '50% 50%'
-      tl.fromTo(pop, { scale: 1 }, to, from)
+    var centre =
+      art && layers.length && shapes.length && pose !== 'rest' && beat > 0
+        ? middle(art, layers[0])
+        : null
+    if (centre) {
+      var turn = (root.__posePops || 0) + 1
+      root.__posePops = turn
+      tl.fromTo(
+        layers[(turn - 1) % layers.length],
+        { attr: { transform: 'matrix(1 0 0 1 0 0)' } },
+        {
+          attr: {
+            transform:
+              'matrix(1.04 0 0 1.04 ' +
+              +(-0.04 * centre[0]).toFixed(4) +
+              ' ' +
+              +(-0.04 * centre[1]).toFixed(4) +
+              ')'
+          },
+          duration: beat,
+          ease: 'power1.out',
+          yoyo: true,
+          repeat: 1,
+          immediateRender: false
+        },
+        start + duration * 0.6
+      )
     }
     return tl
   }

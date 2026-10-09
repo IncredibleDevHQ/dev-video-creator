@@ -411,7 +411,7 @@ export const imageGenerate = async ({
   })
   if (!response.ok)
     throw new Error(
-      `The image model answered ${response.status}: ${(await response.text()).slice(0, 200)}`
+      `The image model answered ${response.status}: ${withoutKeys(await response.text(), settings.apiKey, 200)}`
     )
   const data = (await response.json()) as {
     data?: Array<{ b64_json?: string; url?: string }>
@@ -435,15 +435,20 @@ export const imageGenerate = async ({
 }
 
 /**
- * A provider's refusal, in its own words: what the user needs to fix. A key
- * it echoes, whole or masked, is hidden.
+ * A provider's text with any key it echoes hidden, whole or masked, then cut
+ * to `length`. A key too short to be a secret (a local server's placeholder)
+ * stays, or every message would lose those letters.
  */
-const rejected = async (label: string, response: Response, key: string) => {
-  const text = (await response.text().catch(() => '')).slice(0, 400)
-  const detail = (key ? text.split(key).join('[key]') : text)
-    .replace(/\bBearer\s+[\w~+/*=[\]-]+(?:\.[\w~+/*=[\]-]+)*/gi, 'Bearer [key]')
+export const withoutKeys = (text: string, key: string, length: number) =>
+  (key.length >= 8 ? text.split(key).join('[key]') : text)
+    .replace(/\bBearer\s+[\w~+\/*=-]{16,}(?:\.[\w~+\/*=-]+)*/g, 'Bearer [key]')
     .replace(/\b(?:sk|pk|rk|gsk|xai)[-_][\w*-]+(?:\.[\w*-]+)*/gi, '[key]')
     .replace(/\bAIza[\w-]{10,}/g, '[key]')
+    .slice(0, length)
+
+/** A provider's refusal, in its own words: what the user needs to fix. */
+const rejected = async (label: string, response: Response, key: string) => {
+  const detail = withoutKeys(await response.text().catch(() => ''), key, 400)
   return new Refusal(
     `${label} rejected the request (${response.status})${detail ? `: ${detail}` : ''}`
   )

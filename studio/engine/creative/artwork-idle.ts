@@ -115,13 +115,19 @@ const declarationsOf = (body: string, allowed: Set<string>) =>
       : []
   })
 
-/** An object's name as CSS names may carry it: they start with a letter. */
+/**
+ * An object's name as CSS names may carry it: they start with a letter. A
+ * name with no letters CSS can carry still gets one of its own.
+ */
 const scopeOf = (entity: string) => {
   const slug = entity
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
-  return !slug ? 'drawing' : /^[a-z]/.test(slug) ? slug : `art-${slug}`
+  if (slug) return /^[a-z]/.test(slug) ? slug : `art-${slug}`
+  let hash = 0
+  for (const char of entity) hash = (hash * 31 + char.codePointAt(0)!) >>> 0
+  return `drawing-${hash.toString(36)}`
 }
 
 /**
@@ -183,7 +189,7 @@ export const idleLoop = (
   )
   const renamed = (value: string) =>
     value
-      .replace(/\binfinite\b/g, LOOPS)
+      .replace(/(?<![\w-])infinite(?![\w-])/g, LOOPS)
       .replace(/[\w-]+/g, (word) => (frames.has(word) ? named(word) : word))
   // Each keyframes block's steps, where they are plain and move or fade.
   const steps = new Map<string, string[]>()
@@ -196,15 +202,22 @@ export const idleLoop = (
     })
     if (list.length) steps.set(name, list)
   }
-  // A rule moves something only when it plays a block that kept a step.
-  const plays = (declarations: string[]) =>
-    declarations.some(
-      (item) =>
-        /^animation(?:-name)?:/.test(item) &&
-        (item.slice(item.indexOf(':') + 1).match(/[\w-]+/g) || []).some(
-          (word) => steps.has(word)
-        )
+  // What a rule does to the loop: plays a block that kept a step; tunes how
+  // a loop plays (a delay so lamps blink in turn, a duration, a pivot); or
+  // nothing, when it plays only blocks that kept no step.
+  const roleOf = (declarations: string[]) => {
+    const naming = declarations.filter((item) =>
+      /^animation(?:-name)?:/.test(item)
     )
+    const names = naming
+      .flatMap(
+        (item) => item.slice(item.indexOf(':') + 1).match(/[\w-]+/g) || []
+      )
+      .filter((word) => frames.has(word))
+    if (names.some((word) => steps.has(word))) return 'plays'
+    return naming.length || !declarations.length ? 'nothing' : 'tunes'
+  }
+  let playing = false
   // Where an animation element sits in the drawing: itself, or for a
   // wrapper the run of siblings it holds (null when they are not a run).
   const placeOf = (at: number): { index: number; last: number } | null => {
@@ -281,7 +294,9 @@ export const idleLoop = (
       .map((item) => targetsOf(item.trim()))
     if (!targets.length || targets.some((target) => !target)) continue
     const declarations = declarationsOf(rule.body, RULE_PROPERTIES)
-    if (!plays(declarations)) continue
+    const role = roleOf(declarations)
+    if (role === 'nothing') continue
+    if (role === 'plays') playing = true
     const sure = targets as Array<{
       name: string
       places: Array<{ index: number; last: number }>
@@ -299,16 +314,17 @@ export const idleLoop = (
     const own = match.has(at)
       ? base[match.get(at)!].attrs.get('style') || ''
       : ''
-    if (style === own || !/animation/i.test(style)) return
+    if (style === own) return
     const declarations = declarationsOf(style, RULE_PROPERTIES)
     const place = placeOf(at)
-    if (!place || !plays(declarations)) return
+    const role = roleOf(declarations)
+    if (!place || role === 'nothing') return
+    if (role === 'plays') playing = true
     const name = `${scope}-idle-${place.index}-own`
     mark(place, name)
     kept.push(`.${name} { ${declarations.map(renamed).join('; ')}; }`)
   })
-  if (!kept.length)
-    return { problem: 'it added no loop to the drawing’s parts' }
+  if (!playing) return { problem: 'it added no loop to the drawing’s parts' }
   return {
     loop: {
       css: [
@@ -333,6 +349,9 @@ export const idleLoop = (
 const PAINT =
   /^(?:defs|lineargradient|radialgradient|pattern|clippath|mask|symbol|marker|filter)$/i
 const WORDS = /^(?:text|textpath)$/i
+// A class attribute as written: quoted either way, or bare.
+const QUOTED_CLASS = /\sclass\s*=\s*(["'])(.*?)\1/
+const BARE_CLASS = /\sclass\s*=\s*([^\s"'=<>`\/]+)/
 
 /**
  * The drawing with its loop on it: the CSS in its own <style>, and each part
@@ -391,13 +410,18 @@ export const withIdle = (svg: string, loop: IdleLoop) => {
       end: element.at + element.length,
       rank: 0,
       span: 0,
-      text: /\sclass\s*=\s*["']/.test(tag)
+      text: QUOTED_CLASS.test(tag)
         ? tag.replace(
-            /\sclass\s*=\s*(["'])(.*?)\1/,
+            QUOTED_CLASS,
             (_, quote: string, mine: string) =>
               ` class=${quote}${`${mine} ${names}`.trim()}${quote}`
           )
-        : tag.replace(/\s*(\/?)>$/, ` class="${names}"$1>`)
+        : BARE_CLASS.test(tag)
+          ? tag.replace(
+              BARE_CLASS,
+              (_, mine: string) => ` class="${mine} ${names}"`
+            )
+          : tag.replace(/\s*(\/?)>$/, ` class="${names}"$1>`)
     })
   }
   const root = elements[0]

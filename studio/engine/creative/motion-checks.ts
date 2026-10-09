@@ -239,9 +239,10 @@ export const motionDefects = (
       message: `${moment.id} holds one still frame for ${seconds(longest * every)} (${seconds(from * every)} to ${seconds((from + longest) * every)} into the moment)`
     })
   // An empty frame while the voice speaks (review 6: a scene opened on one
-  // word, then nothing, while the voice asked): blank samples a second or
-  // more apart, first to last, so a picture that enters half a second in
-  // passes. A gap of 1.5 s or more always spans that.
+  // word, then nothing, while the voice asked): blank samples of one moment
+  // a second or more apart, first to last, so a picture that enters half a
+  // second in passes. Only what the samples see counts: each moment's are
+  // half a second apart and stop just before its end.
   const area = frameArea(samples)
   const blank = longestRun(samples, (sample) => !showsSomething(sample, area))
   const empty = (blank.longest - 1) * every

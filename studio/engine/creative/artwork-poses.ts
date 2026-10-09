@@ -645,11 +645,18 @@ export const posedDrawing = (
   return { svg: annotated + svg.slice(cursor), poses: reports }
 }
 
+/** How many pops may overlap on one drawing, each scaling its own layer. */
+const POP_LAYERS = 3
+// A layer starts as drawn, said in full: a tween sought back before its pop
+// restores what the layer had, and with nothing there it would hide it.
+const POP_LAYER = '<g data-pose-layer="" transform="matrix(1 0 0 1 0 0)">'
+
 /**
- * The drawing's content inside one group, which only the pose player moves:
- * it scales that group for the small pop as a pose arrives, so the pop never
- * touches a scale the scene gives the drawing, and every seek of the
- * timeline shows the same frame. An idle loop's style stays first.
+ * The drawing's content inside a group the scene may move as it likes, and
+ * in it layers only the pose player moves: each pop as a pose arrives scales
+ * one of them, so a pop never touches a scale the scene gives the drawing,
+ * pops that overlap add up, and every seek of the timeline shows the same
+ * frame. An idle loop's style stays first.
  */
 export const withPop = (svg: string) => {
   const open = /<svg\b[^>]*>/i.exec(svg)
@@ -658,5 +665,5 @@ export const withPop = (svg: string) => {
   let at = open.index + open[0].length
   const style = /^\s*<style\b[^>]*>[\s\S]*?<\/style\s*>/i.exec(svg.slice(at))
   if (style) at += style[0].length
-  return `${svg.slice(0, at)}<g data-pose-pop="">${svg.slice(at, close)}</g>${svg.slice(close)}`
+  return `${svg.slice(0, at)}<g data-pose-pop="">${POP_LAYER.repeat(POP_LAYERS)}${svg.slice(at, close)}${'</g>'.repeat(POP_LAYERS)}</g>${svg.slice(close)}`
 }

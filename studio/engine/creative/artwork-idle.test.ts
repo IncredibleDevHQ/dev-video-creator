@@ -233,3 +233,48 @@ it('adds to a class however it is quoted, and finds the loop’s style however i
     '<svg><g/></svg>'
   )
 })
+
+it('keeps the rules that tune a loop: lamps in turn, a duration set apart', () => {
+  const inTurn = drawing
+    .replace(
+      '<svg viewBox="0 0 80 60">',
+      '<svg viewBox="0 0 80 60"><style>@keyframes blink { 50% { opacity: .2 } } .blink { animation: blink 1s infinite } .lamp-2 { animation-delay: .5s }</style>'
+    )
+    .replace('<circle cx="10"', '<circle class="blink" cx="10"')
+    .replace('<circle cx="16"', '<circle class="blink lamp-2" cx="16"')
+  const { loop } = idleLoop(drawing, inTurn, 'gauge')
+  expect(loop!.classes).toEqual([
+    { index: 5, names: ['gauge-blink'] },
+    { index: 6, names: ['gauge-blink', 'gauge-lamp-2'] }
+  ])
+  expect(loop!.css).toContain('.gauge-lamp-2 { animation-delay: .5s; }')
+  // The name in one rule, its duration and count in another; a name that
+  // holds “infinite” keeps it.
+  const split = drawing.replace(
+    '<svg viewBox="0 0 80 60">',
+    '<svg viewBox="0 0 80 60"><style>@keyframes spin-infinite { to { transform: rotate(360deg) } } #needle { animation-name: spin-infinite } #needle { animation-duration: 3s; animation-iteration-count: infinite }</style>'
+  )
+  const css = idleLoop(drawing, split, 'gauge').loop!.css
+  expect(css).toContain('@keyframes gauge-spin-infinite')
+  expect(css).toContain(
+    '.gauge-idle-9 { animation-name: gauge-spin-infinite; }'
+  )
+  expect(css).toContain(
+    '.gauge-idle-9 { animation-duration: 3s; animation-iteration-count: 999; }'
+  )
+  // Names with no letters CSS can carry still differ.
+  const scoped = (entity: string) =>
+    idleLoop(drawing, animated, entity).loop!.classes[0].names[0]
+  expect(scoped('数据库')).toMatch(/^drawing-[a-z0-9]+-blink$/)
+  expect(scoped('数据库')).not.toBe(scoped('缓存'))
+  // A bare class takes the loop's beside it.
+  expect(
+    withIdle(
+      '<svg viewBox="0 0 8 8"><text><tspan class=q>•</tspan></text></svg>',
+      {
+        css: '',
+        classes: [{ index: 2, names: ['badge-pulse'] }]
+      }
+    )
+  ).toContain('<tspan class="q badge-pulse">')
+})

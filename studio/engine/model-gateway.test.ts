@@ -170,6 +170,23 @@ it('says a provider’s refusal in its own words, with any key it echoes hidden'
   expect((refusal as Error).message).not.toMatch(/sk-env|9f3a/)
 })
 
+it('leaves a provider’s words alone where they hold no key', () => {
+  // A local server's placeholder key is not a secret: its letters stay.
+  expect(
+    gateway.withoutKeys('The model "x-large" does not exist', 'x', 400)
+  ).toBe('The model "x-large" does not exist')
+  expect(gateway.withoutKeys('Invalid bearer token', '', 400)).toBe(
+    'Invalid bearer token'
+  )
+  expect(
+    gateway.withoutKeys('Sent Bearer abcdefghijklmnop1234.', '', 400)
+  ).toBe('Sent Bearer [key].')
+  // A key is hidden before the text is cut, so none of it shows.
+  const key = 'LONGSECRETKEY1234567'
+  const cut = gateway.withoutKeys(`${'a'.repeat(395)}${key}`, key, 400)
+  expect(cut).toBe(`${'a'.repeat(395)}[key]`)
+})
+
 it('does not forward a saved key to a different provider', async () => {
   await gateway.saveModelSettings({
     provider: 'openai',

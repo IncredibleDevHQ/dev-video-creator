@@ -32,12 +32,20 @@ beforeAll(async () => {
 })
 afterAll(() => browser?.close())
 
-/** The drawing's scale, its pop group's scale and offset, at each probe. */
-const play = async (build: string, path: number[], probes: number[]) => {
+const open = async () => {
   const tab = await browser.newPage()
   await tab.setContent(page)
   await tab.addScriptTag({ content: gsap })
   await tab.addScriptTag({ content: player })
+  return tab
+}
+
+/**
+ * At each probe: the drawing's scale, the scale of the group around its
+ * content (the scene's to move), and the pop layers' scale and offset.
+ */
+const play = async (build: string, path: number[], probes: number[]) => {
+  const tab = await open()
   await tab.evaluate(`(() => {
     const svg = document.querySelector('svg')
     const tl = gsap.timeline({ paused: true })
@@ -50,9 +58,13 @@ const play = async (build: string, path: number[], probes: number[]) => {
     const state = (await tab.evaluate(`(() => {
       tl.seek(${t}, true)
       const svg = document.querySelector('svg')
-      const pop = document.querySelector('[data-pose-pop]')
-      const m = pop.transform.baseVal.consolidate()?.matrix
-      return [+gsap.getProperty(svg, 'scaleX'), m ? m.a : 1, m ? m.e : 0]
+      const outer = document.querySelector('[data-pose-pop]')
+      let m = new DOMMatrix()
+      for (const layer of document.querySelectorAll('[data-pose-layer]')) {
+        const k = layer.transform.baseVal.consolidate()?.matrix
+        if (k) m = m.multiply(new DOMMatrix([k.a, k.b, k.c, k.d, k.e, k.f]))
+      }
+      return [+gsap.getProperty(svg, 'scaleX'), +gsap.getProperty(outer, 'scaleX'), m.a, m.e]
     })()`)) as number[]
     if (probes.includes(t))
       seen[t] = state.map((value) => value.toFixed(4)).join(' ')
@@ -75,54 +87,79 @@ const everyPath = async (build: string, probes: number[], to = 3) => {
     played,
     inOrder([...samples(to), ...probes]),
     [0, ...probes],
-    [...played, 0.5, ...played.filter((t) => t > 0.5)]
+    [...played, 0.5, ...played.filter((t) => t > 0.5)],
+    [to, ...[...probes].reverse(), ...probes]
   ]
   const results = []
   for (const path of paths) results.push(await play(build, path, probes))
   for (const result of results.slice(1)) expect(result).toEqual(results[0])
   return results[0]
 }
+const AT_REST = '1.0000 1.0000 1.0000 0.0000'
 
 it('pops about the middle and keeps the scale the scene gives the drawing', async () => {
   const seen = await everyPath(
     `tl.to(svg, { scale: 1.5, duration: 0.5 }, 0); artworkPose(tl, 'x', 'glow', 1, 0.8)`,
     [1.64, 3]
   )
-  // At the pop's height its group is 4% up about (50, 50); after it, the
+  // At the pop's height a layer is 4% up about (50, 50); after it, the
   // drawing is as the scene made it.
-  expect(seen[1.64]).toBe('1.5000 1.0400 -2.0000')
-  expect(seen[3]).toBe('1.5000 1.0000 0.0000')
-}, 60_000)
+  expect(seen[1.64]).toBe('1.5000 1.0000 1.0400 -2.0000')
+  expect(seen[3]).toBe('1.5000 1.0000 1.0000 0.0000')
+  // A scene that scales the group around the content keeps its scale.
+  const group = await everyPath(
+    `tl.to(svg.querySelector(':scope > g'), { scale: 1.2, duration: 0.3 }, 0); artworkPose(tl, 'x', 'glow', 1, 0.8)`,
+    [1.64, 3]
+  )
+  expect(group[1.64]).toBe('1.0000 1.2000 1.0400 -2.0000')
+  expect(group[3]).toBe('1.0000 1.2000 1.0000 0.0000')
+}, 120_000)
 
-it('ends at the same frame for poses close together, entrances and scale tweens', async () => {
+it('shows the same frame by every seek, and ends as drawn', async () => {
+  // Poses close together, on one timeline and from a timeline placed in it.
   const close = await everyPath(
     `artworkPose(tl, 'x', 'glow', 1, 0.8); artworkPose(tl, 'x', 'limit', 1.25, 0.8)`,
     [1.6, 1.9, 3]
   )
-  expect(close[3]).toBe('1.0000 1.0000 0.0000')
+  expect(close[3]).toBe(AT_REST)
+  const nested = await everyPath(
+    `const sub = gsap.timeline(); artworkPose(sub, 'x', 'limit', 0.25, 0.8); tl.add(sub, 1); artworkPose(tl, 'x', 'glow', 1, 0.8)`,
+    [1.6, 1.9, 3]
+  )
+  expect(nested[3]).toBe(AT_REST)
+  // The scene tweens the drawing's scale across the pop, or brings it in
+  // from nothing as a pose starts.
   const tween = await everyPath(
     `tl.fromTo(svg, { scale: 0.5 }, { scale: 1, duration: 1, ease: 'none' }, 0.8); artworkPose(tl, 'x', 'glow', 0.5, 0.8)`,
     [1.5, 2.5]
   )
-  expect(tween[1.5]).toBe('0.8500 1.0000 0.0000')
+  expect(tween[1.5]).toBe('0.8500 1.0000 1.0000 0.0000')
   const entrance = await everyPath(
     `tl.from(svg, { scale: 0, duration: 0.6 }, 0); artworkPose(tl, 'x', 'glow', 0, 0.8)`,
-    [2],
+    [0.5, 2],
     2
   )
-  expect(entrance[2]).toBe('1.0000 1.0000 0.0000')
-}, 120_000)
+  expect(entrance[2]).toBe(AT_REST)
+  // A drawing without a frame pops about its content as drawn.
+  const unframed = await everyPath(
+    `svg.removeAttribute('viewBox'); artworkPose(tl, 'x', 'glow', 1, 0.8)`,
+    [1.64, 3]
+  )
+  expect(unframed[3]).toBe(AT_REST)
+}, 240_000)
 
-it('ends every part of a pose within the seconds it is given', async () => {
-  const tab = await browser.newPage()
-  await tab.setContent(page)
-  await tab.addScriptTag({ content: gsap })
-  await tab.addScriptTag({ content: player })
-  const ends = (await tab.evaluate(`[0.6, 0.8, 1.2].map((seconds) => {
+it('ends every part of a pose within its seconds, its pop included, however often it is built', async () => {
+  const tab = await open()
+  const built = (await tab.evaluate(`[0.6, 0.8, 1.2].map((seconds) => {
     const tl = gsap.timeline({ paused: true })
     artworkPose(tl, 'x', 'glow', 1, seconds)
-    return Math.max(...tl.getChildren(false, true, false).map((child) => child.startTime() + child.totalDuration())) - 1
-  })`)) as number[]
+    const children = tl.getChildren(false, true, false)
+    return [
+      Math.max(...children.map((child) => child.startTime() + child.totalDuration())) - 1,
+      children.filter((child) => child.targets()[0].hasAttribute('data-pose-layer')).length
+    ]
+  })`)) as Array<[number, number]>
   await tab.close()
-  expect(ends.map((end) => +end.toFixed(6))).toEqual([0.6, 0.8, 1.2])
+  expect(built.map(([end]) => +end.toFixed(6))).toEqual([0.6, 0.8, 1.2])
+  expect(built.map(([, pops]) => pops)).toEqual([1, 1, 1])
 }, 60_000)
