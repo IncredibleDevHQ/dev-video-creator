@@ -191,10 +191,18 @@ export const idleLoop = (
       .map((rule) => [rule.prelude.split(/\s+/)[1], rule] as const)
       .filter(([name]) => IDENT.test(name))
   )
-  const renamed = (value: string) =>
-    value
-      .replace(/(?<![\w-])infinite(?![\w-])/g, LOOPS)
-      .replace(/[\w-]+/g, (word) => (frames.has(word) ? named(word) : word))
+  // A value with its blocks' names scoped, its loops finite, and an
+  // important flag left as it is, whatever a block is called.
+  const renamed = (value: string) => {
+    const flag = / !important$/.exec(value)?.[0] || ''
+    return (
+      value
+        .slice(0, value.length - flag.length)
+        .replace(/(?<![\w-])infinite(?![\w-])/g, LOOPS)
+        .replace(/[\w-]+/g, (word) => (frames.has(word) ? named(word) : word)) +
+      flag
+    )
+  }
   // Each keyframes block's steps, where they are plain and move or fade.
   const steps = new Map<string, string[]>()
   for (const [name, rule] of frames) {

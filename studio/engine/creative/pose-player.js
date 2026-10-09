@@ -75,35 +75,37 @@
     return target
   }
   var DRAWN = 'matrix(1 0 0 1 0 0)'
-  // The layer a pop scales: the next in turn that this timeline does not
-  // already pop at that time, so pops that overlap on one timeline never
-  // share a layer, whatever order the scene builds them in.
+  // The layer a pop scales: the first that no other timeline pops and this
+  // one leaves free then, else the first this one leaves free then. So pops
+  // that overlap never share a layer while there are layers enough, on one
+  // timeline or across the timelines a scene places in one another, whatever
+  // order it builds them in.
   function layerFor(root, tl, layers, from, to) {
-    var taken = tl.__posePops || (tl.__posePops = [])
-    var mine = []
-    var i, j
-    for (j = 0; j < taken.length; j++)
-      if (taken[j][0] === root) mine.push(taken[j])
+    var taken = root.__posePops || (root.__posePops = [])
+    var own = false
+    var pick = -1,
+      spare = -1,
+      i,
+      j
+    for (j = 0; j < taken.length; j++) if (taken[j][0] === tl) own = true
     // A timeline built anew starts the drawing's layers as drawn, though an
     // older one was left in the middle of a pop.
-    if (!mine.length)
+    if (!own)
       for (i = 0; i < layers.length; i++)
         layers[i].setAttribute('transform', DRAWN)
-    var turn = root.__posePops || 0
-    var pick = turn % layers.length
-    for (i = 0; i < layers.length; i++) {
-      var index = (turn + i) % layers.length
-      var clash = false
-      for (j = 0; j < mine.length; j++)
-        if (mine[j][1] === index && from < mine[j][3] && mine[j][2] < to)
-          clash = true
-      if (!clash) {
-        pick = index
-        break
+    for (i = 0; i < layers.length && pick < 0; i++) {
+      var clash = false,
+        shared = false
+      for (j = 0; j < taken.length; j++) {
+        if (taken[j][1] !== i) continue
+        if (taken[j][0] !== tl) shared = true
+        else if (from < taken[j][3] && taken[j][2] < to) clash = true
       }
+      if (!clash && !shared) pick = i
+      else if (!clash && spare < 0) spare = i
     }
-    root.__posePops = pick + 1
-    taken.push([root, pick, from, to])
+    if (pick < 0) pick = spare >= 0 ? spare : taken.length % layers.length
+    taken.push([tl, pick, from, to])
     return layers[pick]
   }
   // The middle of a drawing in its own units, where its pop swells from: its

@@ -436,19 +436,23 @@ export const imageGenerate = async ({
 
 /**
  * A provider's text with any key it echoes hidden, whole or masked, then cut
- * to `length`. Only what looks like a secret goes: a key as long as real
- * ones are (a local server's placeholder, "lm-studio", stays), a token after
+ * to `length`. Only what looks like a secret goes: the configured key when
+ * it is as long as real ones, or mixes letters and digits ("sk-1234"; a
+ * local server's placeholder such as "lm-studio" stays), a token after
  * Bearer that holds a digit, and a key's prefix in lower case followed by a
  * digit or a mask, so words like "bearer token" or SK_NOT_FOUND stay.
  */
 export const withoutKeys = (text: string, key: string, length: number) =>
-  (key.length >= 16 ? text.split(key).join('[key]') : text)
+  (key.length >= 16 || (key.length >= 6 && /\d/.test(key) && /[a-z]/i.test(key))
+    ? text.split(key).join('[key]')
+    : text
+  )
     .replace(
       /\bBearer\s+(?=[\w~+\/*=.-]*\d)[\w~+\/*=-]{16,}(?:\.[\w~+\/*=-]+)*/g,
       'Bearer [key]'
     )
     .replace(
-      /\b(?:sk|pk|rk|gsk|xai)[-_](?=[\w*-]*[\d*])[\w*-]{8,}(?:\.[\w*-]+)*/g,
+      /\b(?:sk|pk|rk|gsk|xai)[-_](?=[\w*-]*[\d*])[\w*-]{4,}(?:\.[\w*-]+)*/g,
       '[key]'
     )
     .replace(/\bAIza[\w-]{10,}/g, '[key]')

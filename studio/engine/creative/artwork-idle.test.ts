@@ -302,6 +302,14 @@ it('keeps the animation’s order of rules: an id over a class, important over b
   )
   expect(css).toContain('\n.gauge-slow { animation-duration: 6s; }')
   expect(css).toContain('\n.gauge-slower { animation-delay: 1s !important; }')
+  // A block may even be called "important".
+  const named = drawing.replace(
+    '<svg viewBox="0 0 80 60">',
+    '<svg viewBox="0 0 80 60"><style>@keyframes important { 50% { opacity: .2 } } #needle { animation: important 1s infinite; animation-delay: .5s !important }</style>'
+  )
+  expect(idleLoop(drawing, named, 'gauge').loop!.css).toContain(
+    '{ animation: gauge-important 1s 999; animation-delay: .5s !important; }'
+  )
   // Words that look like a class inside another attribute are not its class.
   expect(
     withIdle(

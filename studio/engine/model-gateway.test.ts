@@ -192,6 +192,14 @@ it('leaves a provider’s words alone where they hold no key', () => {
   ).toBe(
     'Load a model in lm-studio first. Bearer authentication-scheme. SK_NOT_FOUND, rk_limit, sk-SK'
   )
+  // A short key that is a secret goes, whole or by its prefix.
+  expect(
+    gateway.withoutKeys(
+      'Received API Key = sk-1234; try admin123',
+      'admin123',
+      400
+    )
+  ).toBe('Received API Key = [key]; try [key]')
   // A key is hidden before the text is cut, so none of it shows.
   const key = 'LONGSECRETKEY1234567'
   const cut = gateway.withoutKeys(`${'a'.repeat(395)}${key}`, key, 400)

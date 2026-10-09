@@ -294,7 +294,8 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     }
   ])
   expect((pops[0].at as number) + 2 * 0.12).toBeCloseTo(1.6)
-  // Pops take the layers in turn, so two that overlap add up.
+  // A pop that overlaps it takes another layer, so the two add up; one
+  // alone takes the first layer free then.
   pops.length = 0
   play(tl, 'gauge', 'limit', 1.1, 0.6)
   expect(pops).toEqual([expect.objectContaining({ layer: 1 })])
@@ -303,7 +304,7 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
   play(tl, 'gauge', 'limit', 2)
   expect(pops).toEqual([
     expect.objectContaining({
-      layer: 2,
+      layer: 0,
       at: 2 + 0.8 * 0.6,
       duration: expect.closeTo(0.16, 6)
     })
