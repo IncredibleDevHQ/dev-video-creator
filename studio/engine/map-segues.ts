@@ -126,8 +126,10 @@ const pageKey = (slide: Slide) =>
 /**
  * A line into a page is written for the page before it (for the first, the
  * episode before) and the page itself; "next time" for the last page and the
- * episode after. Lines whose neighbours did not change are kept, so a scene
- * already made, or being made, keeps its script.
+ * episode after: its title and the page it opens with, so a "next time"
+ * written while that episode was empty is written again once it has pages.
+ * Lines whose neighbours did not change are kept, so a scene already made,
+ * or being made, keeps its script.
  */
 const bridgeKey = (slides: Slide[], index: number, before: string | null) =>
   fingerprintOf({
@@ -166,7 +168,16 @@ const writeSegues = async (id: string) => {
       })
     : null
   const keys = slides.map((_, index) => bridgeKey(slides, index, beforeKey))
-  const endKey = outroKey(slides, after?.project.title ?? null)
+  const opens = after?.project.slides[0]
+  const endKey = outroKey(
+    slides,
+    after
+      ? fingerprintOf({
+          title: after.project.title,
+          opens: opens ? (opens.copyOf?.slide ?? opens.id) : null
+        })
+      : null
+  )
   const last = slides[slides.length - 1]
   const force = forced.delete(id)
   const stale = slides.map(
@@ -211,7 +222,9 @@ const writeSegues = async (id: string) => {
           pages: before.project.slides.map((slide) => slide.title)
         }
       : null,
-    next: after ? { title: after.project.title } : null,
+    next: after
+      ? { title: after.project.title, opens: opens?.title ?? null }
+      : null,
     pages,
     ...(outroStale || !last.outro ? {} : { keepOutro: last.outro })
   }

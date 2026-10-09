@@ -113,7 +113,7 @@ export const mapNotes = (snapshot: Snapshot, open: Set<string> = new Set()) => {
         .map((result) => {
           const at = page(result.slideId)
           const said = `<b>${kindLabel[result.kind]}</b><span>${at ? `p.${at} · ` : ''}${escape(result.title)}</span>`
-          return `<li class="is-${result.kind}">${at ? `<button type="button" class="map-reveal" data-map="reveal:${result.slideId}" title="Show it on the map">${said}</button>` : said}</li>`
+          return `<li class="is-${result.kind}">${at ? `<button type="button" class="map-reveal" data-map="reveal:${result.slideId}" title="${escape(result.line ? `“${result.line}” · show the page` : 'Show the page')}">${said}</button>` : said}</li>`
         })
         .join('')
       const state =

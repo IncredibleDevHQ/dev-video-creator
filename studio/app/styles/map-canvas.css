@@ -377,9 +377,10 @@
   border-color: var(--sel);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--sel) 22%, transparent);
 }
+/* Top right: a cut page's "Ep 2 only" flag holds the top left. */
 .map-src {
   position: absolute;
-  left: 10px;
+  right: 10px;
   top: 10px;
   z-index: 3;
   padding: 2px 8px;

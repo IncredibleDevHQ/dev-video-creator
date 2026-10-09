@@ -889,3 +889,41 @@ it('renames an episode, and takes one out of the series', async () => {
     episodes.removeEpisode(series.id, { episode: b })
   ).rejects.toThrow('Choose an episode of this series')
 })
+
+it('writes "next time" again once an empty next episode has its first page', async () => {
+  await drawnMap('m20')
+  const series = await episodes.startMapSeries('m20', {})
+  const plain = replies['Write Segues']
+  // This stand-in says what the next episode opens with, when it knows.
+  replies['Write Segues'] = (input) => {
+    const reply = plain(input) as { pages: unknown; outro: string }
+    const brief = JSON.parse(
+      (input.packet as Record<string, string>)['packet/EPISODE.json']
+    )
+    return brief.next
+      ? {
+          ...reply,
+          outro: `Next time: ${brief.next.title}${brief.next.opens ? `, opening on ${brief.next.opens.toLowerCase()}` : ''}.`
+        }
+      : reply
+  }
+  const a = (
+    await episodes.addMapEpisode(series.id, { title: 'A', slides: ['m20-1'] })
+  ).notebook.project.id
+  const b = (
+    await episodes.addMapEpisode(series.id, { title: 'B', slides: [] })
+  ).notebook.project.id
+  await segues.settledAllSegues()
+  expect((await loadProject(a))!.project.slides[0].outro).toBe('Next time: B.')
+  await episodes.changeCopies(b, { action: 'add', slide: 'm20-3' })
+  await segues.settledAllSegues()
+  expect((await loadProject(a))!.project.slides[0].outro).toBe(
+    'Next time: B, opening on preview by relay.'
+  )
+  // A page added later in B leaves A's line as it is.
+  await episodes.changeCopies(b, { action: 'add', slide: 'm20-4' })
+  await segues.settledAllSegues()
+  expect((await loadProject(a))!.project.slides[0].outro).toBe(
+    'Next time: B, opening on preview by relay.'
+  )
+})

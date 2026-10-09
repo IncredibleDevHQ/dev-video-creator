@@ -121,33 +121,52 @@ still require the acceptance checks below.
 ## The content map
 
 Map, beside Look on the Wireframe stage, opens the notebook's wireframes as a
-content map: a canvas of its pages, the series made from them, and what each
-made episode was cut into. Keep adding notes in its rail: the agent sorts each
-note into the map as a new page drawn from it, an addition queued as a change
-to the page it extends, or already covered, and the note joins the notebook's
-source as evidence. By order shows the pages in the order the source and the
-notes brought them; By topic groups them (Group by topic asks the agent, and a
-later page joins a topic when its note's sorting finds one). All, Unused and
-New filter what is lit.
+content map: a canvas with the map's pages at the top, the series made from
+them below, and a Socials box beside the series. Lines show the workflow:
+from the pages into the series, from every page to its copies (faint, and
+strong for what is selected), and from each made episode into the Socials
+box. While the notebook is still built, every planned page is already on the
+canvas by its title and fills in as it is drawn.
+
+Keep adding notes in the Notes rail (from the header's Notes on a narrow
+window). The agent sorts each note into the map in one of three ways: a new
+page drawn from it, an addition queued as a change to the page it extends,
+or already covered. Each result links to its page, and the note joins the
+notebook's source as evidence. By order shows the pages in the notebook's
+order, where a note's page is numbered where it was placed. By topic groups
+them: Group by topic asks the agent, and a later page joins a topic when its
+note's sorting finds one. Unused and From notes filter what is lit.
 
 Start a series makes the series for the map. + Episode asks what the episode
-is about, and the agent picks the map's pages that tell it, in order,
-preferring pages no other episode uses; an empty episode takes pages later,
-and Copy to… → New episode starts one from a page you chose. Episodes can be
-moved up or down the series. An episode is a notebook of copies: drag a
-page into an episode's lane to copy it (hold ⌥ to cut it, so it belongs to
-that episode only), drag a copy to reorder it or into another lane to move
-it, or use ⌘C, ⌘X and ⌘V. Each page says which episodes use it, or that it is
-unused; set aside a page you will not use. The map never changes because an
-episode did. When a page of the map changes, its copies say "source changed"
-and offer Update copy or Keep this version. An episode's segues are its own:
-the cold open or "last time", a line into each page and "next time", written
-by the agent; when pages change, only the lines around them are written
-again, so a scene already made keeps its script. On the episode's Wireframe
-stage the script box edits the page's own words, with its segues shown
-above and below it. Make opens the episode, ready for Make the video; once it is
-made, Teaser cuts a teaser from its scenes and Posts drafts the words.
-`?map=<notebook id>` opens a map directly.
+is about. Let the agent choose picks the map's pages that tell it, in order,
+preferring pages no other episode uses; Start empty takes pages later, and
+Copy to… → New episode starts one from a page you chose. An episode is a
+notebook of copies:
+
+- drag a page into an episode's lane to copy it; hold ⌥ to cut it, so it
+  belongs to that episode only;
+- drag a copy to reorder it, or into another lane to move it;
+- or use ⌘C, ⌘X and ⌘V.
+
+Each page says which episodes use it, or that it is unused; set aside a page
+you will not use. The map never changes because an episode did. When a page
+of the map changes, its copies say "source changed" and offer Update copy or
+Keep this version.
+
+An episode's segues are its own: the cold open or "last time", a line into
+each page, and "next time", written by the agent. When pages change, only
+the lines around them are written again, so a scene already made keeps its
+script. On the episode's Wireframe stage the script box edits the page's own
+words, with its segues shown above and below it.
+
+The bar under the canvas acts on what is selected, and ⋯ holds what is used
+less. Episodes and the series can be renamed. An episode can move earlier or
+later, or be taken out of the series: it stays a notebook of its own, and the
+episodes either side are linked again. Make opens the episode, ready for Make
+the video. Once it is made, its place in the Socials box cuts a teaser from
+its scenes and drafts its posts; the teaser can be watched, and the posts
+read and copied. ? lists the shortcuts. `?map=<notebook id>` opens a map
+directly.
 
 ## Storage and checks
 

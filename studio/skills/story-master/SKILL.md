@@ -168,8 +168,9 @@ acceptance.
 
 An episode of a series copies pages from a content map, in an order of its
 own. Read `packet/EPISODE.json`: the series, this episode (`number`, `title`),
-the `previous` episode (its title and pages) and the `next` one (its title),
-and the `pages` in order (`id`, `title`, `idea`, and the `script` the page
+the `previous` episode (its title and pages) and the `next` one (its title,
+and `opens`: the title of the page it starts with, or null while it has no
+pages), and the `pages` in order (`id`, `title`, `idea`, and the `script` the page
 already speaks). Write the episode's own lines, said around those scripts:
 
 - a `bridge` for every page, one or two short spoken sentences said just
@@ -178,7 +179,8 @@ already speaks). Write the episode's own lines, said around those scripts:
   one, then the question. Each later page's turns from the page before to
   this one, so a viewer feels why it comes next.
 - an `outro` said after the last page's script: next time, the next
-  episode's title in a line; for the last episode, a short wrap-up.
+  episode in a line, from its title and what it opens with; for the last
+  episode, a short wrap-up.
 
 A page given `keep` keeps that line, and `keepOutro` keeps the outro: write
 them back unchanged and let the new lines lead into and out of them. Never
