@@ -67,6 +67,9 @@ export const clickAccounts = async (
       )
       return true
     }
+    // Opened this time: an earlier word about a blocked one goes.
+    if (target.nextElementSibling?.classList.contains('account-warn'))
+      target.nextElementSibling.remove()
     if (tab) tab.opener = null
     target.textContent = 'Waiting for the sign-in…'
     target.disabled = true

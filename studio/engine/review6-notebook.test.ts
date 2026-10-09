@@ -29,7 +29,14 @@ it('counts the notes without the reader’s cut note', () => {
   // other characters escaped, & as an entity, a table padded. Each is still
   // one character, or one space, to the creator.
   const written = String.raw`a\_b\* &amp; |  c   |  d  |`
-  expect(notesLength(written)).toBe('a_b* & | c | d |'.length)
+  expect(notesLength(written)).toBe(notesLength('a_b* & | c | d |'))
+  // A table counts the same compact, padded or without its outer pipes.
+  expect(notesLength('|a|b|\n|---|---|')).toBe(
+    notesLength('| a     | b     |\n| ----- | ----- |')
+  )
+  expect(notesLength('a | b\n--- | ---')).toBe(
+    notesLength('| a | b |\n| --- | --- |')
+  )
   // A table's divider widened to its column, and a bare link written as a
   // link to itself: as the reader wrote them.
   expect(notesLength('| a | b |\n| -------- | :-------: |')).toBe(
@@ -154,13 +161,22 @@ it('cuts a long article where a paragraph ends, never inside code, and says so',
   const { cutArticle } = await import('./source-document')
   const para = 'Words in a paragraph. '.repeat(40)
   const article = `${para}\n\n${para}\n\n\`\`\`\n${'code();\n'.repeat(4000)}\`\`\`\n\n${para}`
-  const { text, left } = cutArticle(article, 24_000)
+  const { text, left, kept } = cutArticle(article, 24_000)
+  // The note on a line of its own, after the block it closes.
   expect(text).toMatch(
-    / … \[cut: the article goes on for [\d,]+ more characters\]$/
+    /\n\n… \[cut: the article goes on for [\d,]+ more characters\]$/
   )
-  // The cut lands before the code block opens, not inside it.
   expect((text.match(/^\`\`\`/gm) || []).length % 2).toBe(0)
-  expect(left).toBe(article.length - text.indexOf(' … [cut:'))
+  expect(left).toBe(article.length - kept!.length)
+  // A stray fence early on loses nothing before the cut, and inline code
+  // that starts a line is not a fence.
+  const tail = `${para}\n\n`.repeat(40)
+  expect(cutArticle(`\`\`\`\n${tail}`, 24_000).kept!.length).toBeGreaterThan(
+    19_000
+  )
+  expect(
+    cutArticle(`\`\`\`a\`\`\` inline\n\n${tail}`, 24_000).kept!.length
+  ).toBeGreaterThan(19_000)
   // Short enough, kept whole.
   expect(cutArticle('Short.', 24_000)).toEqual({ text: 'Short.', left: 0 })
 })

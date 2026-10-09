@@ -102,6 +102,12 @@ export type Scene = {
     moments: Array<{ id: string; start: number; end: number }>
   }
   planKey?: string
+  /**
+   * A key made while a model's shown name went into it (32b14a0c), and the
+   * key it became: the plan stored under the old one still counts while the
+   * scene's key is the one it became.
+   */
+  legacyPlanKey?: { from: string; to: string }
   creativePlan?: { recordId: string; inputKey: string }
   preview?: {
     planKey: string

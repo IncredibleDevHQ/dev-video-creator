@@ -11,7 +11,7 @@ import { cutNeighbours, inCut, scenePresence } from '../../shared/orchestration'
 import { randomUUID } from 'node:crypto'
 import type { Project, Scene, Moment } from '../../shared/model'
 import { readRow, writeRow } from '../persistence'
-import { sceneRole } from '../scene-model'
+import { sceneRole, planFits } from '../scene-model'
 import { prepareCreativeBrief } from './brief'
 import { prepareCreativeTreatment } from './treatment'
 import { prepareCreativeScript } from './script'
@@ -38,7 +38,7 @@ export const planCreativeScene = async (
     'creative-scenes',
     scene.id
   )
-  if (previous && previous.inputKey === scene.planKey) return previous
+  if (previous && planFits(previous.inputKey, scene)) return previous
   const video = project.video!
   const index = project.slides.findIndex((slide) => slide.id === scene.slideId),
     slide = project.slides[index]

@@ -147,6 +147,9 @@ export const transitionScene = (
   const next = advanceScene(scene, signal)
   Object.assign(scene, next)
   if (!next.failure) delete scene.failure
+  // Another scene stopping counts in the video's line (review 6).
+  if (signal === 'fail')
+    settleStoppedVideo((ledger as { project: Partial<Project> }).project.video)
   // A stopped production's finding and candidate belong to that stop: any
   // other change of the scene leaves them behind.
   if (signal !== 'fail') {

@@ -1,6 +1,7 @@
 import { storeAsset } from './persistence'
 import { fetchText, fetchBinary } from './source-fetch'
 import {
+  cutArticle,
   extractionOf,
   FALLBACK_PALETTE,
   type SourceRead
@@ -131,10 +132,12 @@ export const readGithubDocument = async (
   const cuts: string[] = []
   let text = read.text
   if (text.length > 24_000) {
+    // Cut where a paragraph ends, saying so in the notes too (review 6).
+    const cut = cutArticle(text)
     cuts.push(
-      `The document was long; the first 24,000 characters were read, and ${(text.length - 24_000).toLocaleString('en')} more were left out`
+      `The document was long; the first ${(cut.kept || '').length.toLocaleString('en')} characters were read, and ${cut.left.toLocaleString('en')} more were left out`
     )
-    text = text.slice(0, 24_000)
+    text = cut.text
     warnings.push(...cuts)
   }
   const title = (

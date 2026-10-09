@@ -658,8 +658,10 @@ export const editSlide = (id: string, edit: SlideEdit) =>
       }
     }
     reconcileVideo(snapshot.project, snapshot)
-    // A stopped scene that went with its wireframe stops nothing (review 6).
-    if (edit.action === 'delete') settleStoppedVideo(snapshot.project.video)
+    // One brought back counts again in the video's line (review 6); one
+    // that went with its wireframe is settled by reconcileVideo.
+    if (edit.action === 'undo-delete')
+      settleStoppedVideo(snapshot.project.video)
     if (
       edit.action === 'undo-delete' &&
       restored?.seams &&

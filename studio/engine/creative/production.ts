@@ -29,6 +29,7 @@ import { validateProduction, type ProductionContext } from './production-bundle'
 import { prepareCreativeClock } from './clock'
 import { settledFrameReport } from './frame-checks'
 import type { CreativeSceneRecord } from './scene'
+import { planFits } from '../scene-model'
 const DRAFT = 'creative-production-draft'
 export const mediaBindingInstructions = (contentOnly: boolean) =>
   contentOnly
@@ -69,7 +70,7 @@ export const buildCreativeProduction = async (
   if (
     !record ||
     record.id !== scene.creativePlan?.recordId ||
-    record.inputKey !== scene.planKey
+    !planFits(record.inputKey, scene)
   )
     throw new Error('The creative treatment is stale; replan the scene')
   const prepared = await prepareCreativeClock(project.id, scene)

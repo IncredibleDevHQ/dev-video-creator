@@ -88,7 +88,7 @@ export const readSourceUrl = async (
     const left = headings.length - [...kept.matchAll(/^#{1,4} /gm)].length
     text = cut.text
     cuts.push(
-      `The article was long; the first 24,000 characters were read${stopsIn ? ` — it stops in “${stopsIn}”` : ''}${left > 0 ? `, and ${left} later section${left === 1 ? ' was' : 's were'} left out` : ''}`
+      `The article was long; the first ${kept.length.toLocaleString('en')} characters were read${stopsIn ? ` — it stops in “${stopsIn}”` : ''}${left > 0 ? `, and ${left} later section${left === 1 ? ' was' : 's were'} left out` : ''}`
     )
   }
   warnings.push(...cuts)

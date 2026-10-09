@@ -1,6 +1,7 @@
 // Jev, for a notebook: the template its source tells, a direction to tell
 // it in, what the source holds; and, once the wireframes exist, which beat
 // each page carries. Suggestions only: the creator decides.
+import { compactNotes } from '../shared/notes'
 import type { Snapshot } from '../shared/api'
 import {
   AUDIENCE_LABELS,
@@ -168,7 +169,13 @@ export const suggestTemplate = async (id: string) => {
   if (!source || !snapshot) throw new Refusal('Read the source first')
   const words = source.text.split(/\s+/).filter(Boolean).length
   const answers = await askJev(
-    { title: source.title, words, text: source.text.slice(0, 24_000) },
+    // The notes as the creator sees them, padding taken away: a long post's
+    // end is read too (review 6).
+    {
+      title: source.title,
+      words,
+      text: compactNotes(source.text).slice(0, 24_000)
+    },
     suggestionQuestions()
   )
   const suggestion = readSuggestion(answers, undefined, words)

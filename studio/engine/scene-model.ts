@@ -1,7 +1,7 @@
 import { readyCapture } from '../shared/capture'
 import { inCut } from '../shared/orchestration'
 import type { ActivityLedger } from './activity'
-import { transitionScene } from './autopilot'
+import { settleStoppedVideo, transitionScene } from './autopilot'
 import type { Project, Scene, Moment, Slide, Voice } from '../shared/model'
 import { pageContent } from '../shared/content-map'
 import { fingerprintOf } from './planning/fingerprint'
@@ -23,6 +23,13 @@ export const sceneRole = (project: Project, index: number) => {
     return roleOf(index, project.slides.length)
   return index === inVideo.lastIndexOf(true) ? 'ending' : 'body'
 }
+/** Whether a stored plan was made for the scene as it is now. */
+export const planFits = (inputKey: string | undefined, scene: Scene) =>
+  Boolean(inputKey) &&
+  (inputKey === scene.planKey ||
+    (scene.legacyPlanKey?.to === scene.planKey &&
+      inputKey === scene.legacyPlanKey?.from))
+
 export const scenePlanKey = (
   project: Project,
   scene: Scene,
@@ -186,6 +193,12 @@ export const reconcileVideo = (
         video.transitions[index]
       ])
   )
+  // A stopped scene that goes with its page, from anywhere, stops nothing
+  // (review 6: the video still said so).
+  const pages = new Set(project.slides.map((slide) => slide.id))
+  const goneStopped = oldOrder.some(
+    (scene) => !pages.has(scene.slideId) && scene.phase === 'failed'
+  )
   video.scenes = project.slides.map((slide) => {
     const scene: Scene = previous.get(slide.id) || {
       id: `scene-${slide.id}`,
@@ -199,11 +212,18 @@ export const reconcileVideo = (
     }
     const key = scenePlanKey(project, scene)
     // Planned while a model's shown name went into the key (32b14a0c, for a
-    // while): the same plan, kept as it is, never made again for that.
-    const kept =
-      Boolean(project.video?.settings.harness?.label) &&
+    // while): the same plan. Its key takes the new form, once, and the old
+    // one is kept so the plan stored under it still counts.
+    if (
+      scene.planKey &&
+      scene.planKey !== key &&
+      project.video?.settings.harness?.label &&
       scene.planKey === scenePlanKey(project, scene, true)
-    if (scene.planKey !== key && !kept) {
+    ) {
+      scene.legacyPlanKey = { from: scene.planKey, to: key }
+      scene.planKey = key
+    }
+    if (scene.planKey !== key) {
       scene.planKey = key
       // Left out of the video, a scene takes its new inputs quietly: only a
       // scene in the video says it must be made again.
@@ -233,6 +253,7 @@ export const reconcileVideo = (
         seams.get(`${scene.slideId}/${video.scenes[index + 1].slideId}`) ||
         'none'
     )
+  if (goneStopped) settleStoppedVideo(video)
   refreshVideoKeys(project)
 }
 

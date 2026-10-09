@@ -220,17 +220,27 @@ export const availableHarness = async (raw: unknown) => {
     : harness
 }
 
-export const setNotebookLength = (id: string, raw: unknown) => {
+export const setNotebookLength = async (id: string, raw: unknown) => {
   if (!['short', 'medium', 'long'].includes(String(raw)))
     throw new Refusal('Choose a short, medium or long story')
-  return changeProject(id, (current) => {
+  let changed = false
+  const snapshot = await changeProject(id, (current) => {
     if (
       !['draft', 'failed'].includes(current.status) ||
       current.project.slides.length
     )
       throw new Refusal('Choose the length before the wireframes are drawn')
+    // A story planned at another length goes with its outline, so Try again
+    // plans as many pages as chosen (review 6).
+    changed = current.project.length !== raw
+    if (changed) {
+      delete current.plan
+      delete current.plannedSlides
+    }
     current.project.length = raw as StoryLength
   })
+  if (changed) await deleteRow('outlines', id)
+  return snapshot
 }
 
 /**

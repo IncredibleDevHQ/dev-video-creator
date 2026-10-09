@@ -74,10 +74,20 @@ ${repoChip(snapshot, editable)}${episodeChip(snapshot)}</p>${editable ? suggesti
  */
 const suggestionRow = (snapshot: Snapshot) => {
   const suggestion = snapshot.suggestion
-  if (!suggestion || snapshot.project.narrative) return ''
+  if (!suggestion) return ''
+  // A template it picked, which a newer ask no longer puts first: the newer
+  // pick is offered (review 6: it changed with no word). One the creator
+  // chose is theirs.
+  const { narrative, templateChosen } = snapshot.project
+  const moved =
+    Boolean(narrative) &&
+    !templateChosen &&
+    !suggestion.stale &&
+    suggestion.narratives[0]?.id !== narrative
+  if (narrative && !moved) return ''
   // A long shot is noise: only what Jev gives one chance in ten or more.
-  return `<p class="suggest-row${suggestion.stale ? ' is-stale' : ''}"><span>${suggestion.stale ? 'Suggested before your edits' : 'Suggested'}</span>${suggestion.narratives
-    .filter(({ p }, index) => index === 0 || p >= 0.1)
+  return `<p class="suggest-row${suggestion.stale ? ' is-stale' : ''}"><span>${suggestion.stale ? 'Suggested before your edits' : moved ? 'Suggested now' : 'Suggested'}</span>${suggestion.narratives
+    .filter(({ id, p }, index) => (index === 0 || p >= 0.1) && id !== narrative)
     .map(({ id }) => {
       const narrative = narrativeById(id)
       return narrative

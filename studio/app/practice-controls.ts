@@ -18,11 +18,14 @@ export function practiceControls(
 
 /** Record, saying what it records: this moment, the next one still to
  * record, or every moment of the scene still to record. */
-export const recordControl = (what: 'moment' | 'next' | 'scene' = 'moment') =>
+export const recordControl = (
+  what: 'moment' | 'next' | 'scene' | 'scene-again' = 'moment'
+) =>
   `<button type="button" class="record-entry" data-action="record-moment" aria-label="${
-    what === 'scene'
-      ? 'Record the scene’s open moments'
-      : what === 'next'
-        ? 'Record the next open moment'
-        : 'Record this moment'
+    {
+      moment: 'Record this moment',
+      next: 'Record the next open moment',
+      scene: 'Record the scene’s open moments',
+      'scene-again': 'Record the whole scene again'
+    }[what]
   }" title="Open recording setup"><span class="record-entry-dot" aria-hidden="true"></span><span>Record</span></button>`

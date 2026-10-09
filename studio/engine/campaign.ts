@@ -42,8 +42,13 @@ export const changeItem = (id: string, raw: unknown) => {
     if (item.state === 'posted') throw new Refusal('It has gone out already')
     if (item.state === 'posting') throw new Refusal('It is being posted now')
     if (typeof value.words === 'string') item.words = value.words.slice(0, 5000)
-    // Approved with nothing to say, it could only be refused when posted.
-    if (value.state === 'approved' && !item.words.trim())
+    // Approved with nothing to say, it could only be refused when posted:
+    // neither approved so, nor emptied once approved.
+    if (
+      (value.state === 'approved' ||
+        (value.state === undefined && item.state === 'approved')) &&
+      !item.words.trim()
+    )
       throw new Refusal('Write the post’s words first')
     if (value.offsetDays !== undefined) {
       const days = Number(value.offsetDays)

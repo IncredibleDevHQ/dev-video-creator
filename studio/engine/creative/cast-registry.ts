@@ -5,6 +5,7 @@
 import type { Project } from '../../shared/model'
 import { readRow } from '../persistence'
 import type { SceneTreatmentV1 } from './scene-treatment'
+import { planFits } from '../scene-model'
 
 export type CastEntry = {
   entity: string
@@ -35,7 +36,7 @@ export const castRegistry = async (
       treatment: SceneTreatmentV1
     }>('creative-scenes', scene.id)
     // A plan made for other inputs is not what the scene shows any more.
-    if (!record || record.inputKey !== scene.planKey) continue
+    if (!record || !planFits(record.inputKey, scene)) continue
     for (const object of record.treatment.objects || []) {
       if (object.asset?.status === 'omit') continue
       const ref = object.asset?.ref

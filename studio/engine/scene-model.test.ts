@@ -144,10 +144,42 @@ it('keeps a scene planned while its model’s name went into the key', async () 
   reconcileVideo(p, { project: p, events: [] })
   const scene = p.video!.scenes[0]
   // As 32b14a0c keyed it, then made.
-  scene.planKey = scenePlanKey(p, scene, true)
+  const old = scenePlanKey(p, scene, true)
+  scene.planKey = old
   scene.phase = 'produced'
   scene.produced = { inputKey: 'k', objectKey: 'o.mp4' }
   reconcileVideo(p, { project: p, events: [] })
   expect(scene.phase).toBe('produced')
   expect(scene.produced).not.toBeNull()
+  // Its key takes the new form, and the plan stored under the old still
+  // counts, whatever the model's name is later.
+  const { planFits } = await import('./scene-model')
+  expect(scene.planKey).toBe(scenePlanKey(p, scene))
+  expect(planFits(old, scene)).toBe(true)
+  p.video!.settings.harness = { ...p.video!.settings.harness!, label: 'Sol' }
+  reconcileVideo(p, { project: p, events: [] })
+  expect(scene.phase).toBe('produced')
+  expect(planFits(old, scene)).toBe(true)
+  // Another model writes it again: the old plan no longer counts.
+  p.video!.settings.harness = { adapter: 'codex', model: 'gpt-6.2' }
+  reconcileVideo(p, { project: p, events: [] })
+  expect(planFits(old, scene)).toBe(false)
+})
+
+it('stops saying the video stopped once a stopped scene goes with its page, from anywhere', () => {
+  const p = project()
+  reconcileVideo(p, { project: p, events: [] })
+  const video = p.video! as typeof p.video & {
+    phase?: string
+    error?: string | null
+  }
+  p.video!.scenes[1].phase = 'failed'
+  p.video!.scenes[1].failure = 'production'
+  video.phase = 'failed'
+  video.error = 'A scene stopped. Other saved animations are ready.'
+  // Its page removed, as the map's episodes do.
+  p.slides.splice(1, 1)
+  reconcileVideo(p, { project: p, events: [] }, new Set())
+  expect(video.phase).toBe('idle')
+  expect(video.error).toBeNull()
 })

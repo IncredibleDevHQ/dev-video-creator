@@ -370,6 +370,15 @@ it('posts the words on screen, and treats a post with no answer as maybe out', a
       (entry) => entry.id === 'launch-x-0'
     )!.state
   ).toBe('unknown')
+  // Nor is an approved post emptied by Keep.
+  await changeItem('launch', {
+    item: 'teaser-x--14',
+    state: 'approved',
+    words: 'Kept words'
+  })
+  await expect(
+    changeItem('launch', { item: 'teaser-x--14', words: '' })
+  ).rejects.toThrow('Write the post’s words first')
   // Nor is an emptied box approved.
   await expect(
     changeItem('launch', {

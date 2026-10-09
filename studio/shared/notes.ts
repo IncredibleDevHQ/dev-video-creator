@@ -18,15 +18,32 @@ const ESCAPED = /\\([\\`*_{}[\]()#+\-.!|>~<])/g
 const DIVIDER_ROW = /^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*(?::?-{3,}:?)?\s*$/
 const BARE_LINK = /\[([^\]\n]+)\]\(\1\)|<(https?:\/\/[^>\s]+)>/g
 
-/** How many characters of the notes count against the limit. */
-export const notesLength = (text: string) =>
+// A table's row however the editor pads it: compact (|a|b|), padded to its
+// widest cell, with outer pipes or without, it is one row of cells.
+const TABLE_ROW = /\|/
+
+/**
+ * The notes as the creator sees them, padding and escapes taken away: what
+ * counts against the limit, and the words to read when a part must do.
+ */
+export const compactNotes = (text: string) =>
   text
     .replace(CUT, '')
     .replace(ENTITY, '&')
     .replace(ESCAPED, '$1')
     .replace(BARE_LINK, (_, text: string, url: string) => text || url)
     .replace(/^.*$/gm, (line) =>
-      DIVIDER_ROW.test(line) ? line.replace(/-{4,}/g, '---') : line
+      DIVIDER_ROW.test(line)
+        ? line
+            .replace(/-{4,}/g, '---')
+            .replace(/\s*\|\s*/g, '|')
+            .replace(/^\||\|$/g, '')
+        : TABLE_ROW.test(line)
+          ? line.replace(/\s*\|\s*/g, '|').replace(/^\||\|$/g, '')
+          : line
     )
     .replace(/\s+/g, ' ')
-    .trim().length
+    .trim()
+
+/** How many characters of the notes count against the limit. */
+export const notesLength = (text: string) => compactNotes(text).length

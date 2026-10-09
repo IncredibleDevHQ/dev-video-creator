@@ -55,7 +55,9 @@ export const paintPracticeActions = (app: AppContext) => {
   const recordable = !!scene && plan.length > 0 && !whyNoRecording(scene)
   const what =
     plan.length > 1
-      ? 'scene'
+      ? scene && app.snapshot?.views?.scenes[scene.id]?.openMomentIds.length
+        ? 'scene'
+        : 'scene-again'
       : plan[0]?.id === scene?.moments[app.momentIndex]?.id
         ? 'moment'
         : 'next'
@@ -94,7 +96,9 @@ export const showMoment = (app: AppContext, index: number) => {
       .forEach((overlay) => overlay.remove())
     stage.insertAdjacentHTML('beforeend', sceneOverlay(project, moment))
   }
-  if (app.practice.active) paintPracticeActions(app)
+  // The actions follow the moment on show, running or not: Record records
+  // the moment on show (review 6: it went stale, then failed).
+  if (app.practiceOpen) paintPracticeActions(app)
   history.replaceState(
     null,
     '',

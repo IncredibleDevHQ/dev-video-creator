@@ -315,22 +315,45 @@ export const extractionOf = (
   }
 }
 
+/** The code block still open at the end of `text`, by its fence, if any. */
+const openFence = (text: string) => {
+  let open: { char: string; length: number; fence: string } | null = null
+  for (const line of text.split('\n')) {
+    const found = /^\s*(`{3,}|~{3,})(.*)$/.exec(line)
+    if (!found) continue
+    const [, fence, rest] = found
+    if (open) {
+      // Closed by the same mark, at least as long, with nothing after it.
+      if (fence[0] === open.char && fence.length >= open.length && !rest.trim())
+        open = null
+    } else if (fence[0] === '~' || !rest.includes('`'))
+      // A backtick fence's words hold no backtick: "```a```" is inline code.
+      open = { char: fence[0], length: fence.length, fence }
+  }
+  return open?.fence || ''
+}
+
 /**
  * An article too long to keep whole, kept to `limit` characters and saying
- * what it leaves out. It is cut where a paragraph ends, never inside a table
- * or a code block (review 6: the cut note went inside one, and was counted).
+ * what it leaves out, on a line of its own. It is cut where a paragraph
+ * ends, else where a line does, never inside a table's row; a code block
+ * still open there is closed, so nothing before it is lost (review 6: the
+ * note went inside a block, or a cell, and a stray fence lost the rest).
  */
-export const cutArticle = (text: string, limit = 24_000) => {
+export const cutArticle = (given: string, limit = 24_000) => {
+  const text = given.replace(/\r\n?/g, '\n')
   if (text.length <= limit) return { text, left: 0 }
-  const paragraph = text.lastIndexOf('\n\n', limit)
-  let kept = text.slice(0, paragraph > limit * 0.8 ? paragraph : limit)
-  // Still inside a code block: cut before it opens.
-  const fences = [...kept.matchAll(/^(?:`{3,}|~{3,})/gm)]
-  if (fences.length % 2) kept = kept.slice(0, fences[fences.length - 1].index)
-  kept = kept.trimEnd()
+  // Room for a fence that closes an open block.
+  const room = limit - 8
+  const paragraph = text.lastIndexOf('\n\n', room)
+  const line = text.lastIndexOf('\n', room)
+  const at =
+    paragraph > room * 0.8 ? paragraph : line > room * 0.8 ? line : room
+  const kept = text.slice(0, at).trimEnd()
+  const fence = openFence(kept)
   const left = text.length - kept.length
   return {
-    text: `${kept} … [cut: the article goes on for ${left.toLocaleString('en')} more characters]`,
+    text: `${kept}${fence ? `\n${fence}` : ''}\n\n… [cut: the article goes on for ${left.toLocaleString('en')} more characters]`,
     kept,
     left
   }
@@ -345,14 +368,17 @@ export const readSourceNarrative = (
   const given = String(narrative || '')
     .replace(/\r\n?/g, '\n')
     .trim()
-  const text = given.slice(0, limit)
-  // A text too long to read whole says so (B02 of the BoltDB review).
-  const cuts =
-    given.length > text.length
-      ? [
-          `The text was long; its first 24,000 characters were read, and ${(given.length - text.length).toLocaleString('en')} more were left out`
-        ]
-      : []
+  // A text too long to read whole is cut where a paragraph ends, and says
+  // so, in the notes too (B02 of the BoltDB review; review 6).
+  const cut = Number.isFinite(limit)
+    ? cutArticle(given, limit)
+    : { text: given, left: 0, kept: given }
+  const text = cut.text
+  const cuts = cut.left
+    ? [
+        `The text was long; its first ${(cut.kept || '').length.toLocaleString('en')} characters were read, and ${cut.left.toLocaleString('en')} more were left out`
+      ]
+    : []
   const headings = (text.match(/^#{1,4}\s+.+$/gm) || []).map((line) => ({
     level: (line.match(/^#+/) || ['#'])[0].length,
     text: line.replace(/^#+\s+/, '').slice(0, 140)

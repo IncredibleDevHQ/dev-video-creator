@@ -683,6 +683,22 @@ it('says what Jev suggests once, and where it reads a page differently', async (
   )
   expect(sure).toContain('Incident walkthrough <small>suggested</small>')
   expect(sure).not.toContain('take-suggestion')
+  // A newer ask puts another first: the template Jev set stays, and the
+  // newer pick is offered beside it (review 6).
+  const moved = choicesRow(
+    snapshot(
+      { narrative: 'debugging' },
+      { suggestion: { ...suggestion, preselected: false } }
+    ),
+    true
+  )
+  expect(moved).toContain('<span>Suggested now</span>')
+  expect(moved).toContain('data-narrative="incident"')
+  expect(moved).not.toContain('data-narrative="debugging"')
+  // One the creator chose is theirs: no offer.
+  expect(
+    choicesRow(snapshot({ narrative: 'debugging', templateChosen: true }), true)
+  ).not.toContain('take-suggestion')
   // A page Jev reads as another beat than it was given.
   const slide = { id: 'a', title: 'Why', svg: '<svg/>', beats: ['cause'] }
   const read = (beat: string, confidence: number) =>
