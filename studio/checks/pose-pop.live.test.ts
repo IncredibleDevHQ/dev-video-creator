@@ -127,6 +127,13 @@ it('shows the same frame by every seek, and ends as drawn', async () => {
     [1.65, 1.8, 3]
   )
   expect(four[3]).toBe(AT_REST)
+  // A fifth at once finds every layer popping and is left out.
+  const five = await everyPath(
+    `for (const at of [1, 1.05, 1.1, 1.15, 1.2]) artworkPose(tl, 'x', 'glow', at, 0.8)`,
+    [1.65, 1.8, 3]
+  )
+  expect(five[1.65]).toBe(four[1.65])
+  expect(five[3]).toBe(AT_REST)
   const nested = await everyPath(
     `const sub = gsap.timeline(); artworkPose(sub, 'x', 'limit', 0.25, 0.8); tl.add(sub, 1); artworkPose(tl, 'x', 'glow', 1, 0.8)`,
     [1.6, 1.9, 3]
@@ -168,6 +175,20 @@ it('ends every part of a pose within its seconds, its pop included, however ofte
   expect(built.map(([end]) => +end.toFixed(6))).toEqual([0.6, 0.8, 1.2])
   expect(built.map(([, pops]) => pops)).toEqual([1, 1, 1])
 }, 60_000)
+
+it('starts a timeline cleared and built again with the drawing as drawn', async () => {
+  // Cleared in the middle of a pop and built again: no layer stays swollen,
+  // and the new pop plays, by every seek.
+  const rebuilt = await everyPath(
+    `artworkPose(tl, 'x', 'glow', 1, 0.8); tl.seek(1.64, true); tl.clear(); artworkPose(tl, 'x', 'limit', 2, 0.8)`,
+    [0, 1.64, 2.64, 3.5],
+    3.5
+  )
+  expect(rebuilt[0]).toBe(AT_REST)
+  expect(rebuilt[1.64]).toBe(AT_REST)
+  expect(rebuilt[2.64]).toBe('1.0000 1.0000 1.0400 -2.0000')
+  expect(rebuilt[3.5]).toBe(AT_REST)
+}, 120_000)
 
 it('starts a new timeline with the drawing as drawn, though an older one stopped mid-pop', async () => {
   const tab = await open()

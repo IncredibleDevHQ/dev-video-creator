@@ -75,24 +75,46 @@
     return target
   }
   var DRAWN = 'matrix(1 0 0 1 0 0)'
+  // The drawing's pops a timeline still holds, each as [timeline, layer,
+  // from, to, tween]: one whose timeline was cleared or killed since is gone,
+  // and leaves its layer. The first time a timeline poses the drawing, or
+  // when every pop it held there is gone, the layers start as drawn: an
+  // older timeline stopped in the middle of a pop, or this one cleared then,
+  // must not keep the drawing swollen.
+  function settle(root, tl, layers) {
+    var taken = root.__posePops || (root.__posePops = [])
+    var posed = tl.__posed || (tl.__posed = [])
+    var fresh = posed.indexOf(root) < 0
+    var held = 0,
+      gone = 0,
+      i
+    if (fresh) posed.push(root)
+    for (i = taken.length - 1; i >= 0; i--) {
+      var entry = taken[i]
+      var children =
+        entry[4] && entry[0].getChildren
+          ? entry[0].getChildren(false, true, false)
+          : null
+      var cleared = children !== null && children.indexOf(entry[4]) < 0
+      if (cleared) taken.splice(i, 1)
+      if (entry[0] === tl) cleared ? gone++ : held++
+    }
+    if (fresh || (gone && !held))
+      for (i = 0; i < layers.length; i++)
+        layers[i].setAttribute('transform', DRAWN)
+    return taken
+  }
   // The layer a pop scales: the first that no other timeline pops and this
   // one leaves free then, else the first this one leaves free then. So pops
-  // that overlap never share a layer while there are layers enough, on one
-  // timeline or across the timelines a scene places in one another, whatever
-  // order it builds them in.
-  function layerFor(root, tl, layers, from, to) {
-    var taken = root.__posePops || (root.__posePops = [])
-    var own = false
+  // that overlap never share a layer, on one timeline or across the
+  // timelines a scene places in one another, whatever order it builds them
+  // in. With every layer popping then, there is none: a further pop is left
+  // out, the drawing already swelling with the others.
+  function layerFor(taken, tl, layers, from, to) {
     var pick = -1,
       spare = -1,
       i,
       j
-    for (j = 0; j < taken.length; j++) if (taken[j][0] === tl) own = true
-    // A timeline built anew starts the drawing's layers as drawn, though an
-    // older one was left in the middle of a pop.
-    if (!own)
-      for (i = 0; i < layers.length; i++)
-        layers[i].setAttribute('transform', DRAWN)
     for (i = 0; i < layers.length && pick < 0; i++) {
       var clash = false,
         shared = false
@@ -104,8 +126,9 @@
       if (!clash && !shared) pick = i
       else if (!clash && spare < 0) spare = i
     }
-    if (pick < 0) pick = spare >= 0 ? spare : taken.length % layers.length
-    taken.push([tl, pick, from, to])
+    if (pick < 0) pick = spare
+    if (pick < 0) return null
+    taken.push([tl, pick, from, to, null])
     return layers[pick]
   }
   // The middle of a drawing in its own units, where its pop swells from: its
@@ -141,6 +164,8 @@
     var root = document.querySelector('[data-artwork="' + entity + '"]')
     if (!root || !tl) return tl
     var shapes = root.querySelectorAll('[data-posed]')
+    var layers = root.querySelectorAll('[data-pose-pop] [data-pose-layer]')
+    var taken = settle(root, tl, layers)
     var duration = typeof seconds === 'number' && seconds >= 0 ? seconds : 0.8
     var start = typeof at === 'number' ? at : tl.duration()
     // The cascade spreads over at most half the change, inside it: a later
@@ -192,16 +217,16 @@
     // gives the drawing stays, pops that overlap add up, and every seek of
     // the timeline shows the same frame.
     var art = root.querySelector('svg')
-    var layers = root.querySelectorAll('[data-pose-pop] [data-pose-layer]')
     var beat = Math.min(0.2, duration * 0.2)
     var centre =
       art && layers.length && shapes.length && pose !== 'rest' && beat > 0
         ? middle(art, layers[0])
         : null
-    if (centre) {
-      var from = start + duration * 0.6
+    var from = start + duration * 0.6
+    var layer = centre && layerFor(taken, tl, layers, from, from + 2 * beat)
+    if (layer) {
       tl.fromTo(
-        layerFor(root, tl, layers, from, from + 2 * beat),
+        layer,
         { attr: { transform: DRAWN } },
         {
           attr: {
@@ -220,6 +245,8 @@
         },
         from
       )
+      // The pop's tween, so a later call knows whether its timeline holds it.
+      taken[taken.length - 1][4] = tl.recent ? tl.recent() : null
     }
     return tl
   }
