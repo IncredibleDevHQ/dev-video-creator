@@ -57,6 +57,8 @@ export const notebookNextStep = (snapshot: Snapshot) => {
 }
 export const notebookNextAction = (snapshot: Snapshot, pending = false) => {
   const next = notebookNextStep(snapshot)
+  if (pending && next.action === 'create-presentation')
+    return `<button type="button" data-action="create-presentation" class="primary" disabled aria-busy="true">Creating…</button>`
   return button(next.label, next.action, true, pending || next.disabled)
 }
 /**

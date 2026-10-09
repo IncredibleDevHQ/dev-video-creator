@@ -39,10 +39,10 @@ export const repoDialog = (
   const branches = found?.branches || (linked ? [linked.branch] : [])
   const bases = found?.branches || (linked ? [linked.base] : [])
   return `<h2>Link a repo</h2>
-<p>The agent answers this notebook’s requests from the branch, reading it and never writing. Each answer names its commit and files.</p>
+<p>Point the notebook at your code. When a wireframe needs to show how something works, the agent reads this branch to answer, and never changes it. Each answer says which commit and files it used.</p>
 <form id="repo-form" class="repo-form">
 <label for="repo-path">Folder</label>
-<div class="repo-path"><input id="repo-path" name="path" value="${escape(path)}" placeholder="/Users/you/code/project" autocomplete="off" required><button type="button" data-action="inspect-repo">Look</button></div>
+<div class="repo-path"><input id="repo-path" name="path" value="${escape(path)}" placeholder="/Users/you/code/project" autocomplete="off" required><button type="button" data-action="inspect-repo">Find branches</button></div>
 ${
   branches.length
     ? `<label for="repo-branch">Branch <small>the scenario</small></label>

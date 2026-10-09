@@ -54,6 +54,7 @@ import { pageBrandFrom, renderPage } from './source-page'
 import { identityOf } from './branding'
 import { startingLook, withLook } from './looks'
 import { Refusal } from './refusal'
+import { sourceLink } from '../shared/source-link'
 const queues = new Map<string, Promise<unknown>>()
 /**
  * A video saved before narratives (October 2026) named a template, and its
@@ -116,6 +117,8 @@ export const createProject = async (
   sourceOnly = false
 ): Promise<Snapshot> => {
   if (!input.trim()) throw new Refusal('Add a link or some text')
+  // A www. address or a bare domain is a link, as the start screen says.
+  input = sourceLink(input) ?? input
   harness = harness
     ? validateHarnessSelection(harness)
     : (await loadHarnessPreference()) || undefined
@@ -688,6 +691,10 @@ export const listNotebooks = async (): Promise<
         title: saved.project.title,
         status: saved.status,
         hasVideo: Boolean(saved.project.video),
+        // Finished, as the Video stage counts it: exported and current.
+        videoReady:
+          Boolean(saved.project.video) &&
+          projectViews(saved.project, saved.events).video.action === 'export',
         updatedAt: saved.events.at(-1)?.time || null,
         site: siteOf(saved.project.sourceUrl),
         preview:
@@ -695,7 +702,8 @@ export const listNotebooks = async (): Promise<
         slides: saved.project.slides.length
       })
   }
-  return result
-    .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
-    .slice(0, 50)
+  // Every notebook: home shows the latest few and "Show all" the rest.
+  return result.sort((a, b) =>
+    (b.updatedAt || '').localeCompare(a.updatedAt || '')
+  )
 }

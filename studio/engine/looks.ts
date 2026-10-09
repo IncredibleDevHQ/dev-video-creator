@@ -18,6 +18,7 @@ const NO_IDENTITY: Branding = {
   logoKey: null
 }
 import { brandDomain, loadBrandLibrary } from './brand-library'
+import { loadableFont } from '../shared/looks'
 import type { SourceRead } from './source-document'
 import { Refusal } from './refusal'
 
@@ -37,11 +38,19 @@ export const startingLook = async (
       palette: { ...saved.brand.palette, accent: saved.brand.accent },
       fonts: saved.brand.fonts
     }
-  if (source?.palette.provenance === 'extracted')
+  if (source?.palette.provenance === 'extracted') {
+    // A site's own fonts can't be loaded: the nearest built-in stands in,
+    // and the look says so.
+    const display = loadableFont(source.fonts.display)
+    const body = loadableFont(source.fonts.body)
+    const replaced = [display, body].some((font) => font.replaced)
+    const site = source.site || domain
     return {
       id: 'site',
       name: source.site || domain || 'The site',
-      description: `Colours and fonts read from ${source.site || domain}.`,
+      description: replaced
+        ? `Colours read from ${site}. Its fonts can’t be loaded here, so ${[...new Set([display.value, body.value])].join(' and ')} stand in.`
+        : `Colours and fonts read from ${site}.`,
       palette: {
         ground: source.palette.ground,
         text: source.palette.text,
@@ -49,11 +58,12 @@ export const startingLook = async (
         secondary: source.palette.secondary
       },
       fonts: {
-        display: source.fonts.display,
-        body: source.fonts.body,
-        mono: source.fonts.mono
+        display: display.value,
+        body: body.value,
+        mono: loadableFont(source.fonts.mono).value
       }
     }
+  }
   return NEUTRAL_LOOK
 }
 

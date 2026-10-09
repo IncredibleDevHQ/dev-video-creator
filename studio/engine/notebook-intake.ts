@@ -20,14 +20,32 @@ import type { SourceRead } from './source-document'
 import { startingLook, withLook } from './looks'
 import { loadHarnessPreference as savedHarness } from './harness/preference'
 import { Refusal } from './refusal'
+import { NOTE_LIMIT, notesLength } from '../shared/notes'
+
+// Edits save as the creator types; the suggestion is asked for once they
+// stop for a while.
+const settling = new Map<string, ReturnType<typeof setTimeout>>()
+const suggestAfterEdits = (id: string, wait = 15_000) => {
+  clearTimeout(settling.get(id))
+  const timer = setTimeout(() => {
+    settling.delete(id)
+    suggestQuietly(id)
+  }, wait)
+  timer.unref?.()
+  settling.set(id, timer)
+}
 
 export const editNotebookSource = async (
   id: string,
   text: unknown,
   title: unknown
 ) => {
-  if (typeof text !== 'string' || !text.trim() || text.length > 24_000)
-    throw new Refusal('Add notes up to 24,000 characters')
+  if (typeof text !== 'string' || !text.trim())
+    throw new Refusal('Add some notes to save')
+  if (notesLength(text) > NOTE_LIMIT)
+    throw new Refusal(
+      `Shorten the notes to ${NOTE_LIMIT.toLocaleString('en')} characters; they have ${notesLength(text).toLocaleString('en')}`
+    )
   if (typeof title !== 'string' || !title.trim() || title.length > 160)
     throw new Refusal('Add a notebook title up to 160 characters')
   return changeProject(id, async (current) => {
@@ -63,7 +81,9 @@ export const editNotebookSource = async (
     await writeRow('sources', id, source)
     current.project.source = source.text
     current.project.title = source.title
-    delete current.suggestion
+    // The suggestion stays, marked as made before these edits; Jev is asked
+    // again once the edits settle (review 6).
+    if (current.suggestion) current.suggestion.stale = true
     current.status = 'draft'
     current.sourceOnly = true
     current.error = null
@@ -72,6 +92,9 @@ export const editNotebookSource = async (
     delete current.progress
     delete current.plannedSlides
     addEvent(current, 'slide', 'Notebook notes edited')
+  }).then((saved) => {
+    suggestAfterEdits(id)
+    return saved
   })
 }
 

@@ -100,6 +100,8 @@ export type NotebookSummary = {
   title: string
   status: Snapshot['status']
   hasVideo: boolean
+  /** The video is made and current. */
+  videoReady?: boolean
   updatedAt: string | null
   site: string | null
   /** The first drawn slide, as the tile's picture. */
@@ -115,7 +117,12 @@ export type HarnessChoice = {
   models?: {
     source?: string
     default: string | null
-    options: Array<{ id: string; label: string; unavailable?: string }>
+    options: Array<{
+      id: string
+      label: string
+      hint?: string
+      unavailable?: string
+    }>
   }
 }
 export type HarnessChoices = {

@@ -401,9 +401,9 @@ it('offers the template beside the agent before the wireframes', async () => {
   const chips = (html: string) =>
     names(parseHTML(`<div>${html}</div>`).document, '.choice')
   expect(chips(choicesRow(snapshot({}), true))).toEqual([
-    'the agent found on this computer',
+    'your agent',
     'No template',
-    'about 10 wireframes',
+    'about 5 min',
     'Paper look',
     'No repo'
   ])

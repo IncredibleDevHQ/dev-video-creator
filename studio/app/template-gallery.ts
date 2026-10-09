@@ -21,6 +21,8 @@ export type GalleryContext = {
   use: GalleryUse
   current: GalleryState['current']
   back: string
+  /** The templates suggested for this post, best first. */
+  suggested?: string[]
 }
 
 const CARD_SECONDS = 4.5

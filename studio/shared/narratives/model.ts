@@ -185,10 +185,12 @@ export const SPEAKER_LABELS: Record<SpeakerPlace, string> = {
 }
 
 /** A length range in words: "45–90 s", "6–10 min". */
-export const lengthLabel = ([min, max]: LengthRange) =>
-  max < 120
-    ? `${min}–${max} s`
-    : `${Math.round(min / 6) / 10}–${Math.round(max / 6) / 10} min`
+export const lengthLabel = ([min, max]: LengthRange) => {
+  if (max < 120) return `${min}–${max} s`
+  // Whole and half minutes (review 6: "1.3–2.2 min" read as noise).
+  const half = (seconds: number) => Math.max(0.5, Math.round(seconds / 30) / 2)
+  return `${half(min)}–${half(max)} min`
+}
 
 /**
  * Beats written as a table, one per line, the cells split by "|":

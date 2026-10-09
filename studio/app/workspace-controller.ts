@@ -24,6 +24,7 @@ import { syncLookPreview } from './look-panel'
 import { meterStream } from './mic-meter'
 import { markPin } from './wireframe-pin'
 import { syncPlayerBar } from './player-bar'
+import { lookForAgent } from './agent-setup'
 
 export const createRender = (app: AppContext) => () => {
   if (
@@ -125,12 +126,15 @@ ${notebookOpeningView(app.opening.state)}`,
     app.momentIndex
   )
   if (viewUrl.href !== location.href) history.replaceState(null, '', viewUrl)
+  // With no agent chosen, find the one Create would use, once.
+  if (!app.snapshot.project.harness) lookForAgent(() => app.render())
   replacePlayerView(
     app.root,
     `${workspaceHeader(
       app.snapshot,
       app.stage,
-      app.liveConnected
+      app.liveConnected,
+      app.pending
     )}<main class="workspace workspace-${app.stage}">
 ${
   app.stage !== 'notebook'

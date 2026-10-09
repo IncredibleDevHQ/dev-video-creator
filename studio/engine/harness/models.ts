@@ -10,18 +10,8 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { HarnessModels } from './types'
 
-export const CLAUDE_MODELS: Array<{
-  id: string
-  label: string
-  minVersion?: string
-}> = [
-  // Named, so a run is the model chosen: on Claude Code 2.1.278 the opus
-  // alias ran claude-opus-5, and Opus 5.5 needs 2.1.280 (seen 8 Oct).
-  { id: 'claude-opus-5-5', label: 'Opus 5.5', minVersion: '2.1.280' },
-  { id: 'opus', label: 'Opus (CLI alias)' },
-  { id: 'sonnet', label: 'Sonnet (CLI alias)' },
-  { id: 'haiku', label: 'Haiku (CLI alias)' }
-]
+export { CLAUDE_MODELS } from '../../shared/agent-models'
+import { CLAUDE_MODELS } from '../../shared/agent-models'
 
 // Dotted numeric versions, compared part by part ("2.1.280" > "2.1.278").
 export const compareVersions = (a: string, b: string) => {
@@ -41,6 +31,7 @@ export const claudeModels = (cliVersion: string): HarnessModels => ({
   options: CLAUDE_MODELS.map((model) => ({
     id: model.id,
     label: model.label,
+    ...(model.hint ? { hint: model.hint } : {}),
     ...(model.minVersion &&
     /\d+\.\d+/.test(cliVersion) &&
     compareVersions(cliVersion, model.minVersion) < 0

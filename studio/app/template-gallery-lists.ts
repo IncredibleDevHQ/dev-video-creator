@@ -9,7 +9,8 @@ import {
   groupById,
   groupNarratives,
   type Narrative,
-  type StoryGroup
+  type StoryGroup,
+  narrativeById
 } from '../shared/narratives'
 
 /** Searches offered under the field, one click each. */
@@ -81,6 +82,22 @@ const groupSection = (group: StoryGroup, state: GalleryState) =>
     ${cards(groupNarratives(group.id), state)}
   </section>`
 
+/** The templates suggested for this post, first, before the groups. */
+const suggestedSection = (state: GalleryState) => {
+  const found = (state.suggested || [])
+    .map((id) => narrativeById(id))
+    .filter((item): item is Narrative => Boolean(item))
+  return found.length
+    ? html`<section class="tpl-group tpl-suggested" data-group="suggested">
+        <div class="tpl-story-head">
+          <h2>Suggested for this post</h2>
+          <p>The stories your notes tell best, best first.</p>
+        </div>
+        ${cards(found, state)}
+      </section>`
+    : ''
+}
+
 /** What the list shows with no search: a head, a line under it, a body. */
 const listView = (state: GalleryState) => {
   const group = STORY_GROUPS.find((item) => item.id === state.group)
@@ -97,8 +114,11 @@ const listView = (state: GalleryState) => {
         Pick the story your post tells, then how to tell it: its length, its
         drama and how much you are on camera.
       </p>`,
-    after: tries,
-    body: STORY_GROUPS.map((item) => groupSection(item, state)).join('')
+    // With a suggestion, it leads; the generic tries are for no post.
+    after: state.suggested?.length ? '' : tries,
+    body:
+      suggestedSection(state) +
+      STORY_GROUPS.map((item) => groupSection(item, state)).join('')
   }
 }
 

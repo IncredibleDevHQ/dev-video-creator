@@ -1,7 +1,7 @@
 import { animationSecond } from '../shared/scene-time'
 import { videoSecond } from '../shared/video-clock'
 import { api } from './api'
-import { flushNotebookEdits } from './notebook-editor'
+import { saveBeforeLeaving } from './notebook-editor'
 import type { AppContext } from './app-context'
 import { seekSavedMedia } from './media-seek'
 import { clickRecording } from './recording-controller'
@@ -18,7 +18,13 @@ import {
 } from './start-controller'
 import { openAgentMenu } from './agent-menu'
 import { openDirectionMenu, openLengthMenu } from './notebook-choices'
-import { suggestedDirection } from '../shared/narratives'
+import {
+  directionSettings,
+  lengthForPages,
+  narrativeById,
+  suggestedDirection
+} from '../shared/narratives'
+import { STORY_SCENES } from '../shared/model'
 import { closeLookPanel, openLookPanel } from './look-panel'
 import { closePopover, openPopover } from './popover'
 import { headerMore } from './workspace-header'
@@ -62,12 +68,7 @@ export const installAppActions = (app: AppContext) => {
       closeLookPanel(app)
       app.templateGallery.dismiss()
       app.mapCanvas.dismiss()
-      try {
-        await flushNotebookEdits(app)
-      } catch (reason) {
-        app.error(reason)
-        return
-      }
+      if (!(await saveBeforeLeaving(app))) return
       app.stopPractice()
       app.closeStream?.()
       app.closeStream = null
@@ -101,12 +102,7 @@ export const installAppActions = (app: AppContext) => {
         target.dataset.action || ''
       )
     ) {
-      try {
-        await flushNotebookEdits(app)
-      } catch (reason) {
-        app.error(reason)
-        return
-      }
+      if (!(await saveBeforeLeaving(app))) return
     }
     if (target.dataset.slide) {
       app.selected = Number(target.dataset.slide)
@@ -159,17 +155,6 @@ export const installAppActions = (app: AppContext) => {
       app.render()
       return
     }
-    if (
-      target.dataset.stage === 'presentation' &&
-      app.snapshot?.status === 'draft'
-    ) {
-      try {
-        await createPresentation(app)
-      } catch (reason) {
-        app.error(reason)
-      }
-      return
-    }
     if (target.dataset.stage) {
       app.wholeVideo = false
       app.stopPractice()
@@ -189,16 +174,31 @@ export const installAppActions = (app: AppContext) => {
         target.dataset.narrative
       ) {
         const suggestion = app.snapshot.suggestion
+        const narrative = narrativeById(target.dataset.narrative)
+        const direction = suggestion
+          ? suggestedDirection(target.dataset.narrative, suggestion)
+          : undefined
+        // The creator's length stays: the template tells the same number of
+        // pages; its suggested length waits in the direction menu.
+        const pages = STORY_SCENES[app.snapshot.project.length || 'medium']
+        const kept =
+          narrative &&
+          lengthForPages(
+            pages,
+            directionSettings(narrative, direction).elaboration
+          )
         app.snapshot = await api.setTemplate(app.snapshot.project.id, {
           narrative: target.dataset.narrative,
-          ...(suggestion
+          ...(narrative && kept
             ? {
-                direction: suggestedDirection(
-                  target.dataset.narrative,
-                  suggestion
-                )
+                direction: {
+                  ...(direction || { preset: narrative.preset }),
+                  length: kept
+                }
               }
-            : {})
+            : direction
+              ? { direction }
+              : {})
         })
         app.render()
         return

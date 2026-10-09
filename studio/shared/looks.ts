@@ -98,6 +98,42 @@ export const FONT_CHOICES: Array<{ value: string; label: string }> = [
   { value: 'ui-monospace', label: 'Monospace' }
 ]
 
+// Fonts every computer shows without loading anything.
+const SAFE = new Set([
+  'arial',
+  'helvetica',
+  'helvetica neue',
+  'georgia',
+  'times new roman',
+  'verdana',
+  'trebuchet ms',
+  'courier new',
+  'segoe ui',
+  'consolas'
+])
+const SERIF =
+  /serif|tiempos|georgia|times|garamond|merriweather|lora|playfair|caslon|baskerville|minion|charter|spectral|crimson|libre/i
+
+/**
+ * A font the studio can show: a built-in or common one as it is, else the
+ * nearest built-in, said as replaced (review 6: a site's own fonts never
+ * load, and Inter showed with no word).
+ */
+export const loadableFont = (family: string) => {
+  const name = family.trim()
+  if (
+    FONT_CHOICES.some((choice) => choice.value === name) ||
+    SAFE.has(name.toLowerCase())
+  )
+    return { value: name, replaced: false }
+  const value = /mono|code|courier|menlo|consolas/i.test(name)
+    ? 'ui-monospace'
+    : SERIF.test(name) && !/sans/i.test(name)
+      ? 'Georgia'
+      : 'Inter'
+  return { value, replaced: true }
+}
+
 const hexOf = (value: string) => {
   const raw = value.replace('#', '')
   const full =

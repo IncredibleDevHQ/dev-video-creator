@@ -20,7 +20,7 @@ it('gives a failed presentation an enabled retry instead of disabled view slides
 it('says the next step in one line, with the choices Create will use and no second Create button', () => {
   const hint = notebookHint(snapshot('draft'), true)
   expect(hint).toContain('Create wireframes, top right')
-  expect(hint).toContain('about 10 wireframes')
+  expect(hint).toContain('about 5 min')
   expect(hint).toContain('Paper look')
   expect(hint).not.toContain('data-action="create-presentation"')
 })

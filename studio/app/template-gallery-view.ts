@@ -136,6 +136,7 @@ export const templatePlayer = (state: GalleryState, narrative: Narrative) => {
                   aria-current="${index === at}"
                 >
                   ${beatDot(plan.beat.function)}<span
+                    title="${escape(plan.beat.name)}"
                     >${escape(plan.beat.name)}</span
                   ><small>${lengthLabel(plan.seconds)}</small>
                 </button>

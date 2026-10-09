@@ -30,6 +30,8 @@ export type TemplateSuggestion = {
   drama: Drama
   /** Whether the top template was set on the notebook. */
   preselected: boolean
+  /** Made before the notes were last edited; a new one is on its way. */
+  stale?: boolean
 }
 
 /** What Jev reads a wireframe as: the beat it carries, and how sure. */

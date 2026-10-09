@@ -57,6 +57,8 @@ export interface HarnessEvent {
 export type HarnessModelOption = {
   id: string
   label: string
+  /** What an alias stands for, in a tooltip. */
+  hint?: string
   unavailable?: string
 }
 export type HarnessModels = {

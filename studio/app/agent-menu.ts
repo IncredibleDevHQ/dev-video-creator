@@ -8,15 +8,12 @@ import { api } from './api'
 import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
 import { escape } from './ui'
+import { modelName } from '../shared/agent-models'
 
 const order = ['claude-code', 'codex', 'kimi'] as const
 
-/** "kimi-code/k3" → "K3": the model's own short name, for the choices row. */
-export const modelLabel = (model?: string) => {
-  if (!model) return ''
-  const name = model.split('/').pop() || model
-  return name.length <= 4 ? name.toUpperCase() : name
-}
+/** The model's name, from the list the picker uses ("Opus 5.5", "K3"). */
+export const modelLabel = modelName
 
 const rows = (
   choices: Map<string, HarnessChoice> | null,
@@ -36,22 +33,24 @@ const rows = (
     })
     .join('')
 
+// Models as rows, like the agents: plain names, an alias explained in its
+// tooltip, an unavailable one saying why (review 6).
 const models = (choice: HarnessChoice | undefined, selected?: string) => {
   const options = choice?.models?.options || []
-  const list = [
-    {
-      id: '',
-      label: 'Agent default',
-      unavailable: undefined as string | undefined
-    },
-    ...options
-  ]
+  const list: Array<{
+    id: string
+    label: string
+    hint?: string
+    unavailable?: string
+  }> = [{ id: '', label: 'Agent default' }, ...options]
   if (selected && !options.some((option) => option.id === selected))
-    list.push({ id: selected, label: selected, unavailable: undefined })
+    list.push({ id: selected, label: modelName(selected) })
   return list
     .map(
       (option) =>
-        `<option value="${escape(option.id)}" ${option.id === (selected || '') ? 'selected' : ''} ${option.unavailable ? 'disabled' : ''}>${escape(option.label)}${option.unavailable ? ' · unavailable' : ''}</option>`
+        `<label class="agent-menu-row${option.unavailable ? ' is-missing' : ''}"${option.hint ? ` title="${escape(option.hint)}"` : ''}>
+<input type="radio" name="menu-model" value="${escape(option.id)}" ${option.id === (selected || '') ? 'checked' : ''} ${option.unavailable ? 'disabled' : ''}>
+<span>${escape(option.label)}</span>${option.unavailable ? `<small>${escape(option.unavailable)}</small>` : ''}</label>`
     )
     .join('')
 }
@@ -66,7 +65,8 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
     `<form class="agent-menu" data-agent-menu>
 <p class="popover-title">Agent</p>
 <div class="agent-menu-list" role="radiogroup" aria-label="Agent" data-agent-rows>${rows(null, selected)}</div>
-<label class="agent-menu-model">Model<select name="menu-model" data-agent-model disabled></select></label>
+<p class="popover-title">Model</p>
+<div class="agent-menu-list" role="radiogroup" aria-label="Model" data-agent-model></div>
 <p class="popover-note">Used for this notebook and for new ones.</p>
 <p class="popover-error" role="alert" data-agent-error></p>
 <div class="popover-actions"><button type="button" class="quiet" data-action="agent-settings">All agent settings</button><button class="primary" data-agent-save disabled>Done</button></div>
@@ -75,7 +75,7 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
   )
   if (!panel) return
   const form = panel.querySelector<HTMLFormElement>('[data-agent-menu]')!
-  const model = panel.querySelector<HTMLSelectElement>('[data-agent-model]')!
+  const model = panel.querySelector<HTMLElement>('[data-agent-model]')!
   const save = panel.querySelector<HTMLButtonElement>('[data-agent-save]')!
   const draw = () => {
     panel.querySelector('[data-agent-rows]')!.innerHTML = rows(
@@ -83,8 +83,7 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
       selected
     )
     const choice = selected ? choices?.get(selected.adapter) : undefined
-    model.innerHTML = models(choice, selected?.model)
-    model.disabled = !choice?.ok
+    model.innerHTML = choice?.ok ? models(choice, selected?.model) : ''
     save.disabled = !choice?.ok
   }
   void api
@@ -110,7 +109,7 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
     if (input.name === 'menu-model' && selected)
       selected = {
         adapter: selected.adapter,
-        ...(model.value ? { model: model.value } : {})
+        ...(input.value ? { model: input.value } : {})
       }
   })
   form.addEventListener('submit', async (event) => {

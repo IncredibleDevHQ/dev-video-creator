@@ -35,14 +35,16 @@ const snapshot = (extra: Partial<Snapshot> = {}): Snapshot =>
 
 it('fills the choices beside Create with the agent, the length and the look', () => {
   expect(modelLabel('kimi-code/k3')).toBe('K3')
-  expect(modelLabel('claude-opus-5-5')).toBe('claude-opus-5-5')
+  expect(modelLabel('claude-opus-5-5')).toBe('Opus 5.5')
   const row = choicesRow(snapshot(), true)
   expect(row).toContain('Kimi K3')
-  expect(row).toContain('about 10 wireframes')
+  expect(row).toContain('about 5 min')
   expect(row).toContain('Paper look')
   const short = snapshot()
   short.project.length = 'short'
-  expect(choicesRow(short, true)).toContain('about 6 wireframes')
+  // Length in minutes, the wireframes as the hint.
+  expect(choicesRow(short, true)).toContain('about 3 min')
+  expect(choicesRow(short, true)).toContain('≈ 6 wireframes')
   // After drawing starts the length is fixed.
   expect(choicesRow(snapshot(), false)).toMatch(
     /data-action="length-menu"[^>]*disabled/

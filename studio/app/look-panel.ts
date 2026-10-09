@@ -4,6 +4,7 @@
 // nothing is saved until Apply. It replaces the brand dialog before Create.
 import {
   FONT_CHOICES,
+  loadableFont,
   LOOKS,
   NEUTRAL_LOOK,
   recolourLook,
@@ -44,9 +45,17 @@ const tile = (title: string, look: Look, pressed: boolean) =>
   `<button type="button" class="look-tile" data-look-id="${escape(look.id)}" aria-pressed="${pressed}">${lookSample(title, look)}<span class="look-name">${escape(look.name)}</span><small>${escape(look.description)}</small></button>`
 
 const fontMenu = (key: 'display' | 'body', value: string) => {
+  // A font that can't load says what shows instead.
+  const font = loadableFont(value)
   const options = FONT_CHOICES.some((choice) => choice.value === value)
     ? FONT_CHOICES
-    : [{ value, label: value }, ...FONT_CHOICES]
+    : [
+        {
+          value,
+          label: font.replaced ? `${value} (shows as ${font.value})` : value
+        },
+        ...FONT_CHOICES
+      ]
   return `<select data-look-font="${key}">${options
     .map(
       (choice) =>
@@ -122,7 +131,7 @@ export const openLookPanel = (app: AppContext) => {
   open = { element, draft: from, from, originals: new WeakMap() }
   const draw = () => {
     const { draft } = open!
-    element.innerHTML = `<div class="look-head"><h2>Look</h2><button type="button" class="icon-button" data-look-close aria-label="Close the look panel">×</button></div>
+    element.innerHTML = `<div class="look-head"><h2>Look</h2><button type="button" class="icon-button" data-look-close aria-label="Close the look panel">×</button></div><div class="look-body">
 <p class="look-note">${drawn ? 'Colours and fonts for every wireframe. Drawn wireframes change as you choose; nothing is saved until you apply.' : 'Colours and fonts for your wireframes. You can change them again once they are drawn.'}</p>
 <div class="look-grid" role="group" aria-label="Named looks">${looksFor(
       app,
@@ -145,7 +154,7 @@ export const openLookPanel = (app: AppContext) => {
       .join('')}</div>
 <h3>Fonts</h3>
 <div class="look-fonts"><label>Headings${fontMenu('display', draft.fonts.display)}</label><label>Text${fontMenu('body', draft.fonts.body)}</label></div>
-<p class="popover-error" role="alert" data-look-error></p>
+<p class="popover-error" role="alert" data-look-error></p></div>
 <div class="look-actions">${domain ? `<label class="look-remember"><input type="checkbox" data-look-remember> Save for ${escape(domain)}</label>` : ''}<button type="button" data-look-cancel>Cancel</button><button type="button" class="primary" data-look-apply ${draft === from ? 'disabled' : ''}>${drawn ? 'Apply to all wireframes' : 'Use this look'}</button></div>`
     syncLookPreview(app.root)
   }

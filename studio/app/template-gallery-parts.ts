@@ -38,6 +38,8 @@ export type GalleryState = {
   current: { narrative?: string; preset?: PresetId }
   /** Where Back goes, in words. */
   back: string
+  /** The templates suggested for this post, best first. */
+  suggested?: string[]
 }
 
 export const lowerFirst = (text: string) =>
@@ -169,7 +171,7 @@ export const narrativeCard = (
       <h3>${escape(narrative.name)}</h3>
       ${current === narrative.id ? '<span class="tpl-badge">In use</span>' : ''}
       <span class="tpl-card-time">${lengthLabel(settings.length)}</span>
-      <p>${escape(narrative.line)}</p>
+      <p title="${escape(narrative.line)}">${escape(narrative.line)}</p>
     </div>
   </article>`
 }

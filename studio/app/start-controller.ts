@@ -6,6 +6,7 @@ import { api } from './api'
 import type { AppContext } from './app-context'
 import type { NotebookSummary } from '../shared/api'
 import { gear } from './camera-settings'
+import { sourceLink } from '../shared/source-link'
 import incredibleLogo from './assets/incredible-logo.svg'
 import { sourceComposer, updateSourceComposer } from './source-composer'
 import { rollingHeadline } from './rolling-headline'
@@ -14,6 +15,7 @@ import { button, escape } from './ui'
 import { seriesApi } from './series-controller'
 import { seriesSection } from './series-view'
 import { installNotebookEditor, flushNotebookEdits } from './notebook-editor'
+import { confirmAction } from './confirm-action'
 
 export const createRefreshNotebooks = (app: AppContext) => async () => {
   ;[app.notebooks, app.series] = await Promise.all([
@@ -43,8 +45,7 @@ export const createAgo = (app: AppContext) => (iso: string) => {
 export const createSourceHint = (app: AppContext) => (value: string) => {
   const text = value.trim()
   if (!text) return ''
-  if (/^(https?:\/\/|www\.)\S+$/i.test(text))
-    return 'Link · we’ll read the article'
+  if (sourceLink(text)) return 'Link · we’ll read the article'
   const words = text.split(/\s+/).length
   return `Your text · ${words.toLocaleString()} ${
     words === 1 ? 'word' : 'words'
@@ -69,9 +70,11 @@ const notebookState = (item: NotebookSummary) =>
         ? 'Needs another try'
         : item.status === 'building'
           ? 'Wireframes in progress'
-          : item.hasVideo
-            ? 'Video in progress'
-            : 'Wireframes ready'
+          : item.videoReady
+            ? 'Video ready'
+            : item.hasVideo
+              ? 'Video in progress'
+              : 'Wireframes ready'
 
 /** One tile: the first slide as its picture, then the title and where it came from. */
 const notebookTile = (
@@ -143,12 +146,48 @@ export const showHowItWorks = (app: AppContext) => {
     { once: true }
   )
 }
+/** Whether the creator edited the notes since the article was last read. */
+const notesEdited = (snapshot: import('../shared/api').Snapshot) => {
+  const said = snapshot.events
+    .filter((event) => event.kind === 'slide')
+    .map((event) => event.message)
+  const edited = said.lastIndexOf('Notebook notes edited')
+  const read = said.reduce(
+    (last, message, index) =>
+      message.startsWith('Source ready') ? index : last,
+    -1
+  )
+  return edited > read
+}
+
 export const installStartController = (app: AppContext) => {
   installNotebookEditor(app)
   installBrandStory(app.root)
   app.root.addEventListener('input', (event) => {
     const field = event.target as HTMLTextAreaElement
     if (field.id === 'source-input') app.fitSource(field)
+  })
+  // A link dragged from another tab becomes the field's text.
+  app.root.addEventListener('dragover', (event) => {
+    if ((event.target as Element).closest?.('#source-input'))
+      event.preventDefault()
+  })
+  app.root.addEventListener('drop', (event) => {
+    const field = (event.target as Element).closest?.<HTMLTextAreaElement>(
+      '#source-input'
+    )
+    const data = event.dataTransfer
+    if (!field || !data || field.readOnly) return
+    const link = data
+      .getData('text/uri-list')
+      .split(/\r?\n/)
+      .find((line) => line && !line.startsWith('#'))
+    const text = link || data.getData('text/plain')
+    if (!text.trim()) return
+    event.preventDefault()
+    field.value = text.trim()
+    field.focus()
+    app.fitSource(field)
   })
   app.root.addEventListener('keydown', (event) => {
     const field = event.target as HTMLTextAreaElement
@@ -212,6 +251,17 @@ export const clickStart = async (
     return
   }
   if (action === 'refresh-source') {
+    // Edited notes are the creator's: re-reading replaces them, so ask.
+    if (
+      notesEdited(app.snapshot!) &&
+      !(await confirmAction({
+        title: 'Re-read the article?',
+        detail:
+          'Your edits to the notes will be replaced by the article as it reads now.',
+        action: 'Re-read the article'
+      }))
+    )
+      return
     target.disabled = true
     try {
       await flushNotebookEdits(app)
@@ -246,11 +296,13 @@ export const clickStart = async (
  */
 export const createPresentation = async (app: AppContext) => {
   if (!app.snapshot || app.pending || app.snapshot.status !== 'draft') return
-  await flushNotebookEdits(app)
   const id = app.snapshot.project.id
+  // The button answers at once: saving the notes and finding the agent can
+  // take a moment (review 6).
   app.pending = true
   app.render()
   try {
+    await flushNotebookEdits(app)
     const snapshot = await api.createPresentation(id)
     if (app.snapshot?.project.id !== id) return
     app.stage = 'presentation'

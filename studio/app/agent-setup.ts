@@ -9,6 +9,30 @@ export const agentNames = {
   kimi: 'Kimi'
 }
 const ids = Object.keys(agentNames) as HarnessSelection['adapter'][]
+
+let detected: HarnessSelection['adapter'] | null | undefined
+let asking = false
+/** The agent Create would use when the notebook has none chosen: the first
+ * found on this computer. Undefined until asked; null when none is found. */
+export const foundAgent = () => detected
+export const lookForAgent = (then: () => void) => {
+  if (detected !== undefined || asking) return
+  asking = true
+  void api
+    .harnesses()
+    .then((result) => {
+      detected =
+        ids.find((id) => result.available.some((c) => c.id === id && c.ok)) ??
+        null
+      then()
+    })
+    .catch(() => {
+      detected = null
+    })
+    .finally(() => {
+      asking = false
+    })
+}
 /** "Found Claude Code and Kimi on this computer." */
 const found = (choices: Map<HarnessSelection['adapter'], HarnessChoice>) => {
   const names = ids

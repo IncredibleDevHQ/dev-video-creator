@@ -213,6 +213,20 @@
   background: var(--line);
   margin: 0 8px;
 }
+.notebook-toolbar .note-count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.notebook-toolbar .note-count.is-over {
+  color: var(--danger, #b91c1c);
+  font-weight: 600;
+}
+.notebook-toolbar .note-count + .note-edit-status {
+  margin-left: 10px;
+}
 .notebook-toolbar .note-edit-status {
   margin: 0 0 0 auto;
   padding-left: 10px;

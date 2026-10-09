@@ -24,7 +24,7 @@ export const notebookToolbar =
   () => `<div class="notebook-toolbar" role="toolbar" aria-label="Format notes">
 <select data-note-block aria-label="Text style"><option value="paragraph">Text</option><option value="1">Heading 1</option><option value="2">Heading 2</option><option value="3">Heading 3</option></select>
 <span class="toolbar-divider"></span>${tools.map(([id, label, icon]) => `<button type="button" data-note-command="${id}" aria-label="${label}" title="${label}" ${id !== 'undo' && id !== 'redo' ? 'aria-pressed="false"' : ''}>${createElement(icon, { width: 17, height: 17, 'aria-hidden': 'true' }).outerHTML}</button>`).join('')}
-<span class="note-edit-status" data-note-save role="status" aria-live="polite">Saved</span></div>`
+<span class="note-count" data-note-count aria-label="Characters"></span><span class="note-edit-status" data-note-save role="status" aria-live="polite">Saved</span></div>`
 export const updateNotebookToolbar = (root: HTMLElement, editor: Editor) => {
   root
     .querySelectorAll<HTMLButtonElement>('[data-note-command]')

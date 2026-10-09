@@ -1,5 +1,5 @@
 import { themeControl } from './appearance'
-import { agentNames } from './agent-setup'
+import { agentNames, foundAgent } from './agent-setup'
 import type { Snapshot } from '../shared/api'
 import { buildPhase } from './wireframe-progress'
 import { videoOpens } from '../shared/state'
@@ -72,9 +72,11 @@ export const agentActivity = (snapshot: Snapshot) => {
 
 const agentPill = (snapshot: Snapshot, connected: boolean) => {
   const harness = snapshot.project.harness
-  if (!harness)
+  // Unchosen, the pill names the agent Create would use, as the row does.
+  const found = foundAgent()
+  if (!harness && !found)
     return `<button type="button" class="agent-pill" data-action="agent-menu" data-popover="agent">Choose agent${chevron}</button>`
-  const name = agentNames[harness.adapter]
+  const name = agentNames[harness ? harness.adapter : found!]
   const activity = connected
     ? snapshot.readOnly
       ? ''
@@ -101,7 +103,8 @@ const lockedReason = (snapshot: Snapshot, name: string) => {
 export const workspaceHeader = (
   snapshot: Snapshot,
   stage: string,
-  liveConnected: boolean
+  liveConnected: boolean,
+  pending = false
 ) => {
   const { project, status } = snapshot
   const title = project.title.replace(/ \| [^|]+$/, '')
@@ -129,7 +132,7 @@ export const workspaceHeader = (
       : `<button type="button" data-action="settings" class="icon-button" aria-label="Settings" title="Settings">${gear}</button>`
   }<button type="button" data-action="header-more" data-popover="header-more" class="icon-button" aria-label="More" title="More">${dots}</button></div><div class="header-stage-actions">${
     stage === 'notebook'
-      ? notebookNextAction(snapshot)
+      ? notebookNextAction(snapshot, pending)
       : stage === 'presentation'
         ? wireframeTools(snapshot) +
           button(

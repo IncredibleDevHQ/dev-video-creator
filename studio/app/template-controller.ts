@@ -34,7 +34,11 @@ export const galleryContext = (app: AppContext) => {
       narrative: told?.narrative,
       preset: told?.direction?.preset
     },
-    back: project ? 'Back to notebook' : 'Back home'
+    back: project ? 'Back to notebook' : 'Back home',
+    // The suggestion for this post leads the gallery (review 6).
+    suggested: (app.snapshot?.suggestion?.narratives || [])
+      .filter(({ id }, index) => narrativeById(id) && index < 3)
+      .map(({ id }) => id)
   }
 }
 

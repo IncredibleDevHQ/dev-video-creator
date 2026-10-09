@@ -63,7 +63,9 @@ it('saves edited Markdown and its title without model generation, retaining link
   expect(retained?.images).toHaveLength(1)
   expect(await readRow('outlines', id)).toBeNull()
   expect(brief.mock.calls.length).toBe(calls)
-  await expect(editNotebookSource(id, '', 'Title')).rejects.toThrow('Add notes')
+  await expect(editNotebookSource(id, '', 'Title')).rejects.toThrow(
+    'Add some notes'
+  )
   await changeProject(id, (current) => {
     current.status = 'building'
   })

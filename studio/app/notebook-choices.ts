@@ -3,7 +3,7 @@
 // agent, the length and the look — each changed from a small menu.
 import type { Snapshot } from '../shared/api'
 import { STORY_SCENES, type StoryLength } from '../shared/model'
-import { agentNames } from './agent-setup'
+import { agentNames, foundAgent } from './agent-setup'
 import { modelLabel } from './agent-menu'
 import { api } from './api'
 import type { AppContext } from './app-context'
@@ -16,7 +16,9 @@ import {
   allowedPresets,
   directionSettings,
   lengthLabel,
+  minutesForPages,
   narrativeById,
+  pageRange,
   presetById,
   presetFor,
   type LengthRange,
@@ -44,9 +46,13 @@ const telling = (snapshot: Snapshot) => {
 
 export const choicesRow = (snapshot: Snapshot, editable: boolean) => {
   const { harness, length } = snapshot.project
+  // The found agent by name, as the header's pill says it.
+  const found = foundAgent()
   const agent = harness
     ? `${agentNames[harness.adapter]}${harness.model ? ` ${modelLabel(harness.model)}` : ''}`
-    : 'the agent found on this computer'
+    : found
+      ? agentNames[found]
+      : 'your agent'
   const scenes = STORY_SCENES[length || 'medium']
   const told = telling(snapshot)
   const off = editable ? '' : 'disabled'
@@ -57,7 +63,7 @@ export const choicesRow = (snapshot: Snapshot, editable: boolean) => {
 ${
   told
     ? `<button type="button" class="choice" data-action="direction-menu" data-popover="direction" ${off}>${escape(told.label)}</button>`
-    : `<button type="button" class="choice" data-action="length-menu" data-popover="length" ${off}>about ${scenes} wireframes</button>`
+    : `<button type="button" class="choice" data-action="length-menu" data-popover="length" title="≈ ${scenes} wireframes" ${off}>about ${minutesForPages(scenes)} min</button>`
 }<span aria-hidden="true">·</span>
 <button type="button" class="choice" data-action="look-panel">${escape(lookName(snapshot))} look</button><span aria-hidden="true">·</span>
 ${repoChip(snapshot, editable)}${episodeChip(snapshot)}</p>${editable ? suggestionRow(snapshot) : ''}`
@@ -71,12 +77,12 @@ const suggestionRow = (snapshot: Snapshot) => {
   const suggestion = snapshot.suggestion
   if (!suggestion || snapshot.project.narrative) return ''
   // A long shot is noise: only what Jev gives one chance in ten or more.
-  return `<p class="suggest-row"><span>Suggested</span>${suggestion.narratives
+  return `<p class="suggest-row${suggestion.stale ? ' is-stale' : ''}"><span>${suggestion.stale ? 'Suggested before your edits' : 'Suggested'}</span>${suggestion.narratives
     .filter(({ p }, index) => index === 0 || p >= 0.1)
-    .map(({ id, p }) => {
+    .map(({ id }) => {
       const narrative = narrativeById(id)
       return narrative
-        ? `<button type="button" class="choice" data-action="take-suggestion" data-narrative="${id}">${escape(narrative.name)} <small>${Math.round(p * 100)}%</small></button>`
+        ? `<button type="button" class="choice" data-action="take-suggestion" data-narrative="${id}">${escape(narrative.name)}</button>`
         : ''
     })
     .join('')}</p>`
@@ -94,15 +100,24 @@ export const openDirectionMenu = (app: AppContext, anchor: HTMLElement) => {
   const direction = snapshot.project.direction
   const preset = presetFor(narrative, direction?.preset)
   const length = directionSettings(narrative, direction).length.join(',')
+  // The template's suggested length for this post is offered, not imposed.
+  const suggested = snapshot.suggestion?.length
   const lengths = [
     ...new Map(
       [
         ...LENGTHS,
         directionSettings(narrative, { preset }).length,
-        directionSettings(narrative, direction).length
+        directionSettings(narrative, direction).length,
+        ...(suggested ? [suggested] : [])
       ].map((range) => [range.join(','), range])
     ).values()
   ].sort((a, b) => a[0] - b[0])
+  const pagesFor = (range: LengthRange) => {
+    const [low, high] = pageRange(
+      directionSettings(narrative, { ...direction, preset, length: range })
+    )
+    return `≈ ${low}–${high} wireframes${suggested && range.join(',') === suggested.join(',') ? ' · suggested for this post' : ''}`
+  }
   const radio = (attrs: string, checked: boolean, label: string, note = '') =>
     `<button type="button" role="radio" aria-checked="${checked}" ${attrs}><span>${escape(label)}</span>${note ? `<small>${escape(note)}</small>` : ''}</button>`
   const panel = openPopover(
@@ -116,7 +131,7 @@ export const openDirectionMenu = (app: AppContext, anchor: HTMLElement) => {
           `data-preset="${item.id}"`,
           item.id === preset,
           item.name,
-          lengthLabel(directionSettings(narrative, { preset: item.id }).length)
+          item.line
         )
       )
       .join('')}<p class="popover-title">Length</p>${lengths
@@ -124,7 +139,8 @@ export const openDirectionMenu = (app: AppContext, anchor: HTMLElement) => {
         radio(
           `data-length="${range.join(',')}"`,
           range.join(',') === length,
-          lengthLabel(range)
+          lengthLabel(range),
+          pagesFor(range)
         )
       )
       .join(
@@ -170,7 +186,7 @@ export const openLengthMenu = (app: AppContext, anchor: HTMLElement) => {
     `<div class="length-menu" role="radiogroup" aria-label="Length"><p class="popover-title">Length</p>${lengths
       .map(
         ([value, label]) =>
-          `<button type="button" role="radio" aria-checked="${value === current}" data-length="${value}"><span>${label}</span><small>about ${STORY_SCENES[value]} wireframes</small></button>`
+          `<button type="button" role="radio" aria-checked="${value === current}" data-length="${value}"><span>${label} · about ${minutesForPages(STORY_SCENES[value])} min</span><small>≈ ${STORY_SCENES[value]} wireframes</small></button>`
       )
       .join(
         ''

@@ -1,5 +1,6 @@
 import { animateBrandStory } from './brand-story-timeline'
 import { storyPresenter } from './story-presenter'
+import { animateRollingHeadline } from './rolling-headline'
 
 export const controlIcon = (playing: boolean) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${playing ? '<path d="M8 5v14M16 5v14"/>' : '<path d="m8 5 11 7-11 7Z"/>'}</svg>`
@@ -56,15 +57,33 @@ export const brandStory =
 <div class="story-controls"><span>Notes. Wireframes. Motion. You.</span><div class="story-progress" aria-hidden="true"><i></i><i></i><i></i><i></i></div><button class="story-motion" type="button" data-story-motion aria-label="Pause animation" title="Pause animation">${controlIcon(true)}</button></div>
 </div></section>`
 
+/** With notebooks there is no story, and the headline rolls on its own;
+ * hidden, it pauses. */
+const rollAlone = (headline: HTMLElement) => {
+  const motion = animateRollingHeadline(headline)
+  const visibility = () => motion.pause(document.hidden)
+  document.addEventListener('visibilitychange', visibility)
+  return () => {
+    document.removeEventListener('visibilitychange', visibility)
+    motion.dispose()
+  }
+}
+
 export const installBrandStory = (root: HTMLElement) => {
   let mounted: HTMLElement | null = null
   let dispose: (() => void) | undefined
   const mount = () => {
     const story = root.querySelector<HTMLElement>('.brand-story')
-    if (story === mounted) return
+    const target =
+      story || root.querySelector<HTMLElement>('.start .rolling-headline')
+    if (target === mounted) return
     dispose?.()
-    mounted = story
-    dispose = story ? animateBrandStory(story, controlIcon) : undefined
+    mounted = target
+    dispose = story
+      ? animateBrandStory(story, controlIcon)
+      : target
+        ? rollAlone(target)
+        : undefined
   }
   // Start/stop with the home screen; never leave a timeline running after navigation.
   new MutationObserver(mount).observe(root, { childList: true, subtree: true })

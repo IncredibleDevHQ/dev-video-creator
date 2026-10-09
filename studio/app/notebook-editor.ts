@@ -2,6 +2,8 @@ import type { Editor } from '@tiptap/core'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { runNotebookCommand, updateNotebookToolbar } from './notebook-toolbar'
+import { confirmAction } from './confirm-action'
+import { NOTE_LIMIT, notesLength } from '../shared/notes'
 
 const editors = new WeakMap<HTMLElement, Editor>()
 const loading = new WeakSet<HTMLElement>()
@@ -29,9 +31,22 @@ const stateOf = (editor: HTMLElement) => {
   }
   return state
 }
+// The save state belongs to the editor: a render redraws the toolbar, and
+// it must not say "Saved" over notes that are not (review 6).
 const status = (app: AppContext, text: string) => {
+  const editor = app.root.querySelector<HTMLElement>('[data-notebook-editor]')
+  if (editor) editor.dataset.saveStatus = text
   const label = app.root.querySelector<HTMLElement>('[data-note-save]')
-  if (label) label.textContent = text
+  if (label && label.textContent !== text) label.textContent = text
+}
+/** The live count, the cut note left out; red over the limit. */
+const showCount = (app: AppContext, text: string) => {
+  const count = app.root.querySelector<HTMLElement>('[data-note-count]')
+  if (!count) return
+  const length = notesLength(text)
+  const said = `${length.toLocaleString('en')} / ${NOTE_LIMIT.toLocaleString('en')}`
+  if (count.textContent !== said) count.textContent = said
+  count.classList.toggle('is-over', length > NOTE_LIMIT)
 }
 
 const save = async (app: AppContext, editor: HTMLElement): Promise<void> => {
@@ -51,6 +66,11 @@ const save = async (app: AppContext, editor: HTMLElement): Promise<void> => {
   if (!text) {
     status(app, 'Add some notes to save.')
     throw new Error('Add some notes to save')
+  }
+  if (notesLength(text) > NOTE_LIMIT) {
+    const said = `Shorten the notes to ${NOTE_LIMIT.toLocaleString('en')} characters to save them`
+    status(app, `Not saved: ${said.toLowerCase()}`)
+    throw new Error(said)
   }
   status(app, 'Saving…')
   const work = (async () => {
@@ -87,6 +107,31 @@ export const flushNotebookEdits = async (app: AppContext) => {
   if (editor) await save(app, editor)
 }
 
+/**
+ * Saves the notes before leaving them. When they can't be saved, asks
+ * whether to leave without the edits rather than holding the creator in the
+ * notebook. True to go on.
+ */
+export const saveBeforeLeaving = async (app: AppContext) => {
+  try {
+    await flushNotebookEdits(app)
+    return true
+  } catch (reason) {
+    const leave = await confirmAction({
+      title: 'Your notes are not saved',
+      detail: `${reason instanceof Error ? reason.message : 'They could not be saved'}. Leave anyway, and lose the edits since the last save?`,
+      action: 'Leave without saving'
+    })
+    const editor = app.root.querySelector<HTMLElement>('[data-notebook-editor]')
+    if (leave && editor) {
+      clearTimeout(stateOf(editor).timer)
+      editor.dataset.dirty = 'false'
+      delete editor.dataset.saveStatus
+    }
+    return leave
+  }
+}
+
 export const installNotebookEditor = (app: AppContext) => {
   const editorOf = (event: Event) =>
     (event.target as Element).closest<HTMLElement>('[data-notebook-editor]')
@@ -95,6 +140,8 @@ export const installNotebookEditor = (app: AppContext) => {
     clearTimeout(state.timer)
     editor.dataset.dirty = 'true'
     status(app, 'Unsaved changes')
+    const instance = editors.get(editor)
+    if (instance) showCount(app, instance.getMarkdown())
     if (!state.composing)
       state.timer = setTimeout(() => {
         void save(app, editor).catch(() => {})
@@ -112,7 +159,11 @@ export const installNotebookEditor = (app: AppContext) => {
     )
     if (!element) return
     if (editors.has(element)) {
-      updateNotebookToolbar(app.root, editors.get(element)!)
+      const instance = editors.get(element)!
+      updateNotebookToolbar(app.root, instance)
+      // After a render, the toolbar says the editor's own state again.
+      if (element.dataset.saveStatus) status(app, element.dataset.saveStatus)
+      showCount(app, instance.getMarkdown())
       return
     }
     if (loading.has(element)) return
@@ -135,6 +186,7 @@ export const installNotebookEditor = (app: AppContext) => {
         editors.set(element, instance)
         active = { element, instance }
         updateNotebookToolbar(app.root, instance)
+        showCount(app, instance.getMarkdown())
       })
       .catch((reason) => {
         loading.delete(element)

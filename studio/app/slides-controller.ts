@@ -1,7 +1,7 @@
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { downloadPresentation } from './download'
-import { flushNotebookEdits } from './notebook-editor'
+import { flushNotebookEdits, saveBeforeLeaving } from './notebook-editor'
 import { createPresentation } from './start-controller'
 import { closePopover, openPopover } from './popover'
 
@@ -54,16 +54,23 @@ export const installSlidesController = (app: AppContext) => {
     )
     app.dragged = target ? Number(target.dataset.slide) : null
   })
+  // Dropped anywhere or cancelled, the drag is over.
+  app.root.addEventListener('dragend', () => {
+    app.dragged = null
+  })
   app.root.addEventListener('dragover', (event) => {
     if ((event.target as Element).closest('[data-slide]'))
       event.preventDefault()
   })
   app.root.addEventListener('drop', async (event) => {
+    // Only a wireframe being dragged is the rail's: a link dropped on the
+    // start field, say, is left to that field.
+    if (app.dragged === null) return
     event.preventDefault()
     const target = (event.target as Element).closest<HTMLElement>(
       '[data-slide]'
     )
-    if (!target || app.dragged === null || !app.snapshot) return
+    if (!target || !app.snapshot) return
     try {
       app.selected = Number(target.dataset.slide)
       app.snapshot = await api.slide(app.snapshot.project.id, {
@@ -199,7 +206,7 @@ export const clickSlides = async (
     return
   }
   if (action === 'view-slides') {
-    await flushNotebookEdits(app)
+    if (!(await saveBeforeLeaving(app))) return
     app.stage = 'presentation'
     app.render()
   }

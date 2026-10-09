@@ -30,6 +30,25 @@ const PAGE_SECONDS: Record<Elaboration, [number, number]> = {
   thorough: [30, 60]
 }
 
+/**
+ * The same story told with a template: about as many pages, as a range of
+ * whole minutes, so taking a template keeps the creator's length (review 6).
+ */
+export const lengthForPages = (
+  pages: number,
+  elaboration: Elaboration
+): LengthRange => {
+  const [short, long] = PAGE_SECONDS[elaboration]
+  return [
+    Math.max(60, Math.floor((pages * short) / 60) * 60),
+    Math.ceil((pages * long) / 60) * 60
+  ]
+}
+
+/** About how long a story of this many pages runs, in whole minutes. */
+export const minutesForPages = (pages: number) =>
+  Math.max(1, Math.round((pages * 32) / 60))
+
 /** How many pages a telling suggests: its length over how long a page runs. */
 export const pageRange = (settings: DirectionSettings): [number, number] => {
   const [short, long] = PAGE_SECONDS[settings.elaboration]
