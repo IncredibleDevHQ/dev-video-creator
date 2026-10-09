@@ -1,0 +1,23 @@
+/* GSAP owns the shared playhead; these defaults avoid flashes before mounting. */
+.story-content,
+.story-diagram,
+.story-slide-footer,
+.story-deck,
+.story-person,
+.story-narration,
+.story-playback,
+.stage-slides,
+.stage-video,
+.stage-presenter,
+.story-motion-note,
+.motion-note-value,
+.playback-voice,
+.network-signal {
+  opacity: 0;
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-motion {
+    display: none;
+  }
+}

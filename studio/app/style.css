@@ -1,0 +1,31 @@
+/* Keep imports in cascade order; later screen refinements override foundations. */
+@import './styles/foundation.css';
+@import './styles/video.css';
+@import './styles/dialogs-recording.css';
+@import './styles/settings-home.css';
+@import './styles/responsive.css';
+@import './styles/activity.css';
+@import './styles/inspector.css';
+@import './styles/playback.css';
+@import './styles/focus.css';
+@import './styles/notebook.css';
+@import './agent-setup.css';
+
+@import './styles/appearance.css';
+@import './styles/brand-story.css';
+@import './styles/brand-story-motion.css';
+@import './styles/source-composer.css';
+@import './styles/rolling-headline.css';
+
+@import './styles/workspace-header.css';
+@import './styles/agent-and-look.css';
+@import './styles/wireframe-workspace.css';
+@import './styles/scene-link.css';
+@import './styles/record.css';
+@import './styles/template-sketches.css';
+@import './styles/templates.css';
+@import './styles/template-picker.css';
+@import './styles/repos-series-release.css';
+@import './styles/map-canvas.css';
+@import './styles/map-parts.css';
+@import './styles/map-overlays.css';

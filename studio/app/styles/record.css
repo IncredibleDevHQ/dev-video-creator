@@ -1,0 +1,119 @@
+/* Recording in place: the light and clock, the countdown on the stage, the
+   microphone's level, and Start in recording red. */
+.rec-light {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: 12px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: #3a1514;
+  color: #ffb4ab;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.rec-light > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff5449;
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+.rec-light time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #ffdad6;
+}
+@keyframes rec-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.record-countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: #0b16108c;
+  pointer-events: none;
+}
+.record-countdown b {
+  display: grid;
+  place-items: center;
+  width: 148px;
+  height: 148px;
+  border: 3px solid #ffffffcc;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 84px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  animation: count-in 1s ease-out;
+}
+@keyframes count-in {
+  from {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+}
+.mic-meter {
+  position: relative;
+  display: inline-block;
+  width: 72px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #ffffff1f;
+}
+.mic-meter > i {
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: linear-gradient(90deg, #4dba72 0 65%, #e8b84a 85%, #ff5449);
+  transition: transform 0.08s linear;
+}
+.rec-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #ff5449;
+  vertical-align: -1px;
+}
+.stop-square {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: currentColor;
+}
+/* Outranks the dark appearance's primary button: Start is recording red. */
+:root .is-focused .video-actions .primary[data-action='record-begin'] {
+  background: #b3261e;
+  border-color: #b3261e;
+  color: #fff;
+}
+:root .is-focused .video-actions [data-action='record-begin'] .rec-dot {
+  background: #fff;
+}
+:root
+  .is-focused
+  .video-actions
+  .primary[data-action='record-begin']:hover:not(:disabled) {
+  background: #c9302a;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec-light > i,
+  .record-countdown b {
+    animation: none;
+  }
+}

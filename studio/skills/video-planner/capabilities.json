@@ -1,0 +1,2774 @@
+{
+  "upstreamCommit": "99221c50a5e5927ca243454b4e4f02f9adf7cfc6",
+  "runtime": {
+    "@hyperframes/core": "0.7.106",
+    "@hyperframes/player": "0.7.106",
+    "@hyperframes/producer": "0.7.106"
+  },
+  "entries": [
+    {
+      "id": "hacker-flip-3d",
+      "kind": "rule",
+      "summary": "Character-level 3D rotation with deterministic glyph substitution (decryption). GSAP `back.out` ease + per-glyph `onUpdate` for the flicker hash.",
+      "source": "skills/hyperframes-animation/rules/hacker-flip-3d.md",
+      "tags": ["text", "3d", "reveal", "decode"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "vertical-spring-ticker",
+      "kind": "rule",
+      "summary": "Slot-machine vertical scrolling using stepped GSAP tweens within a masked column.",
+      "source": "skills/hyperframes-animation/rules/vertical-spring-ticker.md",
+      "tags": ["text", "ticker", "scroll", "vertical"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "counting-dynamic-scale",
+      "kind": "rule",
+      "summary": "Counter where transform scale grows with the value for escalating emphasis. A numeric proxy and scale tween share one timeline position.",
+      "source": "skills/hyperframes-animation/rules/counting-dynamic-scale.md",
+      "tags": [
+        "counter",
+        "scale",
+        "transform",
+        "number",
+        "dynamic",
+        "stat",
+        "count-up"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "discrete-text-sequence",
+      "kind": "rule",
+      "summary": "Replace entire text states at time thresholds for non-linear typing (typos, holds, bulk additions, backspaces). GSAP onUpdate-driven reverse search.",
+      "source": "skills/hyperframes-animation/rules/discrete-text-sequence.md",
+      "tags": ["text", "typing", "discrete", "threshold", "non-linear"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "asr-keyword-glow",
+      "kind": "rule",
+      "summary": "Highlight keywords with glow + scale + color synced to ASR word timestamps. Two GSAP tweens per word drive a CSS custom property `--glow` through attack-decay-rest envelope.",
+      "source": "skills/hyperframes-animation/rules/asr-keyword-glow.md",
+      "tags": ["asr", "audio-sync", "highlight", "glow", "keyword", "text"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "3d-text-depth-layers",
+      "kind": "rule",
+      "summary": "Multiple offset text layers (N divs at `(i*dx, i*dy)` with decreasing alpha) create a stacked 3D extrusion illusion on large typography.",
+      "source": "skills/hyperframes-animation/rules/3d-text-depth-layers.md",
+      "tags": [
+        "text",
+        "3d",
+        "depth",
+        "layers",
+        "shadow",
+        "typography",
+        "stacked"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "context-sensitive-cursor",
+      "kind": "rule",
+      "summary": "Typing cursor whose `background-color` switches at segment boundaries plus square-wave blink via `(tl.time() % cycle) < cycle/2`.",
+      "source": "skills/hyperframes-animation/rules/context-sensitive-cursor.md",
+      "tags": [
+        "cursor",
+        "color",
+        "context",
+        "typewriter",
+        "styling",
+        "segment"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "dynamic-content-sequencing",
+      "kind": "rule",
+      "summary": "Pre-compute a flat `[{startTime, endTime, ...}]` array from a script of `{textMain, textAccent, charSpeed, hold}` entries. Each phrase's window = `chars × charSpeed + hold`. Content-driven duration, no hand-tuned offsets.",
+      "source": "skills/hyperframes-animation/rules/dynamic-content-sequencing.md",
+      "tags": [
+        "timeline",
+        "sequencing",
+        "dynamic",
+        "duration",
+        "script-driven"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "kinetic-beat-slam",
+      "kind": "rule",
+      "summary": "Percussive kinetic typography — short phrases slam in on ONE shared beat array with DISTINCT per-phrase entrances (scale-slam / side-snap / rise-rotate), optional rhythm chrome (metronome ticks, beat bar), then a locked finale. The recipe for \"punchy / rhythmic\" taglines.",
+      "source": "skills/hyperframes-animation/rules/kinetic-beat-slam.md",
+      "tags": [
+        "text",
+        "kinetic",
+        "typography",
+        "beat",
+        "rhythm",
+        "slam",
+        "percussive",
+        "punchy"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "gradient-text-sweep",
+      "kind": "rule",
+      "summary": "A gradient tweened THROUGH letterforms — `background-clip: text` + an oversized-background `backgroundPosition` tween. Continuous sweep across a held headline, traveling word-to-word highlight (stacked-copy opacity envelopes), or a hue-sweep that settles to a solid via a pixel-identical twin crossfade. Glyphs never move; finite, seek-safe.",
+      "source": "skills/hyperframes-animation/rules/gradient-text-sweep.md",
+      "tags": [
+        "gradient",
+        "text",
+        "sweep",
+        "background-clip",
+        "highlight",
+        "hue",
+        "headline"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "chromatic-glitch",
+      "kind": "rule",
+      "summary": "RGB-split / slice glitch that snaps sharp — offset color copies jitter on a deterministic hash of QUANTIZED timeline time (never Math.random), or horizontal slice bands displace and converge under a stepped ease; brief vibration, clean resolve, clamped rest state. Entrance stretch, emphasis burst, and slice-reveal forms.",
+      "source": "skills/hyperframes-animation/rules/chromatic-glitch.md",
+      "tags": [
+        "glitch",
+        "rgb-split",
+        "chromatic",
+        "slice",
+        "jitter",
+        "stutter",
+        "snap"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "stat-bars-and-fills",
+      "kind": "rule",
+      "summary": "Data-viz primitives that pair a number with a graphic — growth bars (CSS `scaleY` stagger), progress fill (bar `scaleX` or measured SVG ring), and fractional star-rating wipe (`clip-path`). Transforms only, seek-safe. Pick single-focus vs split-frame and hold it.",
+      "source": "skills/hyperframes-animation/rules/stat-bars-and-fills.md",
+      "tags": [
+        "data",
+        "stats",
+        "chart",
+        "bars",
+        "progress",
+        "ring",
+        "stars",
+        "rating",
+        "infographic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "chart-scrub-readout",
+      "kind": "rule",
+      "summary": "Cursor/playhead scrubs an already-drawn chart — ONE driver moves a vertical tracking line + marker along a baked data polyline while a date/value tooltip steps through the data array (text writes only on index change); second series can activate on cross. Chart arrival belongs to `stat-bars-and-fills` / `svg-path-draw`; this is the read head.",
+      "source": "skills/hyperframes-animation/rules/chart-scrub-readout.md",
+      "tags": [
+        "chart",
+        "scrub",
+        "tooltip",
+        "readout",
+        "tracking-line",
+        "data",
+        "playhead"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "coordinate-target-zoom",
+      "kind": "rule",
+      "summary": "Zoom into non-centered elements via scale (outer wrapper) + counter-translation (inner wrapper).",
+      "source": "skills/hyperframes-animation/rules/coordinate-target-zoom.md",
+      "tags": ["camera", "zoom", "scale", "translate"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "camera-cursor-tracking",
+      "kind": "rule",
+      "summary": "Two-phase virtual camera that locks the viewport to a moving focal point (typing cursor) — static initial framing then focal-point-locked tracking. Uses browser-native `getBoundingClientRect()` / `ctx.measureText()` after `document.fonts.ready`.",
+      "source": "skills/hyperframes-animation/rules/camera-cursor-tracking.md",
+      "tags": ["camera", "tracking", "viewport", "two-phase", "typing"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "multi-phase-camera",
+      "kind": "rule",
+      "summary": "Sequential camera-zoom system (pull-back / focus / push) plus continuous micro-drift.",
+      "source": "skills/hyperframes-animation/rules/multi-phase-camera.md",
+      "tags": ["camera", "zoom", "phase", "drift", "scale", "cinematic"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "viewport-change",
+      "kind": "rule",
+      "summary": "Virtual camera — simulate zoom / pan / focus-lock by transforming a single `.world` wrapper containing all scene content. Single-element composite transform `translate(x,y) scale(S)`; counter-translate math is `T = -offset × S` (DIFFERENT from coordinate-target-zoom's `T = -offset`).",
+      "source": "skills/hyperframes-animation/rules/viewport-change.md",
+      "tags": ["viewport", "camera", "zoom", "pan", "focus-lock"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "3d-camera-flight",
+      "kind": "rule",
+      "summary": "Perspective camera FLIGHT through a 3D-laid-out world — one static `perspective` stage + `preserve-3d` `.world` whose pose (`translate3d` + `rotateX`/`rotateY`) is tweened leg-by-leg from a single camera state object: dive into an angled grid, tilt-to-flatten pull-back, flight past standing cards, decelerate-into-focus. `power4.out` landings, `power2.inOut` repositioning; DoF via depth-of-field-blur on non-focal planes. The only camera rule that rotates/travels in Z (the other three are 2D scale+translate).",
+      "source": "skills/hyperframes-animation/rules/3d-camera-flight.md",
+      "tags": [
+        "camera",
+        "3d",
+        "flight",
+        "perspective",
+        "rotateX",
+        "translateZ",
+        "dive",
+        "tilt"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "depth-of-field-blur",
+      "kind": "rule",
+      "summary": "Selective rack-focus — GSAP-tween `filter: blur()` (+ slight opacity dim) on off-focus layers via a `--dof` var while the focal element stays sharp; single pull, two-plane rack, or blur-the-cluster-while-pushing-in. Finite, deterministic, seek-safe.",
+      "source": "skills/hyperframes-animation/rules/depth-of-field-blur.md",
+      "tags": [
+        "blur",
+        "depth-of-field",
+        "focus",
+        "rack-focus",
+        "dim",
+        "spotlight"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "avatar-cloud-network",
+      "kind": "rule",
+      "summary": "Avatars on an elliptical ring with SVG connection lines to a center point, staggered entry. Cloud center coordinates must match the centerpiece element exactly.",
+      "source": "skills/hyperframes-animation/rules/avatar-cloud-network.md",
+      "tags": ["avatar", "cloud", "network", "social-proof", "stagger"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "3d-page-scroll",
+      "kind": "rule",
+      "summary": "Full webpage rendered as a tilted 3D card whose internal content scrolls to reveal specific sections. Pair with asr-keyword-glow for on-page keyword highlighting.",
+      "source": "skills/hyperframes-animation/rules/3d-page-scroll.md",
+      "tags": [
+        "3d",
+        "page",
+        "scroll",
+        "webpage",
+        "tilt",
+        "perspective",
+        "product-demo"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "center-outward-expansion",
+      "kind": "rule",
+      "summary": "Elements start clustered at screen center and expand outward to final positions. Each element gets its target position via CSS once; GSAP tweens transform `x` / `y` offsets to 0 in lockstep with a shared driver.",
+      "source": "skills/hyperframes-animation/rules/center-outward-expansion.md",
+      "tags": ["expansion", "scatter", "center", "reveal", "layout", "sync"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "split-tilt-cards",
+      "kind": "rule",
+      "summary": "Two cards side-by-side with opposing rotationY tilts (+/- baseTilt) and entry slides from their respective sides. Continuous floating runs in phase opposition (`Math.PI` offset).",
+      "source": "skills/hyperframes-animation/rules/split-tilt-cards.md",
+      "tags": ["3d", "cards", "split", "tilt", "comparison", "symmetric"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "orbit-3d-entry",
+      "kind": "rule",
+      "summary": "Elements flip in from 3D space (`rotateX` + `rotateY` + `translateZ`) then settle into a continuous elliptical orbit. **Critical**: entry MUST flip in-place at the orbital starting position (`gsap.set` BEFORE phase 1), not at scene center.",
+      "source": "skills/hyperframes-animation/rules/orbit-3d-entry.md",
+      "tags": [
+        "orbit",
+        "3d",
+        "flip",
+        "ellipse",
+        "circular",
+        "icon",
+        "entry",
+        "continuous"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "ai-tracking-box",
+      "kind": "rule",
+      "summary": "AI detection overlay — yellow `#facc15` L-bracket corners + confidence label (fluctuating 95-99%) following a target on a sine arc path. Box position recomputed per-frame from target position (never tweened separately).",
+      "source": "skills/hyperframes-animation/rules/ai-tracking-box.md",
+      "tags": ["ai", "tracking", "bounding-box", "detection", "corner", "ml"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "depth-scatter-assemble",
+      "kind": "rule",
+      "summary": "N elements scatter into / reassemble from a rotating 3D depth-cloud — each starts at a deterministic index-derived 3D offset (translateZ + rotateX/Y + scatter) and settles to a clean flat layout; tumble-swap and radial-explode variants. preserve-3d + perspective, transform-only, seek-safe.",
+      "source": "skills/hyperframes-animation/rules/depth-scatter-assemble.md",
+      "tags": [
+        "3d",
+        "scatter",
+        "assemble",
+        "tumble",
+        "depth",
+        "perspective",
+        "glyphs"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "anchored-layout-expand",
+      "kind": "rule",
+      "summary": "Edge-pinned container grows/collapses along ONE axis and in-flow content reflows — pill springs open into a dropdown, panel grows a sub-task stack, input card steps taller as typed text wraps, pane expands over a neighbor. Transform-only (layout authored expanded; mask + sheet slide, or proxy-driven scaleY + inverse counter-scale) since width/height tweens are forbidden; the push on following content shares the SAME tween so the seam never separates.",
+      "source": "skills/hyperframes-animation/rules/anchored-layout-expand.md",
+      "tags": [
+        "expand",
+        "collapse",
+        "anchored",
+        "dropdown",
+        "accordion",
+        "panel",
+        "reflow",
+        "push",
+        "mask",
+        "counter-scale"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "svg-icon-enrichment",
+      "kind": "rule",
+      "summary": "Animate internal SVG elements (rotating hands, oscillating blades, pulsing dots, dash-flow lines) so icons feel alive. **Critical**: use SVG `setAttribute('transform', 'rotate(deg cx cy)')` for explicit center — CSS `transform-origin` + `transform-box: fill-box` interprets origin in bbox-local coords (off-center for thin lines).",
+      "source": "skills/hyperframes-animation/rules/svg-icon-enrichment.md",
+      "tags": [
+        "svg",
+        "icon",
+        "animation",
+        "micro-animation",
+        "rotation",
+        "pulse"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "svg-path-draw",
+      "kind": "rule",
+      "summary": "SVG outline draws itself stroke-by-stroke via `stroke-dasharray` / `stroke-dashoffset`. Measure with `getTotalLength()` at composition setup, set initial dashoffset = length, GSAP tweens to 0. For circular progress rings, rotate the stroke `-90deg` so drawing starts at 12 o'clock.",
+      "source": "skills/hyperframes-animation/rules/svg-path-draw.md",
+      "tags": ["svg", "stroke", "draw", "vector", "path", "dasharray"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "sine-wave-loop",
+      "kind": "rule",
+      "summary": "Continuous breathing/idle ambient motion. Two forms: GSAP `sine.inOut` yoyo with finite repeats (preferred when standalone) or onUpdate reading `tl.time()` (preferred when multiplying onto another live value).",
+      "source": "skills/hyperframes-animation/rules/sine-wave-loop.md",
+      "tags": ["idle", "loop", "breathing", "sine", "ambient"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "ambient-glow-bloom",
+      "kind": "rule",
+      "summary": "Un-triggered soft radial glow that blooms in behind a hero element and holds with a bounded idle breathe, or a single-pass traveling sheen across a surface. No click, no word-sync; peak opacity ≤ ~0.45, finite/deterministic.",
+      "source": "skills/hyperframes-animation/rules/ambient-glow-bloom.md",
+      "tags": ["glow", "bloom", "ambient", "radial", "sheen", "hero"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "reactive-displacement",
+      "kind": "rule",
+      "summary": "Physical-collision transition where an entering element's GSAP tween drives the exiting element's displacement. Three concurrent tweens at the same timeline position with victim durations 40-50% of the intruder's.",
+      "source": "skills/hyperframes-animation/rules/reactive-displacement.md",
+      "tags": ["transition", "physics", "collision", "displacement", "push"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "press-release-spring",
+      "kind": "rule",
+      "summary": "Tactile button press: linear compression then spring recovery via two adjacent GSAP tweens on the same property. Variations: color transition, shadow depth via CSS vars, release burst, background glow.",
+      "source": "skills/hyperframes-animation/rules/press-release-spring.md",
+      "tags": [
+        "spring",
+        "press",
+        "button",
+        "interaction",
+        "physics",
+        "glow",
+        "burst"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "physics-press-reaction",
+      "kind": "rule",
+      "summary": "Physical click simulation — two sequential GSAP scale tweens (down to 0.9, up to 1.0) approximate a spring with overshoot. Pass a single targets array `[\"#cta\", \"#cursor\"]` to compress both together for tactile contact feel.",
+      "source": "skills/hyperframes-animation/rules/physics-press-reaction.md",
+      "tags": ["spring", "click", "physics", "press", "interaction", "cursor"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "cursor-click-ripple",
+      "kind": "rule",
+      "summary": "Animated cursor moves to a target, depresses cursor + target together on click, emits an expanding ripple with attack-decay opacity envelope. Element lives in DOM from t=0 with `opacity: 0` (no conditional rendering).",
+      "source": "skills/hyperframes-animation/rules/cursor-click-ripple.md",
+      "tags": [
+        "cursor",
+        "click",
+        "ripple",
+        "interaction",
+        "mouse",
+        "button",
+        "keyframes"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "cursor-drag",
+      "kind": "rule",
+      "summary": "The drag verb for driven cursors — grab (press dip + lift), travel (semi-transparent ghost rides the cursor in exact lockstep via matched tweens), drop-snap into a placed field with selection chrome. Variants: fill-handle auto-fill (linear travel + stepped `tl.set` cell reveals), corner-handle proportional resize (uniform scale, origin at the anchor corner — never width/height), grab-lift-reorder (tilt + shadow, neighbor springs into the vacated slot).",
+      "source": "skills/hyperframes-animation/rules/cursor-drag.md",
+      "tags": [
+        "cursor",
+        "drag",
+        "drop",
+        "ghost",
+        "handle",
+        "resize",
+        "reorder",
+        "snap",
+        "interaction"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "multi-cursor-choreography",
+      "kind": "rule",
+      "summary": "N (2–4) labeled independent cursor actors work one canvas simultaneously — collaborative-canvas ambience. Per-actor deterministic waypoint tables (explicit fromTo legs + rests), name-tag pills in distinct colors, grab/drop/hover actions at chorus intensity on an interleaved beat grid (one payoff at a time, zone-partitioned paths, no collisions); camera locked — any pan is the canvas group translating.",
+      "source": "skills/hyperframes-animation/rules/multi-cursor-choreography.md",
+      "tags": [
+        "cursor",
+        "multi-cursor",
+        "collaboration",
+        "ensemble",
+        "canvas",
+        "name-tag",
+        "choreography",
+        "ambient"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "control-target-sync",
+      "kind": "rule",
+      "summary": "Live-sync couple — a scrubbed/typed/picked control and its bound target change in the SAME beat: readout tween + target transform tween share one timeline label, duration, and ease (continuous scrub), or one threshold state array carries both sides (per-keystroke / dropdown-pick steps). Distinct from `reactive-displacement` (collision physics, one-shot transition).",
+      "source": "skills/hyperframes-animation/rules/control-target-sync.md",
+      "tags": [
+        "control",
+        "scrub",
+        "live-sync",
+        "mirror",
+        "panel",
+        "editor",
+        "readout",
+        "ui"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "scale-swap-transition",
+      "kind": "rule",
+      "summary": "Coordinated morph between two DOM elements at the same screen center. Exit cluster shrinks + fades; entrance pops in with `back.out(2)` overshoot.",
+      "source": "skills/hyperframes-animation/rules/scale-swap-transition.md",
+      "tags": ["transition", "morph", "scale", "swap"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "card-morph-anchor",
+      "kind": "rule",
+      "summary": "Container morphs apparent size + corner radius + surface treatment between two shots, then fades to reveal the real target underneath. HyperFrames substitutes uniform `scale` for the forbidden `width`/`height` tween, plus paint-only `borderRadius`/`background`/`boxShadow`.",
+      "source": "skills/hyperframes-animation/rules/card-morph-anchor.md",
+      "tags": [
+        "morph",
+        "anchor",
+        "transition",
+        "border-radius",
+        "container",
+        "shape",
+        "handoff"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "theme-crossfade-morph",
+      "kind": "rule",
+      "summary": "Whole-theme in-place morph under a fixed anchor — background, typography, radii, icons, chrome and logos blend simultaneously (~0.3s) through N pre-styled skins while one anchor element never moves. Stacked complete layers + opacity-only crossfade, anchor rendered once on top (or per-layer at identical geometry); static camera. Single container instead → `card-morph-anchor`.",
+      "source": "skills/hyperframes-animation/rules/theme-crossfade-morph.md",
+      "tags": [
+        "theme",
+        "skin",
+        "crossfade",
+        "morph",
+        "anchor",
+        "reskin",
+        "cycle",
+        "ui"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "spring-pop-entrance",
+      "kind": "rule",
+      "summary": "The canonical ENTRANCE pop — an element (or staggered group) arrives by springing `scale: 0 → 1` with `back.out` overshoot, `fromTo` so it's correct at t=0 under seek. Single hero, staggered group (≤500ms cap), overshoot tuned by personality. Distinct from `press-release-spring` (a click/press reaction).",
+      "source": "skills/hyperframes-animation/rules/spring-pop-entrance.md",
+      "tags": [
+        "spring",
+        "entrance",
+        "pop",
+        "scale-in",
+        "overshoot",
+        "stagger",
+        "arrival"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "motion-blur-streak",
+      "kind": "rule",
+      "summary": "Fake directional velocity blur on a fast entrance / camera push-through — blur peaks at max speed, resolves to 0 at the settle. Two paths: SVG `feGaussianBlur` stdDeviation on the motion axis (proxy-tweened), or a deterministic echo/ghost trail that collapses into the lead. Entrances / mid-shot only.",
+      "source": "skills/hyperframes-animation/rules/motion-blur-streak.md",
+      "tags": ["motion-blur", "streak", "velocity", "ghost", "echo", "fast"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "waterfall-entry",
+      "kind": "rule",
+      "summary": "Staggered ARRIVAL cascade — words/elements whip in from below, each starting before the previous settles, an accelerating wave that resolves composed. Title cards, segment openers, list intros. Binary 0→1 opacity via `tl.set` — never fade an arrival.",
+      "source": "skills/hyperframes-animation/rules/waterfall-entry.md",
+      "tags": [
+        "entrance",
+        "cascade",
+        "stagger",
+        "kinetic-text",
+        "title-card",
+        "arrival",
+        "waterfall"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "particle-burst",
+      "kind": "rule",
+      "summary": "Deterministic particle / confetti events — confetti pop that bursts up and drifts down on gravity (optional instant-shrink), dot burst from behind text, glyph dissolve to particles. Fixed pool, index-seeded launch values, one `ease: \"none\"` driver whose onUpdate computes each particle as a pure ballistic function of time — scrub-safe mid-flight, ≤ ~40 particles.",
+      "source": "skills/hyperframes-animation/rules/particle-burst.md",
+      "tags": [
+        "particles",
+        "confetti",
+        "burst",
+        "dissolve",
+        "ballistic",
+        "deterministic",
+        "punctuation"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "nudge-curve",
+      "kind": "rule",
+      "summary": "Slow-fast-slow three-phase group slide (power3.in ramp → linear burst → power4.out tail, 10/65/25 distance, tail ≥3× ramp-in) to reposition a composed group and reveal content during the burst.",
+      "source": "skills/hyperframes-animation/rules/nudge-curve.md",
+      "tags": [
+        "slide",
+        "reposition",
+        "group-motion",
+        "nudge",
+        "slow-fast-slow"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "gsap-effects",
+      "kind": "rule",
+      "summary": "Drop-in GSAP timeline patterns — typewriter, audio visualizer, and other reusable choreography blocks.",
+      "source": "skills/hyperframes-animation/rules/gsap-effects.md",
+      "tags": ["gsap", "recipe", "drop-in", "typewriter", "audio-visualizer"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "css-marker-patterns",
+      "kind": "rule",
+      "summary": "Pure CSS + GSAP implementations of marker-highlight drawing modes — highlight (yellow sweep), circle (hand-drawn ellipse), burst (radiating lines), scribble (chaotic), sketchout (rough rectangle outline).",
+      "source": "skills/hyperframes-animation/rules/css-marker-patterns.md",
+      "tags": ["css", "marker", "highlight", "text", "emphasis"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "kinetic-type-beats",
+      "kind": "blueprint",
+      "summary": "Flat, centered, bold-type shot where the **motion IS the words changing** — a fixed line swaps tokens in place by hard cut, or a statement builds across full-screen beats (each its own move) onto a spring-pop payoff. The workhorse (6 roles). Reach for it whenever the words carry the shot and there's no set, surface, or click.",
+      "source": "skills/hyperframes-animation/blueprints/kinetic-type-beats.md",
+      "tags": [
+        "Hook",
+        "Problem",
+        "Product_Intro",
+        "Benefits",
+        "CTA",
+        "Brand_Outro"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "typewriter-reveal",
+      "kind": "blueprint",
+      "summary": "A live text caret **types (and edits) a line as a human would**, then collapses it and pops a brand payoff, or holds it under a persistent mark while a sub-line types into the final CTA. Reach for it when \"someone is typing this\" should be the engine — a relatable typed pain → brand, or a standing logo + a typed CTA rail.",
+      "source": "skills/hyperframes-animation/blueprints/typewriter-reveal.md",
+      "tags": ["Hook", "Brand_Outro"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "spatial-pan-stations",
+      "kind": "blueprint",
+      "summary": "Pre-placed labeled **stations on one oversized canvas, traversed by a single virtual camera** — repeated lateral/diagonal pans centering each station and revealing a callout, landing held on the last. Reach for it for a milestone timeline panned to \"us,\" a connected web of pain stations ending in a tangled knot, or a two-shot concept-decode strip bridged by one lateral pan into a live demo.",
+      "source": "skills/hyperframes-animation/blueprints/spatial-pan-stations.md",
+      "tags": ["Hook", "Problem", "Product_Intro"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "camera-journey",
+      "kind": "blueprint",
+      "summary": "The real viewport camera is the STORYTELLER — a **multi-leg motivated journey** (dive in → a beat fires → travel to the consequence / reposition → landing push) across one continuous world. Two sub-shapes: **(A) action roundtrip** — dive to a panel, a click/send fires, the camera swoops to where the consequence renders as element motion; **(B) cursorless flight** — pure cinematic 3D flight (motion blur, DoF, tilt-to-flatten), no cursor anywhere. Reach for it when the camera's travel itself tells the cause→effect (or spectacle) story — not when it chases a cursor (cursor-ui-demo) or presents one hero device (device-surface-showcase).",
+      "source": "skills/hyperframes-animation/blueprints/camera-journey.md",
+      "tags": ["Benefits", "Key_Feature"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "zoom-out-workspace-reveal",
+      "kind": "blueprint",
+      "summary": "Open TIGHT on one full-bleed detail — a graphic macro or a small UI region — let micro-action play in close-up, then **ONE continuous decelerating zoom-out reveals the containing whole** (design-tool workspace / multi-pane agent workspace); the frame locks and element-level payoff carries on. The zoom-out IS the engine — the structural inverse of the push-in shapes; no zoom-in anywhere. Reach for it to open on a mystery detail that re-scopes into \"this is where it lives,\" or to land a scale/breadth payoff (\"that was one corner of everything it did\").",
+      "source": "skills/hyperframes-animation/blueprints/zoom-out-workspace-reveal.md",
+      "tags": ["Hook", "Benefits"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "constellation-hub",
+      "kind": "blueprint",
+      "summary": "Iconned **nodes spring into a ring around a center**, then resolve on the core — a camera push-IN (depth-of-field collapsing onto it), a held hub mark with satellites orbiting it, or a cursor click that COLLAPSES the orbit and springs the product demo out of it (CTA). Reach for it for \"it connects everything / one hub\" or \"sits at the center of your stack.\" Third finisher (scatter-drift end card): no ring, no camera — ~20 icons pop in scattered frame-wide around a serif headline and drift slowly outward under a fully static frame.",
+      "source": "skills/hyperframes-animation/blueprints/constellation-hub.md",
+      "tags": ["Hook", "Social_Proof", "CTA"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "grid-card-assemble",
+      "kind": "blueprint",
+      "summary": "N items (tiles / cards / logos / list-lines) **self-assemble in a staggered cascade** into a grid or vertical list and hold; an optional camera zoom-OUT reveals the array inside a vaster whole. Reach for it to enumerate breadth at once — a feature grid, an accumulating benefit list, a logo wall, a self-populating live data board, or a streaming field that clears to a payoff line.",
+      "source": "skills/hyperframes-animation/blueprints/grid-card-assemble.md",
+      "tags": ["Key_Feature", "Benefits", "Social_Proof"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "logo-assemble-lockup",
+      "kind": "blueprint",
+      "summary": "A brand mark / wordmark **comes to exist on screen** — built from parts (elements assemble/orbit, letters cascade, an outline draws on, a camera pushes through negative space), spring-bloomed whole from zero on a cleared stage, morphed in one unbroken chain out of the preceding phrase, absorbed from a pixel streak, or already assembled and settling as satellites clear — and resolves into a centered lockup, optionally extended to a URL/CTA/end card. Reach for it for a wordless premium brand sting, a logo build leading into the final ask, or any brand-outro lockup beat.",
+      "source": "skills/hyperframes-animation/blueprints/logo-assemble-lockup.md",
+      "tags": ["Product_Intro", "CTA", "Brand_Outro"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "cursor-ui-demo",
+      "kind": "blueprint",
+      "summary": "A visible custom **cursor drives a reconstructed app UI** through clicks/hovers/drags so the screen changes state shot-to-shot, while the camera chases each interaction (or holds a locked static stage while element swaps do the \"camera work\"). Reach for it for a first cursor-led look at the surface (Product_Intro), one workflow demonstrated end-to-end onto the action button (Key_Feature), an ambient multi-cursor canvas hook, or a demo|text|demo Benefits sandwich.",
+      "source": "skills/hyperframes-animation/blueprints/cursor-ui-demo.md",
+      "tags": ["Product_Intro", "Key_Feature", "Hook", "Benefits"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "device-surface-showcase",
+      "kind": "blueprint",
+      "summary": "A **device mockup or floating window held as hero** while its screens cycle through a real flow, presented by a camera ranging from a static hold to a continuous 3D push. Mechanic-rich (static tour · floating-window push-scroll · 3D-hand demo · cursorless stepwise-flow · showcase-carousel); the stepwise-flow variant widens it to Product_Intro. Reach for it to show a feature experienced *inside its real interface*, or a product introduced by *completing its core loop*.",
+      "source": "skills/hyperframes-animation/blueprints/device-surface-showcase.md",
+      "tags": ["Key_Feature", "Product_Intro"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "prompt-type-submit-generate",
+      "kind": "blueprint",
+      "summary": "The AI-era demo shot: a **prompt/query/command types into a real product input and the machine answers** — status theater into a streaming answer / action log / diff cards / chart / generated artifact (full loop), an instant result surface that gets re-queried (search / generated page / preview flip), or the clip cuts at the submit and the ask itself is the show (incl. the install-command CTA end card). Reach for it whenever the beat is \"watch me ask, watch it answer\" — the keyboard drives, not a clicked-through UI (that's cursor-ui-demo) and not bare typed typography (that's typewriter-reveal).",
+      "source": "skills/hyperframes-animation/blueprints/prompt-type-submit-generate.md",
+      "tags": ["Hook", "Product_Intro", "Key_Feature", "CTA"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "agent-progress-theater",
+      "kind": "blueprint",
+      "summary": "Agent work performed as **working-state theater** — a single trigger beat (menu pick, modal click, a scan already running) hands the frame to the machine: loaders spin and status phrases swap while it visibly works, then the receipt cascades in — a checklist/findings card whose rows arrive and CHECK OFF (badge flips, strikethroughs, severity pills), or a conversation thread building message-by-message to a camera push-in on the confirmation. Reach for it to dramatize an agent doing multi-step work where the state mutation IS the demo — no typed prompt, no cursor-driven workflow, no static enumeration.",
+      "source": "skills/hyperframes-animation/blueprints/agent-progress-theater.md",
+      "tags": ["Key_Feature"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "panel-edit-live-sync",
+      "kind": "blueprint",
+      "summary": "A bipartite stage — an inspector/editor **panel bound to a target surface** — where a cursor (or caret) continuously manipulates a control (value scrub, unit/codegen dropdown, easing-handle drag, inline retype) and the coupled surface **updates live in the same beat**; the camera holds or punch-and-returns but never loses the couple. Reach for it when the feature IS live editing/inspection — \"change this, watch it change\" — not a click-through workflow (that's `cursor-ui-demo`).",
+      "source": "skills/hyperframes-animation/blueprints/panel-edit-live-sync.md",
+      "tags": ["Key_Feature"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "transcript-scroll-artifact-reveal",
+      "kind": "blueprint",
+      "summary": "The frame travels vertically along one LONG full-bleed content surface — an agent transcript, task feed, or analysis document (no device frame) — by camera pan or element scroll, **reading the generated work as evidence**; then ONE focal interaction (file-chip click, quote highlight, row expand) pivots into an artifact reveal (workspace zoom-out, spreadsheet scale-up onto highlighted cells, inline panel). Reach for it when \"the AI did a lot of work → here's the deliverable\" is the beat — the traversal is the proof, the artifact is the payoff.",
+      "source": "skills/hyperframes-animation/blueprints/transcript-scroll-artifact-reveal.md",
+      "tags": ["Key_Feature"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "dataviz-countup",
+      "kind": "blueprint",
+      "summary": "Numbers and charts are the hero — a **count-up ring/number, trend chart, tilted stat grid** — traversed by a camera that pushes THROUGH (or scrolls across) them to land on one hero metric. Reach for it when the data carries the argument: quantify a worsening problem, open confidently on \"look at the result,\" cold-open on one exploding statistic, prove a feature with a dark cursor-scrubbed stat montage, or guest-star a single gauge count-up as one beat inside a type relay.",
+      "source": "skills/hyperframes-animation/blueprints/dataviz-countup.md",
+      "tags": [
+        "Hook",
+        "Problem",
+        "Product_Intro",
+        "Key_Feature",
+        "Social_Proof"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "titlecard-reveal",
+      "kind": "blueprint",
+      "summary": "The calm **breather/landing beat** — one clean title or single brand/proof card revealed with exactly ONE restrained move (slide-up crossfade, or wipe-away-to-reveal), then a still hold. Low motion is the payload, not a deficiency. Reach for it for a two-line value title, or a busy open wiped to a clean lockup + a \"loved by N+ teams\" stat. Also runs as a card CHAIN — 2–3 near-still monochrome cards seamed by instant hard cuts (CTA end-card stack) or blur-snap handoffs (Product_Intro title prelude), terminating on the held logo; chains run 2–3s per card, ~5.5–9.5s total.",
+      "source": "skills/hyperframes-animation/blueprints/titlecard-reveal.md",
+      "tags": ["Benefits", "Social_Proof", "CTA", "Product_Intro"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "comparison-split",
+      "kind": "blueprint",
+      "summary": "Two paired items of equal weight enter from opposite wings with **mirrored 3D \"book-open\" tilts** and hold side-by-side, then an inner-edge pill badge spring-pops on each to punctuate. Reach for it for an A/B or \"X + Y together\" — two complementary capabilities weighed at once (not >2 items, not sequential steps).",
+      "source": "skills/hyperframes-animation/blueprints/comparison-split.md",
+      "tags": ["Key_Feature"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "overwhelm-surround",
+      "kind": "blueprint",
+      "summary": "Overwhelm by accumulation — recognizable surfaces assemble, density-marker icons scatter in, the center one **morphs into the viewer's own avatar**, then elements close in from all sides (surrounded, not zoomed-into). Reach for it when the pain is \"you're buried in tools,\" ending on a claustrophobic crowd. Second resolution (clutter-shove-to-question): the accumulation runs under a slow zoom-out, then a push-in shoves the clutter to the frame edges and a two-part serif question builds in the opened center — camera-driven, no avatar.",
+      "source": "skills/hyperframes-animation/blueprints/overwhelm-surround.md",
+      "tags": ["Problem"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "ticker-takeover",
+      "kind": "blueprint",
+      "summary": "A typed lead-in + an accent word cycling through options, then a hero **crashes in from off-screen and physically shoves the text aside** — a collision, not a fade — settling alone. Reach for it when a \"could be many things\" build should be violently replaced by \"this is it.\"",
+      "source": "skills/hyperframes-animation/blueprints/ticker-takeover.md",
+      "tags": ["Hook", "Brand_Outro"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "fixed-anchor-cycle",
+      "kind": "blueprint",
+      "summary": "One element stays PINNED — a wordmark, composer box, or anchor line that enters once and **never moves** — while the adjacent region (or the entire surrounding theme) cycles through many discrete states: hard-cut label swaps, a vertical carousel, per-word highlight stepping, or in-place theme morphs, cadence often manipulated (steady stepping or a slow→accelerating flurry), resolving on an emphasis beat into a completed lockup. Reach for it to assert breadth around one fixed identity — \"everyone says / works everywhere / calling all X\" — where the anchor's stillness IS the claim.",
+      "source": "skills/hyperframes-animation/blueprints/fixed-anchor-cycle.md",
+      "tags": ["Hook", "Benefits", "Brand_Outro"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "video-text-pivot",
+      "kind": "blueprint",
+      "summary": "A product video holds center and breathes, then **slides aside to hand its weight to a hero stat**, then both clear and kinetic text types into the vacated center, sealed by a gradient pill. Reach for it for \"see the feature → see the impact\" where the video must stay visible (slides, never cuts).",
+      "source": "skills/hyperframes-animation/blueprints/video-text-pivot.md",
+      "tags": ["Product_Intro", "Key_Feature"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "cta-morph-press",
+      "kind": "blueprint",
+      "summary": "A resting brand mark **condenses at the same center into a brighter CTA**, then a cursor arrives and lands a human-aimed click with feedback. Reach for it for a focused \"click here\" sign-off that walks the eye from identity to action — no spatial set, no multi-step UI. Role-widened to Hook: the same machinery as an OPENER — a lone widget (pill/chip) on a flat field morphs in place (pill→menu, chip→prompt card), performs its payload, then vanishes to a typed closing title.",
+      "source": "skills/hyperframes-animation/blueprints/cta-morph-press.md",
+      "tags": ["CTA", "Hook"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "svg-path-drawing",
+      "kind": "technique",
+      "summary": "SVG path drawing",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "canvas-2d-procedural-art",
+      "kind": "technique",
+      "summary": "Canvas 2D procedural art",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "css-3d-transforms",
+      "kind": "technique",
+      "summary": "CSS 3D transforms",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "per-word-kinetic-typography",
+      "kind": "technique",
+      "summary": "Per-word kinetic typography",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "lottie-animation",
+      "kind": "technique",
+      "summary": "Lottie animation",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "video-compositing",
+      "kind": "technique",
+      "summary": "Video compositing",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "character-by-character-typing",
+      "kind": "technique",
+      "summary": "Character-by-character typing",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "variable-font-axis-animation",
+      "kind": "technique",
+      "summary": "Variable font axis animation",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "gsap-motionpathplugin",
+      "kind": "technique",
+      "summary": "GSAP MotionPathPlugin",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "velocity-matched-transitions",
+      "kind": "technique",
+      "summary": "Velocity-matched transitions",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "audio-reactive-animation",
+      "kind": "technique",
+      "summary": "Audio-reactive animation",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "clip-path-reveal-masks",
+      "kind": "technique",
+      "summary": "Clip-path reveal masks",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "webgl-fragment-shader-art",
+      "kind": "technique",
+      "summary": "WebGL fragment shader art",
+      "source": "skills/hyperframes-animation/techniques.md",
+      "tags": [],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "animated-bar-chart",
+      "kind": "component",
+      "summary": "A compact data card with deterministic bar growth and value callouts.",
+      "source": "registry/components/animated-bar-chart/animated-bar-chart.html",
+      "tags": ["data"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "arc-motion-path",
+      "kind": "component",
+      "summary": "A GSAP MotionPath primitive that flies a callout along a curved arc with autorotation.",
+      "source": "registry/components/arc-motion-path/arc-motion-path.html",
+      "tags": [
+        "video-primitive",
+        "motionpath",
+        "gsap-plugin",
+        "hyperframes-native"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "aurora-drift",
+      "kind": "component",
+      "summary": "Three soft accent-derived aurora fields drift in an exact ambient loop over a deep base and faint vignette.",
+      "source": "registry/components/aurora-drift/aurora-drift.html",
+      "tags": [
+        "motion-primitive",
+        "background",
+        "aurora",
+        "gradient",
+        "ambient",
+        "loopable"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["accent", "mood"]
+    },
+    {
+      "id": "badge-pop",
+      "kind": "component",
+      "summary": "A transitions.dev-inspired notification badge pop with elastic scale and count reveal",
+      "source": "registry/components/badge-pop/badge-pop.html",
+      "tags": [
+        "video-primitive",
+        "transition-primitive",
+        "transitions-dev-port",
+        "badge",
+        "microinteraction"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["count", "accent", "surface"]
+    },
+    {
+      "id": "beat-timeline",
+      "kind": "component",
+      "summary": "A paused master-timeline orchestration spine that pins titled beat rows to evenly spaced named labels. Each row enters on its label, holds with the sequence, then exits with the group.",
+      "source": "registry/components/beat-timeline/beat-timeline.html",
+      "tags": [
+        "orchestration",
+        "transitions",
+        "sequencing",
+        "bridge",
+        "timeline"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["beatCount", "interval", "labels"]
+    },
+    {
+      "id": "before-after-wipe",
+      "kind": "component",
+      "summary": "Two full-bleed content slots compare before and after states as a persistent divider wipes the after layer over the before layer and rests at a configurable split.",
+      "source": "registry/components/before-after-wipe/before-after-wipe.html",
+      "tags": [
+        "prop",
+        "ui-props",
+        "compare",
+        "holdable",
+        "before-after",
+        "wipe",
+        "slots"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "The improvement is visual: old UI versus new, raw versus polished, and one wipe tells it.",
+      "avoid": "The two states are sequential rather than comparative; a straight scene cut or cut-the-curve reads better than a held split.",
+      "variables": [
+        "label_a",
+        "label_b",
+        "rest_split",
+        "wipe_at",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "browser-device-stage",
+      "kind": "component",
+      "summary": "A generic app surface in token-native chrome (browser, window, or phone); the screen area is a slot with a skeleton default, one settle entrance, a readable hold, and an optional screen swap.",
+      "source": "registry/components/browser-device-stage/browser-device-stage.html",
+      "tags": [
+        "stage",
+        "product-demo",
+        "device",
+        "browser",
+        "phone",
+        "slot",
+        "chrome"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "A real screenshot or product UI needs a credible stage: this is the default way to show \"the product\" in a launch film.",
+      "avoid": "The content is seek-synced footage; slotted video is not framework-synced, so use a media clip composition instead.",
+      "variables": ["chrome", "title", "swap_at", "accent", "exit"]
+    },
+    {
+      "id": "card-resize",
+      "kind": "component",
+      "summary": "A transitions.dev-inspired card resize primitive that expands a compact card into a detail panel",
+      "source": "registry/components/card-resize/card-resize.html",
+      "tags": [
+        "video-primitive",
+        "transition-primitive",
+        "transitions-dev-port",
+        "card",
+        "layout"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["surface", "accent", "elevation"]
+    },
+    {
+      "id": "chart-story",
+      "kind": "component",
+      "summary": "One chart builds from data in reading order and lands the exact supplied values: staggered bars, a left-to-right line with area fill, a sweeping donut, or filling progress bars, with an accent callout on the emphasized datum.",
+      "source": "registry/components/chart-story/chart-story.html",
+      "tags": [
+        "motion-primitive",
+        "proof",
+        "stats",
+        "chart",
+        "bars",
+        "line",
+        "donut",
+        "progress",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "The proof is a trend or comparison across several values and one datum should carry the story.",
+      "avoid": "There is only one number to show (use count-up) or the data needs live interactivity; this is an authored build, not a chart widget.",
+      "variables": [
+        "type",
+        "data",
+        "labels",
+        "emphasize",
+        "unit",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "chat-message",
+      "kind": "component",
+      "summary": "One message arrives on the measured entry - scale 0.75, 0.12s, growing from its sender's corner. The type is an enum switched like marker-highlight's style: a received or sent bubble with a real tail, a large emoji row, an image, or a link card with title and domain. The atom that chat-thread builds conversations from",
+      "source": "registry/components/chat-message/chat-message.html",
+      "tags": ["video-primitive", "chat", "mock-ui", "message"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "type",
+        "text",
+        "cardTitle",
+        "cardDomain",
+        "tail",
+        "delivered"
+      ]
+    },
+    {
+      "id": "code-terminal-run",
+      "kind": "component",
+      "summary": "A token-chrome terminal panel runs one command: the prompt line types deterministically behind an integer-cycle caret, executes after a beat, and output lines print one per cue before a fresh prompt appears.",
+      "source": "registry/components/code-terminal-run/code-terminal-run.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "terminal",
+        "typing",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["prompt_glyph", "cadence", "cues", "accent", "exit"]
+    },
+    {
+      "id": "comparison-split",
+      "kind": "component",
+      "summary": "Two full-bleed panels compare before and after states as a persistent divider wipes the vivid after layer over the muted before layer and rests at a configurable split.",
+      "source": "registry/components/comparison-split/comparison-split.html",
+      "tags": [
+        "prop",
+        "ui-props",
+        "compare",
+        "holdable",
+        "before-after",
+        "wipe"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["split", "orientation", "labelA", "labelB"]
+    },
+    {
+      "id": "conic-progress-ring",
+      "kind": "component",
+      "summary": "A token-driven conic progress ring whose angular fill and center count settle together from one registered percentage.",
+      "source": "registry/components/conic-progress-ring/conic-progress-ring.html",
+      "tags": [
+        "data",
+        "progress",
+        "ring",
+        "conic-gradient",
+        "prove",
+        "demonstrate"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["progress", "thickness", "label"]
+    },
+    {
+      "id": "constellation-hub",
+      "kind": "component",
+      "summary": "Feature nodes brighten in narration order as real-length SVG connectors draw outward from a fixed central hub, then settle into one lockup.",
+      "source": "registry/components/constellation-hub/constellation-hub.html",
+      "tags": [
+        "motion-primitive",
+        "feature-tour",
+        "hub",
+        "nodes",
+        "connector",
+        "reveal"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["hub_label", "nodes", "cues", "accent", "exit"]
+    },
+    {
+      "id": "count-up",
+      "kind": "component",
+      "summary": "A token-native stat counter that eases from start to end, lands on the exact final integer with one restrained scale pulse, and holds.",
+      "source": "registry/components/count-up/count-up.html",
+      "tags": [
+        "motion-primitive",
+        "proof",
+        "stats",
+        "counter",
+        "number",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "One number is the proof: users, revenue, speedup, and it should land exactly as narration states it.",
+      "avoid": "The stat needs context or comparison; a lone number without a chart or label reads hollow, reach for chart-story.",
+      "variables": [
+        "start",
+        "end",
+        "prefix",
+        "suffix",
+        "accent",
+        "glow",
+        "exit"
+      ]
+    },
+    {
+      "id": "cut-the-curve",
+      "kind": "component",
+      "summary": "A velocity-matched directional hard cut: the outgoing subject accelerates, swaps identity at peak velocity, and the incoming subject continues in the same direction and decelerates to rest.",
+      "source": "registry/components/cut-the-curve/cut-the-curve.html",
+      "tags": [
+        "transition",
+        "directional-cut",
+        "velocity-match",
+        "whip",
+        "bridge",
+        "demonstrate"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "Two scenes or subjects should hand off with kinetic energy instead of a dissolve; the seam hides inside the speed.",
+      "avoid": "The moment calls for calm; a hard velocity cut in a quiet passage reads like a glitch. Also never as a hold, it has no elastic phase, retime via mount duration only.",
+      "variables": ["subject", "direction", "cutFraction", "blurPx", "exit"]
+    },
+    {
+      "id": "decline-chart",
+      "kind": "component",
+      "summary": "A metric line draws downward as its value counts down and the ambient background darkens in lockstep.",
+      "source": "registry/components/decline-chart/decline-chart.html",
+      "tags": [
+        "motion-primitive",
+        "data",
+        "chart",
+        "decline",
+        "metric",
+        "problem"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["label", "start_value", "end_value"]
+    },
+    {
+      "id": "device-frame-stage",
+      "kind": "component",
+      "summary": "A phone or tablet mockup staged as a physical scene prop with a screen slot for arbitrary reconstructed UI, rising onto the stage, settling, and holding an idle float",
+      "source": "registry/components/device-frame-stage/device-frame-stage.html",
+      "tags": ["prop", "device", "mobile", "tablet", "ui-props", "holdable"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["device", "cutout", "body"]
+    },
+    {
+      "id": "directional-wipe",
+      "kind": "component",
+      "summary": "A directional scene push that slides one panel over another.",
+      "source": "registry/components/directional-wipe/directional-wipe.html",
+      "tags": ["transition-primitive"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["palette", "corner"]
+    },
+    {
+      "id": "dynamic-grid",
+      "kind": "component",
+      "summary": "A responsive animated grid background driven by CSS variables for SaaS, code, and data scenes",
+      "source": "registry/components/dynamic-grid/dynamic-grid.html",
+      "tags": [
+        "video-primitive",
+        "motion-primitive",
+        "background",
+        "grid",
+        "ui"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["density", "weight", "tone"]
+    },
+    {
+      "id": "echo-trail",
+      "kind": "component",
+      "summary": "A moving element renders with N ghosted copies of itself at t minus i times delta, opacity stepped down per ghost; one traversal, echoes collapsing into the settled element at rest.",
+      "source": "registry/components/echo-trail/echo-trail.html",
+      "tags": [
+        "motion-primitive",
+        "demonstrate",
+        "trail",
+        "onion-skin",
+        "ghosts",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["echoes", "delta", "path", "accent", "exit"]
+    },
+    {
+      "id": "fade-through",
+      "kind": "component",
+      "summary": "A calm transition primitive that fades one layer out, passes through a wash, and reveals the next layer",
+      "source": "registry/components/fade-through/fade-through.html",
+      "tags": ["motion-primitive", "transition", "fade", "scene"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["wash", "strength", "shape"]
+    },
+    {
+      "id": "focus-rack",
+      "kind": "component",
+      "summary": "Focus shifts once between two cards at different apparent depths through synchronized blur, dimming, scale, and parallax.",
+      "source": "registry/components/focus-rack/focus-rack.html",
+      "tags": [
+        "motion-primitive",
+        "camera",
+        "focus",
+        "focus-rack",
+        "depth",
+        "parallax",
+        "emphasize"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["label_a", "label_b", "accent"]
+    },
+    {
+      "id": "focus-swap",
+      "kind": "component",
+      "summary": "Moves attention between two side-by-side cards as one recedes with scale, blur, and dimming while the other advances to full focus.",
+      "source": "registry/components/focus-swap/focus-swap.html",
+      "tags": [
+        "effect",
+        "ui-props",
+        "focus",
+        "blur",
+        "attention",
+        "demonstrate"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["focus", "blurPx", "dim"]
+    },
+    {
+      "id": "gloss-sweep",
+      "kind": "component",
+      "summary": "A card lands with a restrained slam, catches one diagonal specular gloss, and holds perfectly still.",
+      "source": "registry/components/gloss-sweep/gloss-sweep.html",
+      "tags": [
+        "motion-primitive",
+        "celebration",
+        "gloss",
+        "card",
+        "badge",
+        "payoff"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["text", "accent", "sweep_angle"]
+    },
+    {
+      "id": "grain-field",
+      "kind": "component",
+      "summary": "A clearly visible accent-tinted dot field drifts over a subtle luminance gradient in an exact ambient loop.",
+      "source": "registry/components/grain-field/grain-field.html",
+      "tags": [
+        "motion-primitive",
+        "background",
+        "grain",
+        "dots",
+        "texture",
+        "ambient",
+        "loopable"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["density", "accent"]
+    },
+    {
+      "id": "grain-overlay",
+      "kind": "component",
+      "summary": "Animated film grain texture overlay using CSS keyframes — adds warmth and analog character to any composition",
+      "source": "registry/components/grain-overlay/grain-overlay.html",
+      "tags": ["texture", "grain", "overlay", "film"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "grid-card-assemble",
+      "kind": "component",
+      "summary": "N labeled token cards stagger-assemble into a grid or vertical list with a fade plus short slide directly into slot, no overshoot, then hold perfectly still.",
+      "source": "registry/components/grid-card-assemble/grid-card-assemble.html",
+      "tags": [
+        "motion-primitive",
+        "layout",
+        "grid",
+        "list",
+        "stagger",
+        "assemble",
+        "feature-tour"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "Several features, steps, or capabilities should land as one composed inventory the viewer can scan.",
+      "avoid": "The features relate to one central thing and the relationship matters; constellation-hub draws that structure.",
+      "variables": ["items", "layout", "columns", "cues", "accent", "exit"]
+    },
+    {
+      "id": "halftone-dissolve",
+      "kind": "component",
+      "summary": "Scene A dissolves into scene B through a growing halftone dot field: accent ink dots pop onto a fixed grid smallest-first, each opens into a window onto B, until the windows merge and B fully replaces A.",
+      "source": "registry/components/halftone-dissolve/halftone-dissolve.html",
+      "tags": [
+        "motion-primitive",
+        "transition",
+        "texture",
+        "halftone",
+        "dissolve"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["dot_size", "direction", "dissolve_at", "accent", "exit"]
+    },
+    {
+      "id": "headline-slam",
+      "kind": "component",
+      "summary": "A heavyweight headline scales down into frame, lands with a deterministic three-frame shake, holds with subtle drift, and whips upward on exit.",
+      "source": "registry/components/headline-slam/headline-slam.html",
+      "tags": [
+        "motion-primitive",
+        "typography",
+        "headline",
+        "slam",
+        "impact",
+        "exit"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["text", "accent_word_index", "accent", "shadow"]
+    },
+    {
+      "id": "hw-arrow",
+      "kind": "component",
+      "summary": "Wobbled draw-on arrow with straight, gentle, and swoop curve poses, a four-way stroke texture matrix (plain/soft/sharp/spray), and a travel-aligned head-arrival stretch pulse with spring recovery; boils while on screen",
+      "source": "registry/components/hw-arrow/hw-arrow.html",
+      "tags": ["handwritten", "annotation", "arrow", "overlay"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "hw-boil",
+      "kind": "component",
+      "summary": "Hand-drawn jitter that re-poses every N frames, as seek-safe helpers: pose derives from quantized timeline time through a seeded hash; includes the shared onUpdate dispatcher, a wobbled-ellipse path generator, the boil pose control (off/calm/lively over the family-locked frameDrop), a curvature-adaptive pen-velocity ease, and the completed stroke matrix (plain/soft/sharp/spray — spray is index-seeded deterministic dots, no turbulence) with texture-safe draw-on",
+      "source": "registry/components/hw-boil/hw-boil.html",
+      "tags": ["handwritten", "effect", "annotation"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "hw-box-label",
+      "kind": "component",
+      "summary": "Wobbled rounded rectangle draws on — across the authored stroke matrix (plain/soft/sharp/spray) — or drops in and lands with a volume-true contact squash and bouncy spring recovery, with a handwritten label above or centered; boils",
+      "source": "registry/components/hw-box-label/hw-box-label.html",
+      "tags": ["handwritten", "annotation", "overlay"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "hw-callout-circle",
+      "kind": "component",
+      "summary": "Wobbled ellipse draws around a target with optional scribble fill and curved connector; the handwritten label pops in WITH momentum and the drawn shapes absorb the arrival with a volume-preserving contact squash; outline and connector take the family stroke matrix (plain/soft/sharp/spray); boils",
+      "source": "registry/components/hw-callout-circle/hw-callout-circle.html",
+      "tags": ["handwritten", "annotation", "callout", "overlay"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "hw-underline",
+      "kind": "component",
+      "summary": "Hand-drawn squiggle underline, double-pass strikethrough, and bracket marks that draw on",
+      "source": "registry/components/hw-underline/hw-underline.html",
+      "tags": ["handwritten", "annotation", "text-treatment"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "icon-morph-beat",
+      "kind": "component",
+      "summary": "An icon morphs between authored state silhouettes, shifts to an accent color, and marks completion with one restrained pulse.",
+      "source": "registry/components/icon-morph-beat/icon-morph-beat.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "icon",
+        "morph",
+        "state-change",
+        "completion"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["pair", "accent"]
+    },
+    {
+      "id": "icon-swap",
+      "kind": "component",
+      "summary": "A scale-and-blur icon swap primitive for toolbar and action state changes",
+      "source": "registry/components/icon-swap/icon-swap.html",
+      "tags": [
+        "video-primitive",
+        "transition-primitive",
+        "transitions-dev-port",
+        "icon",
+        "swap"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["tone", "size", "shape", "blur"]
+    },
+    {
+      "id": "inline-highlight",
+      "kind": "component",
+      "summary": "A clean marker-style inline highlight that animates behind text using a CSS scale variable",
+      "source": "registry/components/inline-highlight/inline-highlight.html",
+      "tags": ["motion-primitive", "text", "highlight", "caption"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["tint", "thickness", "origin"]
+    },
+    {
+      "id": "iris-reveal",
+      "kind": "component",
+      "summary": "A circle clip-path opens from an authored origin revealing state B over state A in one confident pass, then holds on B. Classic register dims and desaturates the before state so the after state lands in full color; a thin accent rim rides the iris edge. Callers fill the named before/after slot panels; token-styled defaults render when a slot is left empty.",
+      "source": "registry/components/iris-reveal/iris-reveal.html",
+      "tags": [
+        "transition",
+        "iris",
+        "circle-reveal",
+        "clip-path",
+        "bridge",
+        "slots"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "a before-to-after or reveal beat should land as one confident punch from a point.",
+      "avoid": "both states must stay inspectable side by side; that is before-after-wipe.",
+      "variables": ["iris_x", "iris_y", "open_at", "register", "accent", "exit"]
+    },
+    {
+      "id": "kinetic-center-build",
+      "kind": "component",
+      "summary": "Words enter from the right and push the growing phrase left until the final line locks centered.",
+      "source": "registry/components/kinetic-center-build/kinetic-center-build.html",
+      "tags": [
+        "motion-primitive",
+        "text-effects",
+        "kinetic-type",
+        "reveal",
+        "remocn-port"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["text", "font_size", "entry_offset", "color", "font_weight"]
+    },
+    {
+      "id": "kinetic-type-swap",
+      "kind": "component",
+      "summary": "A held sentence keeps its fixed prefix and suffix while one masked word slot rolls through alternatives and settles on the final option.",
+      "source": "registry/components/kinetic-type-swap/kinetic-type-swap.html",
+      "tags": [
+        "motion-primitive",
+        "text-effects",
+        "kinetic-type",
+        "word-swap",
+        "reveal"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "One sentence must carry multiple value words (\"Ship faster, smarter, together\") without reflowing the line.",
+      "avoid": "The alternatives differ wildly in length or you need more than a handful of swaps; the slot pre-sizes to the widest option and long lists drag.",
+      "variables": ["prefix", "options", "suffix", "cues", "accent", "exit"]
+    },
+    {
+      "id": "light-sweep-pass",
+      "kind": "component",
+      "summary": "A traveling key light re-shades a slotted scene: a soft diagonal gradient band crosses the frame once while every per-element highlight and shadow shifts in lockstep (all driven by one --light-x property), then the light settles into a resting key. Quiet, expensive-feeling; the scene itself never moves. Callers fill the named scene slot; a token hero-and-cards default renders when it is left empty.",
+      "source": "registry/components/light-sweep-pass/light-sweep-pass.html",
+      "tags": [
+        "motion-primitive",
+        "overlay",
+        "light",
+        "sweep",
+        "slots",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["angle", "sweep_at", "strength", "accent", "exit"]
+    },
+    {
+      "id": "line-swap",
+      "kind": "component",
+      "summary": "A masked full-line beat replacement: line A holds center then exits up through an overflow-hidden mask as line B enters bottom-up on the same beat, with an optional accent underline drawing beneath one word of line B.",
+      "source": "registry/components/line-swap/line-swap.html",
+      "tags": [
+        "motion-primitive",
+        "text-effects",
+        "swap",
+        "beat",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "line_a",
+        "line_b",
+        "swap_at",
+        "underline_word",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "locked-nucleus-orbit",
+      "kind": "component",
+      "summary": "A fixed center nucleus anchors deterministic satellite orbits that settle into a composed lockup.",
+      "source": "registry/components/locked-nucleus-orbit/locked-nucleus-orbit.html",
+      "tags": [
+        "motion-primitive",
+        "intro",
+        "reveal",
+        "orbit",
+        "lockup",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["label", "accent", "satellites"]
+    },
+    {
+      "id": "marker-highlight",
+      "kind": "component",
+      "summary": "Display text settles in, then one hand-drawn marker stroke (highlight, circle, underline, or scribble) draws over the emphasized word on cue.",
+      "source": "registry/components/marker-highlight/marker-highlight.html",
+      "tags": [
+        "motion-primitive",
+        "typography",
+        "emphasis",
+        "marker",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "text",
+        "emphasis_word",
+        "style",
+        "draw_at",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "match-cut",
+      "kind": "component",
+      "summary": "A circle accelerates into a hard single-frame scene swap, matches the incoming circle exactly, and continues into a smaller resting pose.",
+      "source": "registry/components/match-cut/match-cut.html",
+      "tags": [
+        "motion-primitive",
+        "transition",
+        "match-cut",
+        "hard-cut",
+        "continuity"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["accent", "label_a", "label_b"]
+    },
+    {
+      "id": "mesh-gradient-bg",
+      "kind": "component",
+      "summary": "A render-safe mesh gradient using animated radial layers.",
+      "source": "registry/components/mesh-gradient-bg/mesh-gradient-bg.html",
+      "tags": ["effect"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "mk-emphasis-type",
+      "kind": "component",
+      "summary": "Oversized low-contrast background word drifting slowly behind the subject — typography as texture",
+      "source": "registry/components/mk-emphasis-type/mk-emphasis-type.html",
+      "tags": ["typography", "text-treatment", "minimal"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "mk-usage-arc",
+      "kind": "component",
+      "summary": "Thin circular gauge that draws on while its percentage counts up; one helper call drives both",
+      "source": "registry/components/mk-usage-arc/mk-usage-arc.html",
+      "tags": ["data-viz", "gauge", "minimal"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "modal-morph",
+      "kind": "component",
+      "summary": "A small card expands into a full panel, shared-element style: both layouts measured once at mount, the container morphs by transform only (never width/height tweens) while keyed children counter-scale and re-flow onto their own measured targets as pure functions of time.",
+      "source": "registry/components/modal-morph/modal-morph.html",
+      "tags": [
+        "motion-primitive",
+        "structure",
+        "flip",
+        "shared-element",
+        "modal",
+        "deterministic",
+        "experiment"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["from_scale", "expand_at", "register", "accent", "exit"]
+    },
+    {
+      "id": "morph-swap",
+      "kind": "component",
+      "summary": "Two slotted siblings stacked at one shared center: A holds, then condenses or reshapes into B on a shared 50% 50% transform origin. Condense shrink-fades A exactly as B scales up; reshape morphs the silhouette on scaleX/scaleY, never width or height tweens. Token card defaults render when a slot is left empty.",
+      "source": "registry/components/morph-swap/morph-swap.html",
+      "tags": [
+        "transition",
+        "morph",
+        "swap",
+        "condense",
+        "reshape",
+        "holdable",
+        "slots"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["swap_at", "register", "accent", "exit"]
+    },
+    {
+      "id": "notification-stack",
+      "kind": "component",
+      "summary": "1 to 5 token notification cards slide-settle into a vertical stack on cues, newest on top; one card grows slightly and brightens as the focus while the rest dim by position.",
+      "source": "registry/components/notification-stack/notification-stack.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "notification",
+        "stack",
+        "stagger"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["titles", "bodies", "expand", "cues", "accent", "exit"]
+    },
+    {
+      "id": "number-pop-in",
+      "kind": "component",
+      "summary": "A transitions.dev-inspired digit pop-in with blur, lift, and staggered value reveal",
+      "source": "registry/components/number-pop-in/number-pop-in.html",
+      "tags": [
+        "video-primitive",
+        "transition-primitive",
+        "transitions-dev-port",
+        "number",
+        "pop"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["value", "unit", "lift", "tone"]
+    },
+    {
+      "id": "number-wheel",
+      "kind": "component",
+      "summary": "A rolling digit counter primitive for metrics, prices, counts, and scoreboards",
+      "source": "registry/components/number-wheel/number-wheel.html",
+      "tags": [
+        "video-primitive",
+        "motion-primitive",
+        "number",
+        "counter",
+        "data"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["spin", "spacing", "tone"]
+    },
+    {
+      "id": "offset-path-traveler",
+      "kind": "component",
+      "summary": "A slotted traveler follows an authored path with tangent rotation, curved entry, and curved exit.",
+      "source": "registry/components/offset-path-traveler/offset-path-traveler.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "path",
+        "traveler",
+        "auto-rotate"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["path", "traveler_label", "accent"]
+    },
+    {
+      "id": "outline-draw",
+      "kind": "component",
+      "summary": "A rounded outline that proves a callout by drawing clockwise as a hollow conic-gradient border with a clean closure.",
+      "source": "registry/components/outline-draw/outline-draw.html",
+      "tags": [
+        "motion-primitive",
+        "effects",
+        "outline",
+        "border",
+        "mask",
+        "proof"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["progress", "thickness", "radius"]
+    },
+    {
+      "id": "pan-stations",
+      "kind": "component",
+      "summary": "A lateral camera move across a continuous row of labeled feature stations, with a steady dwell at each stop before the next pan.",
+      "source": "registry/components/pan-stations/pan-stations.html",
+      "tags": [
+        "camera",
+        "pan",
+        "stations",
+        "features",
+        "exhibit",
+        "agitate",
+        "cross-shelved"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["stationCount", "labels", "dwell"]
+    },
+    {
+      "id": "per-word-rise",
+      "kind": "component",
+      "summary": "Words or characters rise into place in a controlled blur-to-sharp cascade, drift gently, and hold until the cut.",
+      "source": "registry/components/per-word-rise/per-word-rise.html",
+      "tags": [
+        "motion-primitive",
+        "text-effects",
+        "typography",
+        "stagger",
+        "reveal"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "A headline or key line should land word by word in sync with narration beats.",
+      "avoid": "The line must swap or replace text mid-scene; this unit only reveals one static line.",
+      "variables": ["text", "split", "cues", "accent", "exit"]
+    },
+    {
+      "id": "physical-exit",
+      "kind": "component",
+      "summary": "A card exits with physical momentum in toss, drop, or slide mode, carrying acceleration and rotation through the final offscreen pose without fading.",
+      "source": "registry/components/physical-exit/physical-exit.html",
+      "tags": ["motion-primitive", "exit", "momentum", "toss", "drop", "slide"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["mode", "text", "accent"]
+    },
+    {
+      "id": "press-ripple",
+      "kind": "component",
+      "summary": "A cursor decel-arrives from off-stage, lands slightly off-center on a caller-positioned target, compresses with it in lockstep, releases with ink ripple rings, and holds the pressed state.",
+      "source": "registry/components/press-ripple/press-ripple.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "cursor",
+        "press",
+        "ripple",
+        "payoff"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "The payoff beat: the user presses the button and the film rests on that satisfied pressed state.",
+      "avoid": "The cursor itself is the star or must leave after the click; use oversized-cursor for the enter-click-exit arc.",
+      "variables": [
+        "label",
+        "target_x",
+        "target_y",
+        "press_at",
+        "cursor",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "pull-back-reveal",
+      "kind": "component",
+      "summary": "A tight stat detail holds, then one decelerating camera pull-back reveals the headline and supporting cards that recontextualize it.",
+      "source": "registry/components/pull-back-reveal/pull-back-reveal.html",
+      "tags": [
+        "motion-primitive",
+        "camera",
+        "pull-back",
+        "reveal",
+        "recontextualize"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["detail_text", "headline", "accent"]
+    },
+    {
+      "id": "push-in",
+      "kind": "component",
+      "summary": "A centered headline gains focus through one slow, continuous camera push and a gentle fade out.",
+      "source": "registry/components/push-in/push-in.html",
+      "tags": [
+        "motion-primitive",
+        "camera",
+        "push-in",
+        "focus",
+        "emphasize",
+        "holdable"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["text", "intensity"]
+    },
+    {
+      "id": "radial-surround",
+      "kind": "component",
+      "summary": "Labeled hairline chips assemble around a centered subject on an elliptical ring, then optionally converge inward with a subtle edge dim. The center never moves: surrounded, not zoomed.",
+      "source": "registry/components/radial-surround/radial-surround.html",
+      "tags": [
+        "motion-primitive",
+        "problem-setup",
+        "radial",
+        "ring",
+        "surround",
+        "converge"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "center_label",
+        "chips",
+        "close_in",
+        "cues",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "scramble-reveal",
+      "kind": "component",
+      "summary": "A deterministic hacker-style reveal that cycles fixed glyph rows and locks the target string left to right.",
+      "source": "registry/components/scramble-reveal/scramble-reveal.html",
+      "tags": [
+        "motion-primitive",
+        "text-effects",
+        "scramble",
+        "reveal",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "A product name, feature name, or technical claim should resolve with a terminal or engineering flavor.",
+      "avoid": "The brand voice is calm or premium; the glyph churn reads noisy against quiet scenes (use titlecard-lockup or per-word-rise).",
+      "variables": ["text", "accent", "style", "exit"]
+    },
+    {
+      "id": "separator",
+      "kind": "component",
+      "summary": "A one-pixel structural separator with horizontal and vertical variants plus a seek-safe progress reveal",
+      "source": "registry/components/separator/separator.html",
+      "tags": ["video-primitive", "separator", "layout"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["orientation", "thickness", "tone"]
+    },
+    {
+      "id": "shared-axis-y",
+      "kind": "component",
+      "summary": "Per-word vertical shared-axis transition for sharp editorial swaps.",
+      "source": "registry/components/shared-axis-y/shared-axis-y.html",
+      "tags": ["motion-primitive", "typography"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["direction", "distance", "tone"]
+    },
+    {
+      "id": "shared-axis-z",
+      "kind": "component",
+      "summary": "Scale-based shared-axis transition for focus shifts and context depth.",
+      "source": "registry/components/shared-axis-z/shared-axis-z.html",
+      "tags": ["motion-primitive", "typography"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["direction", "depth", "tone"]
+    },
+    {
+      "id": "simulated-cursor",
+      "kind": "component",
+      "summary": "A lightweight cursor pointer and click pulse for product walkthroughs and agent UI demos",
+      "source": "registry/components/simulated-cursor/simulated-cursor.html",
+      "tags": [
+        "video-primitive",
+        "motion-primitive",
+        "cursor",
+        "ui",
+        "walkthrough"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["size", "tone", "pulse"]
+    },
+    {
+      "id": "slot-machine-roll",
+      "kind": "component",
+      "summary": "A vertical reel scrolls characters from one value to another.",
+      "source": "registry/components/slot-machine-roll/slot-machine-roll.html",
+      "tags": ["video-primitive", "motion-primitive", "typography"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["result", "direction", "size", "tone"]
+    },
+    {
+      "id": "split-tilt-cards",
+      "kind": "component",
+      "summary": "Two equal-weight cards arrive from opposite wings with mirrored rotateY book-open tilts under one shared perspective, pill badges spring-pop at each inner edge, and the pair holds with a barely-there phase-opposed idle float. Card bodies are content slots with token skeleton defaults.",
+      "source": "registry/components/split-tilt-cards/split-tilt-cards.html",
+      "tags": [
+        "motion-primitive",
+        "layout",
+        "compare",
+        "holdable",
+        "book-open",
+        "tilt",
+        "slots"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "label_a",
+        "label_b",
+        "badge_a",
+        "badge_b",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "spring-pop",
+      "kind": "component",
+      "summary": "A badge pops in from a visible near-rest scale, overshoots full size once, and settles cleanly.",
+      "source": "registry/components/spring-pop/spring-pop.html",
+      "tags": [
+        "motion-primitive",
+        "effects",
+        "spring",
+        "overshoot",
+        "pop",
+        "reveal"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["overshoot", "fromScale", "text"]
+    },
+    {
+      "id": "spring-stack-shuffle",
+      "kind": "component",
+      "summary": "A stack of 3 to 5 slotted cards reshuffles on cues: the back card throws over the top and lands at the front with real mass, the rest compress and resettle; cues that land mid-flight redirect the moving cards with velocity preserved.",
+      "source": "registry/components/spring-stack-shuffle/spring-stack-shuffle.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "physics",
+        "stack",
+        "interruptible-spring"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "browsing or cycling through screens, results, or options should feel physical.",
+      "avoid": "items should assemble once and rest; that is grid-card-assemble.",
+      "variables": ["cards", "cues", "accent", "exit"]
+    },
+    {
+      "id": "stagger-cascade",
+      "kind": "component",
+      "summary": "A responsive grid of tile cards that fades and travels into place with an evenly spaced per-item GSAP stagger. The ordered cascade is the only visual mechanic.",
+      "source": "registry/components/stagger-cascade/stagger-cascade.html",
+      "tags": ["effects", "grid", "stagger", "entrance", "exhibit"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["itemCount", "stagger", "direction"]
+    },
+    {
+      "id": "state-chip-rail",
+      "kind": "component",
+      "summary": "A rail of mono status chips advances a seek-safe data-state snap machine on a cue schedule: active chip ink on surface, done chips dim, pending chips hollow, optional badges pop beside one state.",
+      "source": "registry/components/state-chip-rail/state-chip-rail.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "state-machine",
+        "status",
+        "chips",
+        "rail"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "states",
+        "times",
+        "badge_state",
+        "badges",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "streaming-text",
+      "kind": "component",
+      "summary": "Words arrive the way an AI answer streams - in uneven bursts on a measured token rhythm, each word landing grey and inking to full colour - rather than the even tick of a typewriter",
+      "source": "registry/components/streaming-text/streaming-text.html",
+      "tags": ["video-primitive", "text-effect", "ai", "chat"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["size", "tone"]
+    },
+    {
+      "id": "strikethrough-replace",
+      "kind": "component",
+      "summary": "Draw a strike line across old text, then reveal the replacement.",
+      "source": "registry/components/strikethrough-replace/strikethrough-replace.html",
+      "tags": ["motion-primitive", "typography"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["origin", "thickness", "tint", "tone"]
+    },
+    {
+      "id": "success-check",
+      "kind": "component",
+      "summary": "A success check primitive with ring pop, path draw, and subtle rotate blur",
+      "source": "registry/components/success-check/success-check.html",
+      "tags": [
+        "video-primitive",
+        "transition-primitive",
+        "transitions-dev-port",
+        "success",
+        "check"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["tint", "size", "ring", "spin"]
+    },
+    {
+      "id": "svg-stroke-trace",
+      "kind": "component",
+      "summary": "An authored SVG path draws from its measured length, holds with subtle drift, and fills after the stroke when the path is closed with Z.",
+      "source": "registry/components/svg-stroke-trace/svg-stroke-trace.html",
+      "tags": [
+        "motion-primitive",
+        "intro",
+        "reveal",
+        "svg",
+        "stroke",
+        "line-draw"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "A custom mark, signature, underline flourish, or simple line drawing should draw itself on screen.",
+      "avoid": "The artwork is multi-stroke or needs a visible pen; use whiteboard-ink, which sequences strokes with a nib actor.",
+      "variables": ["path", "stroke_width", "accent", "exit"]
+    },
+    {
+      "id": "telemetry-hud",
+      "kind": "component",
+      "summary": "Quiet mono debug-HUD readouts frame a slotted subject: corner brackets draw on, label:value lines tick their values on cues, one readout emphasized in accent. The subject never moves; the HUD breathes zero.",
+      "source": "registry/components/telemetry-hud/telemetry-hud.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "hud",
+        "telemetry",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "a technical product should feel instrumented and precise around its hero shot.",
+      "avoid": "the audience is non-technical; the HUD reads as noise.",
+      "variables": ["readouts", "emphasize", "cues", "accent", "exit"]
+    },
+    {
+      "id": "terminal-simulator",
+      "kind": "component",
+      "summary": "A terminal window types commands and streams log output.",
+      "source": "registry/components/terminal-simulator/terminal-simulator.html",
+      "tags": ["code-animation"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "text-match-cut",
+      "kind": "component",
+      "summary": "One line of text becomes another mid-move: both ride a single 85 % easy-ease curve and hard-swap at the speed peak, as scale, tracking, or a same-direction slide.",
+      "source": "registry/components/text-match-cut/text-match-cut.html",
+      "tags": [
+        "motion-primitive",
+        "transition",
+        "typography",
+        "match-cut",
+        "hard-cut",
+        "continuity"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["text_a", "text_b", "mode", "sweep", "background"]
+    },
+    {
+      "id": "text-state-swap",
+      "kind": "component",
+      "summary": "A text state swap primitive with outgoing blur and incoming lift",
+      "source": "registry/components/text-state-swap/text-state-swap.html",
+      "tags": [
+        "video-primitive",
+        "transition-primitive",
+        "transitions-dev-port",
+        "text",
+        "swap"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["from-text", "to-text", "distance", "tone"]
+    },
+    {
+      "id": "titlecard-calm",
+      "kind": "component",
+      "summary": "A restrained title card where a mono kicker and generous grotesque headline fade upward, drift almost imperceptibly, and exit cleanly.",
+      "source": "registry/components/titlecard-calm/titlecard-calm.html",
+      "tags": [
+        "motion-primitive",
+        "typography",
+        "title-card",
+        "calm",
+        "orient"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["headline", "kicker"]
+    },
+    {
+      "id": "titlecard-lockup",
+      "kind": "component",
+      "summary": "The calm breather titlecard: an optional mono kicker fades up, the wordmark settles dead-center with one restrained move, a hairline rule draws left to right, a mono label fades beneath, then a truly still hold.",
+      "source": "registry/components/titlecard-lockup/titlecard-lockup.html",
+      "tags": [
+        "motion-primitive",
+        "typography",
+        "title-card",
+        "lockup",
+        "breather",
+        "orient"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "The film needs a breath: the opening card, a chapter break, or a name reveal where low motion IS the statement.",
+      "avoid": "The scene needs energy or a second development phase; this unit refuses spring chains by design (use per-word-rise or scramble-reveal).",
+      "variables": ["wordmark", "label", "kicker", "rule", "accent", "exit"]
+    },
+    {
+      "id": "tracing-beam",
+      "kind": "component",
+      "summary": "A glowing dash follows one SVG path through three UI elements, lifting and brightening each element in sequence.",
+      "source": "registry/components/tracing-beam/tracing-beam.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "attention",
+        "beam",
+        "path",
+        "spotlight"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["labels", "accent"]
+    },
+    {
+      "id": "typed-prompt",
+      "kind": "component",
+      "summary": "A prompt line types itself in chunked human cadence behind a deterministic blinking caret, with optional backspace-and-retype correction of the final word.",
+      "source": "registry/components/typed-prompt/typed-prompt.html",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "typing",
+        "prompt",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "text",
+        "prompt_glyph",
+        "cadence",
+        "caret",
+        "correction",
+        "cues",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "typewriter",
+      "kind": "component",
+      "summary": "Character-by-character text reveal with a deterministic blinking cursor.",
+      "source": "registry/components/typewriter/typewriter.html",
+      "tags": ["video-primitive", "motion-primitive", "typography"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["text", "tone", "caret"]
+    },
+    {
+      "id": "ui-focus-zoom",
+      "kind": "component",
+      "summary": "A full app surface establishes with one settle, then the camera zooms and pans to an anchored region on its cue and holds the zoomed state, with an optional soft focus halo at the anchor. The surface is a slot with a token-styled skeleton default.",
+      "source": "registry/components/ui-focus-zoom/ui-focus-zoom.html",
+      "tags": [
+        "camera",
+        "product-demo",
+        "zoom",
+        "focus",
+        "pan",
+        "slot",
+        "servo"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "anchor_x",
+        "anchor_y",
+        "zoom",
+        "zoom_at",
+        "halo",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "variable-axis-type",
+      "kind": "component",
+      "summary": "A locked one-line headline whose weight or width axis morphs into a decisive emphasis beat.",
+      "source": "registry/components/variable-axis-type/variable-axis-type.html",
+      "tags": [
+        "typography",
+        "variable-font",
+        "kinetic-type",
+        "axis",
+        "emphasize"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["text", "axis", "fromValue", "toValue"]
+    },
+    {
+      "id": "vignette",
+      "kind": "component",
+      "summary": "Cinematic radial vignette overlay using a pure-CSS gradient — darkens the edges to pull focus toward the center",
+      "source": "registry/components/vignette/vignette.html",
+      "tags": ["vignette", "overlay", "cinematic", "effect"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false
+    },
+    {
+      "id": "vox-annotate",
+      "kind": "component",
+      "summary": "The Vox-style annotate gesture: a keyword in a held sentence gets a hand-drawn marker while a thin connector draws up to a mono callout label, all as one choreographed beat on the cue.",
+      "source": "registry/components/vox-annotate/vox-annotate.html",
+      "tags": [
+        "motion-primitive",
+        "typography",
+        "annotation",
+        "marker",
+        "deterministic"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "a phrase needs an editorial aside or explanation, documentary style.",
+      "avoid": "plain emphasis with no callout is enough; keep the sentence clean instead.",
+      "variables": [
+        "text",
+        "keyword",
+        "note",
+        "style",
+        "draw_at",
+        "accent",
+        "exit"
+      ]
+    },
+    {
+      "id": "whip-pan-cut",
+      "kind": "component",
+      "summary": "A full-frame whip pan: scene A whips off laterally with capped directional motion blur while scene B enters in the same direction at matched velocity, on a speed-ramp profile with a decelerating catch. Both scenes ride one strip, so seam velocity is exact by construction. Callers fill the named before/after slot panels; token-styled defaults render when a slot is left empty.",
+      "source": "registry/components/whip-pan-cut/whip-pan-cut.html",
+      "tags": [
+        "transition",
+        "whip-pan",
+        "motion-blur",
+        "velocity-match",
+        "speed-ramp",
+        "bridge",
+        "slots"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "a rapid-fire montage needs energy between beats.",
+      "avoid": "the film's register is quiet enterprise; use cut-the-curve.",
+      "variables": ["direction", "whip_at", "accent", "exit"]
+    },
+    {
+      "id": "whiteboard-ink",
+      "kind": "component",
+      "summary": "A whiteboard sketch draws one measured stroke at a time while a pen nib rides the active ink front; preset sketches (bulb, flow, rocket) or your own multi-stroke paths via the strokes slot.",
+      "source": "registry/components/whiteboard-ink/whiteboard-ink.html",
+      "tags": [
+        "motion-primitive",
+        "intro",
+        "reveal",
+        "svg",
+        "whiteboard",
+        "line-draw",
+        "slot"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "use": "An idea, flow, or concept should feel hand-drawn and explanatory, sketched live as narration describes it.",
+      "avoid": "The mark is a single path or a logo trace; svg-stroke-trace is the lighter tool for one stroke.",
+      "variables": ["sketch", "caption", "pen", "accent", "exit"]
+    },
+    {
+      "id": "zoom-through-transition",
+      "kind": "component",
+      "summary": "A transition that zooms through a focal card into the next scene.",
+      "source": "registry/components/zoom-through-transition/zoom-through-transition.html",
+      "tags": ["transition-primitive"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["from-label", "to-label", "depth", "accent"]
+    },
+    {
+      "id": "bar-chart-race",
+      "kind": "block",
+      "summary": "Ranked bars grow and overtake each other as a time series advances, with the axis rescaling as values climb and the accent handing over to whoever leads",
+      "source": "registry/blocks/bar-chart-race/bar-chart-race.html",
+      "tags": ["data", "chart", "statistics", "ranking"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "title",
+        "subtitle",
+        "periods",
+        "series",
+        "barCount",
+        "periodDuration",
+        "valuePrefix",
+        "valueSuffix",
+        "valueDecimals",
+        "accent"
+      ],
+      "duration": 12
+    },
+    {
+      "id": "camera-dolly-zoom",
+      "kind": "block",
+      "summary": "Camera tracks toward or away from the subject while the field of view changes the opposite way, so the subject holds its frame size while the background collapses behind it or rushes in. Focal length is solved from dolly distance every frame against d * tan(FOV/2) = const, not keyframed beside it. Requires depth: the subject sits on the z = 0 plane and the content behind it must be layered or genuinely 3D (translateZ at two or more distinct depths) -- a flat element gains nothing from this move.",
+      "source": "registry/blocks/camera-dolly-zoom/camera-dolly-zoom.html",
+      "tags": ["camera", "depth", "3d", "cinematic"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": ["direction", "strength", "subjectDistance", "easing"],
+      "duration": 4
+    },
+    {
+      "id": "code-diff",
+      "kind": "block",
+      "summary": "An edit shown as a colored diff — removed lines collapse in red, added lines expand in green.",
+      "source": "registry/blocks/code-diff/code-diff.html",
+      "tags": ["code", "code-animation", "diff", "developer"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 6
+    },
+    {
+      "id": "code-highlight",
+      "kind": "block",
+      "summary": "A highlight band sweeps across a target line while the surrounding context dims — draws the eye to one line.",
+      "source": "registry/blocks/code-highlight/code-highlight.html",
+      "tags": ["code", "code-animation", "highlight", "developer"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 5
+    },
+    {
+      "id": "code-morph",
+      "kind": "block",
+      "summary": "One snippet transforms into another — tokens glide between positions, leavers fade out, enterers fade in. Shiki Magic Move re-driven as a paused GSAP timeline.",
+      "source": "registry/blocks/code-morph/code-morph.html",
+      "tags": ["code", "code-animation", "morph", "refactor", "developer"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 7
+    },
+    {
+      "id": "code-scroll",
+      "kind": "block",
+      "summary": "The camera scrolls a long file to bring a target line to center and spotlights it — for walking through real modules.",
+      "source": "registry/blocks/code-scroll/code-scroll.html",
+      "tags": ["code", "code-animation", "scroll", "developer"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 6
+    },
+    {
+      "id": "code-typing",
+      "kind": "block",
+      "summary": "Token-streamed typing reveal with a caret that tracks the frontier — deterministic, no CSS animation.",
+      "source": "registry/blocks/code-typing/code-typing.html",
+      "tags": ["code", "code-animation", "typing", "developer"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 5
+    },
+    {
+      "id": "data-chart",
+      "kind": "block",
+      "summary": "Animated bar + line chart with staggered reveal, NYT-style typography, and value labels",
+      "source": "registry/blocks/data-chart/data-chart.html",
+      "tags": ["data", "chart", "statistics"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 15
+    },
+    {
+      "id": "flowchart",
+      "kind": "block",
+      "summary": "Animated decision tree with SVG connectors, sticky-note nodes, cursor interaction, and typing correction",
+      "source": "registry/blocks/flowchart/flowchart.html",
+      "tags": ["diagram", "flowchart", "interactive"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 12
+    },
+    {
+      "id": "hw-path-text",
+      "kind": "block",
+      "summary": "Handwriting flowing along any SVG path with a per-character reveal; the path is the only geometry input",
+      "source": "registry/blocks/hw-path-text/hw-path-text.html",
+      "tags": ["handwritten", "typography", "path", "overlay"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 6
+    },
+    {
+      "id": "hw-pipeline",
+      "kind": "block",
+      "summary": "Wobbled boxes with handwritten labels joined by curved connectors, drawing on in sequence from a node list",
+      "source": "registry/blocks/hw-pipeline/hw-pipeline.html",
+      "tags": ["handwritten", "diagram", "data-viz", "overlay"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 7
+    },
+    {
+      "id": "hw-scribble-transition",
+      "kind": "block",
+      "summary": "Overlay transition: scribble bands accumulate to cover the frame with a solid backstop, the host cuts beneath, and the scribble clears",
+      "source": "registry/blocks/hw-scribble-transition/hw-scribble-transition.html",
+      "tags": ["handwritten", "transition", "wipe"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 2.2
+    },
+    {
+      "id": "hw-text-cloud",
+      "kind": "block",
+      "summary": "Hand-drawn speech bubble with a positionable tail: outline draws on, paper fill fades in, handwritten text types per character; boils",
+      "source": "registry/blocks/hw-text-cloud/hw-text-cloud.html",
+      "tags": ["handwritten", "speech-bubble", "overlay"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 6
+    },
+    {
+      "id": "hw-title",
+      "kind": "block",
+      "summary": "Handwritten display text with a scalar-driven word-by-word highlight sweep and a seeded squiggle underline sized to the text; boils",
+      "source": "registry/blocks/hw-title/hw-title.html",
+      "tags": ["handwritten", "typography", "title-card", "overlay"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 6
+    },
+    {
+      "id": "mk-callout-highlight",
+      "kind": "block",
+      "summary": "A sentence whose word-by-word emphasis is driven by a single scalar — tween it to sync the highlight with a voiceover",
+      "source": "registry/blocks/mk-callout-highlight/mk-callout-highlight.html",
+      "tags": ["typography", "karaoke", "captions", "minimal"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 8
+    },
+    {
+      "id": "mk-line-graph",
+      "kind": "block",
+      "summary": "One or two SVG series draw on with dots popping and value labels riding the draw front; dim baseline axis, x-labels, color-dot legend",
+      "source": "registry/blocks/mk-line-graph/mk-line-graph.html",
+      "tags": ["data-viz", "chart", "graph", "minimal"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 7
+    },
+    {
+      "id": "mk-progress-stat",
+      "kind": "block",
+      "summary": "Big-numeral statistic with count-up, label, thin progress track filling to value/max, and caption; light and dark schemes",
+      "source": "registry/blocks/mk-progress-stat/mk-progress-stat.html",
+      "tags": ["data-viz", "stat", "minimal"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 7
+    },
+    {
+      "id": "mk-specs-list",
+      "kind": "block",
+      "summary": "Left-aligned specs/traits checklist over footage or a board: rows slide in staggered with an accent underline sweep; light and dark schemes",
+      "source": "registry/blocks/mk-specs-list/mk-specs-list.html",
+      "tags": ["data-viz", "list", "minimal", "professional"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 8
+    },
+    {
+      "id": "oscilloscope-trace",
+      "kind": "block",
+      "summary": "CRT oscilloscope beam sweeping a waveform across a 10x8 graticule, with closed-form phosphor persistence: the tail decays as exp(-age/tau) and brightens where the beam slows",
+      "source": "registry/blocks/oscilloscope-trace/oscilloscope-trace.html",
+      "tags": ["instrument", "data", "showcase", "retro"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "waveform",
+        "frequency",
+        "amplitude",
+        "persistenceMs",
+        "phosphorColor",
+        "sweepRate",
+        "dataSeries"
+      ],
+      "duration": 6
+    },
+    {
+      "id": "split-flap-board",
+      "kind": "block",
+      "summary": "Solari-style departure board: every cell walks its drum forward through the intervening characters of a fixed alphabet until it lands on its target, so the text resolves as a mechanical cascade instead of a fade.",
+      "source": "registry/blocks/split-flap-board/split-flap-board.html",
+      "tags": [
+        "text",
+        "kinetic",
+        "mechanical",
+        "split-flap",
+        "solari",
+        "departure-board",
+        "reveal"
+      ],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "variables": [
+        "boardText",
+        "flapAlphabet",
+        "flipDuration",
+        "cellStagger",
+        "cellCount"
+      ],
+      "duration": 3.5
+    },
+    {
+      "id": "transitions-cover",
+      "kind": "block",
+      "summary": "Showcase of cover/uncover slide transitions",
+      "source": "registry/blocks/transitions-cover/transitions-cover.html",
+      "tags": ["transition", "showcase"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 21
+    },
+    {
+      "id": "transitions-push",
+      "kind": "block",
+      "summary": "Showcase of push and slide transitions",
+      "source": "registry/blocks/transitions-push/transitions-push.html",
+      "tags": ["transition", "showcase"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 24
+    },
+    {
+      "id": "transitions-scale",
+      "kind": "block",
+      "summary": "Showcase of scale and zoom transitions",
+      "source": "registry/blocks/transitions-scale/transitions-scale.html",
+      "tags": ["transition", "showcase"],
+      "bodyVendored": true,
+      "verifiedInInstalledRuntime": false,
+      "duration": 15
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+/* One compact toolbar: location, agent, utilities, then the next action. */
+.workspace-header {
+  height: 52px;
+  min-height: 52px;
+  padding: 0 18px;
+  gap: 20px;
+  flex-wrap: nowrap;
+}
+.workspace-header .brand {
+  font-size: 13px;
+  gap: 8px;
+}
+.workspace-header nav {
+  position: static;
+  transform: none;
+  margin: 0;
+  order: 0;
+  width: auto;
+  padding: 3px;
+  border-radius: 7px;
+  gap: 2px;
+  background: #ffffff06;
+}
+.workspace-header nav button {
+  flex: none;
+  height: 30px;
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 5px;
+}
+.workspace-header .header-actions {
+  margin-left: auto;
+  gap: 12px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+.workspace-header .header-agent {
+  height: 30px;
+  padding: 5px 8px;
+  border-color: transparent;
+  background: transparent;
+  font-size: 12px;
+}
+.workspace-header .header-utilities,
+.workspace-header .header-stage-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.workspace-header .header-utilities {
+  border-left: 1px solid #ffffff16;
+  padding-left: 12px;
+}
+.workspace-header .theme-control {
+  padding: 2px;
+  border-radius: 6px;
+  border-color: #ffffff16;
+}
+.workspace-header .theme-control button {
+  height: 24px;
+  min-width: 24px;
+  padding: 4px;
+  border-radius: 4px;
+}
+.workspace-header .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  width: 30px;
+  padding: 6px;
+  color: #bbc5bf;
+}
+.workspace-header .icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+.workspace-header .header-stage-actions > button {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.workspace-header .header-stage-actions > .primary {
+  height: 32px;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+@media (max-width: 1000px) {
+  .workspace-header {
+    gap: 10px;
+    padding: 0 12px;
+  }
+  .workspace-header .header-actions {
+    gap: 6px;
+  }
+  .workspace-header .header-utilities {
+    padding-left: 6px;
+  }
+}
+/* Narrower, Map, Look and Rehearse keep only their icons. */
+@media (max-width: 1365px) {
+  .workspace-header .header-look {
+    justify-content: center;
+    width: 30px;
+    padding: 6px;
+  }
+  .workspace-header .header-look span {
+    display: none;
+  }
+  .workspace-header .agent-pill {
+    max-width: 220px;
+  }
+}
+/* The one wrap point: the stage tabs take a row of their own. */
+@media (max-width: 1180px) {
+  .workspace-header {
+    height: auto;
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .workspace-header nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .workspace-header nav button {
+    flex: 1;
+  }
+}
+@media (max-width: 560px) {
+  .workspace-header .brand {
+    font-size: 0;
+    gap: 0;
+  }
+  .workspace-header .header-agent {
+    gap: 5px;
+  }
+  .workspace-header .header-agent .header-model {
+    max-width: 100px;
+  }
+  .workspace-header .header-stage-actions > .primary {
+    max-width: 108px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .workspace-header .header-utilities {
+    border: 0;
+    padding-left: 0;
+  }
+}
+/* The header's ••• menu: the wireframes' export, and the theme. */
+.header-more-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+.header-more-list > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13px;
+}
+.header-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
+}

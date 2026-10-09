@@ -1,0 +1,79 @@
+/* The content map's smaller parts: a selected episode's open segues, the
+   buttons placed where the eye already is, and the header's stages. */
+/* A selected episode's segues open up to their whole text (review 6). */
+.map-segue.is-open {
+  z-index: 6;
+  height: auto !important;
+  min-height: 176px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.map-segue.is-open .map-segue-s {
+  -webkit-line-clamp: unset;
+}
+.map-bridge.is-open {
+  z-index: 6;
+  height: auto !important;
+  -webkit-line-clamp: unset;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+.map-group-act {
+  margin-left: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.map-series-add {
+  margin-top: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.map-tool-error {
+  color: var(--danger, #b91c1c);
+  font-size: 13px;
+  cursor: help;
+}
+.map-header .map-brand img {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.map-stages {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  flex: none;
+}
+.map-stages button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 5px;
+}
+.map-stages button[aria-current='page'] {
+  background: var(--selected);
+  color: var(--accent);
+  font-weight: 600;
+}
+/* Narrow, the stages give way to one way back (review 6: only the logo,
+   to all notebooks, was left). */
+.map-back {
+  display: none;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+@media (max-width: 1100px) {
+  .map-stages {
+    display: none;
+  }
+  .map-back {
+    display: inline-flex;
+  }
+}

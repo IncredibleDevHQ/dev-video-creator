@@ -1,0 +1,425 @@
+/* The inspector is supporting information, with one quiet hierarchy. */
+.transcript {
+  padding: 20px;
+  background: var(--bg);
+}
+.transcript-header {
+  padding: 0;
+  margin: 0 0 16px;
+  gap: 8px 12px;
+  /* The row wraps; each chip stays on one line (review 6: "Scene / 6"). */
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.transcript-header h2 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.transcript-header .tpl-scene-chip,
+.transcript-header .shot-chip {
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+/* The chip is a flex row: its words carry the ellipsis, beside the mark. */
+.transcript-header .tpl-scene-chip > span,
+.transcript-header .shot-chip > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.transcript-header button {
+  padding: 5px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+  background: transparent;
+}
+.transcript-moment {
+  position: relative;
+  padding: 12px 0 12px 14px;
+  margin: 0;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+}
+.transcript-moment.current {
+  background: transparent;
+  border-color: var(--accent);
+}
+.transcript-moment h3 {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0 0 3px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.transcript-moment.current h3 {
+  color: var(--accent);
+}
+.transcript-moment p {
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 6px 0 0;
+  letter-spacing: 0;
+}
+.moment-layout {
+  font-size: 10px;
+  line-height: 1.4;
+}
+.activity-intro {
+  margin: 0 0 14px;
+  font-size: 11px;
+}
+.activity-log {
+  margin: 12px 0 20px;
+}
+.activity-log li {
+  gap: 10px;
+  min-height: 0;
+  padding-bottom: 14px;
+}
+.activity-log p {
+  font-size: 12px;
+  line-height: 1.45;
+}
+.activity-log time {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 3px;
+}
+.activity-footnote {
+  display: none;
+}
+.activity-transcript-heading {
+  margin: 0 0 8px;
+  padding-top: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 6px !important;
+  border: 0 !important;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+}
+.icon-button:hover {
+  color: inherit;
+  background: var(--selected);
+}
+.camera-options {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0;
+}
+.camera-options button {
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+}
+.camera-options strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.camera-options span {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.camera-options button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--selected);
+}
+.moment-timeline {
+  margin: 12px 0 16px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: transparent;
+}
+.moment-timeline .moment-strip {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  overflow: visible;
+  min-height: 58px;
+}
+.moment-timeline .moment-strip.is-empty {
+  align-items: center;
+  justify-content: center;
+}
+.moment-strip-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+.moment-timeline .moment {
+  flex-basis: 0;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px;
+  background: var(--panel);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.moment-timeline .moment.current {
+  background: var(--selected);
+  border-color: var(--accent);
+  padding: 10px;
+  box-shadow: none;
+}
+.moment-timeline .moment span {
+  font-size: 11px;
+  max-width: 100%;
+}
+.moment-timeline .moment small {
+  font-size: 10px;
+  margin: 0;
+}
+.moment-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #17201b;
+  box-shadow: 0 0 0 1px #fff9;
+  transform: translateX(-1px);
+  pointer-events: none;
+  z-index: 2;
+}
+.moment-playhead:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 8px;
+  height: 5px;
+  background: inherit;
+  border-radius: 0 0 3px 3px;
+}
+:root[data-theme='dark'] {
+  .moment-playhead {
+    background: #f4fff6;
+    box-shadow: 0 0 0 1px #17201baa;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .moment-playhead {
+    transition: none;
+  }
+}
+.scene-card {
+  position: relative;
+}
+.scene-card .thumbnail {
+  width: 100%;
+}
+.scene-card-settings {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: var(--panel);
+  box-shadow: 0 1px 5px #0003;
+  color: inherit;
+}
+.scene-card:hover .scene-card-settings,
+.scene-card:focus-within .scene-card-settings {
+  opacity: 1;
+}
+@media (hover: none) {
+  .scene-card-settings {
+    opacity: 1;
+  }
+}
+@media (max-width: 800px) {
+  .scene-card {
+    flex: 0 0 130px;
+  }
+  .scene-card .thumbnail {
+    width: 130px;
+  }
+}
+.download-scene {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  color: inherit;
+  text-decoration: none;
+}
+.download-scene:hover {
+  background: var(--selected);
+}
+/* Use the same reserved rectangles as the exported composition. */
+.video-stage[class*='presenter-layout-'] {
+  background: #101817;
+}
+.video-stage[class*='presenter-layout-'] > svg,
+.video-stage[class*='presenter-layout-'] > .rehearsal-animation {
+  position: absolute;
+  left: var(--content-x);
+  top: var(--content-y);
+  width: var(--content-width);
+  height: var(--content-height);
+  margin: 0;
+}
+.video-stage[class*='presenter-layout-'] > .presenter-preview {
+  inset: auto;
+  left: var(--camera-x);
+  top: var(--camera-y);
+  width: var(--camera-width);
+  height: var(--camera-height);
+  margin: 0;
+  overflow: hidden;
+  border-radius: 0;
+}
+.video-stage.presenter-layout-full-screen > svg,
+.video-stage.presenter-layout-full-screen > .rehearsal-animation {
+  visibility: hidden;
+}
+.presenter-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Camera presence stays visible even when a moment title is truncated. */
+.moment-timeline .moment .moment-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+}
+.moment-title > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.camera-cue {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  color: #a65a17;
+  line-height: 1;
+  vertical-align: middle;
+}
+.moment-timeline .moment .camera-cue {
+  overflow: visible;
+  max-width: none;
+}
+.transcript-moment h3 .camera-cue {
+  margin-right: 5px;
+}
+.camera-cue svg {
+  display: block;
+  flex: none;
+}
+:root[data-theme='dark'] {
+  .camera-cue {
+    color: #e9b773;
+  }
+}
+.recording-nudge {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.recording-nudge strong {
+  color: var(--text);
+  white-space: nowrap;
+}
+/* What stopped a scene, beside Try again; or what it was accepted with. */
+.scene-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.scene-check span {
+  min-width: 0;
+}
+.scene-check.is-notice {
+  color: var(--muted);
+}
+.scene-check button {
+  flex: none;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.recording-script {
+  margin: 20px 0;
+  padding: 18px 20px;
+  border-left: 2px solid var(--accent);
+  background: var(--selected);
+  font-size: 18px;
+  line-height: 1.65;
+}
+.recording-help {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.recording-help kbd {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 4px;
+  font: inherit;
+}
+.practice-cue > span {
+  font-size: clamp(16px, 1.8vw, 24px);
+  line-height: 1.5;
+  max-height: 160px;
+  overflow: auto;
+}
+.take-review h3 {
+  font-size: 14px;
+  margin: 0 0 5px;
+}
+.take-review p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+.scene-recording-needed {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text);
+}

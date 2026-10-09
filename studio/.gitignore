@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.minimal-studio-data/
+.env

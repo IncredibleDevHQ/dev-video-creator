@@ -1,0 +1,293 @@
+.source-document {
+  font-size: 16px;
+  line-height: 1.75;
+  color: inherit;
+  overflow-wrap: anywhere;
+}
+.source-document h1,
+.source-document h2,
+.source-document h3 {
+  line-height: 1.25;
+  margin: 1.6em 0 0.6em;
+  letter-spacing: -0.02em;
+}
+.source-document h1 {
+  font-size: 2em;
+}
+.source-document h2 {
+  font-size: 1.5em;
+}
+.source-document h3 {
+  font-size: 1.2em;
+}
+.source-document p,
+.source-document ul,
+.source-document ol {
+  margin: 0.9em 0;
+}
+.source-document blockquote {
+  margin: 1.3em 0;
+  padding: 0 1.2em;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.source-document pre {
+  overflow: auto;
+  padding: 16px;
+  border-radius: 10px;
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+}
+.source-document code {
+  font-family: monospace;
+  font-size: 0.9em;
+}
+.source-document :not(pre) > code {
+  background: var(--panel);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.source-document img {
+  max-width: 100%;
+  height: auto;
+}
+.source-document table {
+  display: block;
+  overflow: auto;
+  border-collapse: collapse;
+}
+.source-document th,
+.source-document td {
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.start-ai {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.start-ai .quiet {
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.source-document a,
+.notebook > p a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.note-edit-status {
+  text-align: right;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.source-document[data-notebook-editor] {
+  min-height: 200px;
+  cursor: text;
+  outline: none;
+  border-radius: 8px;
+}
+.source-document[data-notebook-editor]:focus-within {
+  box-shadow: 0 0 0 2px var(--line);
+}
+
+.source-document .tiptap {
+  outline: none;
+  min-height: 200px;
+}
+
+/* A quiet document surface with editing controls within reach. */
+.notebook {
+  width: min(960px, calc(100% - 48px));
+  max-width: 960px;
+  margin: 32px auto 80px;
+  padding: 0;
+  border-radius: 18px;
+  box-shadow: 0 12px 48px #00000006;
+  overflow: clip;
+}
+.notebook-heading {
+  padding: 36px 48px 24px;
+}
+.notebook-eyebrow {
+  display: flex;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+}
+.notebook-heading h1 {
+  margin: 16px 0 24px;
+  font-size: clamp(25px, 3vw, 36px);
+  line-height: 1.22;
+  letter-spacing: -0.035em;
+  font-weight: 650;
+  max-width: 760px;
+}
+.notebook-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.notebook-source {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.notebook-source a {
+  color: var(--muted);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+.notebook-source a:hover {
+  color: var(--accent);
+}
+.notebook-source button {
+  font-size: 11px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+}
+.notebook-model {
+  border: 1px solid var(--line);
+  background: var(--rail);
+  padding: 8px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+.notebook-model > span:first-child {
+  color: var(--muted);
+}
+.notebook-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+  padding: 10px 24px;
+  border-block: 1px solid var(--line);
+  background: var(--rail);
+}
+.notebook-toolbar button {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  border-radius: 6px;
+}
+.notebook-toolbar button[aria-pressed='true'] {
+  background: var(--selected);
+  color: var(--accent);
+}
+.notebook-toolbar select {
+  width: auto;
+  margin: 0;
+  padding: 6px 22px 6px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+}
+.toolbar-divider {
+  height: 20px;
+  width: 1px;
+  background: var(--line);
+  margin: 0 8px;
+}
+.notebook-toolbar .note-count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.notebook-toolbar .note-count.is-over {
+  color: var(--danger, #b91c1c);
+  font-weight: 600;
+}
+.notebook-toolbar .note-count + .note-edit-status {
+  margin-left: 10px;
+}
+.notebook-toolbar .note-edit-status {
+  margin: 0 0 0 auto;
+  padding-left: 10px;
+  font-size: 11px;
+}
+.notebook-body {
+  padding: 32px 48px 24px;
+}
+.source-document {
+  font-size: 16px;
+  line-height: 1.85;
+}
+.source-document[data-notebook-editor]:focus-within {
+  box-shadow: none;
+}
+.source-document .tiptap > :first-child {
+  margin-top: 0;
+}
+.source-document .tiptap li > p {
+  margin: 0.3em 0;
+}
+.notebook .source-document pre {
+  font-family: ui-monospace, monospace;
+  white-space: pre;
+  line-height: 1.6;
+  background: var(--rail);
+}
+@media (max-width: 600px) {
+  .notebook {
+    width: calc(100% - 24px);
+    margin-top: 16px;
+    border-radius: 12px;
+  }
+  .notebook-heading {
+    padding: 24px;
+  }
+  .notebook-body {
+    padding: 24px;
+  }
+  .notebook-toolbar {
+    padding: 8px 12px;
+  }
+  .notebook-toolbar .note-edit-status {
+    width: 100%;
+    padding-top: 4px;
+  }
+}
+
+/* The article's pictures, above their captions (review 5). */
+.source-document img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 20px auto 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.source-document p:has(> em:only-child) {
+  margin-top: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}

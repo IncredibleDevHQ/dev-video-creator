@@ -1,0 +1,726 @@
+/* The content map: a page of its own with a notes rail, a pannable canvas of
+   the map's pages and the series' episode lanes, and a selection bar. */
+.map-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+}
+.map-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  min-height: 56px;
+}
+.map-back,
+.map-notes-toggle {
+  flex: none;
+  white-space: nowrap;
+}
+.map-title {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.25;
+}
+.map-title span {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.map-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.map-seg {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.map-seg button,
+.map-chip {
+  padding: 4px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+.map-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.map-seg button[aria-pressed='true'],
+.map-chip[aria-pressed='true'] {
+  background: var(--selected);
+  color: var(--accent);
+  font-weight: 600;
+}
+.map-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.map-rail {
+  width: 280px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--rail);
+  min-height: 0;
+}
+.map-rail-head {
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.map-notes-toggle {
+  display: none;
+}
+/* Narrower, the notes open over the canvas from the header's Notes. */
+@media (max-width: 1199px) {
+  .map-notes-toggle {
+    display: inline-flex;
+  }
+  .map-notes-toggle[aria-expanded='true'] {
+    background: var(--selected);
+    color: var(--accent);
+  }
+  .map-body {
+    position: relative;
+  }
+  .map-rail {
+    display: none;
+  }
+  .map-page.is-notes-open .map-rail {
+    display: flex;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 90;
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.16);
+  }
+}
+.map-notes {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.map-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.map-note {
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.map-note time {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.map-note p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  white-space: pre-line;
+}
+.map-note .map-note-state {
+  color: #b7791f;
+  font-size: 12px;
+}
+.map-note .map-note-state.is-failed {
+  color: var(--danger, #b91c1c);
+}
+.map-note ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+.map-note li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.map-note li b {
+  flex: none;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--selected);
+  color: var(--accent);
+}
+.map-note li.is-adds b {
+  background: rgba(217, 154, 43, 0.16);
+  color: #a86f12;
+}
+.map-note li.is-covered b {
+  background: var(--line);
+  color: var(--muted);
+}
+.map-note .map-reveal {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.map-note .map-reveal:hover span {
+  text-decoration: underline;
+}
+.map-more-note {
+  padding: 0;
+  margin-top: 2px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.map-composer {
+  border-top: 1px solid var(--line);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-composer textarea {
+  resize: vertical;
+  min-height: 72px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: inherit;
+}
+.map-composer button {
+  align-self: flex-end;
+}
+.map-stage {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.map-canvas.is-panning {
+  cursor: grabbing;
+}
+.map-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+.map-wires {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2;
+}
+/* Lines keep their width on screen: --k is the camera's zoom. */
+.map-wire {
+  fill: none;
+  stroke-width: calc(1.4px / var(--k, 1));
+  opacity: 0.34;
+}
+.map-wires.has-focus .map-wire {
+  opacity: 0.1;
+}
+.map-wires .map-wire.is-on {
+  stroke-width: calc(2.6px / var(--k, 1));
+  opacity: 0.95;
+}
+.map-wires .map-wire.is-sibling {
+  stroke-dasharray: calc(6px / var(--k, 1)) calc(6px / var(--k, 1));
+  opacity: 0.6;
+}
+.map-flow {
+  fill: none;
+  stroke-width: calc(2.6px / var(--k, 1));
+}
+.map-flow.is-neutral {
+  stroke: var(--muted);
+}
+.map-wires marker path:not([fill]) {
+  fill: var(--muted);
+}
+.map-el {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition:
+    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s,
+    width 0.3s,
+    height 0.3s;
+}
+.map-el.is-still {
+  transition: none;
+}
+.map-block {
+  z-index: 0;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+.map-block-head {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 14px;
+}
+.map-block-head h2 {
+  margin: 0;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.map-block-head p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.map-block-head em {
+  font-style: normal;
+  font-weight: 600;
+}
+.map-group {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.map-group b {
+  color: inherit;
+  font-weight: 600;
+}
+.map-group::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.map-card {
+  z-index: 3;
+  border: 1.2px solid var(--line);
+  border-radius: 11px;
+  background: var(--paper);
+  cursor: pointer;
+  overflow: hidden;
+}
+.map-card {
+  cursor: grab;
+}
+.map-card:hover {
+  border-color: var(--muted);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+/* Selection is neutral: green already says Ep 1, made and new. */
+.map-card.is-selected {
+  border-color: currentColor;
+  box-shadow: 0 0 0 2px currentColor;
+}
+:root[data-theme='dark'] .map-thumb {
+  filter: brightness(0.84);
+}
+.map-card.is-dim {
+  opacity: 0.3;
+}
+/* With an episode selected, the map pages it copies wear its colour. */
+.map-card.is-source {
+  border-color: var(--sel);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sel) 22%, transparent);
+}
+/* Top right: a cut page's "Ep 2 only" flag holds the top left. */
+.map-src {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--sel);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+/* A page's state is its border; its word sits in the meta row. */
+.map-card.is-changing {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.map-card.is-failed {
+  border-color: var(--danger, #b91c1c);
+}
+.map-card.is-stale {
+  border-color: #c98a1b;
+}
+.map-tag {
+  font-weight: 600;
+  font-size: 11px;
+}
+.map-tag.is-new {
+  color: var(--accent);
+}
+.map-tag.is-busy {
+  font-weight: 500;
+  font-style: italic;
+}
+.map-tag.is-failed {
+  color: var(--danger, #b91c1c);
+}
+.map-tag.is-stale {
+  color: #a86f12;
+}
+.map-el:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.map-card.is-aside {
+  opacity: 0.5;
+}
+.map-card.is-planned {
+  border-style: dashed;
+  cursor: default;
+}
+.map-thumb.is-busy {
+  overflow: hidden;
+}
+.map-thumb.is-busy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--muted) 18%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: map-shimmer 1.2s linear infinite;
+}
+@keyframes map-shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-thumb.is-busy::after {
+    animation: none;
+  }
+}
+.map-uses.is-planned {
+  color: var(--muted);
+}
+.map-forming {
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  color: var(--muted);
+}
+.map-forming p {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: inherit;
+}
+.map-card.is-dragging,
+.map-el.is-dragging {
+  transition: none;
+  z-index: 50;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
+  cursor: grabbing;
+}
+.map-thumb {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 8px;
+  aspect-ratio: 16 / 9;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+.map-thumb svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.map-thumb.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--rail);
+  border-style: dashed;
+}
+/* Two lines for a title (review 6: "Objection: why not always us…"). */
+.map-card-title {
+  position: absolute;
+  left: 12px;
+  right: 10px;
+  bottom: 30px;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 17px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.map-card-meta {
+  position: absolute;
+  left: 12px;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.map-uses {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.map-uses i {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--ep);
+}
+.map-made {
+  margin-left: 6px;
+  color: var(--accent);
+  font-weight: 600;
+}
+.map-from-note {
+  margin-left: 4px;
+}
+.map-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: 1px;
+  margin-right: 6px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--ep);
+  color: #fff;
+}
+.map-lane {
+  z-index: 1;
+  border: 1.2px solid var(--line);
+  border-radius: 13px;
+  background: var(--rail);
+  cursor: pointer;
+}
+.map-lane.is-selected {
+  border-color: var(--accent);
+}
+.map-lane.is-drop {
+  border-color: var(--accent);
+  background: var(--selected);
+}
+.map-lane-head {
+  position: absolute;
+  left: 14px;
+  right: 10px;
+  top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.map-lane-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.map-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--ep);
+}
+.map-state {
+  color: var(--muted);
+  font-size: 12px;
+}
+.map-state.is-busy {
+  color: #b7791f;
+}
+.map-state.is-made {
+  color: var(--accent);
+}
+.map-state.is-failed {
+  color: var(--danger, #b91c1c);
+}
+.map-lane-acts {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.map-lane-acts button {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.map-empty {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  border: 1.5px dashed var(--line);
+  border-radius: 11px;
+}
+.map-segue {
+  z-index: 3;
+  padding: 10px 11px;
+  border: 1.2px dashed var(--line);
+  border-radius: 11px;
+  background: var(--panel);
+}
+.map-segue-k {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.map-segue-s {
+  margin-top: 6px;
+  font-size: 12.5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.map-segue.is-busy,
+.map-bridge.is-busy {
+  border-color: #d99a2b;
+  color: #b7791f;
+}
+.map-bridge {
+  z-index: 3;
+  font-size: 12px;
+  line-height: 16px;
+  font-style: italic;
+  color: var(--muted);
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.map-connector {
+  z-index: 2;
+  background: var(--line);
+}
+.map-marker {
+  z-index: 40;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.map-socials {
+  background: var(--rail);
+}
+.map-derived-block {
+  z-index: 1;
+  border: 1.2px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel);
+}
+.map-derived {
+  list-style: none;
+  margin: 0;
+  padding: 40px 14px 0;
+  font-size: 13px;
+}
+.map-derived li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+}
+.map-derived em {
+  font-style: normal;
+  color: var(--muted);
+  margin-left: auto;
+}
+.map-derived a,
+.map-derived button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}

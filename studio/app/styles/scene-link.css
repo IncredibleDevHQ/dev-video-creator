@@ -1,0 +1,237 @@
+/* A wireframe and its video scene: the scene's state on each wireframe tile,
+   the scene picture-in-picture on the wireframe, the scenes to make in the
+   video dialog, and scenes left out on the Video page. */
+.thumbnail .scene-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  pointer-events: none;
+}
+.thumbnail .scene-badge .activity-orbit {
+  width: 9px;
+  height: 9px;
+}
+.thumbnail .scene-badge.is-ready,
+.thumbnail .scene-badge.is-working {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+}
+.thumbnail .scene-badge.is-failed {
+  color: var(--warn);
+  border-color: var(--warn-line);
+}
+.thumbnail .scene-badge.is-none {
+  border-style: dashed;
+  font-weight: 500;
+}
+
+/* Under the wireframe: where its scene stands, and the way to it. */
+.slide-caption {
+  gap: 12px;
+}
+.scene-line {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+.scene-line > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.scene-line .activity-orbit {
+  width: 10px;
+  height: 10px;
+}
+.scene-line.is-ready > span,
+.scene-line.is-working > span {
+  color: var(--accent);
+}
+.scene-line.is-failed > span {
+  color: var(--warn);
+}
+.scene-line button {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* A made scene plays picture-in-picture in the wireframe's lower right
+   corner; it folds to a chip. */
+.stage-frame {
+  position: relative;
+}
+.scene-pip,
+.scene-pip-chip {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  box-shadow: 0 10px 28px #0000003d;
+}
+.scene-pip {
+  width: min(272px, 42%);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.scene-pip-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+}
+.scene-pip-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.scene-pip-bar span {
+  flex: 1;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.scene-pip-bar button {
+  min-height: 26px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.scene-pip-bar .scene-pip-close {
+  min-width: 26px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+.scene-pip-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* The video dialog: which wireframes become scenes. */
+.scene-choice {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+.scene-choice legend {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.scene-choice-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 600;
+}
+.scene-choice-count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.scene-choice ul {
+  display: grid;
+  gap: 2px;
+  max-height: 210px;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.scene-choice label,
+.dialog-body .scene-choice label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 2px;
+  font-size: 13px;
+}
+/* The voices, as rows in a short list (review 6: a browser select). */
+.voice-rows > div {
+  display: grid;
+  gap: 2px;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+.dialog-body .voice-rows label {
+  margin: 0;
+  padding: 5px 2px;
+  font-size: 13px;
+}
+.voice-rows .is-missing {
+  color: var(--danger, #b91c1c);
+}
+.scene-choice-number {
+  min-width: 20px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.scene-choice small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Video page: a scene left out of the video reads as optional. */
+.scene-rail .thumbnail.is-left-out > div {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+.scene-membership-title {
+  margin-top: 22px;
+  font-size: 16px;
+}
+
+/* A scene whose wireframe is still drawn: it starts once that is done. */
+.scene-choice-later {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+/* The left-out scenes, under their own line after the video's. */
+.scene-rail .rail-divider {
+  margin: 14px 4px 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

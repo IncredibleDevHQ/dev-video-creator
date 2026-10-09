@@ -1,0 +1,733 @@
+/* Video templates: the gallery page, the dialog picker and the scene chip.
+   The sketches' own styles are in template-sketches.css. */
+
+/* A beat's narrative function, light then dark. */
+:root {
+  --tpl-hook: #d2456b;
+  --tpl-context: #6b7a90;
+  --tpl-problem: #c4581c;
+  --tpl-explain: #2f6fe4;
+  --tpl-evidence: #0e8fa8;
+  --tpl-turn: #7a4fe0;
+  --tpl-resolution: #0c9488;
+  --tpl-payoff: #b9770c;
+  --tpl-action: #5a8f1c;
+  --tpl-order: #8a948f;
+}
+:root[data-theme='dark'] {
+  --tpl-hook: #ff6f93;
+  --tpl-context: #9aa8bd;
+  --tpl-problem: #fb8f4a;
+  --tpl-explain: #6b9cff;
+  --tpl-evidence: #38c6e0;
+  --tpl-turn: #a383ff;
+  --tpl-resolution: #2fc4b4;
+  --tpl-payoff: #e6a83a;
+  --tpl-action: #9ad65a;
+  --tpl-order: #9aa39e;
+}
+[data-function='hook'] {
+  --tpl-c: var(--tpl-hook);
+}
+[data-function='context'] {
+  --tpl-c: var(--tpl-context);
+}
+[data-function='problem'] {
+  --tpl-c: var(--tpl-problem);
+}
+[data-function='explain'] {
+  --tpl-c: var(--tpl-explain);
+}
+[data-function='evidence'] {
+  --tpl-c: var(--tpl-evidence);
+}
+[data-function='turn'] {
+  --tpl-c: var(--tpl-turn);
+}
+[data-function='resolution'] {
+  --tpl-c: var(--tpl-resolution);
+}
+[data-function='payoff'] {
+  --tpl-c: var(--tpl-payoff);
+}
+[data-function='action'] {
+  --tpl-c: var(--tpl-action);
+}
+[data-function='order'] {
+  --tpl-c: var(--tpl-order);
+}
+.tpl-beat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tpl-c, var(--tpl-order));
+  flex: none;
+}
+
+/* The gallery page: a rail of stories beside an inset panel. */
+.tpl-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  min-height: calc(100vh - 56px);
+  padding: 16px;
+  background: var(--bg);
+}
+.tpl-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 16px;
+  align-self: start;
+  max-height: calc(100vh - 88px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.tpl-rail button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.tpl-icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tpl-rail button span {
+  flex: 1;
+}
+.tpl-rail button small {
+  font:
+    12px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  color: var(--muted);
+}
+.tpl-rail button[aria-current='page'] {
+  background: var(--selected);
+  color: inherit;
+  font-weight: 600;
+}
+.tpl-rail-foot {
+  margin: 18px 10px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tpl-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px 30px 40px;
+  min-width: 0;
+}
+.tpl-head h1,
+.tpl-detail-head h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+.tpl-head p,
+.tpl-lede {
+  margin: 0;
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+.tpl-head + .tpl-grid {
+  margin-top: 28px;
+}
+/* The search field: large, under every list's heading, "/" to reach it. */
+.tpl-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 680px;
+  height: 48px;
+  margin-top: 20px;
+  padding: 0 12px 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  cursor: text;
+}
+.tpl-search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.tpl-search .tpl-icon {
+  width: 19px;
+  height: 19px;
+  color: var(--muted);
+}
+.tpl-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+}
+.tpl-search kbd {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font:
+    12px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.tpl-suggest,
+.tpl-jump {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.tpl-suggest span {
+  margin-right: 2px;
+}
+.tpl-suggest button,
+.tpl-jump button {
+  padding: 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: inherit;
+  font-size: 12.5px;
+}
+.tpl-suggest button:hover,
+.tpl-jump button:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--selected);
+}
+.tpl-count {
+  margin: 28px 0 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.tpl-card-body .tpl-card-story {
+  flex-basis: 100%;
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.tpl-story,
+.tpl-group {
+  margin-top: 40px;
+  scroll-margin-top: 20px;
+}
+.tpl-group .tpl-story-head h2 {
+  font-size: 18px;
+}
+.tpl-group .tpl-story-head h2 button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tpl-story-head {
+  margin-bottom: 14px;
+}
+.tpl-story-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.tpl-story-head h2 button {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.tpl-story-head h2 button:hover {
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tpl-story-head p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.tpl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 26px 20px;
+}
+/* A card never widens its column, whatever its one line says. */
+.tpl-card {
+  min-width: 0;
+}
+
+/* A card: its stage plays the template; under it, a name and one line. */
+.tpl-card-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border-radius: 12px;
+}
+.tpl-card-open:hover {
+  background: transparent;
+}
+.tpl-card-open:hover .tpl-stage {
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.1);
+  transform: translateY(-2px);
+}
+.tpl-card-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  padding: 12px 2px 0;
+}
+.tpl-card-body h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.tpl-card-time {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.tpl-card-body p {
+  flex-basis: 100%;
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tpl-badge {
+  align-self: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--selected);
+  color: var(--accent);
+}
+
+/* The stage: a 16:9 frame with its slot named and the run of slots below. */
+.tpl-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--sk-ground, #fff);
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+.tpl-stage .tpl-sketch {
+  position: absolute;
+  inset: 0;
+  animation: tpl-enter 0.35s ease-out;
+}
+/* A card shows each sketch from two seconds in, when it is fullest; the
+   player starts from the beginning so the whole move can be watched. */
+.tpl-card .tpl-sketch [class*='sk-'],
+.tpl-option-thumb [class*='sk-'] {
+  animation-delay: -2s;
+}
+@keyframes tpl-enter {
+  from {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+}
+.tpl-stage-role {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 3px;
+  border-radius: 999px;
+  background: rgb(14 18 20 / 0.7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tpl-stage-role b {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  font-size: 10px;
+}
+/* The speaker, where the direction puts them for this beat. */
+.tpl-stage-cam {
+  position: absolute;
+  display: grid;
+  place-items: end center;
+  overflow: hidden;
+  background: #26303d;
+  pointer-events: none;
+}
+.tpl-stage-cam svg {
+  width: 72%;
+  fill: #8a9bb0;
+}
+/* As rendered: the corner layout narrows the content to 77% of the width
+   and sets the camera beside it, low on the right. */
+.tpl-stage-cam.corner {
+  right: 2%;
+  bottom: 12%;
+  width: 18.75%;
+  aspect-ratio: 1;
+  border-radius: 9px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
+}
+.tpl-stage[data-speaker='corner'] .tpl-sketch {
+  right: 22%;
+}
+.tpl-stage-cam.beside {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 30%;
+}
+.tpl-stage[data-speaker='beside'] .tpl-sketch {
+  right: 30%;
+}
+/* Full frame: the speaker fills the stage; words go over them when the
+   direction has them lead. */
+.tpl-stage-cam.full,
+.tpl-stage-cam.over {
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, #35414f, #1d252e);
+}
+.tpl-stage-cam.full svg,
+.tpl-stage-cam.over svg {
+  width: 44%;
+}
+.tpl-stage[data-speaker='full'] .tpl-sketch,
+.tpl-stage[data-speaker='over'] .tpl-sketch {
+  visibility: hidden;
+}
+.tpl-stage-words {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 14%;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.45);
+  animation: tpl-words 0.7s ease-out both;
+}
+.tpl-stage.large .tpl-stage-words {
+  font-size: 40px;
+}
+@keyframes tpl-words {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.tpl-segments {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 9px;
+  display: flex;
+  gap: 3px;
+}
+.tpl-segment {
+  position: relative;
+  height: 4px;
+  min-width: 6px;
+  border-radius: 2px;
+  padding: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--tpl-c) 26%, transparent);
+}
+button.tpl-segment {
+  height: 8px;
+  border: 0;
+  cursor: pointer;
+}
+button.tpl-segment:hover {
+  background: color-mix(in srgb, var(--tpl-c) 50%, transparent);
+}
+.tpl-segment-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--tpl-c);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+.tpl-segment[data-state='done'] .tpl-segment-fill {
+  transform: scaleX(1);
+}
+.tpl-segment[data-state='now'] .tpl-segment-fill {
+  animation: tpl-fill 4.5s linear forwards;
+}
+.tpl-stage.large .tpl-segment[data-state='now'] .tpl-segment-fill {
+  animation-duration: 7s;
+}
+.tpl-player[data-playing='false']
+  .tpl-segment[data-state='now']
+  .tpl-segment-fill {
+  animation: none;
+  transform: scaleX(1);
+}
+@keyframes tpl-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* A template, opened: its name and one line, its directions, and the
+   player with the beats beside it as chapters. */
+.tpl-detail {
+  max-width: 1060px;
+}
+.tpl-crumb {
+  margin: 0 0 10px;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.tpl-crumb:hover {
+  background: transparent;
+  color: inherit;
+}
+.tpl-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+.tpl-detail-meta {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+/* Under the directions: the chosen one's settings, then the player. */
+.tpl-variants + .tpl-detail-meta {
+  margin: -6px 0 14px;
+}
+.tpl-use {
+  flex: none;
+  text-align: right;
+  max-width: 240px;
+}
+.tpl-use-note {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* The directions, as a segmented control. */
+.tpl-variants {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 16px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.tpl-variants button {
+  padding: 5px 12px;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.tpl-variants button[aria-selected='true'] {
+  background: var(--panel);
+  color: inherit;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.tpl-player {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 24px;
+  align-items: start;
+}
+.tpl-player-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+}
+.tpl-round {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
+}
+.tpl-caption {
+  margin: 6px 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.tpl-caption b {
+  margin-right: 6px;
+  font-weight: 600;
+}
+.tpl-caption span {
+  color: var(--muted);
+}
+.tpl-caption small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+/* The beats as chapters, the one playing marked. */
+.tpl-chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tpl-chapters button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13.5px;
+  text-align: left;
+}
+.tpl-chapters button[aria-current='true'] {
+  background: var(--selected);
+  color: inherit;
+  font-weight: 600;
+}
+.tpl-chapters span {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tpl-chapters small {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+/* A beat this direction leaves out: listed, dimmed, not playable. */
+.tpl-chapters .tpl-left-out {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  color: var(--muted);
+  font-size: 13.5px;
+  opacity: 0.55;
+}
+/* What the story insists on, and what the source must hold. */
+.tpl-insists {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.tpl-insists h2 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tpl-insists ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .tpl-layout {
+    grid-template-columns: 1fr;
+  }
+  .tpl-rail {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    scrollbar-width: none;
+    min-width: 0;
+  }
+  .tpl-rail button {
+    flex: none;
+  }
+  .tpl-rail-foot {
+    display: none;
+  }
+  .tpl-grid,
+  .tpl-player,
+  .tpl-insists {
+    grid-template-columns: 1fr;
+  }
+  .tpl-detail-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .tpl-use {
+    text-align: left;
+  }
+  .tpl-panel {
+    padding: 20px 16px 28px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tpl-sketch *,
+  .tpl-option-thumb *,
+  .tpl-stage .tpl-sketch,
+  .tpl-segment-fill {
+    animation: none !important;
+  }
+  .tpl-card-open:hover .tpl-stage {
+    transform: none;
+  }
+}

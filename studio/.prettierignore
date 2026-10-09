@@ -1,0 +1,5 @@
+node_modules/
+dist/
+prototypes/
+public/
+skills/video-planner/hyperframes/

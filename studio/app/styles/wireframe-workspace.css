@@ -1,0 +1,592 @@
+/* Review 5: the outline as titled tiles, one status, the script under each
+   wireframe, a change pinned to one part, and changes queued while drawing. */
+.slides .thumbnail[data-plan] {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 8px;
+}
+.plan-thumb {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line) !important;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--panel) 70%, transparent) !important;
+  text-align: left;
+}
+.plan-thumb b {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--muted);
+}
+.plan-thumb small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.plan-tile.is-drawing .plan-thumb {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line)) !important;
+  background: linear-gradient(
+    100deg,
+    var(--panel) 35%,
+    var(--selected) 50%,
+    var(--panel) 65%
+  ) !important;
+  background-size: 240% 100% !important;
+  animation: tile-shimmer 1.6s linear infinite;
+}
+.plan-tile.is-drawing .plan-thumb small {
+  color: var(--accent);
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .plan-tile.is-drawing .plan-thumb {
+    animation: none;
+  }
+}
+.plan-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 8% 10%;
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+}
+.plan-stage.is-drawing {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+}
+.plan-number {
+  font:
+    600 12px ui-monospace,
+    Menlo,
+    monospace;
+  color: var(--muted);
+}
+.plan-stage h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.plan-stage p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.plan-stage .activity-orbit {
+  width: 12px;
+  height: 12px;
+}
+.thumbnail .tile-badge {
+  position: absolute;
+  right: 12px;
+  bottom: 14px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.thumbnail .tile-badge.is-working {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+}
+.thumbnail .tile-badge.is-failed {
+  color: var(--warn);
+  border-color: var(--warn-line);
+}
+
+/* One notice when drawing stops: plain words, the warning colour. */
+.run-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 14px;
+  padding: 10px 12px 10px 14px;
+  border: 1px solid var(--warn-line);
+  border-radius: 10px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.run-notice p {
+  margin: 0;
+}
+.run-notice .primary {
+  flex: none;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.change-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 13px;
+}
+.change-chip span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.change-chip.is-working {
+  color: inherit;
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.change-chip.is-failed {
+  color: var(--warn);
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+}
+.change-chip button {
+  flex: none;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.change-chip .activity-orbit {
+  width: 11px;
+  height: 11px;
+}
+
+/* The script under the wireframe (Open Slide's notes drawer). */
+.script-notes {
+  margin: 0 0 14px;
+}
+.script-notes h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.script-notes h3 small {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.script-notes textarea {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: vertical;
+}
+.script-notes textarea[readonly] {
+  background: transparent;
+  border-style: dashed;
+  color: var(--muted);
+}
+
+/* Point at one part of the wireframe. */
+.stage[data-pinnable] svg [data-role='node'],
+.stage[data-pinnable] svg [data-role='connector'],
+.stage[data-pinnable] svg text {
+  cursor: pointer;
+}
+.stage[data-pinnable] svg [data-role='node']:hover,
+.stage[data-pinnable] svg text:hover {
+  filter: drop-shadow(
+    0 0 2px color-mix(in srgb, var(--accent) 70%, transparent)
+  );
+}
+.stage[data-pinnable] {
+  position: relative;
+}
+.stage .pin-box {
+  position: absolute;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+  pointer-events: none;
+}
+.pin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  max-width: 45%;
+  margin-left: 4px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat .pin-chip button {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  padding: 0;
+  font-size: 14px;
+  background: transparent;
+  color: inherit;
+}
+.slides .rail-heading [data-action='stop-slides'] {
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.chat input:disabled {
+  cursor: not-allowed;
+}
+.chat:has(input:disabled) {
+  background: transparent;
+  border-style: dashed;
+}
+.chat button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Replies are information, not good news: neutral, or the warning colour. */
+.reply > span {
+  color: var(--muted);
+}
+.reply > span.is-failed {
+  color: var(--warn);
+}
+.slide-menu-button {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  line-height: 18px;
+}
+.slide-menu-popover {
+  width: 180px;
+  padding: 5px;
+}
+.slide-menu-list button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13px;
+}
+.slide-menu-list button:last-child:not(:disabled) {
+  color: var(--warn);
+}
+
+/* Activity: steps with times. */
+.activity-steps-intro {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.activity-steps {
+  display: grid;
+  gap: 2px;
+  max-height: 44vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.activity-steps li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.activity-steps time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.activity-steps li.is-failed span {
+  color: var(--warn);
+}
+.activity-usage-title {
+  margin: 18px 0 8px;
+  font-size: 14px;
+}
+.activity-usage {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.activity-usage th,
+.activity-usage td {
+  padding: 5px 8px 5px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+.activity-usage th:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.activity-usage thead th {
+  color: var(--muted);
+  font-weight: 500;
+}
+.activity-usage .is-total th,
+.activity-usage .is-total td {
+  font-weight: 600;
+}
+.activity-usage .is-unknown {
+  color: var(--muted);
+  text-align: left;
+}
+.activity-usage-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Video: play controls under the scene, readable moment tiles, clear
+   disabled buttons (review 5). */
+.player-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.player-bar button {
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 12px;
+}
+.player-time {
+  font-variant-numeric: tabular-nums;
+}
+.video-stage [data-scene-player] {
+  cursor: pointer;
+}
+.moment-item {
+  min-width: 58px;
+}
+.moment-item > .moment,
+.moment-item > .moment.current {
+  padding-right: 10px;
+}
+.moment-timeline .moment .moment-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.moment-timeline .moment .moment-number {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.moment-timeline .moment .moment-name {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.moment-item .moment-card-menu {
+  background: var(--panel);
+}
+.video-actions button:disabled,
+.video-actions .download-scene[aria-disabled='true'] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.reply > span.is-failed {
+  color: var(--warn);
+}
+
+/* The notebook's template on a wireframe: the beats the page carries, and
+   the evidence it still needs from the creator. */
+.page-story {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.page-beats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.page-beats b {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--ink, inherit);
+  font-weight: 600;
+}
+.evidence-asks h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.evidence-asks h3 small {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.evidence-ask {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.evidence-ask label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.evidence-ask small {
+  color: var(--muted);
+  font-weight: 400;
+}
+.evidence-ask input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+@media (max-width: 700px) {
+  .evidence-ask {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .evidence-ask label {
+    grid-column: 1 / -1;
+  }
+}
+.evidence-given {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.evidence-given b {
+  margin-right: 6px;
+  color: var(--ink, inherit);
+  font-weight: 600;
+}
+/* Core beats no wireframe carries, each a click from a page of its own. */
+.story-gaps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+.story-gaps p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--muted);
+}
+.story-gaps button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* While the deck is drawn: a page being drawn now, or a draft waiting;
+   at the top, so a change's badge below stays readable. */
+.thumbnail .tile-badge.is-drawing,
+.thumbnail .tile-badge.is-draft {
+  top: 10px;
+  bottom: auto;
+}
+.thumbnail .tile-badge.is-drawing {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+}
+.thumbnail .tile-badge.is-draft {
+  border-style: dashed;
+}
+
+/* Jev reads the page as carrying another beat: worth a look. */
+.page-check {
+  margin: 0;
+  color: var(--warn);
+  font-size: 12.5px;
+}
+.page-check small {
+  color: var(--muted);
+}
+.script-segue {
+  margin: 6px 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+}
