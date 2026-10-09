@@ -26,12 +26,16 @@ it('counts the notes without the reader’s cut note', () => {
   expect(notesLength(cut)).toBe(NOTE_LIMIT)
   expect(notesLength(`${kept}y`)).toBe(NOTE_LIMIT + 1)
   // As the editor's markdown writes it back: the cut note's brackets and
-  // other characters escaped, each still one character to the creator.
+  // other characters escaped, & as an entity, a table padded. Each is still
+  // one character, or one space, to the creator.
+  const written = String.raw`a\_b\* &amp; |  c   |  d  |`
+  expect(notesLength(written)).toBe('a_b* & | c | d |'.length)
   expect(
     notesLength(
-      `${'x'.repeat(NOTE_LIMIT - 4)}a\_b\* … \[cut: the article goes on for 4,512 more characters\]`
+      'x'.repeat(NOTE_LIMIT - 3) +
+        String.raw`a\_ … \[cut: the article goes on for 4,512 more characters\]`
     )
-  ).toBe(NOTE_LIMIT)
+  ).toBe(NOTE_LIMIT - 1)
 })
 
 it('keeps a font only if it can load, else the nearest built-in', () => {

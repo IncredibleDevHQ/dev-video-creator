@@ -13,6 +13,13 @@ export const sceneCheck = (scene: Scene) =>
           ? `<button type="button" data-action="accept-scene" title="Only the motion and frame checks refused it">Accept as is</button>`
           : ''
       }</div>`
-    : scene.phase !== 'failed' && scene.notice
+    : scene.notice && accepted(scene)
       ? `<div class="scene-check is-notice" role="status"><span>${escape(scene.notice)}.</span></div>`
       : ''
+
+/** The scene still shows what was accepted: in the video, and not changed
+ * since its animation or its making. */
+const accepted = (scene: Scene) =>
+  !['failed', 'idle'].includes(scene.phase) &&
+  ((scene.produced && scene.produced.inputKey === scene.inputKey) ||
+    (scene.animation && scene.animation.inputKey === scene.animationKey))

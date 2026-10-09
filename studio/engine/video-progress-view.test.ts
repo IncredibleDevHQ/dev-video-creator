@@ -443,9 +443,46 @@ it('puts no playback controls over a scene still being prepared, and gives the r
 it('offers to make a scene left out of the video, and a way back to its wireframe', () => {
   const input = fixture(),
     scene = input.project.video!.scenes[0]
+  // Moments the creator records, one recorded: in the video, the scene
+  // offers its controls.
+  input.project.video!.settings.voice = { kind: 'record' }
+  const moment = (
+    id: string,
+    start: number,
+    end: number,
+    recorded: boolean
+  ) => ({
+    id,
+    title: id,
+    lines: 'Some words to say here.',
+    start,
+    end,
+    camera: 'none',
+    layout: 'full-screen',
+    overlay: null,
+    recordingKey: `r-${id}`,
+    take: recorded
+      ? { id: `t-${id}`, recordingKey: `r-${id}`, duration: end - start }
+      : null,
+    audio: null,
+    audioKey: `a-${id}`
+  })
+  scene.moments = [moment('m1', 0, 4, true), moment('m2', 4, 8, false)] as never
+  scene.phase = 'waiting'
+  input.views = projectViews(input.project, input.events)
+  const inVideo = render(input)
+  for (const control of [
+    'data-action="moment-actions"',
+    'data-retake="0"',
+    'data-action="practice"',
+    'Your turn'
+  ])
+    expect(inVideo).toContain(control)
+  // Left out, the same scene offers only Make this scene.
   scene.phase = 'idle'
   input.views = projectViews(input.project, input.events)
   const html = render(input)
+  expect(html).not.toContain('data-retake')
   expect(html).toContain(
     '<button type="button" data-action="scene-next" class="primary" >Make this scene</button>'
   )

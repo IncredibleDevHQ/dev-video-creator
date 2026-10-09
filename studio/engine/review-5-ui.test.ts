@@ -136,7 +136,7 @@ it('shows token use per step, from what each agent call reported', () => {
     [...row.children].map((cell) => cell.textContent)
   )
   expect(rows).toEqual([
-    ['Reading the source', '1', '1.2 k', '0', '300', '1.5 k'],
+    ['Understanding the source', '1', '1.2 k', '0', '300', '1.5 k'],
     ['Story', '1', '4.0 k', '20 k', '900', '25 k'],
     ['Wireframes', '2', '67 k', '976 k', '9.4 k', '1.1 M*'],
     ['All steps', '4', '72 k', '996 k', '11 k', '1.1 M*']

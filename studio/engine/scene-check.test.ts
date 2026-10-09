@@ -1,0 +1,48 @@
+import { expect, it } from 'vitest'
+import type { Scene } from '../shared/model'
+import { sceneCheck } from '../app/scene-check'
+
+// What stopped a scene, beside Try again; or what a made scene was accepted
+// with, while it still applies.
+const scene = (fields: Partial<Scene>) =>
+  ({
+    id: 's',
+    slideId: 'slide',
+    phase: 'failed',
+    presence: null,
+    moments: [],
+    inputKey: 'k1',
+    produced: null,
+    error: null,
+    ...fields
+  }) as Scene
+
+it('says the last check in plain words, with Accept as is when it can be taken', () => {
+  const html = sceneCheck(
+    scene({
+      lastCheck: 'Moment 3 needs one more visible change',
+      acceptable: 'candidate-1'
+    })
+  )
+  expect(html).toContain(
+    'The last check: Moment 3 needs one more visible change.'
+  )
+  expect(html).toContain('data-action="accept-scene"')
+  expect(
+    sceneCheck(scene({ lastCheck: 'Its code had a fault' }))
+  ).not.toContain('accept-scene')
+})
+
+it('keeps what a made scene was accepted with only while it still applies', () => {
+  const notice =
+    'Accepted with a warning: Moment 2 needs one more visible change'
+  const made = scene({
+    phase: 'produced',
+    notice,
+    produced: { inputKey: 'k1', objectKey: 'o.mp4' }
+  })
+  expect(sceneCheck(made)).toContain(notice)
+  // Changed since, or left out of the video: it no longer says so.
+  expect(sceneCheck({ ...made, inputKey: 'k2' })).toBe('')
+  expect(sceneCheck({ ...made, phase: 'idle' })).toBe('')
+})

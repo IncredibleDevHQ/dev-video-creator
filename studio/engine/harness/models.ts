@@ -115,13 +115,14 @@ export const codexCatalogFrom = (
       typeof model.slug !== 'string'
     )
       return []
+    const label =
+      typeof model.display_name === 'string' ? model.display_name : model.slug
+    // The id it runs, in the tooltip, as for the other agents.
     return [
       {
         id: model.slug,
-        label:
-          typeof model.display_name === 'string'
-            ? model.display_name
-            : model.slug
+        label,
+        ...(label !== model.slug ? { hint: model.slug } : {})
       }
     ]
   })

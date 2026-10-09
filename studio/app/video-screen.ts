@@ -715,7 +715,9 @@ ${
 <small class="moment-layout">${momentKind(entry, true)}</small>
 <p>${transcriptWords(entry.lines)}</p>${
           views?.moments[momentViewKey(scene.id, entry.id)]?.state ===
-            'recorded' && capture.phase === 'idle'
+            'recorded' &&
+          capture.phase === 'idle' &&
+          !leftOut
             ? `<button data-retake="${index}" class="retake-moment" ${display.canRecord ? '' : 'disabled title="Wait for this scene to finish changing"'}>Retake</button>`
             : ''
         }${snapshot.events

@@ -11,6 +11,7 @@ import { fishKey } from './credentials'
 // Responses-shaped body, so the rest of the server does not care.
 
 import { loadSetting, saveSetting } from './persistence'
+import { Refusal } from './refusal'
 
 export type ModelTask = 'writing' | 'vision' | 'coding'
 export type ModelProviderPreset =
@@ -439,7 +440,7 @@ export const modelFetch = async (
 ): Promise<ModelFetchResult> => {
   const { settings } = await loadModelSettings()
   if (!settings) {
-    throw new Error(
+    throw new Refusal(
       'No AI provider configured — add one under Direct API in AI settings'
     )
   }

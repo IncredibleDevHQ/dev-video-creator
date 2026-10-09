@@ -1,7 +1,7 @@
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { downloadPresentation } from './download'
-import { flushNotebookEdits, saveBeforeLeaving } from './notebook-editor'
+import { saveBeforeLeaving } from './notebook-editor'
 import { createPresentation } from './start-controller'
 import { closePopover, openPopover } from './popover'
 
@@ -136,9 +136,16 @@ export const clickSlides = async (
   }
   if (action === 'retry-slides') {
     if (app.pending) return
+    // Notes that can't be saved don't hold Try again: it can go on from the
+    // notes as last saved (review 6).
+    const saved = await saveBeforeLeaving(app, {
+      question:
+        'Try again from the notes as last saved, without the edits since?',
+      action: 'Try again without the edits'
+    })
+    if (!saved) return
     target.disabled = true
     try {
-      await flushNotebookEdits(app)
       if (app.snapshot?.status === 'draft') {
         await createPresentation(app)
         return

@@ -11,6 +11,7 @@ import { spawn } from 'node:child_process'
 import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Refusal } from './refusal'
 
 export const runCommand = (
   command: string,
@@ -56,7 +57,7 @@ export const generateSystemVoice = async (
   voice?: string
 ) => {
   if (!(await systemVoiceAvailable())) {
-    throw new Error(
+    throw new Refusal(
       'No keyless system voice is available. Configure FISH_AUDIO_API_KEY or use microphone audio.'
     )
   }

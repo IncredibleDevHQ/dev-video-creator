@@ -133,3 +133,38 @@ it('finds an empty frame while the voice speaks, and words the edge cuts', async
   expect(kinds(1920 - 320 - 6)).toContain('cut')
   expect(kinds(1920 - 320 - 40)).not.toContain('cut')
 })
+
+it('judges the words themselves, not a full-width text block, and excuses what is cut on purpose', async () => {
+  const { motionDefects } = await import('./motion-checks')
+  // A centred title in a block as wide as the frame: its box touches both
+  // edges, its words sit well inside.
+  const title = [0, 0, 1920, 140, 20, 0, 'A centred title', 'black'] as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    string,
+    string
+  ]
+  const pose = (
+    words: Array<[number, number, number, number, string, number]>
+  ) => ({
+    media: false,
+    frame: [1920, 1080] as [number, number],
+    elements: [title],
+    words
+  })
+  const still = (
+    words: Array<[number, number, number, number, string, number]>
+  ) =>
+    motionDefects(
+      { id: 'm1', start: 0, end: 3 },
+      Array.from({ length: 6 }, () => pose(words))
+    ).map((defect) => defect.kind)
+  expect(still([[766, 60, 388, 74, 'A centred title', 0]])).not.toContain('cut')
+  // Words past the edge on purpose (data-intentional) are the scene's.
+  expect(still([[-40, 900, 155, 37, 'cut caption', 1]])).not.toContain('cut')
+  expect(still([[-40, 900, 155, 37, 'cut caption', 0]])).toContain('cut')
+})

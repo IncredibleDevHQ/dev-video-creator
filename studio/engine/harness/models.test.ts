@@ -17,7 +17,7 @@ it('lists visible cached models, merges the configured choice and exposes no acc
     ]
   })
   expect(result.options).toEqual([
-    { id: 'model-a', label: 'Model A' },
+    { id: 'model-a', label: 'Model A', hint: 'model-a' },
     {
       id: 'custom-model',
       label: 'custom-model',

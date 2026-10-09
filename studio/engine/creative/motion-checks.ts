@@ -12,6 +12,9 @@ export type Pose = {
   media: boolean
   /** The frame's width and height, for what the edge cuts. */
   frame?: [number, number]
+  /** Each piece of text's own words, where they are, and whether the scene
+   * shows them cut on purpose (data-intentional). */
+  words?: Array<[number, number, number, number, string, number]>
   elements: Array<
     null | [number, number, number, number, number, number, string, string]
   >
@@ -60,7 +63,32 @@ export const POSE = `(() => {
       style.fill + ' ' + style.backgroundColor + ' ' + style.stroke
     ])
   }
-  return { media, frame: [Math.round(frame.width), Math.round(frame.height)], elements }
+  // The words themselves, as the settled-frame check measures them: a text
+  // block's own box can span the frame while its words sit well inside.
+  const words = []
+  const owners = new Set()
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.textContent.replace(/\\s+/g, ' ').trim()
+    const parent = node.parentElement
+    if (!text || !parent || parent.closest('defs, clipPath, mask, marker, pattern, symbol, script, style, title, audio')) continue
+    const owner = parent.closest('text') || parent
+    if (owners.has(owner) || !((alpha.get(owner) || 0) >= 0.5)) continue
+    owners.add(owner)
+    let r
+    if (owner instanceof SVGElement) r = owner.getBoundingClientRect()
+    else {
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      r = range.getBoundingClientRect()
+    }
+    if (r.width < 1 || r.height < 1) continue
+    words.push([
+      Math.round(r.left - frame.left), Math.round(r.top - frame.top), Math.round(r.width), Math.round(r.height),
+      text.slice(0, 40), owner.closest('[data-intentional]') ? 1 : 0
+    ])
+  }
+  return { media, frame: [Math.round(frame.width), Math.round(frame.height)], elements, words }
 })()`
 
 /**
@@ -144,9 +172,18 @@ const SAFE_MARGIN = 16
 const cutWords = (sample: Pose) => {
   const [width, height] = sample.frame || [0, 0]
   if (!width) return []
-  return sample.elements.filter((item): item is Element => {
-    if (!item || !item[6] || item[4] < 10) return false
-    const [x, y, w, h] = item
+  // The words themselves where measured (an older sample has only its
+  // elements' boxes); words cut on purpose are the scene's to show.
+  const words: Array<[number, number, number, number, string]> = sample.words
+    ? sample.words
+        .filter((word) => !word[5])
+        .map(([x, y, w, h, text]) => [x, y, w, h, text])
+    : sample.elements
+        .filter((item): item is Element =>
+          Boolean(item && item[6] && item[4] >= 10)
+        )
+        .map((item) => [item[0], item[1], item[2], item[3], item[6]])
+  return words.filter(([x, y, w, h]) => {
     const inside = x < width && y < height && x + w > 0 && y + h > 0
     const out =
       x < SAFE_MARGIN ||
@@ -215,7 +252,7 @@ export const motionDefects = (
   // them (review 6: "augmented LLM" became "mented LLM").
   const cut = longestRun(samples, (sample) => cutWords(sample).length > 0)
   if (cut.longest >= 2) {
-    const words = cutWords(samples[cut.from])[0]?.[6] || 'a label'
+    const words = cutWords(samples[cut.from])[0]?.[4] || 'a label'
     defects.push({
       kind: 'cut',
       moment: moment.id,

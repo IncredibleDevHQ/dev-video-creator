@@ -430,13 +430,13 @@ ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-c
         inputSchema: submissionSchema,
         call: async () => {
           const { report } = await check(directory)
-          // A run that stops before it submits still says what was found.
-          if (!report.ok) {
-            lastProblems = report.problems
+          // A run that stops before it submits still says what was found,
+          // and a later passing check clears it.
+          lastProblems = report.ok ? [] : report.problems
+          if (!report.ok)
             await onProgress?.(
               `A check while writing asked for ${report.problems.length} fix${report.problems.length === 1 ? '' : 'es'}: ${plainCheck(report.problems[0], scene.moments)}`
             )
-          }
           return {
             ok: report.ok,
             problems: report.problems,

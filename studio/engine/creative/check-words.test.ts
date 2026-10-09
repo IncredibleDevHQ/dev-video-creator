@@ -52,4 +52,18 @@ it('says what a check found in plain words, its moments by number', () => {
   expect(
     plainCheck('scene-zz-moment-77ab holds one still frame for 4 s', moments)
   ).toBe('A moment holds one still frame for 4 s')
+  // A label with a colon in it stays whole.
+  expect(
+    plainCheck(
+      'At the end of scene-a1-moment-0f3c, “Step 1: Retrieve” sits on artwork: place it beside',
+      moments
+    )
+  ).toBe('At the end of moment 1, “Step 1: Retrieve” sits on artwork')
+  // A fault in the code is the producer's, and said as that.
+  expect(
+    plainCheck(
+      'index.html does not register window.__timelines["production-x"]',
+      moments
+    )
+  ).toBe('Its code had a fault the producer was still fixing')
 })
