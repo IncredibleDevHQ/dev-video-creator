@@ -270,7 +270,7 @@ export const motionDefects = (
       kind: 'sparse',
       short: needed - developments,
       moment: moment.id,
-      message: `${moment.id} changes its picture ${developments === 1 ? 'once' : `${developments} times`} in ${seconds(length)}`
+      message: `${moment.id} changes its picture ${developments === 1 ? 'once' : `${developments} times`} in ${seconds(length)} (${needed - developments} short)`
     })
   return defects
 }

@@ -597,7 +597,8 @@ it('names a scene’s shot, offers the others, and follows the direction', async
     ...video.scenes[1],
     phase: 'waiting',
     creativePlan: { record: 'r' },
-    animationKey: 'k'
+    animationKey: 'k',
+    moments: [{ id: 'm1', start: 0, end: 4 }]
   } as never
   const menu2 = (inVideo: boolean) =>
     parseHTML(

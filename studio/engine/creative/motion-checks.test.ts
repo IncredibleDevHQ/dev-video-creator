@@ -167,4 +167,11 @@ it('judges the words themselves, not a full-width text block, and excuses what i
   // Words past the edge on purpose (data-intentional) are the scene's.
   expect(still([[-40, 900, 155, 37, 'cut caption', 1]])).not.toContain('cut')
   expect(still([[-40, 900, 155, 37, 'cut caption', 0]])).toContain('cut')
+  // Words in view but within 16 px of the edge are cut too; 30 px in is fine.
+  expect(still([[1920 - 126 - 8, 500, 126, 37, 'Retrieval', 0]])).toContain(
+    'cut'
+  )
+  expect(
+    still([[1920 - 126 - 30, 500, 126, 37, 'Retrieval', 0]])
+  ).not.toContain('cut')
 })

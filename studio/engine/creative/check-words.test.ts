@@ -51,7 +51,21 @@ it('says what a check found in plain words, its moments by number', () => {
   // A moment it doesn't know is still not shown by its id.
   expect(
     plainCheck('scene-zz-moment-77ab holds one still frame for 4 s', moments)
-  ).toBe('A moment holds one still frame for 4 s')
+  ).toBe('A moment holds one picture still for 4 s')
+  // The checker's own shortfall, where it says it.
+  expect(
+    plainCheck(
+      'scene-a1-moment-9be2 changes its picture once in 12 s (1 short): give each idea',
+      moments
+    )
+  ).toBe('Moment 2 needs one more visible change')
+  // A fault in the code that names a moment is still the code's.
+  expect(
+    plainCheck(
+      'moment scene-a1-moment-0f3c must keep the clock: 0–4s (it says 0–5s)',
+      moments
+    )
+  ).toBe('Its code had a fault the producer was still fixing')
   // A label with a colon in it stays whole.
   expect(
     plainCheck(

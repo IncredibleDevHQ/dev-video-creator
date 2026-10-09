@@ -31,28 +31,36 @@ export const plainCheck = (problem: string, moments: Array<{ id: string }>) => {
     said = said.split(moment.id).join(`moment ${index + 1}`)
   })
   said = said.replace(/\S+-moment-[0-9a-f]+\b/g, 'a moment')
-  const sparse =
-    /^moment (\d+) changes its picture (?:once|(\d+) times) in ([\d.]+) s$/.exec(
-      said
-    )
+  // The moment a motion finding is about, by number or, unknown, "a moment".
+  const SUBJECT = '(moment \\d+|a moment)'
+  const subject = (said: string) => said.charAt(0).toUpperCase() + said.slice(1)
+  const sparse = new RegExp(
+    `^${SUBJECT} changes its picture (?:once|(\\d+) times) in ([\\d.]+) s(?: \\((\\d+) short\\))?$`
+  ).exec(said)
   if (sparse) {
+    // The checker's own count where it says it; else from the length.
     const made = sparse[2] === undefined ? 1 : Number(sparse[2])
-    const short = Math.max(
-      1,
-      Math.floor(Number(sparse[3]) / SECONDS_PER_CHANGE) - made
-    )
-    return `Moment ${sparse[1]} needs ${many(short, 'more visible change')}`
+    const short = sparse[4]
+      ? Number(sparse[4])
+      : Math.max(1, Math.floor(Number(sparse[3]) / SECONDS_PER_CHANGE) - made)
+    return `${subject(sparse[1])} needs ${many(short, 'more visible change')}`
   }
-  const still = /^moment (\d+) holds one still frame for ([\d.]+ s)/.exec(said)
-  if (still) return `Moment ${still[1]} holds one picture still for ${still[2]}`
-  const empty = /^moment (\d+) shows an empty frame for ([\d.]+ s)/.exec(said)
-  if (empty) return `Moment ${empty[1]} shows an empty frame for ${empty[2]}`
-  const cut = /^moment (\d+) cuts (“[^”]*”) at the frame’s edge/.exec(said)
-  if (cut) return `Moment ${cut[1]} cuts ${cut[2]} at the frame’s edge`
-  // A finding about the frames names its moments; one about the code does
-  // not, and is the producer's to fix, so it is said as that.
-  if (!/\bmoments?\b/i.test(said))
+  const still = new RegExp(
+    `^${SUBJECT} holds one still frame for ([\\d.]+ s)`
+  ).exec(said)
+  if (still)
+    return `${subject(still[1])} holds one picture still for ${still[2]}`
+  const empty = new RegExp(
+    `^${SUBJECT} shows an empty frame for ([\\d.]+ s)`
+  ).exec(said)
+  if (empty) return `${subject(empty[1])} shows an empty frame for ${empty[2]}`
+  const cut = new RegExp(`^${SUBJECT} cuts (“[^”]*”) at the frame’s edge`).exec(
+    said
+  )
+  if (cut) return `${subject(cut[1])} cuts ${cut[2]} at the frame’s edge`
+  // A settled frame's finding names the moments it ends; anything else is
+  // about the code, the producer's to fix, and said as that.
+  if (!said.startsWith('At the end of '))
     return 'Its code had a fault the producer was still fixing'
-  const text = said.length > 140 ? `${said.slice(0, 139)}…` : said
-  return text.charAt(0).toUpperCase() + text.slice(1)
+  return said.length > 140 ? `${said.slice(0, 139)}…` : said
 }

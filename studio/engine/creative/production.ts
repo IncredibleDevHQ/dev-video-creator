@@ -178,7 +178,12 @@ export const buildCreativeProduction = async (
   let accepted: SketchFiles | null = null,
     attempt = 0,
     lastProblems: string[] = [],
-    lastAttempt: { id: string; soft: boolean } | null = null
+    lastAttempt: { id: string; soft: boolean } | null = null,
+    // Whether the last finding came from a check while writing, rather than
+    // from the candidate Accept as is would take; and whether this run
+    // checked at all.
+    lastFromCheck = false,
+    checked = false
   // The plan's drawings by object, for the page's placeholders.
   const drawings: Record<string, string> = {}
   /**
@@ -276,6 +281,7 @@ export const buildCreativeProduction = async (
     if (!report.ok) {
       lastProblems = report.problems
       lastAttempt = { id: artifacts[0].id, soft }
+      lastFromCheck = false
       return {
         accepted: false,
         problems: report.problems,
@@ -433,6 +439,8 @@ ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-c
           // A run that stops before it submits still says what was found,
           // and a later passing check clears it.
           lastProblems = report.ok ? [] : report.problems
+          lastFromCheck = true
+          checked = true
           if (!report.ok)
             await onProgress?.(
               `A check while writing asked for ${report.problems.length} fix${report.problems.length === 1 ? '' : 'es'}: ${plainCheck(report.problems[0], scene.moments)}`
@@ -473,7 +481,7 @@ ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-c
     scene,
     run.id,
     record.id,
-    lastProblems.length ? lastProblems : resumed?.problems || []
+    attempt || checked ? lastProblems : resumed?.problems || []
   )
   // The stopped scene says what the last check found, and whether it can be
   // accepted as it was (review 6: it said only that time ran out).
@@ -485,7 +493,7 @@ ${mediaBindingInstructions(contentOnly)}${capture ? ` production/media/product-c
     failure.lastCheck = plainCheck(lastProblems[0], scene.moments)
   // Set by the submissions, which run in the harness's calls.
   const last = lastAttempt as { id: string; soft: boolean } | null
-  if (last?.soft) failure.acceptable = last.id
+  if (last?.soft && !lastFromCheck) failure.acceptable = last.id
   throw failure
 }
 

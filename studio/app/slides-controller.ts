@@ -137,14 +137,17 @@ export const clickSlides = async (
   if (action === 'retry-slides') {
     if (app.pending) return
     // Notes that can't be saved don't hold Try again: it can go on from the
-    // notes as last saved (review 6).
+    // notes as last saved (review 6). The button waits while they save.
+    target.disabled = true
     const saved = await saveBeforeLeaving(app, {
       question:
         'Try again from the notes as last saved, without the edits since?',
       action: 'Try again without the edits'
     })
-    if (!saved) return
-    target.disabled = true
+    if (!saved) {
+      target.disabled = false
+      return
+    }
     try {
       if (app.snapshot?.status === 'draft') {
         await createPresentation(app)

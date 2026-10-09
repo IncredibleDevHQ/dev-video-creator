@@ -449,7 +449,7 @@ export const modelFetch = async (
   const model =
     settings.models[task] || settings.models.writing || preset.models[task]
   if (!model)
-    throw new Error(`Choose a ${task} model under Direct API in AI settings`)
+    throw new Refusal(`Choose a ${task} model under Direct API in AI settings`)
 
   if (preset.responsesApi) {
     const body: ResponsesPayload = { ...payload, model }
@@ -577,7 +577,7 @@ export const modelFetch = async (
   if (!response.ok) {
     // Surface the provider's own message: it is what the user needs to fix.
     const detail = (await response.text().catch(() => '')).slice(0, 400)
-    throw new Error(
+    throw new Refusal(
       `${preset.label} rejected the request (${response.status})${detail ? `: ${detail}` : ''}`
     )
   }

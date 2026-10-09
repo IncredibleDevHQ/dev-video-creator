@@ -282,7 +282,7 @@ export const frameDefects = (measure: FrameMeasure): FrameDefect[] => {
 }
 
 const HOW: Record<FrameDefect['kind'], string> = {
-  cut: 'keep it, and the camera’s framing, at least 48 px inside the frame (if the scene shows a cut caption on purpose, wrap that depiction in data-intentional="why")',
+  cut: 'keep it inside the frame, and its words at least 16 px from every edge, the camera’s framing included (if the scene shows a cut caption on purpose, wrap that depiction in data-intentional="why")',
   clipped: 'give the words room in their box, or make the box larger',
   covered:
     'move the words into clear space beside it (or, when the scene shows that defect on purpose, wrap it in data-intentional="why")',

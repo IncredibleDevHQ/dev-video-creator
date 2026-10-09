@@ -56,13 +56,14 @@ export const startingLook = async (
     // and the look says so.
     const display = loadableFont(source.fonts.display)
     const body = loadableFont(source.fonts.body)
-    const replaced = [display, body].some((font) => font.replaced)
+    const standing = [display, body].filter((font) => font.replaced)
     const site = source.site || domain
     return {
       id: 'site',
       name: source.site || domain || 'The site',
-      description: replaced
-        ? `Colours read from ${site}. Its fonts can’t be loaded here, so ${[...new Set([display.value, body.value])].join(' and ')} stand in.`
+      // Only the fonts that stand in are named (one may load as it is).
+      description: standing.length
+        ? `Colours read from ${site}. ${standing.length > 1 ? 'Its fonts' : 'One of its fonts'} can’t be loaded here, so ${[...new Set(standing.map((font) => font.value))].join(' and ')} ${standing.length > 1 ? 'stand' : 'stands'} in.`
         : `Colours and fonts read from ${site}.`,
       palette: {
         ground: source.palette.ground,

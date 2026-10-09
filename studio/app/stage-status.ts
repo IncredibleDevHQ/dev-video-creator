@@ -49,6 +49,10 @@ export const stageStatus = (
         ? snapshot.views?.video.display || videoDisplay(snapshot)
         : { label: '', active: false }
   let { label, active } = display
+  // The Wireframe tab's tooltip and screen-reader words name the phase, as
+  // its caption, the pill and the card do (review 6).
+  const phase = stage === 'presentation' ? buildPhase(snapshot) : null
+  if (phase && (active || phase.word === 'reading')) label = phase.line
   let overridden = false
   if (active && snapshot.readOnly) {
     label = 'Saved'

@@ -130,8 +130,8 @@ that frame. It refuses a build where, at a moment's end:
 
 - anything visible is cut by the frame's edge: an actor, a card, a label.
   A camera move (`#world` scale and pan, a journey, a push) ends with every
-  actor and its words at least 48 px inside the frame; pull back or move
-  the actor rather than crop it;
+  actor inside the frame and its words at least 16 px from every edge;
+  pull back or move the actor rather than crop it;
 - words sit on a shape they do not belong to: a label on a moving packet,
   an icon or another card. Words inside their own card are fine; place a
   label in clear space beside what it names;

@@ -263,12 +263,16 @@ export const clickStart = async (
     )
       return
     // Notes that can't be saved don't hold the re-read: it replaces them.
+    // The button waits while they save.
+    target.disabled = true
     const saved = await saveBeforeLeaving(app, {
       question: 'Re-read the article anyway? It replaces the notes.',
       action: 'Re-read the article'
     })
-    if (!saved) return
-    target.disabled = true
+    if (!saved) {
+      target.disabled = false
+      return
+    }
     try {
       const snapshot = await api.refreshSource(id)
       if (app.snapshot?.project.id === id) {

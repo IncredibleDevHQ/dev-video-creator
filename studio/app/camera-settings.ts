@@ -62,12 +62,14 @@ export const sceneSettings = (
     ${
       // Practice offers one action; making the animation is the scene's
       // (review 6).
+      // Offered only when the engine would take it: written, and not
+      // stopped while being written.
       inVideo &&
       scene.creativePlan &&
+      scene.moments.length > 0 &&
       scene.animation?.inputKey !== scene.animationKey &&
-      !['writing', 'changing', 'replanning', 'producing', 'queued'].includes(
-        scene.phase
-      )
+      (['waiting', 'produced'].includes(scene.phase) ||
+        (scene.phase === 'failed' && scene.failure === 'production'))
         ? html`<h2 class="scene-membership-title">Animation</h2>
             <p class="settings-note">
               Make it now to practice over it; it plays on the stage when ready.

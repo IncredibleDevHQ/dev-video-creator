@@ -87,7 +87,10 @@ export const codexModelsFrom = (config: string): HarnessModels => {
           {
             id: model,
             label: modelName(model),
-            hint: 'The model in your Codex config'
+            hint:
+              modelName(model) === model
+                ? 'The model in your Codex config'
+                : `The model in your Codex config: ${model}`
           }
         ]
       : []

@@ -147,8 +147,13 @@ export const clickRelease = async (
         )
       )
     } catch (reason) {
-      // What the post's row now says (it may have gone out) shows at once.
-      if (app.snapshot?.project.id === id) update(app, await api.load(id))
+      // What the post's row now says (it may have gone out) shows at once;
+      // the post's own error is the one said.
+      if (app.snapshot?.project.id === id)
+        await api
+          .load(id)
+          .then((snapshot) => update(app, snapshot))
+          .catch(() => {})
       throw reason
     }
   }
