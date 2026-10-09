@@ -318,3 +318,33 @@ it('keeps the animation’s order of rules: an id over a class, important over b
     )
   ).toContain('<tspan aria-label="see class=q here" class="badge-pulse">')
 })
+
+it('renames only the blocks a rule plays: a pivot, a timing and a flag stay', () => {
+  const loopWith = (css: string) =>
+    drawing.replace(
+      '<svg viewBox="0 0 80 60">',
+      `<svg viewBox="0 0 80 60"><style>${css}</style>`
+    )
+  // A block called "center", played by name, beside a pivot at the centre
+  // and a linear timing.
+  const css = idleLoop(
+    drawing,
+    loopWith(
+      '@keyframes center { 50% { opacity: .4 } } #needle { transform-origin: center; animation: center 2s linear infinite }'
+    ),
+    'gauge'
+  ).loop!.css
+  expect(css).toContain(
+    '{ transform-origin: center; animation: gauge-center 2s linear 999; }'
+  )
+  // A block called "important" is no loop when the rule plays none.
+  expect(
+    idleLoop(
+      drawing,
+      loopWith(
+        '@keyframes important { 50% { opacity: .4 } } #needle { animation: none !important }'
+      ),
+      'gauge'
+    ).problem
+  ).toBe('it added no loop to the drawing’s parts')
+})

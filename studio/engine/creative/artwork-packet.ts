@@ -1,9 +1,8 @@
 // The build's packet for drawn artwork: each drawing as it goes into the
 // page (its poses' values on its shapes, its idle loop around the parts it
-// moves, the group its pop scales), and ARTWORK.json, which says what was
-// drawn and how to use it.
+// moves), and ARTWORK.json, which says what was drawn and how to use it.
 import { readAsset } from '../persistence'
-import { posedDrawing, withPop, type PoseReport } from './artwork-poses'
+import { posedDrawing, type PoseReport } from './artwork-poses'
 import { idleLoop, withIdle } from './artwork-idle'
 import {
   cleanDrawing,
@@ -71,7 +70,7 @@ export const artworkPacket = async (drawn: DrawnObject[]) => {
       svg = result.svg
       posed.set(item.entity, result.poses)
     }
-    // Its idle loop goes on next, around the parts it moves.
+    // Its idle loop goes on last, around the parts it moves.
     if (item.idle?.objectKey) {
       const animated = (await readAsset(item.idle.objectKey)).toString()
       const { loop, problem } = idleLoop(base, animated, item.entity)
@@ -81,9 +80,6 @@ export const artworkPacket = async (drawn: DrawnObject[]) => {
       } else
         item.idle = { error: `The idle loop could not be used: ${problem}` }
     }
-    // Last, the group the pose player pops as a pose arrives.
-    if (posed.get(item.entity)?.some((report) => !report.problems.length))
-      svg = withPop(svg)
     files[`packet/${item.file}`] = Buffer.from(svg)
   }
   if (!drawn.length) return files

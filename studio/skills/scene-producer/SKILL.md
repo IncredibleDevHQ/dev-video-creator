@@ -83,9 +83,8 @@ An object's `poses` there are states the app drew from its drawing, shape
 for shape: load `compositions/artwork-poses.js` and call
 `artworkPose(tl, entity, pose, at, seconds)` on the cue that says the change,
 and the drawing tweens into it smoothly (`'rest'` turns it back): the
-change runs through its shapes in turn, what turns overshoots and settles,
-and the drawing pops a little as it arrives, all within the seconds you
-give it, so 0.8 to 1.2 s reads well.
+change runs through its shapes in turn and what turns overshoots and
+settles, all within the seconds you give it, so 0.8 to 1.2 s reads well.
 Prefer a pose to rebuilding that change by hand, leave the parts it moves
 to it while it plays, and give a posed drawing room: a pose inside an
 icon-sized drawing changes nothing the viewer can read.

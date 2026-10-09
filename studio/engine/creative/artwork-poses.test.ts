@@ -1,13 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 import { parseHTML } from 'linkedom'
-import {
-  pathForm,
-  posedDrawing,
-  rgba,
-  svgElements,
-  withPop
-} from './artwork-poses'
+import { pathForm, posedDrawing, rgba, svgElements } from './artwork-poses'
 
 // A drawing as Quiver draws one, cleaned: a ring painted by a gradient and a
 // needle the plan names as a part.
@@ -205,7 +199,7 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     { id: 'glow', svg: two.replace('opacity=".5"', 'opacity="1"') }
   ])
   const { window, document } = parseHTML(
-    `<html><body><div data-artwork="gauge">${withPop(svg)}</div></body></html>`
+    `<html><body><div data-artwork="gauge">${svg}</div></body></html>`
   )
   new Function(
     'window',
@@ -213,7 +207,6 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     readFileSync(new URL('./pose-player.js', import.meta.url), 'utf8')
   )(window, document)
   const calls: unknown[] = []
-  const pops: Array<Record<string, unknown>> = []
   const tl = {
     to: (element: Element, vars: Record<string, unknown>, at: number) =>
       calls.push([
@@ -226,20 +219,6 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
       ]),
     set: (element: Element, vars: Record<string, unknown>, at: number) =>
       calls.push(['set', element.id || element.localName, vars.attr, at]),
-    fromTo: (
-      element: Element,
-      from: Record<string, unknown>,
-      to: Record<string, unknown>,
-      at: number
-    ) =>
-      pops.push({
-        layer: [...document.querySelectorAll('[data-pose-layer]')].indexOf(
-          element
-        ),
-        from,
-        ...to,
-        at
-      }),
     duration: () => 4
   }
   const play = (window as unknown as Record<string, Function>).artworkPose
@@ -276,39 +255,10 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
       each
     ]
   ])
-  // The drawing pops about its middle as it arrives, ending with the
-  // change: a layer only the player moves swells from the drawing as drawn
-  // and back, by numbers fixed when the scene is built, so no seek and no
-  // scale of the scene's changes it.
-  expect(pops).toEqual([
-    {
-      layer: 0,
-      from: { attr: { transform: 'matrix(1 0 0 1 0 0)' } },
-      attr: { transform: 'matrix(1.04 0 0 1.04 -1.48 -1.16)' },
-      duration: 0.12,
-      ease: 'power1.out',
-      yoyo: true,
-      repeat: 1,
-      immediateRender: false,
-      at: 1 + 0.6 * 0.6
-    }
-  ])
-  expect((pops[0].at as number) + 2 * 0.12).toBeCloseTo(1.6)
-  // A pop that overlaps it takes another layer, so the two add up; one
-  // alone takes the first layer free then.
-  pops.length = 0
-  play(tl, 'gauge', 'limit', 1.1, 0.6)
-  expect(pops).toEqual([expect.objectContaining({ layer: 1 })])
+  // Nothing else moves: no pop, no change to the drawing's own scale.
+  expect(calls.every((call) => (call as unknown[])[1] !== 'svg')).toBe(true)
   calls.length = 0
-  pops.length = 0
   play(tl, 'gauge', 'limit', 2)
-  expect(pops).toEqual([
-    expect.objectContaining({
-      layer: 0,
-      at: 2 + 0.8 * 0.6,
-      duration: expect.closeTo(0.16, 6)
-    })
-  ])
   // By default it takes 0.8 s, the last shape arriving at 2.8.
   expect(calls).toContainEqual([
     'to',
@@ -326,41 +276,6 @@ it('plays a pose on the timeline and back, from the values at rest', () => {
     'power2.inOut',
     expect.closeTo(0.65, 6)
   ])
-  // On a new timeline the layers start as drawn, though an older one was
-  // left in the middle of a pop; pops that overlap take distinct layers,
-  // whatever order the scene builds them in.
-  const layerList = [...document.querySelectorAll('[data-pose-layer]')]
-  layerList[3].setAttribute('transform', 'matrix(1.04 0 0 1.04 -1 -1)')
-  const fresh = {
-    to: tl.to,
-    set: tl.set,
-    fromTo: tl.fromTo,
-    duration: tl.duration
-  }
-  pops.length = 0
-  for (const at of [5, 1, 1.05, 1.1, 1.15]) play(fresh, 'gauge', 'glow', at)
-  expect(layerList[3].getAttribute('transform')).toBe('matrix(1 0 0 1 0 0)')
-  const overlapping = pops.slice(1).map((pop) => pop.layer)
-  expect(new Set(overlapping).size).toBe(4)
-  // Back to rest: no pop; nor without the group, as an older drawing has.
-  pops.length = 0
-  play(tl, 'gauge', 'rest', 3)
-  document.querySelector('[data-pose-pop]')!.removeAttribute('data-pose-pop')
-  play(tl, 'gauge', 'glow', 5)
-  expect(pops).toEqual([])
   // Nothing placed, nothing played.
   expect(play(tl, 'nothing', 'limit', 0)).toBe(tl)
-})
-
-it('puts the drawing in a group with layers for its pops, after its loop’s style', () => {
-  const layers =
-    '<g data-pose-layer="" transform="matrix(1 0 0 1 0 0)">'.repeat(4)
-  expect(
-    withPop(
-      '<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g id="a"/></svg>'
-    )
-  ).toBe(
-    `<svg viewBox="0 0 8 8"><style data-idle-loop="">a{}</style><g data-pose-pop="">${layers}<g id="a"/></g></g></g></g></g></svg>`
-  )
-  expect(withPop('<svg viewBox="0 0 8 8"/>')).toBe('<svg viewBox="0 0 8 8"/>')
 })

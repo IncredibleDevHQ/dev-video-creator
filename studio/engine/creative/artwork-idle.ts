@@ -75,6 +75,33 @@ const safeValue = (value: string) =>
   [...value.matchAll(/([\w-]+)\s*\(/g)].every((found) =>
     FUNCTIONS.test(found[1])
   )
+// Words an animation's shorthand reads as its timing, count, direction,
+// fill or state before it reads any block's name, as CSS does.
+const KEYWORDS = new Set([
+  'linear',
+  'ease',
+  'ease-in',
+  'ease-out',
+  'ease-in-out',
+  'step-start',
+  'step-end',
+  'infinite',
+  'normal',
+  'reverse',
+  'alternate',
+  'alternate-reverse',
+  'none',
+  'forwards',
+  'backwards',
+  'both',
+  'running',
+  'paused',
+  'initial',
+  'inherit',
+  'unset'
+])
+// A name in a value: a whole word that is not a function's.
+const NAME = /(?<![\w-])[a-z_-][\w-]*(?![\w-]|\s*\()/gi
 /** Marks the loop's style, so a check can measure the drawing at rest. */
 const LOOP_STYLE = '<style data-idle-loop="">'
 
@@ -193,15 +220,35 @@ export const idleLoop = (
   )
   // A value with its blocks' names scoped, its loops finite, and an
   // important flag left as it is, whatever a block is called.
-  const renamed = (value: string) => {
-    const flag = / !important$/.exec(value)?.[0] || ''
+  // The words of a declaration that name the blocks it plays: in
+  // animation-name, or the shorthand's words that are not its keywords.
+  const playsIn = (property: string, word: string) =>
+    frames.has(word) &&
+    (property === 'animation-name' ||
+      (property === 'animation' && !KEYWORDS.has(word)))
+  const namesIn = (item: string) => {
+    const property = item.slice(0, item.indexOf(':'))
     return (
-      value
-        .slice(0, value.length - flag.length)
-        .replace(/(?<![\w-])infinite(?![\w-])/g, LOOPS)
-        .replace(/[\w-]+/g, (word) => (frames.has(word) ? named(word) : word)) +
-      flag
+      item
+        .slice(item.indexOf(':') + 1)
+        .replace(/ !important$/, '')
+        .match(NAME) || []
+    ).filter((word) => playsIn(property, word))
+  }
+  // A declaration with the blocks it plays named for the object, its loops
+  // finite, and every other word as it was: a pivot at "center" or a
+  // "linear" timing stays, whatever the blocks are called.
+  const renamed = (item: string) => {
+    const colon = item.indexOf(':')
+    const property = item.slice(0, colon)
+    const flag = / !important$/.exec(item)?.[0] || ''
+    let value = item.slice(colon + 1, item.length - flag.length)
+    if (property === 'animation' || property === 'animation-iteration-count')
+      value = value.replace(/(?<![\w-])infinite(?![\w-])/g, LOOPS)
+    value = value.replace(NAME, (word) =>
+      playsIn(property, word) ? named(word) : word
     )
+    return `${property}:${value}${flag}`
   }
   // Each keyframes block's steps, where they are plain and move or fade.
   const steps = new Map<string, string[]>()
@@ -221,12 +268,7 @@ export const idleLoop = (
     const naming = declarations.filter((item) =>
       /^animation(?:-name)?:/.test(item)
     )
-    const names = naming
-      .flatMap(
-        (item) => item.slice(item.indexOf(':') + 1).match(/[\w-]+/g) || []
-      )
-      .filter((word) => frames.has(word))
-    if (names.some((word) => steps.has(word))) return 'plays'
+    if (naming.flatMap(namesIn).some((word) => steps.has(word))) return 'plays'
     return naming.length || !declarations.length ? 'nothing' : 'tunes'
   }
   let playing = false
