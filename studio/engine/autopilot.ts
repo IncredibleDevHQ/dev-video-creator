@@ -123,20 +123,25 @@ const stages: Partial<Record<SceneSignal, SceneStage>> = {
   'recover-plan': 'artwork',
   'recover-production': 'voice'
 }
+/** The video's line while it stopped for its scenes, by how many. */
+export const stoppedLine = (stopped: number) =>
+  `${stopped === 1 ? 'A scene' : `${stopped} scenes`} stopped. Other saved animations are ready.`
+/** Whether the video stopped for its scenes, not for itself (its join). */
+export const stoppedForScenes = (video?: Project['video']) =>
+  video?.phase === 'failed' &&
+  /^(?:A scene|\d+ scenes) stopped\./.test(video.error || '')
 /**
  * The video's stopped state as its scenes have it now (review 6): none
- * stopped, and the video is not; fewer, and it says how many.
+ * stopped, and the video is not; fewer, and it says how many. A video that
+ * stopped for itself keeps its own line.
  */
 export const settleStoppedVideo = (video?: Project['video']) => {
-  if (!video || video.phase !== 'failed') return
+  if (!video || !stoppedForScenes(video)) return
   const stopped = video.scenes.filter(
     (scene) => scene.phase === 'failed'
   ).length
-  if (!stopped) {
-    video.phase = 'idle'
-    video.error = null
-  } else if (/^(?:A scene|\d+ scenes) stopped\./.test(video.error || ''))
-    video.error = `${stopped === 1 ? 'A scene' : `${stopped} scenes`} stopped. Other saved animations are ready.`
+  video.phase = stopped ? 'failed' : 'idle'
+  video.error = stopped ? stoppedLine(stopped) : null
 }
 export const transitionScene = (
   scene: Scene,

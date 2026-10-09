@@ -27,8 +27,78 @@ export const sceneRole = (project: Project, index: number) => {
 export const planFits = (inputKey: string | undefined, scene: Scene) =>
   Boolean(inputKey) &&
   (inputKey === scene.planKey ||
+    // Moved to the new form by d24d80b8 and made again since: the plan
+    // stored under the old key still counts.
     (scene.legacyPlanKey?.to === scene.planKey &&
       inputKey === scene.legacyPlanKey?.from))
+
+/**
+ * Whether the scene's key still stands for its inputs as they are now
+ * (`key`), so its plan, and everything made from it, stay. A scene keeps the
+ * key its plan was made under when its inputs change only in what the plan
+ * doesn't depend on: the model's shown name, which 32b14a0c put in the key
+ * for a while, or a look's colours on its page. The key that stands for it
+ * now is noted while that can still be checked, so a later name never
+ * counts against it (review 6).
+ */
+export const keepsItsPlan = (
+  project: Project,
+  scene: Scene,
+  key = scenePlanKey(project, scene)
+) => {
+  const alias = scene.legacyPlanKey
+  // d24d80b8 moved such a scene to the new form, and the keys of what it had
+  // made with it: it takes back the key its plan was made under, unless it
+  // was made again since.
+  if (
+    alias &&
+    scene.planKey === alias.to &&
+    scene.creativePlan?.inputKey === alias.from &&
+    scene.animation?.inputKey !== scene.animationKey &&
+    scene.produced?.inputKey !== scene.inputKey
+  )
+    scene.planKey = alias.from
+  if (!scene.planKey) return false
+  if (scene.planKey === key) return true
+  if (alias?.from === scene.planKey && alias.to === key) return true
+  if (
+    project.video?.settings.harness?.label &&
+    scene.planKey === scenePlanKey(project, scene, true)
+  ) {
+    scene.legacyPlanKey = { from: scene.planKey, to: key }
+    return true
+  }
+  return false
+}
+
+/** Before the model's shown name changes: each scene notes what its key
+ * stands for while the old name is still there to check it. */
+export const notePlanKeys = (project: Project) => {
+  for (const scene of project.video?.scenes || []) keepsItsPlan(project, scene)
+}
+
+/**
+ * A change the scenes' plans don't depend on (a look re-colouring their
+ * pages): a scene whose plan stood keeps it, the new key noted beside the
+ * one it was made under.
+ */
+export const keepingPlans = (project: Project, change: () => void) => {
+  const kept = (project.video?.scenes || []).filter((scene) =>
+    keepsItsPlan(project, scene)
+  )
+  change()
+  for (const scene of kept) {
+    // The key its plan was made under: its own, or the one d24d80b8 moved
+    // it from.
+    const alias = scene.legacyPlanKey
+    const from =
+      alias && alias.to === scene.planKey ? alias.from : scene.planKey!
+    const key = scenePlanKey(project, scene)
+    scene.planKey = from
+    if (key === from) delete scene.legacyPlanKey
+    else scene.legacyPlanKey = { from, to: key }
+  }
+}
 
 export const scenePlanKey = (
   project: Project,
@@ -193,12 +263,6 @@ export const reconcileVideo = (
         video.transitions[index]
       ])
   )
-  // A stopped scene that goes with its page, from anywhere, stops nothing
-  // (review 6: the video still said so).
-  const pages = new Set(project.slides.map((slide) => slide.id))
-  const goneStopped = oldOrder.some(
-    (scene) => !pages.has(scene.slideId) && scene.phase === 'failed'
-  )
   video.scenes = project.slides.map((slide) => {
     const scene: Scene = previous.get(slide.id) || {
       id: `scene-${slide.id}`,
@@ -211,20 +275,9 @@ export const reconcileVideo = (
       error: null
     }
     const key = scenePlanKey(project, scene)
-    // Planned while a model's shown name went into the key (32b14a0c, for a
-    // while): the same plan. Its key takes the new form, once, and the old
-    // one is kept so the plan stored under it still counts.
-    if (
-      scene.planKey &&
-      scene.planKey !== key &&
-      project.video?.settings.harness?.label &&
-      scene.planKey === scenePlanKey(project, scene, true)
-    ) {
-      scene.legacyPlanKey = { from: scene.planKey, to: key }
+    if (!keepsItsPlan(project, scene, key)) {
       scene.planKey = key
-    }
-    if (scene.planKey !== key) {
-      scene.planKey = key
+      delete scene.legacyPlanKey
       // Left out of the video, a scene takes its new inputs quietly: only a
       // scene in the video says it must be made again.
       if (scene.phase === 'idle') {
@@ -253,7 +306,9 @@ export const reconcileVideo = (
         seams.get(`${scene.slideId}/${video.scenes[index + 1].slideId}`) ||
         'none'
     )
-  if (goneStopped) settleStoppedVideo(video)
+  // Counted over the scenes as they are now: one that went with its page
+  // stops nothing, and one stopped here for a blank page counts (review 6).
+  settleStoppedVideo(video)
   refreshVideoKeys(project)
 }
 

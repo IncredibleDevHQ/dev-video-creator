@@ -19,6 +19,7 @@ const { createProject, loadProject, replaceBlockedSource, changeProject } =
 const {
   startPresentation,
   setNotebookHarness,
+  setNotebookLength,
   refreshNotebookSource,
   editNotebookSource
 } = await import('./notebook-intake')
@@ -105,6 +106,34 @@ it('keeps saved notes whole, though the editor’s markdown runs longer than the
     id
   )
   expect(kept?.text.endsWith('It ends here.')).toBe(true)
+  // Notes too large to send are refused before the request would be,
+  // whatever they count.
+  const padded = `| a${' '.repeat(600_000)}| b |\n| --- | --- |`
+  await expect(editNotebookSource(id, padded, 'Long notes')).rejects.toThrow(
+    'too large to send'
+  )
+})
+
+it('keeps the planned story when the length chosen is the one it has', async () => {
+  const notebook = await draft()
+  const id = notebook.project.id
+  const planned = async () => {
+    await changeProject(id, (current) => {
+      current.status = 'failed'
+      current.plan = [{ id: 'p1', title: 'One', narration: 'Words.' }]
+      current.plannedSlides = 4
+    })
+    await writeRow('outlines', id, { scenes: [] })
+  }
+  await planned()
+  // No length chosen is Medium: choosing it again changes nothing (review
+  // 6: the outline went, and Try again planned the story again).
+  await setNotebookLength(id, 'medium')
+  expect((await loadProject(id))!.plan).toBeTruthy()
+  expect(await readRow('outlines', id)).toBeTruthy()
+  await setNotebookLength(id, 'long')
+  expect((await loadProject(id))!.plan).toBeUndefined()
+  expect(await readRow('outlines', id)).toBeNull()
 })
 
 it('retains Markdown in an empty notebook without detecting or running an agent, including after restart', async () => {
@@ -218,6 +247,34 @@ it('recovers blocked URL intake to a draft, without generating slides', async ()
   expect(saved.project.title).toBe('Recovered article')
   expect(saved.project.sourceUrl).toBe('https://example.com/article')
   expect(brief.mock.calls.length).toBe(calls)
+})
+it('cuts a long pasted article as a read one is, and says so', async () => {
+  readUrl.mockRejectedValue(
+    new Error('The site blocked reading. Paste the article text.')
+  )
+  const notebook = await createProject(
+    'https://example.com/long',
+    undefined,
+    true
+  )
+  await vi.waitFor(async () =>
+    expect((await loadProject(notebook.project.id))?.status).toBe('failed')
+  )
+  await expect(
+    replaceBlockedSource(notebook.project.id, 'x'.repeat(500_001))
+  ).rejects.toThrow('too large to send')
+  const article = `# A long post\n\n${'A paragraph of the post. '.repeat(40)}\n\n`
+  const saved = await replaceBlockedSource(
+    notebook.project.id,
+    article.repeat(40)
+  )
+  expect(saved.project.source).toMatch(/\n\n… \[cut: [^\]]+\]$/)
+  const read = await readRow<ReturnType<typeof readSourceNarrative>>(
+    'sources',
+    notebook.project.id
+  )
+  expect(read?.text).toBe(saved.project.source)
+  expect(read?.warnings.join(' ')).toMatch(/The text was long; its first/)
 })
 it('resumes an interrupted source read without scheduling a presentation', async () => {
   const notebook = await draft()

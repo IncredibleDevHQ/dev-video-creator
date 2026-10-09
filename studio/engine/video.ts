@@ -23,6 +23,7 @@ import { resolveVoice } from './voice-library'
 import { modelFetch } from './model-gateway'
 import { momentPlanSchema, normalizeMoments } from './moment-plan'
 import {
+  notePlanKeys,
   scenePlanKey,
   reconcileVideo,
   refreshVideoKeys,
@@ -691,6 +692,9 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
       throw new Refusal(
         'Wait for the active scene work to finish before changing notebook settings. Saved work is kept.'
       )
+    // Each scene notes what its key stands for while the model's old name
+    // is there, as the agent's list may name it anew (review 6).
+    notePlanKeys(current.project)
     const oldPresence = video.settings.presence
     // Beats and shots are chosen within one narrative; a new one starts
     // from the orchestrator's plan, and a new telling re-plans the seams.

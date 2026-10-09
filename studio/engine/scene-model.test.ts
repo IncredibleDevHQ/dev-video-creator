@@ -1,6 +1,13 @@
 import { it, expect } from 'vitest'
 import type { Project } from '../shared/model'
-import { reconcileVideo } from './scene-model'
+import {
+  keepingPlans,
+  notePlanKeys,
+  planFits,
+  reconcileVideo,
+  refreshVideoKeys,
+  scenePlanKey
+} from './scene-model'
 const project = (): Project => ({
   id: 'p',
   title: 'Tokens',
@@ -133,8 +140,9 @@ it('keeps made scenes when only the name shown for their model changes', async (
   expect(scenePlanKey(p, scene)).not.toBe(key)
 })
 
-it('keeps a scene planned while its model’s name went into the key', async () => {
-  const { scenePlanKey } = await import('./scene-model')
+// Planned, animated and produced, every key as refreshVideoKeys left it:
+// under the key 32b14a0c made (the model's shown name in it), or as now.
+const made = (legacy: boolean) => {
   const p = project()
   p.video!.settings.harness = {
     adapter: 'codex',
@@ -142,28 +150,140 @@ it('keeps a scene planned while its model’s name went into the key', async () 
     label: 'GPT-6.1-Sol'
   }
   reconcileVideo(p, { project: p, events: [] })
-  const scene = p.video!.scenes[0]
-  // As 32b14a0c keyed it, then made.
-  const old = scenePlanKey(p, scene, true)
-  scene.planKey = old
-  scene.phase = 'produced'
-  scene.produced = { inputKey: 'k', objectKey: 'o.mp4' }
+  for (const scene of p.video!.scenes) {
+    scene.planKey = scenePlanKey(p, scene, legacy)
+    scene.creativePlan = { recordId: `r-${scene.id}`, inputKey: scene.planKey }
+    scene.moments = [
+      {
+        id: `${scene.id}-m`,
+        lines: 'Words.',
+        start: 0,
+        end: 2,
+        camera: 'none',
+        layout: 'full-screen',
+        overlay: null,
+        recordingKey: 'r',
+        take: null,
+        audio: null,
+        audioKey: ''
+      }
+    ]
+  }
+  refreshVideoKeys(p)
+  for (const scene of p.video!.scenes) {
+    scene.animation = {
+      inputKey: scene.animationKey!,
+      objectKey: 'a.mp4',
+      moments: [{ id: `${scene.id}-m`, start: 0, end: 2 }]
+    }
+    scene.phase = 'produced'
+    scene.produced = { inputKey: scene.inputKey, objectKey: 'final.mp4' }
+  }
+  refreshVideoKeys(p)
+  p.video!.produced = { inputKey: p.video!.inputKey, objectKey: 'v.mp4' }
+  return p
+}
+const keys = (p: Project) =>
+  p.video!.scenes.map((scene) => ({
+    phase: scene.phase,
+    plan: scene.planKey,
+    animation: scene.animation?.inputKey === scene.animationKey,
+    produced: scene.produced?.inputKey === scene.inputKey
+  }))
+
+it('keeps a scene planned while its model’s name went into the key, and all it made', () => {
+  const p = made(true)
+  const before = keys(p)
+  const old = p.video!.scenes[1].planKey
+  const video = p.video!.inputKey
+  // Its first reconcile under the new form: an edit to another page.
+  p.slides[2].narration = 'New words for c.'
   reconcileVideo(p, { project: p, events: [] })
-  expect(scene.phase).toBe('produced')
-  expect(scene.produced).not.toBeNull()
-  // Its key takes the new form, and the plan stored under the old still
-  // counts, whatever the model's name is later.
-  const { planFits } = await import('./scene-model')
-  expect(scene.planKey).toBe(scenePlanKey(p, scene))
-  expect(planFits(old, scene)).toBe(true)
+  expect(keys(p).slice(0, 2)).toEqual(before.slice(0, 2))
+  expect(keys(p)[2].phase).toBe('queued')
+  expect(planFits(old, p.video!.scenes[1])).toBe(true)
+  // A later name, or none, never counts against it.
   p.video!.settings.harness = { ...p.video!.settings.harness!, label: 'Sol' }
   reconcileVideo(p, { project: p, events: [] })
-  expect(scene.phase).toBe('produced')
-  expect(planFits(old, scene)).toBe(true)
+  delete p.video!.settings.harness!.label
+  reconcileVideo(p, { project: p, events: [] })
+  expect(keys(p).slice(0, 2)).toEqual(before.slice(0, 2))
+  expect(p.video!.inputKey).not.toBe(video)
   // Another model writes it again: the old plan no longer counts.
   p.video!.settings.harness = { adapter: 'codex', model: 'gpt-6.2' }
   reconcileVideo(p, { project: p, events: [] })
-  expect(planFits(old, scene)).toBe(false)
+  expect(p.video!.scenes[1].phase).toBe('queued')
+  expect(planFits(old, p.video!.scenes[1])).toBe(false)
+  expect(p.video!.scenes[1].legacyPlanKey).toBeUndefined()
+})
+
+it('keeps an older plan when the model’s name changes before any reconcile', () => {
+  const p = made(true)
+  const before = keys(p)
+  // As the notebook's agent or the video's settings change it: the scenes
+  // note what their keys stand for first.
+  notePlanKeys(p)
+  p.video!.settings.harness = { ...p.video!.settings.harness!, label: 'Sol' }
+  reconcileVideo(p, { project: p, events: [] })
+  expect(keys(p)).toEqual(before)
+})
+
+it('gives a scene d24d80b8 moved its key back, unless it was made again', () => {
+  // d24d80b8 moved the key to the new form, and the keys of what the scene
+  // had made went stale with it.
+  const p = made(true)
+  const before = keys(p)
+  for (const scene of p.video!.scenes) {
+    const to = scenePlanKey(p, scene)
+    scene.legacyPlanKey = { from: scene.planKey!, to }
+    scene.planKey = to
+  }
+  refreshVideoKeys(p)
+  // Scene c was produced again under the moved key.
+  const c = p.video!.scenes[2]
+  c.animation = { ...c.animation!, inputKey: c.animationKey! }
+  c.produced = { inputKey: c.inputKey, objectKey: 'again-final.mp4' }
+  reconcileVideo(p, { project: p, events: [] })
+  expect(keys(p).slice(0, 2)).toEqual(before.slice(0, 2))
+  expect(c.planKey).toBe(c.legacyPlanKey!.to)
+  expect(keys(p)[2]).toMatchObject({ animation: true, produced: true })
+  expect(planFits(c.legacyPlanKey!.from, c)).toBe(true)
+})
+
+it('lands a plan in flight under the older key', () => {
+  const p = made(true)
+  const scene = p.video!.scenes[1]
+  scene.phase = 'writing'
+  // planScene keeps what it expects, and lands only while the key stands.
+  const expected = scene.planKey
+  reconcileVideo(p, { project: p, events: [] })
+  expect(scene.planKey).toBe(expected)
+  expect(scene.phase).toBe('writing')
+})
+
+it('keeps every plan through a change the plans don’t depend on', () => {
+  for (const legacy of [false, true]) {
+    const p = made(legacy)
+    const stored = p.video!.scenes.map((scene) => scene.planKey!)
+    // A look re-colours the pages: the keys move, the plans stay.
+    keepingPlans(p, () => {
+      for (const slide of p.slides) slide.svg = '<svg fill="#234567"/>'
+    })
+    refreshVideoKeys(p)
+    p.video!.scenes.forEach((scene, index) => {
+      expect(planFits(stored[index], scene)).toBe(true)
+      expect(scene.planKey).toBe(stored[index])
+    })
+    reconcileVideo(p, { project: p, events: [] })
+    expect(p.video!.scenes.map((scene) => scene.phase)).toEqual(
+      Array(3).fill('produced')
+    )
+    // An edit after it is still an edit.
+    p.slides[0].narration = 'New words.'
+    reconcileVideo(p, { project: p, events: [] })
+    expect(p.video!.scenes[0].phase).toBe('queued')
+    expect(planFits(stored[0], p.video!.scenes[0])).toBe(false)
+  }
 })
 
 it('stops saying the video stopped once a stopped scene goes with its page, from anywhere', () => {
@@ -182,4 +302,30 @@ it('stops saying the video stopped once a stopped scene goes with its page, from
   reconcileVideo(p, { project: p, events: [] }, new Set())
   expect(video.phase).toBe('idle')
   expect(video.error).toBeNull()
+})
+
+it('counts a scene stopped for a blank page, and leaves a video’s own stop', () => {
+  const p = project()
+  reconcileVideo(p, { project: p, events: [] })
+  const video = p.video! as typeof p.video & {
+    phase?: string
+    error?: string | null
+  }
+  p.video!.scenes[1].phase = 'failed'
+  video.phase = 'failed'
+  video.error = 'A scene stopped. Other saved animations are ready.'
+  // A page added before it is drawn stops its scene here: two now.
+  p.slides.push({ id: 'd', title: 'd', svg: null })
+  reconcileVideo(p, { project: p, events: [] })
+  expect(p.video!.scenes[3].phase).toBe('failed')
+  expect(video.error).toBe(
+    '2 scenes stopped. Other saved animations are ready.'
+  )
+  // A video that stopped for its join keeps its own line.
+  video.error = 'Could not produce the video. Try again.'
+  p.slides.splice(1, 1)
+  p.slides.pop()
+  reconcileVideo(p, { project: p, events: [] })
+  expect(video.phase).toBe('failed')
+  expect(video.error).toBe('Could not produce the video. Try again.')
 })

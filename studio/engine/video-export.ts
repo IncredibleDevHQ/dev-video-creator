@@ -6,6 +6,7 @@ import type { Transition, SceneInterval } from '../shared/model'
 import { loadProject, changeProject, addEvent } from './projects'
 import { videoView, momentState } from '../shared/state'
 import { refreshVideoKeys } from './scene-model'
+import { stoppedLine } from './autopilot'
 import { joinScenes } from '../render/join'
 import { storeAsset } from './persistence'
 import { loadStageCheckpoint, saveStageCheckpoint } from './artifacts'
@@ -97,9 +98,7 @@ export const produceVideo = async (id: string) => {
           (scene) => scene.phase === 'failed'
         ).length
         s.project.video!.phase = failed ? 'failed' : 'idle'
-        s.project.video!.error = failed
-          ? `${failed === 1 ? 'A scene' : `${failed} scenes`} stopped. Other saved animations are ready.`
-          : null
+        s.project.video!.error = failed ? stoppedLine(failed) : null
         addEvent(
           s,
           'video',

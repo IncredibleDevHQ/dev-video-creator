@@ -339,6 +339,42 @@ it('undo restores the deleted scene recordings, chat and adjacent transitions', 
   ])
 })
 
+it('brings the video’s stopped line back with the only stopped scene', async () => {
+  await seed('undo-stopped')
+  await makeVideo('undo-stopped', {
+    presence: 'high',
+    voice: { kind: 'ai', id: 'default' }
+  })
+  await vi.waitFor(async () =>
+    expect(
+      (await loadProject('undo-stopped'))!.project.video!.scenes.every(
+        (scene) => scene.phase === 'waiting'
+      )
+    ).toBe(true)
+  )
+  await changeProject('undo-stopped', (saved) => {
+    const video = saved.project.video!
+    video.scenes[1].phase = 'failed'
+    video.scenes[1].failure = 'production'
+    video.scenes[1].error = 'Claude Code ran out of time.'
+    video.phase = 'failed'
+    video.error = 'A scene stopped. Other saved animations are ready.'
+  })
+  const gone = await editSlide('undo-stopped', {
+    action: 'delete',
+    slideId: 'b'
+  })
+  expect(gone.project.video!.phase).toBe('idle')
+  expect(gone.project.video!.error).toBeNull()
+  // Undo brings the scene back stopped, and the video says so again.
+  const back = await editSlide('undo-stopped', { action: 'undo-delete' })
+  expect(back.project.video!.scenes[1].phase).toBe('failed')
+  expect(back.project.video!.phase).toBe('failed')
+  expect(back.project.video!.error).toBe(
+    'A scene stopped. Other saved animations are ready.'
+  )
+})
+
 it('resumes the saved plan without another model request and keeps a newer matching take', async () => {
   await seed('saved-plan')
   await makeVideo('saved-plan', {

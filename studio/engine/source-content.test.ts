@@ -46,6 +46,21 @@ it('imports only the article even when the site shell is much longer', async () 
   ])
 })
 
+it('reads a long page whose code keeps Windows line ends', async () => {
+  // Over the limit as fetched, under it once each line end is one
+  // character: read whole (review 6: the read failed with a TypeError).
+  const code = `<pre><code>${'make all\r\n'.repeat(625)}</code></pre>`
+  vi.mocked(fetchText).mockResolvedValue({
+    text: `<html><body><article><p>${'Words to read. '.repeat(20)}</p>${code.repeat(4)}</article></body></html>`,
+    contentType: 'text/html',
+    finalUrl: 'https://example.com/blog/windows'
+  })
+  const source = await readSourceUrl('https://example.com/blog/windows')
+  expect(source.text).not.toContain('\r')
+  expect(source.text).not.toContain('[cut:')
+  expect(source.warnings.join(' ')).not.toContain('was long')
+})
+
 it('keeps article headings, prose, code, tables, and useful links while stripping embedded site controls', () => {
   const result = articleText(
     content(`<html><body><article>

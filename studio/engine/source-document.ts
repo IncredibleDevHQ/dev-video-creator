@@ -315,20 +315,52 @@ export const extractionOf = (
   }
 }
 
-/** The code block still open at the end of `text`, by its fence, if any. */
+/**
+ * The code block still open at the end of `text`, by its fence as it stands
+ * (indented with it, in a list item), if any. A fence indented four spaces
+ * outside a list is a line of indented code, not a fence.
+ */
 const openFence = (text: string) => {
-  let open: { char: string; length: number; fence: string } | null = null
+  let open: {
+    char: string
+    length: number
+    indent: number
+    fence: string
+  } | null = null
+  // Where a list item's text starts, while the list goes on.
+  let item: number | null = null
   for (const line of text.split('\n')) {
-    const found = /^\s*(`{3,}|~{3,})(.*)$/.exec(line)
+    const lead = /^[ \t]*/.exec(line)![0]
+    const indent = lead.replace(/\t/g, '    ').length
+    if (!open) {
+      const marker = /^[ \t]*(?:[-*+]|\d{1,9}[.)])[ \t]+/.exec(line)
+      if (marker) item = marker[0].replace(/\t/g, '    ').length
+      else if (line.trim() && !indent) item = null
+    }
+    const found = /^[ \t]*(`{3,}|~{3,})(.*)$/.exec(line)
     if (!found) continue
     const [, fence, rest] = found
     if (open) {
-      // Closed by the same mark, at least as long, with nothing after it.
-      if (fence[0] === open.char && fence.length >= open.length && !rest.trim())
+      // Closed by the same mark, at least as long, with nothing after it,
+      // where the block's own fence stands.
+      if (
+        fence[0] === open.char &&
+        fence.length >= open.length &&
+        !rest.trim() &&
+        Math.abs(indent - open.indent) < 4
+      )
         open = null
-    } else if (fence[0] === '~' || !rest.includes('`'))
+    } else if (
+      (indent < 4 || (item !== null && indent >= item && indent - item < 4)) &&
       // A backtick fence's words hold no backtick: "```a```" is inline code.
-      open = { char: fence[0], length: fence.length, fence }
+      (fence[0] === '~' || !rest.includes('`'))
+    )
+      open = {
+        char: fence[0],
+        length: fence.length,
+        indent,
+        fence: lead + fence
+      }
   }
   return open?.fence || ''
 }
@@ -342,7 +374,7 @@ const openFence = (text: string) => {
  */
 export const cutArticle = (given: string, limit = 24_000) => {
   const text = given.replace(/\r\n?/g, '\n')
-  if (text.length <= limit) return { text, left: 0 }
+  if (text.length <= limit) return { text, kept: text, left: 0 }
   // Room for a fence that closes an open block.
   const room = limit - 8
   const paragraph = text.lastIndexOf('\n\n', room)
@@ -376,7 +408,7 @@ export const readSourceNarrative = (
   const text = cut.text
   const cuts = cut.left
     ? [
-        `The text was long; its first ${(cut.kept || '').length.toLocaleString('en')} characters were read, and ${cut.left.toLocaleString('en')} more were left out`
+        `The text was long; its first ${cut.kept.length.toLocaleString('en')} characters were read, and ${cut.left.toLocaleString('en')} more were left out`
       ]
     : []
   const headings = (text.match(/^#{1,4}\s+.+$/gm) || []).map((line) => ({

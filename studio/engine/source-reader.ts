@@ -79,14 +79,15 @@ export const readSourceUrl = async (
   let text = article.text
   // What the read cut, said before anything is planned from it.
   const cuts = [...article.notes]
-  if (text.length > 24_000) {
-    // Where the read stops, and what it leaves out, said: at a paragraph's
-    // end, never inside a table or code.
-    const cut = cutArticle(text)
-    const kept = cut.kept!
+  // Where the read stops, and what it leaves out, said: at a paragraph's
+  // end, never inside a table or code (review 6: line ends a page kept as
+  // Windows writes them made a long article fail here).
+  const cut = cutArticle(text)
+  text = cut.text
+  if (cut.left) {
+    const kept = cut.kept
     const stopsIn = [...kept.matchAll(/^#{1,4} (.+)$/gm)].pop()?.[1] || ''
     const left = headings.length - [...kept.matchAll(/^#{1,4} /gm)].length
-    text = cut.text
     cuts.push(
       `The article was long; the first ${kept.length.toLocaleString('en')} characters were read${stopsIn ? ` — it stops in “${stopsIn}”` : ''}${left > 0 ? `, and ${left} later section${left === 1 ? ' was' : 's were'} left out` : ''}`
     )

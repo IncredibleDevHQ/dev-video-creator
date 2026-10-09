@@ -2,7 +2,7 @@ import { recolourLook } from '../shared/looks'
 import { addEvent } from './activity'
 import { paletteOf, validateLook, withLook } from './looks'
 import { changeProject } from './projects'
-import { refreshVideoKeys, scenePlanKey } from './scene-model'
+import { keepingPlans, refreshVideoKeys } from './scene-model'
 
 /**
  * Change a notebook's look. Drawn wireframes are re-coloured in place; later
@@ -13,18 +13,20 @@ export const applyLook = (id: string, raw: unknown) => {
   return changeProject(id, async (current) => {
     const from = paletteOf(current.project.branding)
     const fonts = current.project.branding?.fonts
-    if (from)
-      for (const slide of current.project.slides)
-        if (slide.svg)
-          slide.svg = recolourLook(
-            slide.svg,
-            from,
-            look.palette,
-            fonts ? { from: fonts, to: look.fonts } : undefined
-          )
-    current.project.branding = withLook(current.project.branding, look)
-    for (const scene of current.project.video?.scenes || [])
-      scene.planKey = scenePlanKey(current.project, scene)
+    // The pages change colour, not what the scenes say: each scene keeps its
+    // plan, never written again for a look (its stored plan went stale).
+    keepingPlans(current.project, () => {
+      if (from)
+        for (const slide of current.project.slides)
+          if (slide.svg)
+            slide.svg = recolourLook(
+              slide.svg,
+              from,
+              look.palette,
+              fonts ? { from: fonts, to: look.fonts } : undefined
+            )
+      current.project.branding = withLook(current.project.branding, look)
+    })
     refreshVideoKeys(current.project)
     addEvent(current, 'slide', `Look: ${look.name}`)
   })

@@ -3,7 +3,12 @@ import { api } from './api'
 import type { AppContext } from './app-context'
 import { runNotebookCommand, updateNotebookToolbar } from './notebook-toolbar'
 import { confirmAction } from './confirm-action'
-import { NOTE_LIMIT, notesLength } from '../shared/notes'
+import {
+  NOTE_LIMIT,
+  NOTE_SIZE_LIMIT,
+  TOO_LARGE,
+  notesLength
+} from '../shared/notes'
 
 const editors = new WeakMap<HTMLElement, Editor>()
 const loading = new WeakSet<HTMLElement>()
@@ -39,14 +44,18 @@ const status = (app: AppContext, text: string) => {
   const label = app.root.querySelector<HTMLElement>('[data-note-save]')
   if (label && label.textContent !== text) label.textContent = text
 }
-/** The live count, the cut note left out; red over the limit. */
+/** The live count, the cut note left out; red over the limit, or when the
+ * notes are too large to send whatever they count. */
 const showCount = (app: AppContext, text: string) => {
   const count = app.root.querySelector<HTMLElement>('[data-note-count]')
   if (!count) return
+  const large = text.length > NOTE_SIZE_LIMIT
   const length = notesLength(text)
-  const said = `${length.toLocaleString('en')} / ${NOTE_LIMIT.toLocaleString('en')}`
+  const said = large
+    ? 'Too large to send'
+    : `${length.toLocaleString('en')} / ${NOTE_LIMIT.toLocaleString('en')}`
   if (count.textContent !== said) count.textContent = said
-  count.classList.toggle('is-over', length > NOTE_LIMIT)
+  count.classList.toggle('is-over', large || length > NOTE_LIMIT)
 }
 
 const save = async (app: AppContext, editor: HTMLElement): Promise<void> => {
@@ -67,8 +76,11 @@ const save = async (app: AppContext, editor: HTMLElement): Promise<void> => {
     status(app, 'Add some notes to save.')
     throw new Error('Add some notes to save')
   }
-  if (notesLength(text) > NOTE_LIMIT) {
-    const said = `Shorten the notes to ${NOTE_LIMIT.toLocaleString('en')} characters to save them`
+  if (text.length > NOTE_SIZE_LIMIT || notesLength(text) > NOTE_LIMIT) {
+    const said =
+      text.length > NOTE_SIZE_LIMIT
+        ? TOO_LARGE
+        : `Shorten the notes to ${NOTE_LIMIT.toLocaleString('en')} characters to save them`
     status(app, `Not saved: ${said.toLowerCase()}`)
     throw new Error(said)
   }

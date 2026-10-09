@@ -103,9 +103,11 @@ export type Scene = {
   }
   planKey?: string
   /**
-   * A key made while a model's shown name went into it (32b14a0c), and the
-   * key it became: the plan stored under the old one still counts while the
-   * scene's key is the one it became.
+   * The key the scene's plan was made under (`from`, its own key) and the
+   * key that stands for its inputs now (`to`), where they differ only in
+   * what the plan doesn't depend on: the model's shown name, which 32b14a0c
+   * put in the key, or a look's colours. Scenes d24d80b8 moved hold the new
+   * key, with the plan under `from`.
    */
   legacyPlanKey?: { from: string; to: string }
   creativePlan?: { recordId: string; inputKey: string }

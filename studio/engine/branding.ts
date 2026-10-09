@@ -7,7 +7,7 @@ import {
   readRow
 } from './persistence'
 import { changeProject, addEvent } from './projects'
-import { refreshVideoKeys, scenePlanKey } from './scene-model'
+import { refreshVideoKeys } from './scene-model'
 import { Refusal } from './refusal'
 export const DEFAULT_BRANDING: Branding = {
   name: '',
@@ -101,8 +101,8 @@ export const applyIdentity = (id: string, branding: Branding) =>
       tagline: branding.tagline,
       logoKey: branding.logoKey
     }
-    for (const scene of current.project.video?.scenes || [])
-      scene.planKey = scenePlanKey(current.project, scene)
+    // What the scenes say doesn't change, only how they're made: each keeps
+    // its plan (review 6: an identity saved first re-keyed an older plan).
     refreshVideoKeys(current.project)
     addEvent(current, 'video', 'Your name and logo updated')
   })

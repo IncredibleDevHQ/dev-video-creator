@@ -20,7 +20,7 @@ const draft = {
   events: []
 } as unknown as Snapshot
 
-it('counts the notes without the reader’s cut note', () => {
+it('counts the notes without the reader’s cut note', async () => {
   const kept = 'x'.repeat(NOTE_LIMIT)
   const cut = `${kept} … [cut: the article goes on for 4,512 more characters]`
   expect(notesLength(cut)).toBe(NOTE_LIMIT)
@@ -53,10 +53,41 @@ it('counts the notes without the reader’s cut note', () => {
   const table = `| a |\n| ${'y'.repeat(10)} … \\[cut: the article goes on for 9 more characters\\] |`
   expect(notesLength(table)).toBe(notesLength(`| a |\n| ${'y'.repeat(10)}`))
   expect(notesLength('-'.repeat(50))).toBe(50)
-  // A link with its own words keeps them.
-  expect(notesLength('[the post](https://a.io/x)')).toBe(
-    '[the post](https://a.io/x)'.length
+  // A link counts as its words, wherever it goes: the editor writes a bare
+  // www link or an address as a link, and a shared reference in full each
+  // time it is used (review 6: a README went from 23,783 to 34,858).
+  expect(notesLength('[the post](https://a.io/x)')).toBe('the post'.length)
+  expect(notesLength('Go to [www.a.io](http://www.a.io) now')).toBe(
+    'Go to www.a.io now'.length
   )
+  expect(notesLength('Mail [me@a.io](mailto:me@a.io)')).toBe(
+    'Mail me@a.io'.length
+  )
+  const shared = 'See [the docs][d].\n\n[d]: https://a.io/docs/long/path'
+  const expanded = Array.from(
+    { length: 50 },
+    () => 'See [the docs](https://a.io/docs/long/path "Docs").'
+  ).join('\n\n')
+  expect(notesLength(expanded)).toBe(50 * 'See the docs.'.length + 49)
+  expect(notesLength(shared)).toBe('See [the docs][d].'.length)
+  expect(notesLength('![a chart](https://a.io/c_(1).png)')).toBe(7)
+  // Entities read as the characters they are, and lines stay lines, so
+  // the words read from the notes keep their headings apart.
+  const { compactNotes } = await import('../shared/notes')
+  expect(compactNotes('# Title\n\n  a &lt;b&gt; &quot;c&quot;  d')).toBe(
+    '# Title\na <b> "c" d'
+  )
+  // Counted as it is typed: a long run of spaces costs its length, once.
+  const started = performance.now()
+  expect(
+    notesLength(`| a | b${' '.repeat(600_000)}c\n${' \n'.repeat(1e5)}`)
+  ).toBe(5)
+  expect(performance.now() - started).toBeLessThan(1_000)
+  // A code block is written back with a fence its code can't close.
+  const { codeFence } = await import('../shared/notes')
+  expect(codeFence('const a = 1')).toBe('```')
+  expect(codeFence('```js\nx()\n```')).toBe('````')
+  expect(codeFence('use ````a```` here')).toBe('`````')
   expect(
     notesLength(
       'x'.repeat(NOTE_LIMIT - 3) +
@@ -167,16 +198,33 @@ it('cuts a long article where a paragraph ends, never inside code, and says so',
     /\n\n… \[cut: the article goes on for [\d,]+ more characters\]$/
   )
   expect((text.match(/^\`\`\`/gm) || []).length % 2).toBe(0)
-  expect(left).toBe(article.length - kept!.length)
+  expect(left).toBe(article.length - kept.length)
   // A stray fence early on loses nothing before the cut, and inline code
   // that starts a line is not a fence.
   const tail = `${para}\n\n`.repeat(40)
-  expect(cutArticle(`\`\`\`\n${tail}`, 24_000).kept!.length).toBeGreaterThan(
+  expect(cutArticle(`\`\`\`\n${tail}`, 24_000).kept.length).toBeGreaterThan(
     19_000
   )
   expect(
-    cutArticle(`\`\`\`a\`\`\` inline\n\n${tail}`, 24_000).kept!.length
+    cutArticle(`\`\`\`a\`\`\` inline\n\n${tail}`, 24_000).kept.length
   ).toBeGreaterThan(19_000)
+  // A block in a list item is closed where its own fence stands, so the
+  // note after it is not code (review 6).
+  const step = `1. Run it:\n\n   \`\`\`sh\n${'   make all\n\n'.repeat(3000)}   \`\`\``
+  const listed = cutArticle(`${para}\n\n${step}`, 24_000)
+  expect(listed.text).toMatch(/\n   \`\`\`\n\n… \[cut: [^\]]+\]$/)
+  // Four spaces in, outside a list, a fence is a line of indented code: it
+  // opens nothing to close.
+  const indented = `${para}\n\n    \`\`\`\n${'    code();\n'.repeat(3000)}`
+  expect(cutArticle(indented, 24_000).text).toMatch(/code\(\);\n\n… \[cut/)
+  // Line ends as Windows writes them count as one, and say what was cut.
+  const windows = cutArticle(`${'Line.\r\n'.repeat(4000)}`, 24_000)
+  expect(windows.left).toBe(0)
+  expect(windows.kept).toBe('Line.\n'.repeat(4000))
   // Short enough, kept whole.
-  expect(cutArticle('Short.', 24_000)).toEqual({ text: 'Short.', left: 0 })
+  expect(cutArticle('Short.', 24_000)).toEqual({
+    text: 'Short.',
+    kept: 'Short.',
+    left: 0
+  })
 })

@@ -60,6 +60,8 @@ export type Snapshot = {
     index: number
     scene?: Scene
     seams?: Array<{ left: string; right: string; transition: Transition }>
+    /** The video stood stopped for its scenes when the page went. */
+    stopped?: boolean
   }
 }
 export type CreateProject = {

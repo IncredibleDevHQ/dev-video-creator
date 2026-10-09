@@ -27,7 +27,7 @@ import {
 } from '../shared/narratives'
 import { randomUUID } from 'node:crypto'
 import type { Snapshot, SlideEdit, ChatRequest } from '../shared/api'
-import type { ProjectEvent } from '../shared/model'
+import type { Project, ProjectEvent } from '../shared/model'
 import {
   readRow,
   writeRow,
@@ -47,14 +47,15 @@ import {
 } from '../shared/state'
 import { modelFetch } from './model-gateway'
 import { SourceReadError } from './source-fetch'
-import { cutArticle, readSourceNarrative } from './source-document'
+import { readSourceNarrative } from './source-document'
+import { NOTE_SIZE_LIMIT } from '../shared/notes'
 import { readSourceUrl } from './source-reader'
 import { outlineSchema, outlinePrompt, sanitizeOutline } from './source-outline'
 import { pageBrandFrom, renderPage } from './source-page'
 import { identityOf } from './branding'
 import { startingLook, withLook } from './looks'
 import { Refusal } from './refusal'
-import { settleStoppedVideo } from './autopilot'
+import { settleStoppedVideo, stoppedForScenes, stoppedLine } from './autopilot'
 import { sourceLink } from '../shared/source-link'
 const queues = new Map<string, Promise<unknown>>()
 /**
@@ -240,12 +241,10 @@ export const retrySlides = async (id: string) => {
   return snapshot
 }
 export const replaceBlockedSource = async (id: string, text: unknown) => {
-  if (
-    typeof text !== 'string' ||
-    text.trim().length < 40 ||
-    text.length > 500000
-  )
+  if (typeof text !== 'string' || text.trim().length < 40)
     throw new Refusal('Paste the article text, rather than only its link')
+  if (text.length > NOTE_SIZE_LIMIT)
+    throw new Refusal('That text is too large to send; paste the article alone')
   const snapshot = await changeProject(id, async (current) => {
     if (
       current.status !== 'failed' ||
@@ -258,11 +257,10 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
     const url = new URL(sourceUrl)
     if (!['https:', 'http:'].includes(url.protocol))
       throw new Refusal('The original source link is invalid')
-    // Cut as a read article is, saying so: the notes and what the agent
-    // reads are the same, and fit (review 6: the whole paste was kept).
-    const pasted = cutArticle(text.trim()).text
+    // Cut as a read article is, and said in its warnings: the notes and
+    // what the agent reads are the same, and fit (review 6).
     const source = {
-      ...readSourceNarrative(pasted, '', Infinity),
+      ...readSourceNarrative(text),
       url: sourceUrl,
       site: url.hostname
     }
@@ -276,7 +274,7 @@ export const replaceBlockedSource = async (id: string, text: unknown) => {
         await startingLook(source)
       )
     current.project.sourceUrl = sourceUrl
-    current.project.source = pasted
+    current.project.source = source.text
     current.status = current.sourceOnly ? 'draft' : 'building'
     current.project.title = source.title || 'Untitled notebook'
     current.error = null
@@ -583,6 +581,35 @@ const addSlide = (project: Snapshot['project'], beatId?: string) => {
     beats: [beat.id]
   })
 }
+/**
+ * A page kept for Undo, with its scene, the seams either side and whether
+ * the video stood stopped for its scenes: the Wireframe stage's delete and
+ * the map's remove keep the same.
+ */
+export const keptForUndo = (
+  project: Project,
+  index: number
+): NonNullable<Snapshot['deletedSlide']> => {
+  const video = project.video
+  const slide = project.slides[index]
+  return {
+    index,
+    slide,
+    scene: video?.scenes.find((scene) => scene.slideId === slide.id),
+    seams: video?.scenes.slice(0, -1).flatMap((scene, i) =>
+      scene.slideId === slide.id || video.scenes[i + 1].slideId === slide.id
+        ? [
+            {
+              left: scene.slideId,
+              right: video.scenes[i + 1].slideId,
+              transition: video.transitions[i]
+            }
+          ]
+        : []
+    ),
+    ...(stoppedForScenes(video) ? { stopped: true } : {})
+  }
+}
 export const editSlide = (id: string, edit: SlideEdit) =>
   changeProject(id, (snapshot) => {
     if (edit.action === 'script') {
@@ -619,31 +646,24 @@ export const editSlide = (id: string, edit: SlideEdit) =>
         0,
         snapshot.deletedSlide.slide
       )
-      if (snapshot.deletedSlide.scene && snapshot.project.video)
-        snapshot.project.video.scenes.push(snapshot.deletedSlide.scene)
+      const { scene, stopped } = snapshot.deletedSlide
+      const video = snapshot.project.video
+      if (scene && video) {
+        video.scenes.push(scene)
+        // The video stood stopped for it: it says so again (review 6: the
+        // only stopped scene came back, and the line didn't).
+        if (stopped && scene.phase === 'failed' && video.phase === 'idle') {
+          video.phase = 'failed'
+          video.error = stoppedLine(1)
+        }
+      }
       delete snapshot.deletedSlide
     } else if (edit.action === 'add') addSlide(snapshot.project, edit.beat)
     else {
       if (index < 0) throw new Refusal('Slide not found')
       if (edit.action === 'delete') {
-        const video = snapshot.project.video
-        snapshot.deletedSlide = {
-          index,
-          slide: slides.splice(index, 1)[0],
-          scene: video?.scenes.find((scene) => scene.slideId === edit.slideId),
-          seams: video?.scenes.slice(0, -1).flatMap((scene, i) =>
-            scene.slideId === edit.slideId ||
-            video.scenes[i + 1].slideId === edit.slideId
-              ? [
-                  {
-                    left: scene.slideId,
-                    right: video.scenes[i + 1].slideId,
-                    transition: video.transitions[i]
-                  }
-                ]
-              : []
-          )
-        }
+        snapshot.deletedSlide = keptForUndo(snapshot.project, index)
+        slides.splice(index, 1)
       }
       if (edit.action === 'duplicate')
         slides.splice(index + 1, 0, { ...slides[index], id: randomUUID() })

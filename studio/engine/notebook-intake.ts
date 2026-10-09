@@ -20,7 +20,13 @@ import type { SourceRead } from './source-document'
 import { startingLook, withLook } from './looks'
 import { loadHarnessPreference as savedHarness } from './harness/preference'
 import { Refusal, asRefusal } from './refusal'
-import { NOTE_LIMIT, notesLength } from '../shared/notes'
+import {
+  NOTE_LIMIT,
+  NOTE_SIZE_LIMIT,
+  TOO_LARGE,
+  notesLength
+} from '../shared/notes'
+import { notePlanKeys } from './scene-model'
 
 // Edits save as the creator types; the suggestion is asked for once they
 // stop for a while.
@@ -42,6 +48,7 @@ export const editNotebookSource = async (
 ) => {
   if (typeof text !== 'string' || !text.trim())
     throw new Refusal('Add some notes to save')
+  if (text.length > NOTE_SIZE_LIMIT) throw new Refusal(TOO_LARGE)
   if (notesLength(text) > NOTE_LIMIT)
     throw new Refusal(
       `Shorten the notes to ${NOTE_LIMIT.toLocaleString('en')} characters; they have ${notesLength(text).toLocaleString('en')}`
@@ -232,7 +239,7 @@ export const setNotebookLength = async (id: string, raw: unknown) => {
       throw new Refusal('Choose the length before the wireframes are drawn')
     // A story planned at another length goes with its outline, so Try again
     // plans as many pages as chosen (review 6).
-    changed = current.project.length !== raw
+    changed = (current.project.length || 'medium') !== raw
     if (changed) {
       delete current.plan
       delete current.plannedSlides
@@ -355,6 +362,9 @@ export const setNotebookHarness = async (
       throw new Refusal(
         'Wait for the current generation to finish before changing agents'
       )
+    // Each scene notes what its key stands for while the old name is
+    // there: a model's new name never writes a scene again (review 6).
+    notePlanKeys(current.project)
     current.project.harness = harness
     if (current.project.video) current.project.video.settings.harness = harness
   })

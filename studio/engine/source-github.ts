@@ -130,14 +130,13 @@ export const readGithubDocument = async (
   const read = markdownDocument(raw)
   const warnings: string[] = []
   const cuts: string[] = []
-  let text = read.text
-  if (text.length > 24_000) {
-    // Cut where a paragraph ends, saying so in the notes too (review 6).
-    const cut = cutArticle(text)
+  // Cut where a paragraph ends, saying so in the notes too (review 6).
+  const cut = cutArticle(read.text)
+  const text = cut.text
+  if (cut.left) {
     cuts.push(
-      `The document was long; the first ${(cut.kept || '').length.toLocaleString('en')} characters were read, and ${cut.left.toLocaleString('en')} more were left out`
+      `The document was long; the first ${cut.kept.length.toLocaleString('en')} characters were read, and ${cut.left.toLocaleString('en')} more were left out`
     )
-    text = cut.text
     warnings.push(...cuts)
   }
   const title = (
