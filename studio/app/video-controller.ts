@@ -531,6 +531,13 @@ ${(
     app.render()
   }
   if (action === 'history') app.showDialog(activityDialog(app.snapshot))
+  if (action === 'accept-scene') {
+    const scene = app.snapshot.project.video?.scenes[app.selected]
+    if (!scene) return
+    app.snapshot = await api.acceptScene(app.snapshot.project.id, scene.id)
+    app.render()
+    return
+  }
   if (action === 'moment-actions') {
     app.stopPractice()
     app.momentIndex = Number(target.dataset.menuMoment)

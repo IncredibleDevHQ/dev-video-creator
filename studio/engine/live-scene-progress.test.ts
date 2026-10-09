@@ -71,7 +71,9 @@ it('streams safe scene activity after the presentation is ready', async () => {
     stage: 'composition',
     active: true,
     label: 'Building the animation',
-    updatedAt: '2026-10-01T00:00:00.000Z'
+    updatedAt: '2026-10-01T00:00:00.000Z',
+    // When the run began, for the running step's elapsed time.
+    startedAt: expect.any(String)
   })
   expect(result?.progress).toBeUndefined()
   expect(JSON.stringify(result)).not.toContain('private command')

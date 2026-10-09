@@ -337,6 +337,44 @@ it('does not end a run for refused submissions or ordinary tool results', async 
   expect(attempt).toBe(2)
 })
 
+it('gives a refusal near the deadline one short grace to be fixed in', async () => {
+  const { handleEngineRpc } = await import('./submissions')
+  let attempt = 0
+  const result = await runEngineStage({
+    ...base,
+    timeoutMs: 400,
+    accept: async () => {},
+    tools: () => [
+      {
+        name: 'submit',
+        completesRun: true,
+        description: 'Fixture',
+        inputSchema: {},
+        call: async () => ({ accepted: ++attempt > 1 })
+      }
+    ],
+    adapterOverride: adapter(async (run, _emit, signal) => {
+      const token = String(run.inputs.submissionToken)
+      const call = () =>
+        handleEngineRpc(token, {
+          id: 1,
+          method: 'tools/call',
+          params: { name: 'submit' }
+        })
+      // Refused just before the deadline, fixed after it would have passed.
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      await call()
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      expect(signal.aborted).toBe(false)
+      await call()
+      expect(signal.aborted).toBe(true)
+      return { exitCode: 130 }
+    })
+  })
+  expect(result.status).toBe('done')
+  expect(attempt).toBe(2)
+})
+
 it('does not launch another deck stage after the creator stops it', async () => {
   await writeRow('projects', 'stopped-deck', { stopping: true })
   const run = vi.fn<HarnessAdapter['run']>(async () => ({ exitCode: 0 }))

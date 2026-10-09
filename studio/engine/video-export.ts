@@ -39,6 +39,14 @@ export const updateTransition = (
     refreshVideoKeys(current.project)
     addEvent(current, 'video', 'Transition updated')
   })
+/** Joins the video when every scene is produced and nothing waits. */
+const joinWhenReady = async (id: string) => {
+  const now = await loadProject(id)
+  if (!now?.project.video) return
+  const view = videoView(now.project)
+  if (view.enabled && view.action === 'produce-video') await produceVideo(id)
+}
+
 export const produceVideo = async (id: string) => {
   if (running.has(id)) return (await loadProject(id))!
   const initial = await loadProject(id)
@@ -48,6 +56,9 @@ export const produceVideo = async (id: string) => {
       s.project.video!.error = null
       addEvent(s, 'video', 'Preparing scenes; recordings can be added later')
     })
+    // Every scene made and nothing left to record: the video is joined in
+    // the same press (review 6: Finish took two).
+    let joinNext = false
     const work = (async () => {
       await waitForPlanning(id)
       for (const item of started.project.video!.scenes) {
@@ -96,6 +107,7 @@ export const produceVideo = async (id: string) => {
             ? 'Scene preparation finished; some scenes stopped.'
             : 'Scene preparation finished. Add remaining recordings in any order.'
         )
+        joinNext = !failed
       })
     })()
       .catch(async (reason) => {
@@ -107,7 +119,10 @@ export const produceVideo = async (id: string) => {
               : 'Could not prepare scenes'
         })
       })
-      .finally(() => running.delete(id))
+      .finally(() => {
+        running.delete(id)
+        if (joinNext) void joinWhenReady(id).catch(() => {})
+      })
     running.set(id, work)
     return started
   }

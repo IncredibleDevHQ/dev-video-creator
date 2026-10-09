@@ -10,6 +10,8 @@
 export type Pose = {
   /** A playing video or canvas fills part of the frame: it moves itself. */
   media: boolean
+  /** The frame's width and height, for what the edge cuts. */
+  frame?: [number, number]
   elements: Array<
     null | [number, number, number, number, number, number, string, string]
   >
@@ -51,14 +53,14 @@ export const POSE = `(() => {
       ? element.textContent.replace(/\\s+/g, ' ').trim().slice(0, 40)
       : ''
     elements.push([
-      Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height),
+      Math.round(r.left - frame.left), Math.round(r.top - frame.top), Math.round(r.width), Math.round(r.height),
       Math.round(shown * 20),
       element instanceof SVGGeometryElement ? Math.round(parseFloat(style.strokeDashoffset) || 0) : 0,
       own,
       style.fill + ' ' + style.backgroundColor + ' ' + style.stroke
     ])
   }
-  return { media, elements }
+  return { media, frame: [Math.round(frame.width), Math.round(frame.height)], elements }
 })()`
 
 /**
@@ -102,12 +104,63 @@ export const poseChange = (a: Pose, b: Pose): 'same' | 'slight' | 'visible' => {
 }
 
 export type MotionDefect = {
-  kind: 'frozen' | 'sparse'
+  kind: 'frozen' | 'sparse' | 'empty' | 'cut'
   moment: string
   message: string
+  /** For a sparse moment: how many changes it is short. */
+  short?: number
 }
 
 const seconds = (value: number) => `${Math.round(value * 10) / 10} s`
+
+type Element = NonNullable<Pose['elements'][number]>
+/** The frame's area: given, else the largest thing drawn (its ground). */
+const frameArea = (samples: Pose[]) =>
+  samples[0]?.frame
+    ? samples[0].frame[0] * samples[0].frame[1]
+    : Math.max(
+        1,
+        ...samples.flatMap((sample) =>
+          sample.elements.map((item) => (item ? item[2] * item[3] : 0))
+        )
+      )
+/** Whether a sample shows anything: words, or a shape that is not the
+ * ground, big enough to see. */
+const showsSomething = (sample: Pose, area: number) =>
+  sample.media ||
+  sample.elements.some(
+    (item) =>
+      item &&
+      item[4] >= 6 &&
+      (item[6] ||
+        (item[2] * item[3] < area * 0.8 && item[2] * item[3] >= area * 0.002))
+  )
+/** Words the frame's edge cuts: drawn, readable, partly outside it. */
+const cutWords = (sample: Pose) => {
+  const [width, height] = sample.frame || [0, 0]
+  if (!width) return []
+  return sample.elements.filter((item): item is Element => {
+    if (!item || !item[6] || item[4] < 10) return false
+    const [x, y, w, h] = item
+    const inside = x < width && y < height && x + w > 0 && y + h > 0
+    const out = x < -4 || y < -4 || x + w > width + 4 || y + h > height + 4
+    return inside && out
+  })
+}
+/** The longest run of samples where a test holds, and where it starts. */
+const longestRun = (samples: Pose[], test: (sample: Pose) => boolean) => {
+  let run = 0,
+    longest = 0,
+    from = 0
+  samples.forEach((sample, index) => {
+    run = test(sample) ? run + 1 : 0
+    if (run > longest) {
+      longest = run
+      from = index + 1 - run
+    }
+  })
+  return { longest, from }
+}
 
 /** What is wrong with one moment's motion, from its samples. */
 export const motionDefects = (
@@ -139,6 +192,27 @@ export const motionDefects = (
       moment: moment.id,
       message: `${moment.id} holds one still frame for ${seconds(longest * every)} (${seconds(from * every)} to ${seconds((from + longest) * every)} into the moment)`
     })
+  // An empty frame while the voice speaks, a second or more (review 6: a
+  // scene opened on one word, then nothing, while the voice asked).
+  const area = frameArea(samples)
+  const blank = longestRun(samples, (sample) => !showsSomething(sample, area))
+  if (blank.longest >= 2)
+    defects.push({
+      kind: 'empty',
+      moment: moment.id,
+      message: `${moment.id} shows an empty frame for ${seconds(blank.longest * every)} (${seconds(blank.from * every)} into the moment) while the voice speaks`
+    })
+  // Words cut by the frame's edge and held there, as a push-in can leave
+  // them (review 6: "augmented LLM" became "mented LLM").
+  const cut = longestRun(samples, (sample) => cutWords(sample).length > 0)
+  if (cut.longest >= 2) {
+    const words = cutWords(samples[cut.from])[0]?.[6] || 'a label'
+    defects.push({
+      kind: 'cut',
+      moment: moment.id,
+      message: `${moment.id} cuts “${words}” at the frame’s edge (${seconds(cut.from * every)} into the moment)`
+    })
+  }
   // Each run of visible change is one development of the picture.
   const developments = changes.filter(
     (change, index) => change === 'visible' && changes[index - 1] !== 'visible'
@@ -148,6 +222,7 @@ export const motionDefects = (
   if (needed > 0 && developments < needed)
     defects.push({
       kind: 'sparse',
+      short: needed - developments,
       moment: moment.id,
       message: `${moment.id} changes its picture ${developments === 1 ? 'once' : `${developments} times`} in ${seconds(length)}`
     })
@@ -155,6 +230,9 @@ export const motionDefects = (
 }
 
 const HOW: Record<MotionDefect['kind'], string> = {
+  empty:
+    'keep what the voice is talking about on screen: hold the question or the title until the next picture enters',
+  cut: 'keep a push-in’s target and its labels inside the frame’s safe area: zoom in less, or move the labels in',
   frozen:
     'develop the picture there as the voice goes on: start the plan’s next change on the sentence that says it (CLOCK.json cues), rather than everything at the moment’s start',
   sparse: `give each idea the voice develops its own visible change as it is said, at least one every ${SECONDS_PER_CHANGE} s: a value travels its path, a bar fills as its number is said, a label moves to what it names, a part of a drawing acts`

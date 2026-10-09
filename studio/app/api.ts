@@ -135,6 +135,8 @@ export const api = {
     request<Snapshot>(`/projects/${id}/video`, 'PATCH', body),
   retryScene: (id: string, sceneId: string) =>
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/retry`, 'POST', {}),
+  acceptScene: (id: string, sceneId: string) =>
+    request<Snapshot>(`/projects/${id}/scenes/${sceneId}/accept`, 'POST', {}),
   previewPresence: (id: string, sceneId: string, presence: Presence | null) =>
     request<ReplanPreview>(
       `/projects/${id}/scenes/${sceneId}/presence-preview`,

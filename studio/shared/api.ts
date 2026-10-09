@@ -18,6 +18,8 @@ export type SceneProgress = {
   active: boolean
   label: string
   updatedAt: string
+  /** When the step's run began, for its elapsed time. */
+  startedAt?: string
 }
 export type Snapshot = {
   sceneProgress?: Record<string, SceneProgress>

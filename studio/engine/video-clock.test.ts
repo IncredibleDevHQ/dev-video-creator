@@ -1,35 +1,34 @@
 import { expect, it } from 'vitest'
-import { sceneAt, videoSecond } from '../shared/video-clock'
 import type { Project } from '../shared/model'
-const project: Project = {
-  id: 'fixture',
-  title: 'Fixture',
-  source: 'Fixture',
+import { sceneAt, videoSecond } from '../shared/video-clock'
+
+// Fifteen scenes, only 6 and 9 made: the clock lists those two, by id.
+const project = {
+  id: 'p',
+  title: 'Agents',
+  source: '',
   slides: [],
   video: {
     settings: { presence: 'off', voice: { kind: 'record' } },
-    scenes: [],
-    transitions: ['crossfade', 'none'],
-    inputKey: 'input',
+    scenes: Array.from({ length: 15 }, (_, i) => ({ id: `scene-${i + 1}` })),
+    transitions: [],
+    inputKey: '',
     produced: {
-      inputKey: 'input',
-      objectKey: 'video.mp4',
+      objectKey: 'v.mp4',
       clock: [
-        { sceneId: 'one', start: 0, duration: 18 },
-        { sceneId: 'two', start: 17.6, duration: 18 },
-        { sceneId: 'three', start: 35.6, duration: 18 }
+        { sceneId: 'scene-6', start: 0, duration: 57 },
+        { sceneId: 'scene-9', start: 57, duration: 40 }
       ]
     }
   }
-}
-it('seeking to an incoming scene selects its own context throughout the overlap', () => {
-  expect(sceneAt(project, 17.59)).toEqual({ index: 0, second: 17.59 })
-  expect(sceneAt(project, videoSecond(project, 1, 0))).toEqual({
-    index: 1,
-    second: 0
-  })
-  expect(sceneAt(project, videoSecond(project, 2, 5))).toEqual({
-    index: 2,
-    second: 5
-  })
+} as unknown as Project
+
+it('finds the scene playing by its id, not its place in the clock', () => {
+  expect(sceneAt(project, 6)).toEqual({ index: 5, second: 6 })
+  expect(sceneAt(project, 60)).toEqual({ index: 8, second: 3 })
+})
+
+it('seeks a scene by its own interval', () => {
+  expect(videoSecond(project, 8, 2)).toBe(59)
+  expect(videoSecond(project, 5, 0)).toBe(0)
 })

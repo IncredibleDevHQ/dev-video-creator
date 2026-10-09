@@ -46,6 +46,7 @@ export const withProgress = async (snapshot: Snapshot | null) => {
     sceneProgress[run.sceneId!] = {
       stage: run.stage as SceneProgress['stage'],
       active: ['preparing', 'running'].includes(run.status),
+      startedAt: run.startedAt,
       label,
       updatedAt:
         latest && Number.isFinite(latest.ts)

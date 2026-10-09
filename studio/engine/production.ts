@@ -10,7 +10,7 @@ import { loadProject, changeProject, addEvent } from './projects'
 import { refreshVideoKeys } from './scene-model'
 import { momentState } from '../shared/state'
 import { prepareMomentAudio } from './scene-audio'
-import { storeAsset, writeRow } from './persistence'
+import { readRow, storeAsset, writeRow } from './persistence'
 import { buildSceneBundle } from '../render/scene'
 import { renderProductionBundle } from '../render/production-render'
 import {
@@ -21,6 +21,52 @@ import {
 } from './artifacts'
 import { Refusal } from './refusal'
 const active = new Map<string, Promise<void>>()
+/**
+ * Accepts a stopped scene's last candidate as it is, when only the soft
+ * checks refused it, and produces the scene from it (review 6).
+ */
+export const acceptCandidate = async (id: string, sceneId: string) => {
+  const snapshot = await loadProject(id)
+  const scene = snapshot?.project.video?.scenes.find(
+    (item) => item.id === sceneId
+  )
+  if (!scene || scene.phase !== 'failed' || !scene.acceptable)
+    throw new Refusal('This scene has no candidate to accept')
+  const candidate = await readRow<{
+    sceneId: string
+    inputKey: string
+    soft?: boolean
+    planRecord?: string
+    manifest?: unknown
+    artifacts: import('./artifacts').ArtifactRef[]
+  }>('creative-production-attempts', scene.acceptable)
+  if (
+    !candidate ||
+    candidate.sceneId !== sceneId ||
+    candidate.inputKey !== scene.inputKey ||
+    !candidate.soft
+  )
+    throw new Refusal('The candidate no longer fits this scene; try again')
+  await saveStageCheckpoint(
+    id,
+    sceneId,
+    'creative-production',
+    scene.inputKey,
+    null,
+    candidate.artifacts
+  )
+  await writeRow('creative-productions', sceneId, {
+    projectId: id,
+    sceneId,
+    inputKey: scene.inputKey,
+    planRecord: candidate.planRecord,
+    manifest: candidate.manifest,
+    artifacts: candidate.artifacts,
+    acceptedAsIs: true
+  })
+  return produceScene(id, sceneId)
+}
+
 export const produceScene = async (id: string, sceneId: string) => {
   const key = `${id}/${sceneId}`
   if (active.has(key)) return (await loadProject(id))!
@@ -48,6 +94,8 @@ export const produceScene = async (id: string, sceneId: string) => {
       moment.plannedSeconds ??=
         moment.segments?.reduce((n, s) => n + s.estimate, 0) ||
         moment.end - moment.start
+    delete scene.lastCheck
+    delete scene.acceptable
     transitionScene(scene, 'produce', current)
     refreshVideoKeys(current.project)
     expected = scene.inputKey
@@ -236,6 +284,16 @@ export const produceScene = async (id: string, sceneId: string) => {
           posterKey: asset.posterKey
         }
         transitionScene(target, 'produced', current)
+        // The video stopped for a scene that is now made: once no scene is
+        // stopped, neither is the video (review 6: it still said so).
+        const video = current.project.video!
+        if (
+          video.phase === 'failed' &&
+          !video.scenes.some((scene) => scene.phase === 'failed')
+        ) {
+          video.phase = 'idle'
+          video.error = null
+        }
       })
     } catch (error) {
       await changeProject(id, (current) => {
@@ -253,6 +311,10 @@ export const produceScene = async (id: string, sceneId: string) => {
           error,
           'Could not produce this scene. Try again.'
         )
+        // What the last check found, and whether it can be taken as it is.
+        const said = error as { lastCheck?: string; acceptable?: string }
+        if (said?.lastCheck) target.lastCheck = said.lastCheck
+        if (said?.acceptable) target.acceptable = said.acceptable
         transitionScene(target, 'fail', current)
       })
     }

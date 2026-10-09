@@ -25,9 +25,11 @@ export const sceneActivityRail = (
             ['planning', 'script'].includes(step.stage)))
           ? `<span class="activity-detail">${escape(
               progress.label
-            )}</span><time datetime="${escape(
-              progress.updatedAt
-            )}">Last update ${escape(
+            )}</span><time datetime="${escape(progress.updatedAt)}">${
+              progress.active && progress.startedAt
+                ? `Running ${Math.max(0, Math.round((Date.now() - Date.parse(progress.startedAt)) / 60_000))} min · `
+                : ''
+            }Last update ${escape(
               new Date(progress.updatedAt).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit'

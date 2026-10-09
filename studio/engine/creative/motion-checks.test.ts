@@ -38,6 +38,8 @@ it('refuses a moment that arrives at its start and then holds', () => {
   ]
   const defects = motionDefects(moment(10), samples)
   expect(defects.map((defect) => defect.kind)).toEqual(['frozen', 'sparse'])
+  // A sparse moment says how many changes it is short.
+  expect(defects[1].short).toBeGreaterThan(0)
   expect(defects[0].message).toBe(
     'm2 holds one still frame for 8.5 s (1 s to 9.5 s into the moment)'
   )
@@ -70,4 +72,51 @@ it('counts a jitter as alive but not as development, and lets video move', () =>
     elements: [card(100)]
   }))
   expect(motionDefects(moment(10), video)).toEqual([])
+})
+
+it('finds an empty frame while the voice speaks, and words the edge cuts', async () => {
+  const { motionDefects } = await import('./motion-checks')
+  type Item = [number, number, number, number, number, number, string, string]
+  const ground: Item = [0, 0, 1920, 1080, 20, 0, '', 'white']
+  const word = (text: string, x: number, y = 500): Item => [
+    x,
+    y,
+    320,
+    60,
+    20,
+    0,
+    text,
+    'black'
+  ]
+  const pose = (...items: Item[]) => ({
+    media: false,
+    frame: [1920, 1080] as [number, number],
+    elements: [ground, ...items]
+  })
+  const moment = { id: 'm1', start: 0, end: 6 }
+  // One word, then nothing for two seconds, then the model.
+  const opening = [
+    pose(word('What', 800)),
+    pose(),
+    pose(),
+    pose(),
+    pose(),
+    pose(word('The model', 700)),
+    pose(word('The model', 700)),
+    pose(word('The model', 700)),
+    pose(word('The model', 700)),
+    pose(word('The model', 760)),
+    pose(word('The model', 820)),
+    pose(word('The model', 880))
+  ]
+  expect(motionDefects(moment, opening).map((d) => d.kind)).toContain('empty')
+  // A push-in that leaves a label half outside the frame.
+  const pushed = Array.from({ length: 12 }, (_, i) =>
+    pose(
+      word('augmented LLM', i < 6 ? 400 + i * 40 : -120),
+      word('Memory', 900 + i * 30)
+    )
+  )
+  const cut = motionDefects(moment, pushed).find((d) => d.kind === 'cut')
+  expect(cut?.message).toContain('“augmented LLM”')
 })

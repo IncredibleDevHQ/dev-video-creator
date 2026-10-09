@@ -604,7 +604,16 @@ export const videoScreen = (
           : '') ||
       agentWords(snapshot, video.error) ||
       ''
-  )}</span>${button('Activity', 'history')}</div>
+  )}${
+    // What the last check found, so the creator can help (review 6).
+    scene.phase === 'failed' && scene.lastCheck
+      ? ` The last check asked: ${escape(scene.lastCheck)}.`
+      : ''
+  }</span>${
+    scene.phase === 'failed' && scene.acceptable
+      ? `<button type="button" data-action="accept-scene" title="Only the motion and frame checks refused it">Accept as is</button>`
+      : ''
+  }${button('Activity', 'history')}</div>
 
 </div>
 <aside class="transcript" ${focused ? 'inert' : ''}>

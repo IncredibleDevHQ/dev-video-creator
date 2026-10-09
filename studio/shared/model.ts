@@ -115,6 +115,11 @@ export type Scene = {
   produced: { inputKey: string; objectKey: string; posterKey?: string } | null
   error: string | null
   failure?: 'planning' | 'production'
+  /** A stopped production's last check finding, in a few words. */
+  lastCheck?: string
+  /** The last candidate, refused only by soft checks: it can be accepted as
+   * it is (review 6). */
+  acceptable?: string
 }
 export type Slide = {
   draft?: boolean

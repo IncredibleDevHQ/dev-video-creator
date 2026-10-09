@@ -77,6 +77,8 @@ export const inspectHarnesses = async (
   )
 const active = new Map<string, AbortController>()
 let shuttingDown = false
+/** The most a run is given to fix a late refusal. */
+const GRACE_MS = 4 * 60_000
 export const stopEngineRuns = async (timeoutMs = 8000) => {
   shuttingDown = true
   for (const controller of active.values()) controller.abort()
@@ -193,11 +195,25 @@ export const runEngineStage = async (input: {
     limitReason = reason
     controller.abort()
   }
-  const timer = setTimeout(
-    () => stopForLimit(generationStops.time),
-    Math.min(input.timeoutMs ?? limits.timeoutMs, LIMIT_CEILING_MS)
+  const allowed = Math.min(
+    input.timeoutMs ?? limits.timeoutMs,
+    LIMIT_CEILING_MS
   )
+  let deadline = Date.now() + allowed
+  let timer = setTimeout(() => stopForLimit(generationStops.time), allowed)
   timer.unref()
+  // A refusal that lands near the deadline gets one short grace to be fixed
+  // in (review 6: the clock stopped a run that was one fix away).
+  let graced = false
+  const grace = Math.min(GRACE_MS, Math.max(1000, allowed / 4))
+  const extendForFix = () => {
+    if (graced || deadline - Date.now() >= grace) return
+    graced = true
+    deadline = Date.now() + grace
+    clearTimeout(timer)
+    timer = setTimeout(() => stopForLimit(generationStops.time), grace)
+    timer.unref()
+  }
   const idleTimer = setTimeout(
     () => stopForLimit(generationStops.idle),
     Math.min(input.idleTimeoutMs ?? limits.idleTimeoutMs, LIMIT_CEILING_MS)
@@ -367,6 +383,13 @@ export const runEngineStage = async (input: {
                 acceptedSubmission = true
                 controller.abort()
               }
+              if (
+                tool.completesRun &&
+                result &&
+                typeof result === 'object' &&
+                (result as { accepted?: unknown }).accepted === false
+              )
+                extendForFix()
               return result
             }
           }))

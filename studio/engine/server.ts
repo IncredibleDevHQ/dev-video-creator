@@ -70,7 +70,7 @@ import {
   stopEngineRuns
 } from './harness/runtime'
 import { recoverProjects } from './recovery'
-import { produceScene } from './production'
+import { acceptCandidate, produceScene } from './production'
 import { produceVideo, updateTransition } from './video-export'
 import { sceneView, videoView } from '../shared/state'
 import { saveRecording } from './takes'
@@ -292,7 +292,7 @@ export const createStudioServer = (
           )
         )
       const sceneRoute = url.pathname.match(
-        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|presence-preview|presence|beats|shot|produce|download|cover|make|leave-out)$/
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/scenes\/([a-zA-Z0-9_-]+)\/(retry|accept|presence-preview|presence|beats|shot|produce|download|cover|make|leave-out)$/
       )
       if (sceneRoute && sceneRoute[3] === 'cover' && request.method === 'GET') {
         const bytes = await sceneCover(
@@ -354,6 +354,8 @@ export const createStudioServer = (
             200,
             await setSceneShot(id, sceneId, body?.shot)
           )
+        if (action === 'accept')
+          return send(response, 200, await acceptCandidate(id, sceneId))
         if (action === 'retry') {
           const snapshot = await loadProject(id)
           return send(

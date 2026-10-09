@@ -469,7 +469,12 @@ export const measureSettledFrames = async (
  * `motion`, also each moment's motion, except the moments it skips (one
  * the presenter fills, which the composition does not show).
  */
-export const settledFrameProblems = async (
+/**
+ * The settled frames' problems, with the near misses apart: a moment one
+ * change short of the motion check, which alone does not refuse a scene
+ * (review 6: a run one fix away was stopped by the clock).
+ */
+export const settledFrameReport = async (
   files: SketchFiles,
   moments: Array<{ id: string; start: number; end: number }>,
   motion?: { skip: string[] }
@@ -479,19 +484,32 @@ export const settledFrameProblems = async (
     moments,
     Boolean(motion)
   )
-  return [
-    ...settledProblems(
-      frames.map(({ moment, measure }) => ({
-        moment,
-        defects: frameDefects(measure)
-      }))
-    ),
-    ...motionProblems(
-      poses
-        .filter(({ moment }) => !motion?.skip.includes(moment))
-        .flatMap(({ moment, samples }) =>
-          motionDefects(moments.find((item) => item.id === moment)!, samples)
-        )
+  const defects = poses
+    .filter(({ moment }) => !motion?.skip.includes(moment))
+    .flatMap(({ moment, samples }) =>
+      motionDefects(moments.find((item) => item.id === moment)!, samples)
     )
-  ]
+  const nearly = (defect: (typeof defects)[number]) =>
+    defect.kind === 'sparse' && defect.short === 1
+  return {
+    problems: [
+      ...settledProblems(
+        frames.map(({ moment, measure }) => ({
+          moment,
+          defects: frameDefects(measure)
+        }))
+      ),
+      ...motionProblems(defects.filter((defect) => !nearly(defect)))
+    ],
+    nearly: motionProblems(defects.filter(nearly))
+  }
+}
+
+export const settledFrameProblems = async (
+  files: SketchFiles,
+  moments: Array<{ id: string; start: number; end: number }>,
+  motion?: { skip: string[] }
+) => {
+  const report = await settledFrameReport(files, moments, motion)
+  return [...report.problems, ...report.nearly]
 }
