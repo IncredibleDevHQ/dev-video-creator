@@ -17,7 +17,7 @@ it('explains a saved recording until the scene is finished, including after relo
     'Moment 1 recording saved'
   )
   expect(recordingHandoff(snapshot, scene)).toContain(
-    'Ready to combine with your scene'
+    'Next: Finish the video, top right'
   )
   snapshot.views!.scenes.s.openMomentIds = ['outro']
   expect(recordingHandoff(snapshot, scene)).toContain(

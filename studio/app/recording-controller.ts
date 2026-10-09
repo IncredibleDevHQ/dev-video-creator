@@ -158,6 +158,7 @@ export const createPractice = (app: AppContext) =>
 
 export const createFinishPractice = (app: AppContext) => () => {
   app.practiceRequest++
+  app.cameraStarting = false
   app.practiceCountdown = 0
   app.startRehearsal = null
   app.practice.stop()
@@ -552,12 +553,17 @@ export const clickRecording = async (
         video: true,
         audio: false
       })
+      // Practice moved on while the browser asked: drop the stream, and the
+      // "Starting camera…" with it (review 6: it stuck).
       if (request !== app.practiceRequest || !app.practiceOpen) {
         stream.getTracks().forEach((track) => track.stop())
+        app.cameraStarting = false
+        app.render()
         return
       }
       app.practiceStream?.getTracks().forEach((track) => track.stop())
       app.practiceStream = stream
+      app.cameraStarting = false
       app.render()
     } catch {
       app.cameraStarting = false
@@ -610,6 +616,9 @@ export const clickRecording = async (
     if (!moment) return
     app.practiceRequest++
     app.practiceStopAfter = null
+    // From a moment's menu, practice is that moment's (review 6: it played
+    // the whole scene from moment 1).
+    if (target.dataset.scope === 'moment') app.practiceScope = 'moment'
     app.practiceMomentIds = practiceMoments(
       scene,
       app.momentIndex,
@@ -652,16 +661,22 @@ export const clickRecording = async (
   }
   if (action === 'scene-next' || action === 'record-moment') {
     const scene = app.snapshot.project.video!.scenes[app.selected]
-    if (app.snapshot.views?.scenes[scene.id].action === 'make') {
+    const next = app.snapshot.views?.scenes[scene.id].action
+    // Record goes straight to the recorder: only the scene's own next step
+    // makes or retries it (review 6: Record re-made a left-out scene).
+    if (action === 'scene-next' && next === 'make') {
       app.snapshot = await api.makeScene(id, scene.id)
       app.render()
-    } else if (app.snapshot.views?.scenes[scene.id].action === 'retry') {
+    } else if (action === 'scene-next' && next === 'retry') {
       app.snapshot = await api.retryScene(id, scene.id)
       app.render()
-    } else if (
-      app.snapshot.views?.scenes[scene.id].action === 'record' ||
-      action === 'record-moment'
-    ) {
+    } else if (next === 'record' || action === 'record-moment') {
+      // A scene being planned or produced can't take a recording yet: say
+      // so before the take, not after it (review 6).
+      if (!sceneDisplay(app.snapshot, scene).canRecord)
+        throw new Error(
+          'Wait for this scene to finish changing before recording.'
+        )
       // What Play plays, Record records: the whole scene, or one moment
       // (in practice, the one on show).
       const voice = app.snapshot.project.video!.settings.voice,
@@ -670,8 +685,11 @@ export const clickRecording = async (
           app.snapshot.views?.scenes[scene.id].openMomentIds || [],
           app.momentIndex,
           {
-            whole: app.practiceScope === 'scene',
-            here: app.practiceOpen,
+            // From a moment's menu, only that moment is recorded.
+            whole:
+              target.dataset.scope !== 'moment' &&
+              app.practiceScope === 'scene',
+            here: app.practiceOpen || target.dataset.scope === 'moment',
             needs: (moment) => momentNeedsRecording(moment, voice)
           }
         )
@@ -691,6 +709,8 @@ export const clickRecording = async (
   }
   if (target.dataset.retake) {
     const scene = app.snapshot.project.video!.scenes[app.selected]
+    if (!sceneDisplay(app.snapshot, scene).canRecord)
+      throw new Error('Wait for this scene to finish changing before retaking.')
     app.stopPractice()
     app.recordingSceneId = scene.id
     app.recordingProjectId = id

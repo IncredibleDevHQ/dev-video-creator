@@ -36,7 +36,8 @@ import {
 import { sceneActivity, sceneActivityRail } from './scene-activity'
 import type { Branding, StudioSettings } from '../shared/settings'
 import { momentViewKey } from '../shared/model'
-import type { Scene, Slide, VideoSettings } from '../shared/model'
+import { videoOpens } from '../shared/state'
+import type { Moment, Scene, Slide, VideoSettings } from '../shared/model'
 import { voiceChoices } from './voice-choice'
 import type { Snapshot } from '../shared/api'
 import type { Recording } from './recording'
@@ -54,9 +55,29 @@ import {
   templatePicker
 } from './template-picker'
 const standIn = new URL('./assets/presenter.jpg', import.meta.url).href
-/** A moment's state in plain words, not "auto" (review 5). */
-const momentWords = (state?: string) =>
-  state === 'to record' ? 'Record' : state === 'recorded' ? 'Recorded' : 'Voice'
+/**
+ * What a moment is, one way everywhere (review 6: the strip said Voice and
+ * Record, the transcript Graphics only and You full screen): a voice over
+ * the wireframe, or you on camera; then whether it waits for a recording.
+ */
+const momentKind = (moment: Moment, long = false) =>
+  moment.camera === 'none'
+    ? long
+      ? 'Voice over the wireframe'
+      : 'Voice over'
+    : long
+      ? `You on camera, ${moment.layout === 'full-screen' ? 'full screen' : moment.layout === 'beside-slide' ? 'beside the wireframe' : 'in the corner'}`
+      : 'You on camera'
+const momentWords = (moment: Moment, state?: string) =>
+  `${momentKind(moment)}${
+    state === 'to record'
+      ? ' · to record'
+      : state === 'recorded'
+        ? moment.take?.number
+          ? ` · take ${moment.take.number}`
+          : ' · recorded'
+        : ''
+  }`
 /** A stop names the agent that stopped: "Kimi ran out of time…". */
 const agentWords = (snapshot: Snapshot, message?: string | null) => {
   const words = wireframeStatus(message || '')
@@ -96,7 +117,8 @@ export const videoHeader = (snapshot: Snapshot) => {
       'Make the video →',
       'make-video',
       true,
-      snapshot.status !== 'ready'
+      // The same test as the Wireframe header's (review 6).
+      !videoOpens(snapshot)
     )
   const view = snapshot.views?.video
   return `${
@@ -131,7 +153,8 @@ export const videoScreen = (
       'Make the video →',
       'make-video',
       true,
-      snapshot.status !== 'ready'
+      // The same test as the Wireframe header's (review 6).
+      !videoOpens(snapshot)
     )}</section>`
   const scene = video.scenes[selected]
   const slide = project.slides[selected]
@@ -202,28 +225,51 @@ export const videoScreen = (
   const focused = practicing || capture.phase !== 'idle'
   const cameraTake =
     reviewing && capture.moments.some((entry) => entry.camera !== 'none')
-  return `<section class="video-workspace ${focused ? 'is-focused' : ''}">
+  // The scenes in the video first, in order; the left-out ones after them.
+  const inVideo = video.scenes.map(
+    (entry) => sceneDisplay(snapshot, entry).inVideo !== false
+  )
+  const inScenes = video.scenes.filter((_, index) => inVideo[index])
+  const inCount = inScenes.length
+  const lastIn = inVideo.lastIndexOf(true)
+  const railOrder = [
+    ...video.scenes.map((_, index) => index).filter((index) => inVideo[index]),
+    ...video.scenes.map((_, index) => index).filter((index) => !inVideo[index])
+  ]
+  return `<section class="video-workspace ${focused ? 'is-focused' : ''}" data-capture-phase="${capture.phase}">
 <aside class="rail scene-rail" ${focused ? 'inert' : ''} aria-label="Scenes">
 <div class="rail-heading">
 <strong>Scenes</strong>
-<small>${video.scenes.length} ${video.scenes.length === 1 ? 'scene' : 'scenes'}${
-    video.scenes.every((entry) => entry.moments.length)
+<small>${
+    // How many are in the video, and how long they run (review 6: "15
+    // scenes" when one was in it).
+    inCount === video.scenes.length
+      ? `${video.scenes.length} ${video.scenes.length === 1 ? 'scene' : 'scenes'}`
+      : `${inCount} of ${video.scenes.length} in the video`
+  }${
+    inScenes.length && inScenes.every((entry) => entry.moments.length)
       ? ` · ${Math.round(
-          video.scenes.reduce(
+          inScenes.reduce(
             (total, entry) => total + (entry.moments.at(-1)?.end || 0),
             0
           )
         )}s`
       : ''
   }</small>
-</div>${video.scenes
-    .map((entry, index) => {
+</div>${railOrder
+    .map((index, at) => {
+      const entry = video.scenes[index]
       // A scene left out reads from its dimmed picture, not a label on each.
       const left = sceneDisplay(snapshot, entry).inVideo === false
       const nextLeft =
         index < video.scenes.length - 1 &&
         sceneDisplay(snapshot, video.scenes[index + 1]).inVideo === false
-      return `<div class="scene-card">
+      // The left-out scenes follow the video's, under their own line.
+      const divider =
+        left && at === inCount && inCount < video.scenes.length
+          ? `<p class="rail-divider">Left out · ${video.scenes.length - inCount}</p>`
+          : ''
+      return `${divider}<div class="scene-card">
 <button class="thumbnail ${
         connected && !snapshot.readOnly && sceneActivity(snapshot, entry).active
           ? 'scene-processing'
@@ -240,7 +286,7 @@ export const videoScreen = (
       } ${
         index === 0
           ? '<b>TITLE</b>'
-          : index === video.scenes.length - 1
+          : index === lastIn && !left
             ? '<b>END</b>'
             : ''
       }</span>${sceneRailStatus(snapshot, entry)}</button>
@@ -284,11 +330,8 @@ export const videoScreen = (
             : recordPlace(capture, selected + 1, momentIndex + 1)
         }</span>${recordLight(capture)}
 </div>${
-          practicing
-            ? button('Exit practice', 'practice')
-            : ['preparing', 'ready', 'countdown'].includes(capture.phase)
-              ? button('Cancel', 'discard-take')
-              : ''
+          // One Cancel, beside Start recording (review 6: there were two).
+          practicing ? button('Exit practice', 'practice') : ''
         }</div>`
       : ''
   }${capture.phase === 'idle' ? recordingHandoff(snapshot, scene) : ''}${
@@ -440,7 +483,12 @@ export const videoScreen = (
 <strong data-practice-clock>Practice · Esc to stop</strong>
 <small>Follow the highlighted word · estimated pacing</small>
 </div>${
-          !practiceStream && moment.camera !== 'none'
+          // Whole-scene practice offers the camera whenever any of its
+          // moments uses it, not only the one on show (review 6).
+          !practiceStream &&
+          (wholeScene
+            ? scene.moments.some((entry) => entry.camera !== 'none')
+            : moment.camera !== 'none')
             ? cameraToggle(false)
             : practiceStream
               ? cameraToggle(true)
@@ -455,7 +503,15 @@ export const videoScreen = (
 </section>`
       : ''
   }<div class="moment-timeline">
-<div class="moment-strip" aria-label="Moments">${scene.moments
+<div class="moment-strip${scene.moments.length ? '' : ' is-empty'}" aria-label="Moments">${
+    scene.moments.length
+      ? ''
+      : sceneDisplay(snapshot, scene).active
+        ? '<span class="moment-strip-note">Writing the moments…</span>'
+        : sceneDisplay(snapshot, scene).queued
+          ? '<span class="moment-strip-note">Waiting to be written</span>'
+          : ''
+  }${scene.moments
     .map(
       (entry, index) =>
         `<div class="moment-item" style="flex-grow:${Math.max(
@@ -470,13 +526,11 @@ export const videoScreen = (
 <span class="moment-head"><b class="moment-number">${index + 1}</b>${cameraCue(entry.camera)}</span>
 <span class="moment-name" title="${escape(entry.title || `Moment ${index + 1}`)}">${escape(entry.title || `Moment ${index + 1}`)}</span>
 <small>${escape(
-          momentWords(views?.moments[momentViewKey(scene.id, entry.id)]?.state)
-        )}${
-          views?.moments[momentViewKey(scene.id, entry.id)]?.state ===
-            'recorded' && entry.take?.number
-            ? ` · take ${entry.take.number}`
-            : ''
-        }</small>
+          momentWords(
+            entry,
+            views?.moments[momentViewKey(scene.id, entry.id)]?.state
+          )
+        )}</small>
 </button>
 <button type="button" class="moment-card-menu" data-action="moment-actions" data-menu-moment="${index}" aria-label="Actions for moment ${
           index + 1
@@ -539,8 +593,10 @@ export const videoScreen = (
               false,
               !scene.moments.length
             )}${
+              // Moments wait for the creator: recording is the next step
+              // (review 6: it looked like its neighbours).
               view?.openMomentIds.length && view.action !== 'record'
-                ? button(record, 'record-moment')
+                ? button(record, 'record-moment', true, !display.canRecord)
                 : ''
             }${
               // One way to finish (review 5): the header finishes the
@@ -563,7 +619,6 @@ export const videoScreen = (
 </div>${
     reviewing
       ? `<div class="take-review">
-<h3>Review your ${capture.parts.length > 1 ? 'recording' : 'take'}</h3>
 <p>${
           capture.phase === 'uploading'
             ? 'Saving your recording… Your existing takes stay available until this finishes.'
@@ -618,7 +673,12 @@ export const videoScreen = (
 </div>
 <aside class="transcript" ${focused ? 'inert' : ''}>
 <div class="transcript-header">
-<h2>Scene ${selected + 1}</h2>${sceneBeatChip(project, scene.id)}${sceneShotChip(project, scene.id)}
+<h2>Scene ${selected + 1}</h2>${
+    // A left-out scene offers only Make this scene (review 6).
+    scene.phase === 'idle'
+      ? ''
+      : sceneBeatChip(project, scene.id) + sceneShotChip(project, scene.id)
+  }
 </div>${
     showActivity
       ? `<details class="activity-disclosure" data-activity-key="${scene.id}" ${
@@ -644,19 +704,11 @@ export const videoScreen = (
 <h3>${cameraCue(entry.camera)}<span>${index + 1}</span>${escape(
           entry.title || `Moment ${index + 1}`
         )}</h3>
-<small class="moment-layout">${
-          entry.camera === 'none'
-            ? 'Graphics only'
-            : entry.layout === 'full-screen'
-              ? 'You full screen'
-              : entry.layout === 'beside-slide'
-                ? 'You beside the wireframe'
-                : 'You in the corner'
-        }</small>
+<small class="moment-layout">${momentKind(entry, true)}</small>
 <p>${transcriptWords(entry.lines)}</p>${
           views?.moments[momentViewKey(scene.id, entry.id)]?.state ===
             'recorded' && capture.phase === 'idle'
-            ? `<button data-retake="${index}" class="retake-moment">Retake</button>`
+            ? `<button data-retake="${index}" class="retake-moment" ${display.canRecord ? '' : 'disabled title="Wait for this scene to finish changing"'}>Retake</button>`
             : ''
         }${snapshot.events
           .filter(

@@ -16,5 +16,5 @@ export function recordingHandoff(snapshot: Snapshot, scene: Scene) {
       ? `Moment ${saved[0]} recording saved`
       : `${saved.length} recordings saved`
   const remaining = view?.openMomentIds.length || 0
-  return `<div class="recording-handoff" role="status"><span class="saved-indicator" aria-hidden="true"></span><strong>${label}</strong><span>${remaining ? `${remaining} ${remaining === 1 ? 'moment still needs' : 'moments still need'} recording. You can record them in any order.` : 'Ready to combine with your scene.'}</span></div>`
+  return `<div class="recording-handoff" role="status"><span class="saved-indicator" aria-hidden="true"></span><strong>${label}</strong><span>${remaining ? `${remaining} ${remaining === 1 ? 'moment still needs' : 'moments still need'} recording. You can record them in any order.` : 'Next: Finish the video, top right.'}</span></div>`
 }

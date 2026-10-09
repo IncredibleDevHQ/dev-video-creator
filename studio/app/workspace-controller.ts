@@ -25,6 +25,7 @@ import { meterStream } from './mic-meter'
 import { markPin } from './wireframe-pin'
 import { syncPlayerBar } from './player-bar'
 import { lookForAgent } from './agent-setup'
+import { sceneDisplay } from '../shared/state'
 
 export const createRender = (app: AppContext) => () => {
   if (
@@ -118,6 +119,15 @@ ${notebookOpeningView(app.opening.state)}`,
     }
   }
   app.selected = Math.max(0, Math.min(app.selected, project.slides.length - 1))
+  // The moment belongs to the scene on show: one out of its range, kept from
+  // another scene, starts again at its first (review 6: Practice and chat
+  // then did nothing).
+  const shownScene = project.video?.scenes[app.selected]
+  if (
+    shownScene &&
+    (app.momentIndex < 0 || app.momentIndex >= shownScene.moments.length)
+  )
+    app.momentIndex = 0
   const viewUrl = workspaceUrl(
     new URL(location.href),
     project,
@@ -318,7 +328,14 @@ ${escape(project.title)}</h1>
         : app.practice.active
           ? 'running'
           : 'finished'
-    if (phase === 'ready' || phase === 'finished')
+    // Record beside Start practice only when something can be recorded
+    // (review 6: it showed, then failed with "No moments need recording").
+    const scene = app.snapshot?.project.video?.scenes[app.selected]
+    const recordable =
+      !!scene &&
+      !!app.snapshot?.views?.scenes[scene.id]?.openMomentIds.length &&
+      sceneDisplay(app.snapshot, scene).canRecord
+    if ((phase === 'ready' || phase === 'finished') && recordable)
       app.root
         .querySelector('.practice-panel-heading')
         ?.insertAdjacentHTML('beforeend', recordControl())

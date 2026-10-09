@@ -564,13 +564,13 @@ ${(
 <h2>
 ${escape(moment.title || 'Your part')}</h2>
 <div class="moment-action-list">
-${button('Practice this moment', 'practice')}${
+<button type="button" data-action="practice" data-scope="moment">Practice this moment</button>${
         state === 'recorded'
           ? `<button type="button" data-retake="${app.momentIndex}">Retake this moment</button>`
           : app.snapshot.views?.scenes[scene.id].openMomentIds.includes(
                 moment.id
               )
-            ? button('Record this moment', 'record-moment')
+            ? `<button type="button" data-action="record-moment" data-scope="moment">Record this moment</button>`
             : ''
       }</div>`
     )

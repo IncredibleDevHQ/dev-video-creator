@@ -206,3 +206,14 @@
   color: var(--muted);
   font-size: 12px;
 }
+/* The left-out scenes, under their own line after the video's. */
+.scene-rail .rail-divider {
+  margin: 14px 4px 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

@@ -676,7 +676,7 @@ it('shows the saved take number only while the recording matches the moment', ()
     duration: 4
   }
   input.views = projectViews(input.project)
-  expect(render(input)).toContain('Recorded · take 3')
+  expect(render(input)).toContain('You on camera · take 3')
   moment.recordingKey = 'changed-script'
   input.views = projectViews(input.project)
   expect(render(input)).not.toContain('take 3')
@@ -685,7 +685,7 @@ it('shows the saved take number only while the recording matches the moment', ()
   delete moment.take.number
   input.views = projectViews(input.project)
   expect(render(input)).not.toContain('take 1')
-  expect(render(input)).toContain('Recorded')
+  expect(render(input)).toContain('· recorded')
 })
 
 it('offers to practise the whole scene when that is the choice', () => {

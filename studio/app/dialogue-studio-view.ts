@@ -25,7 +25,7 @@ export const studioMarkup = () =>
     '<div class="ds-animation-state">',
     '<span data-ds="remaining">',
     '</span>',
-    '<button type="button" class="primary" data-action="make-animation" data-ds-make hidden>Make the animation',
+    '<button type="button" class="quiet" data-action="make-animation" data-ds-make hidden>Make the animation',
     '</button>',
     '<div class="ds-zoom" data-ds="zoom" role="group" aria-label="Timeline zoom" hidden>',
     '<button type="button" data-ds-zoom="out" aria-label="Zoom out" title="Zoom out">−',

@@ -6,12 +6,24 @@
 .transcript-header {
   padding: 0;
   margin: 0 0 16px;
-  gap: 12px;
+  gap: 8px 12px;
+  /* The row wraps; each chip stays on one line (review 6: "Scene / 6"). */
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 .transcript-header h2 {
   margin: 0;
   font-size: 13px;
   letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.transcript-header .tpl-scene-chip,
+.transcript-header .shot-chip {
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .transcript-header button {
   padding: 5px 8px;
@@ -141,6 +153,14 @@
   padding: 0;
   overflow: visible;
   min-height: 58px;
+}
+.moment-timeline .moment-strip.is-empty {
+  align-items: center;
+  justify-content: center;
+}
+.moment-strip-note {
+  color: var(--muted);
+  font-size: 13px;
 }
 .moment-timeline .moment {
   flex-basis: 0;

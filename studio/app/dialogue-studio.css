@@ -85,16 +85,17 @@
   font-variant-numeric: tabular-nums;
   color: #b6c7bc;
 }
+/* Play is the timeline's own control, not a main action: Start practice
+   is the one primary (review 6). */
 .ds-transport [data-ds='play'] {
-  background: #d5eddd;
-  color: #173b24;
-  border: 0;
+  background: transparent;
+  color: #e6f6eb;
+  border: 1px solid #ffffff33;
   min-width: 82px;
   font-weight: 600;
 }
-/* The dark appearance's button hover would turn Play dark on dark. */
 .dialogue-studio .ds-transport [data-ds='play']:hover:not(:disabled) {
-  background: #e6f6eb;
+  background: #ffffff14;
 }
 .ds-transport [data-ds='replay'] {
   border: 0;

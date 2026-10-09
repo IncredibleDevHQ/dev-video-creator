@@ -513,7 +513,11 @@ export function dialogueStudio(
       left: moment.start + length - second
     })
     const make = panel.querySelector<HTMLButtonElement>('[data-ds-make]')
-    if (make) make.hidden = Boolean(video()) || making || editing
+    // Never while the camera is on (review 6).
+    const recording =
+      (root.querySelector<HTMLElement>('.video-workspace')?.dataset
+        .capturePhase || 'idle') !== 'idle'
+    if (make) make.hidden = Boolean(video()) || making || editing || recording
     if (editing) return
     const active = scene
       ? (wordStarts[index] ?? 0) +
