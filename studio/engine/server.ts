@@ -24,7 +24,11 @@ import { exportPresentation } from './presentation-export'
 import { creativeContext } from './creative/stage'
 import { loadHarnessPreference } from './harness/preference'
 import { chatNotebook } from './notebook-chat'
-import { createServer, type ServerResponse } from 'node:http'
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse
+} from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { configureModelGateway } from './model-gateway'
 import { uploadLogo } from './brand-logo'
@@ -97,6 +101,29 @@ const send = (response: ServerResponse, status: number, value: unknown) => {
   response.writeHead(status, { 'Content-Type': 'application/json' })
   response.end(JSON.stringify(value))
 }
+/**
+ * A request's body, up to `limit` bytes. Past it the request is refused and
+ * its connection closed, so the rest of the upload is never read as the next
+ * request (review 6: the next request on that connection failed).
+ */
+const readBody = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  limit: number,
+  refusal: string
+) => {
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for await (const chunk of request) {
+    size += chunk.length
+    if (size > limit) {
+      response.setHeader('Connection', 'close')
+      throw new Refusal(refusal)
+    }
+    chunks.push(new Uint8Array(chunk))
+  }
+  return Buffer.concat(chunks)
+}
 export const createStudioServer = (
   options: { readOnly?: boolean; eventsLifetimeMs?: number } = {}
 ) =>
@@ -110,39 +137,33 @@ export const createStudioServer = (
       if (foreign) return send(response, 403, { error: foreign })
       const url = new URL(request.url || '/', 'http://localhost')
       if (url.pathname === '/api/settings/logo' && request.method === 'PUT') {
-        const chunks: Uint8Array[] = []
-        let size = 0
-        for await (const chunk of request) {
-          size += chunk.length
-          if (size > 5000000) throw new Refusal('Choose a logo under 5 MB')
-          chunks.push(new Uint8Array(chunk))
-        }
+        const bytes = await readBody(
+          request,
+          response,
+          5_000_000,
+          'Choose a logo under 5 MB'
+        )
         return send(
           response,
           201,
-          await uploadLogo(
-            Buffer.concat(chunks),
-            String(request.headers['content-type'] || '')
-          )
+          await uploadLogo(bytes, String(request.headers['content-type'] || ''))
         )
       }
       const voiceRoute = url.pathname.match(
         /^\/api\/settings\/voice(?:\/([a-zA-Z0-9_-]+))?(?:\/(retry))?$/
       )
       if (voiceRoute && request.method === 'PUT') {
-        const chunks: Uint8Array[] = []
-        let size = 0
-        for await (const chunk of request) {
-          size += chunk.length
-          if (size > 25000000)
-            throw new Refusal('Keep the voice recording under 25 MB')
-          chunks.push(new Uint8Array(chunk))
-        }
+        const bytes = await readBody(
+          request,
+          response,
+          25_000_000,
+          'Keep the voice recording under 25 MB'
+        )
         return send(
           response,
           201,
           await createClone(
-            Buffer.concat(chunks),
+            bytes,
             String(request.headers['content-type'] || ''),
             request.headers['x-studio-consent'] === 'own-voice'
           )
@@ -163,14 +184,12 @@ export const createStudioServer = (
           throw new Refusal('Send the recording parts as JSON')
         }
         const parts = recordingParts(named)
-        const chunks: Uint8Array[] = []
-        let size = 0
-        for await (const chunk of request) {
-          size += chunk.length
-          if (size > 150_000_000)
-            throw new Refusal('Keep the recording under 150 MB')
-          chunks.push(new Uint8Array(chunk))
-        }
+        const bytes = await readBody(
+          request,
+          response,
+          150_000_000,
+          'Keep the recording under 150 MB'
+        )
         return send(
           response,
           200,
@@ -178,7 +197,7 @@ export const createStudioServer = (
             recordingRoute[1],
             recordingRoute[2],
             parts,
-            Buffer.concat(chunks),
+            bytes,
             String(request.headers['content-type'] || ''),
             request.headers['x-studio-upload-id']
               ? String(request.headers['x-studio-upload-id'])
@@ -188,14 +207,14 @@ export const createStudioServer = (
       }
       let body: Record<string, unknown> = {}
       if (request.method === 'POST' || request.method === 'PATCH') {
-        const chunks: Uint8Array[] = []
-        let size = 0
-        for await (const chunk of request) {
-          size += chunk.length
-          if (size > 2_000_000) throw new Refusal('This request is too large')
-          chunks.push(new Uint8Array(chunk))
-        }
-        const text = Buffer.concat(chunks).toString()
+        const text = (
+          await readBody(
+            request,
+            response,
+            2_000_000,
+            'This request is too large'
+          )
+        ).toString()
         let parsed: unknown = {}
         try {
           parsed = text.trim() ? JSON.parse(text) : {}

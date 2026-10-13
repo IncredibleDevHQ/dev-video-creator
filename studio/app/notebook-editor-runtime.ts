@@ -10,8 +10,15 @@ import { codeFence } from '../shared/notes'
 
 // A code block written back with a fence longer than any run of backticks
 // in its code: a block that shows a fence keeps it (review 6: the save
-// closed it early, and the notes after it turned to code).
-const FencedCode = CodeBlock.extend({
+// closed it early, and the notes after it turned to code). Any fenced block
+// is read, indented or not: one indented a space or three was dropped.
+export const FencedCode = CodeBlock.extend({
+  parseMarkdown: (token, h) =>
+    h.createNode(
+      'codeBlock',
+      { language: token.lang || null },
+      token.text ? [h.createTextNode(token.text)] : []
+    ),
   renderMarkdown: (node, h) => {
     const code = node.content ? h.renderChildren(node.content) : ''
     const fence = codeFence(code)

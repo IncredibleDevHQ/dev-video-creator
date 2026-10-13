@@ -36,6 +36,7 @@ import {
   listNotebookRows
 } from './persistence'
 import {
+  movedKeysBack,
   reconcileVideo,
   refreshVideoKeys,
   startWaitingScenes
@@ -55,7 +56,7 @@ import { pageBrandFrom, renderPage } from './source-page'
 import { identityOf } from './branding'
 import { startingLook, withLook } from './looks'
 import { Refusal } from './refusal'
-import { settleStoppedVideo, stoppedForScenes, stoppedLine } from './autopilot'
+import { settleStoppedVideo, stoppedLine } from './autopilot'
 import { sourceLink } from '../shared/source-link'
 const queues = new Map<string, Promise<unknown>>()
 /**
@@ -75,6 +76,7 @@ export const loadProject = async (id: string) => {
   const snapshot = await readRow<Snapshot>('projects', id)
   if (snapshot) {
     fromTemplate(snapshot.project)
+    movedKeysBack(snapshot.project)
     snapshot.views = projectViews(snapshot.project, snapshot.events)
     snapshot.views.video.display = videoDisplay(snapshot)
     snapshot.views.presentation = presentationDisplay(snapshot)
@@ -582,9 +584,9 @@ const addSlide = (project: Snapshot['project'], beatId?: string) => {
   })
 }
 /**
- * A page kept for Undo, with its scene, the seams either side and whether
- * the video stood stopped for its scenes: the Wireframe stage's delete and
- * the map's remove keep the same.
+ * A page kept for Undo, with its scene, the seams either side and the
+ * video's line while it stood stopped with this scene stopped: the
+ * Wireframe stage's delete and the map's remove keep the same.
  */
 export const keptForUndo = (
   project: Project,
@@ -592,10 +594,11 @@ export const keptForUndo = (
 ): NonNullable<Snapshot['deletedSlide']> => {
   const video = project.video
   const slide = project.slides[index]
+  const scene = video?.scenes.find((item) => item.slideId === slide.id)
   return {
     index,
     slide,
-    scene: video?.scenes.find((scene) => scene.slideId === slide.id),
+    scene,
     seams: video?.scenes.slice(0, -1).flatMap((scene, i) =>
       scene.slideId === slide.id || video.scenes[i + 1].slideId === slide.id
         ? [
@@ -607,7 +610,9 @@ export const keptForUndo = (
           ]
         : []
     ),
-    ...(stoppedForScenes(video) ? { stopped: true } : {})
+    ...(video?.phase === 'failed' && scene?.phase === 'failed'
+      ? { stopped: video.error || stoppedLine(1) }
+      : {})
   }
 }
 export const editSlide = (id: string, edit: SlideEdit) =>
@@ -654,7 +659,7 @@ export const editSlide = (id: string, edit: SlideEdit) =>
         // only stopped scene came back, and the line didn't).
         if (stopped && scene.phase === 'failed' && video.phase === 'idle') {
           video.phase = 'failed'
-          video.error = stoppedLine(1)
+          video.error = stopped
         }
       }
       delete snapshot.deletedSlide

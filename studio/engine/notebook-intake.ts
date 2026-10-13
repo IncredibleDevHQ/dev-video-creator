@@ -49,9 +49,10 @@ export const editNotebookSource = async (
   if (typeof text !== 'string' || !text.trim())
     throw new Refusal('Add some notes to save')
   if (text.length > NOTE_SIZE_LIMIT) throw new Refusal(TOO_LARGE)
-  if (notesLength(text) > NOTE_LIMIT)
+  const length = notesLength(text)
+  if (length > NOTE_LIMIT)
     throw new Refusal(
-      `Shorten the notes to ${NOTE_LIMIT.toLocaleString('en')} characters; they have ${notesLength(text).toLocaleString('en')}`
+      `Shorten the notes to ${NOTE_LIMIT.toLocaleString('en')} characters; they have ${length.toLocaleString('en')}`
     )
   if (typeof title !== 'string' || !title.trim() || title.length > 160)
     throw new Refusal('Add a notebook title up to 160 characters')

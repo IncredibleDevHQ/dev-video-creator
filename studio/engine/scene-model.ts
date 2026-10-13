@@ -33,6 +33,40 @@ export const planFits = (inputKey: string | undefined, scene: Scene) =>
       inputKey === scene.legacyPlanKey?.from))
 
 /**
+ * Whether d24d80b8 moved the scene's key to the new form while its plan
+ * stayed under the old one (`legacyPlanKey.from`).
+ */
+const movedPlanKey = (scene: Scene) =>
+  Boolean(
+    scene.legacyPlanKey &&
+    scene.planKey === scene.legacyPlanKey.to &&
+    scene.creativePlan?.inputKey === scene.legacyPlanKey.from
+  )
+
+/**
+ * Scenes d24d80b8 moved take back the key their plan was made under, and
+ * with it the keys of what they made, unless they were made again since:
+ * as a notebook is read, so nothing is made again before the next edit.
+ */
+export const movedKeysBack = (project: Project) => {
+  const moved = (project.video?.scenes || []).filter(
+    (scene) =>
+      movedPlanKey(scene) &&
+      scene.animation?.inputKey !== scene.animationKey &&
+      scene.produced?.inputKey !== scene.inputKey
+  )
+  for (const scene of moved) scene.planKey = scene.legacyPlanKey!.from
+  if (moved.length) refreshVideoKeys(project)
+}
+
+/** A scene whose inputs changed takes their key; a key it noted beside its
+ * old one no longer counts. */
+export const takeNewKey = (scene: Scene, key: string) => {
+  scene.planKey = key
+  delete scene.legacyPlanKey
+}
+
+/**
  * Whether the scene's key still stands for its inputs as they are now
  * (`key`), so its plan, and everything made from it, stay. A scene keeps the
  * key its plan was made under when its inputs change only in what the plan
@@ -47,17 +81,6 @@ export const keepsItsPlan = (
   key = scenePlanKey(project, scene)
 ) => {
   const alias = scene.legacyPlanKey
-  // d24d80b8 moved such a scene to the new form, and the keys of what it had
-  // made with it: it takes back the key its plan was made under, unless it
-  // was made again since.
-  if (
-    alias &&
-    scene.planKey === alias.to &&
-    scene.creativePlan?.inputKey === alias.from &&
-    scene.animation?.inputKey !== scene.animationKey &&
-    scene.produced?.inputKey !== scene.inputKey
-  )
-    scene.planKey = alias.from
   if (!scene.planKey) return false
   if (scene.planKey === key) return true
   if (alias?.from === scene.planKey && alias.to === key) return true
@@ -90,9 +113,9 @@ export const keepingPlans = (project: Project, change: () => void) => {
   for (const scene of kept) {
     // The key its plan was made under: its own, or the one d24d80b8 moved
     // it from.
-    const alias = scene.legacyPlanKey
-    const from =
-      alias && alias.to === scene.planKey ? alias.from : scene.planKey!
+    const from = movedPlanKey(scene)
+      ? scene.legacyPlanKey!.from
+      : scene.planKey!
     const key = scenePlanKey(project, scene)
     scene.planKey = from
     if (key === from) delete scene.legacyPlanKey
@@ -276,8 +299,7 @@ export const reconcileVideo = (
     }
     const key = scenePlanKey(project, scene)
     if (!keepsItsPlan(project, scene, key)) {
-      scene.planKey = key
-      delete scene.legacyPlanKey
+      takeNewKey(scene, key)
       // Left out of the video, a scene takes its new inputs quietly: only a
       // scene in the video says it must be made again.
       if (scene.phase === 'idle') {

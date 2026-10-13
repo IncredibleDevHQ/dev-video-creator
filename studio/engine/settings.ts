@@ -13,7 +13,14 @@ import {
   type ModelSettingsV1
 } from './model-gateway'
 import { fishKey, saveFishKey } from './credentials'
-import { loadBranding, saveBranding, applyIdentity } from './branding'
+import {
+  IDENTITY_WAITS,
+  applyIdentity,
+  loadBranding,
+  saveBranding
+} from './branding'
+import { makingVideo } from './autopilot'
+import { loadProject } from './projects'
 import {
   listClones,
   voiceCatalogue,
@@ -69,6 +76,12 @@ export const saveStudioSettings = async (body: unknown) => {
     projectId?: string
   }
   if (!patch || typeof patch !== 'object') throw new Refusal('Invalid settings')
+  // Refused before anything is saved, so nothing is saved by halves.
+  if (patch.branding && patch.projectId) {
+    const notebook = await loadProject(patch.projectId)
+    if (notebook && makingVideo(notebook.project))
+      throw new Refusal(IDENTITY_WAITS)
+  }
   if (Object.hasOwn(patch, 'harness')) {
     const harness =
       patch.harness === null ? null : await availableHarness(patch.harness)

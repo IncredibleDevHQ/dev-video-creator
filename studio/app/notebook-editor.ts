@@ -50,7 +50,7 @@ const showCount = (app: AppContext, text: string) => {
   const count = app.root.querySelector<HTMLElement>('[data-note-count]')
   if (!count) return
   const large = text.length > NOTE_SIZE_LIMIT
-  const length = notesLength(text)
+  const length = large ? 0 : notesLength(text)
   const said = large
     ? 'Too large to send'
     : `${length.toLocaleString('en')} / ${NOTE_LIMIT.toLocaleString('en')}`

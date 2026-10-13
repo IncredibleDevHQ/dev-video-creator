@@ -27,7 +27,8 @@ import {
   scenePlanKey,
   reconcileVideo,
   refreshVideoKeys,
-  sceneRole
+  sceneRole,
+  takeNewKey
 } from './scene-model'
 import { fingerprintOf } from './planning/fingerprint'
 import { loadStageCheckpoint, saveStageCheckpoint } from './artifacts'
@@ -532,7 +533,7 @@ export const replanPresence = async (
       )
     delete scene.editMomentId
     scene.presence = presence
-    scene.planKey = scenePlanKey(current.project, scene)
+    takeNewKey(scene, scenePlanKey(current.project, scene))
     // A left-out scene keeps the choice for when it is made (review 6: it
     // threw "Cannot replan a scene that is idle").
     if (scene.phase !== 'idle') transitionScene(scene, 'replan', current)
@@ -574,7 +575,7 @@ export const setSceneBeats = async (
       )
     delete scene.editMomentId
     scene.beats = beats as string[] | null
-    scene.planKey = scenePlanKey(current.project, scene)
+    takeNewKey(scene, scenePlanKey(current.project, scene))
     // A left-out scene keeps the choice for when it is made (review 6: it
     // threw "Cannot replan a scene that is idle").
     if (scene.phase !== 'idle') transitionScene(scene, 'replan', current)
@@ -610,7 +611,7 @@ export const setSceneShot = async (
       )
     delete scene.editMomentId
     scene.shot = shot as string | null
-    scene.planKey = scenePlanKey(current.project, scene)
+    takeNewKey(scene, scenePlanKey(current.project, scene))
     // A left-out scene keeps the choice for when it is made (review 6: it
     // threw "Cannot replan a scene that is idle").
     if (scene.phase !== 'idle') transitionScene(scene, 'replan', current)

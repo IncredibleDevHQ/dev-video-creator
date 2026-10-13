@@ -123,25 +123,32 @@ const stages: Partial<Record<SceneSignal, SceneStage>> = {
   'recover-plan': 'artwork',
   'recover-production': 'voice'
 }
+/**
+ * Whether the video is being made right now: a scene produced, or the video
+ * prepared or joined. A new look or name then would leave that work behind,
+ * the scene stuck "Producing" (review 6).
+ */
+export const makingVideo = (project: Pick<Project, 'video'>) =>
+  Boolean(project.video?.scenes.some((scene) => scene.phase === 'producing')) ||
+  ['preparing', 'joining'].includes(project.video?.phase || '')
 /** The video's line while it stopped for its scenes, by how many. */
 export const stoppedLine = (stopped: number) =>
   `${stopped === 1 ? 'A scene' : `${stopped} scenes`} stopped. Other saved animations are ready.`
-/** Whether the video stopped for its scenes, not for itself (its join). */
-export const stoppedForScenes = (video?: Project['video']) =>
-  video?.phase === 'failed' &&
-  /^(?:A scene|\d+ scenes) stopped\./.test(video.error || '')
 /**
  * The video's stopped state as its scenes have it now (review 6): none
- * stopped, and the video is not; fewer, and it says how many. A video that
- * stopped for itself keeps its own line.
+ * stopped, and the video is not, whatever its line said (a scene's sign-in
+ * or quota, its join); fewer, and the line that counts them says how many.
  */
 export const settleStoppedVideo = (video?: Project['video']) => {
-  if (!video || !stoppedForScenes(video)) return
+  if (!video || video.phase !== 'failed') return
   const stopped = video.scenes.filter(
     (scene) => scene.phase === 'failed'
   ).length
-  video.phase = stopped ? 'failed' : 'idle'
-  video.error = stopped ? stoppedLine(stopped) : null
+  if (!stopped) {
+    video.phase = 'idle'
+    video.error = null
+  } else if (/^(?:A scene|\d+ scenes) stopped\./.test(video.error || ''))
+    video.error = stoppedLine(stopped)
 }
 export const transitionScene = (
   scene: Scene,

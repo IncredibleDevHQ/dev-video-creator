@@ -211,3 +211,35 @@ it('passes a refusal’s words through, and answers 500 for its own failures', a
   expect((await failed.json()).error).not.toContain('disk')
   quiet.mockRestore()
 })
+it('closes the connection when it refuses a body too large, and answers the next', async () => {
+  const { request } = await import('node:http')
+  // Answered with the reason, and the connection closed: the rest of the
+  // upload is never read as the next request (review 6: that one failed).
+  const answer = await new Promise<{ status?: number; connection?: string }>(
+    (resolve, reject) => {
+      const sent = request(
+        {
+          host: '127.0.0.1',
+          port: address.port,
+          path: '/api/projects/deck/retry',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        },
+        (response) => {
+          response.resume()
+          response.on('end', () =>
+            resolve({
+              status: response.statusCode,
+              connection: response.headers.connection
+            })
+          )
+        }
+      )
+      sent.on('error', reject)
+      sent.end(`{"notes":"${'a'.repeat(2_100_000)}"}`)
+    }
+  )
+  expect(answer).toEqual({ status: 400, connection: 'close' })
+  slides.mockResolvedValueOnce({ ok: true })
+  expect((await post('deck/retry')).status).toBe(200)
+})

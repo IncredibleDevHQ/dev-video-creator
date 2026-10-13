@@ -8,6 +8,7 @@ import {
 } from './persistence'
 import { changeProject, addEvent } from './projects'
 import { refreshVideoKeys } from './scene-model'
+import { makingVideo } from './autopilot'
 import { Refusal } from './refusal'
 export const DEFAULT_BRANDING: Branding = {
   name: '',
@@ -88,6 +89,8 @@ export const saveBranding = async (value: unknown) => {
   await saveSetting('branding', brand)
   return brand
 }
+export const IDENTITY_WAITS =
+  'Wait for the scenes being made to finish before changing your name and logo'
 /**
  * The creator's name, description and logo on this notebook. Their identity
  * is kept apart from the notebook's look: saving one never changes the other
@@ -95,6 +98,7 @@ export const saveBranding = async (value: unknown) => {
  */
 export const applyIdentity = (id: string, branding: Branding) =>
   changeProject(id, async (current) => {
+    if (makingVideo(current.project)) throw new Refusal(IDENTITY_WAITS)
     current.project.branding = {
       ...(current.project.branding || DEFAULT_BRANDING),
       name: branding.name,

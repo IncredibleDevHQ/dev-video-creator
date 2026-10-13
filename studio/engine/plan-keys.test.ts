@@ -180,3 +180,79 @@ it('keeps an older plan when the agent’s list names its model anew', async () 
     Array(3).fill('waiting')
   )
 })
+
+it('waits for the scenes being made before a new look or name', async () => {
+  const id = 'making'
+  await seed(id, false)
+  const { changeProject } = await import('./projects')
+  await changeProject(id, (current) => {
+    current.project.video!.scenes[1].phase = 'producing'
+  })
+  const look = {
+    id: 'custom',
+    name: 'Custom',
+    palette: {
+      ground: '#ffffff',
+      text: '#000000',
+      accent: '#234567',
+      secondary: '#888888'
+    },
+    fonts: { display: 'Georgia', body: 'Inter', mono: 'ui-monospace' }
+  }
+  // Refused, not left behind: the scene would stay "Producing" (review 6).
+  await expect(applyLook(id, look)).rejects.toThrow('being made to finish')
+  await expect(
+    applyIdentity(id, { name: 'Ada', tagline: '', logoKey: null } as never)
+  ).rejects.toThrow('being made to finish')
+  // From Settings, refused before anything is saved.
+  const { saveStudioSettings, getStudioSettings } = await import('./settings')
+  const before = (await getStudioSettings()).branding
+  await expect(
+    saveStudioSettings({
+      projectId: id,
+      branding: {
+        name: 'Ada',
+        tagline: '',
+        accent: '#112233',
+        useAccent: true,
+        logoKey: null
+      }
+    })
+  ).rejects.toThrow('being made to finish')
+  expect((await getStudioSettings()).branding).toEqual(before)
+  const { project } = (await loadProject(id))!
+  expect(project.slides[0].svg).toContain('#112233')
+  expect(project.branding?.name).toBe('')
+})
+
+it('opens a notebook d24d80b8 moved with its made scenes as they were', async () => {
+  const id = 'moved'
+  await seed(id, true)
+  const { changeProject } = await import('./projects')
+  // As d24d80b8 left it: the keys moved to the new form, and with them the
+  // keys of what was made; nothing made since.
+  const { readRow } = await import('./persistence')
+  const saved = (await readRow<{ project: Project }>('projects', id))!
+  for (const scene of saved.project.video!.scenes) {
+    scene.animation = {
+      inputKey: scene.animationKey!,
+      objectKey: 'a.mp4',
+      moments: []
+    }
+    const to = scenePlanKey(saved.project, scene)
+    scene.legacyPlanKey = { from: scene.planKey!, to }
+    scene.planKey = to
+  }
+  refreshVideoKeys(saved.project)
+  await writeRow('projects', id, saved)
+  // Read, and changed once: the keys are back, and production's check of
+  // the stored plan passes, with no edit first.
+  const { project } = (await loadProject(id))!
+  expect(
+    project.video!.scenes.every(
+      (scene) => scene.animation?.inputKey === scene.animationKey
+    )
+  ).toBe(true)
+  await changeProject(id, () => {})
+  await producible(id)
+})

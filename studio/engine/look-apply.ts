@@ -3,6 +3,8 @@ import { addEvent } from './activity'
 import { paletteOf, validateLook, withLook } from './looks'
 import { changeProject } from './projects'
 import { keepingPlans, refreshVideoKeys } from './scene-model'
+import { makingVideo } from './autopilot'
+import { Refusal } from './refusal'
 
 /**
  * Change a notebook's look. Drawn wireframes are re-coloured in place; later
@@ -11,6 +13,10 @@ import { keepingPlans, refreshVideoKeys } from './scene-model'
 export const applyLook = (id: string, raw: unknown) => {
   const look = validateLook(raw)
   return changeProject(id, async (current) => {
+    if (makingVideo(current.project))
+      throw new Refusal(
+        'Wait for the scenes being made to finish before changing the look'
+      )
     const from = paletteOf(current.project.branding)
     const fonts = current.project.branding?.fonts
     // The pages change colour, not what the scenes say: each scene keeps its

@@ -96,6 +96,56 @@ it('counts the notes without the reader’s cut note', async () => {
   ).toBe(NOTE_LIMIT - 1)
 })
 
+it('counts what the creator wrote: speakers, footnotes and code as typed', async () => {
+  const { compactNotes } = await import('../shared/notes')
+  // As the editor writes them back: escaped brackets are the creator's own
+  // (review 6: script lines and footnotes dropped out of the count).
+  const script = String.raw`\[Host\]: Welcome back to the show.
+\[Guest\]: Thanks for having me.`
+  expect(notesLength(script)).toBe(
+    '[Host]: Welcome back to the show.\n[Guest]: Thanks for having me.'.length
+  )
+  expect(notesLength('[^1]: A footnote of the post.')).toBe(29)
+  // A link's definition goes, as the editor drops it; a line saying more
+  // is words.
+  expect(
+    notesLength('[docs]: https://a.io/docs "Docs"\n[Host]: Hi there')
+  ).toBe('[Host]: Hi there'.length)
+  // Code is counted as it is typed, links and escapes in it too.
+  const code =
+    '```ts\ntype T = { [k: string]: any }\nhandlers[name](event) \\_\n```'
+  expect(compactNotes(code)).toBe(code)
+  expect(notesLength('Call handlers[name](event) now')).toBe(30)
+  expect(notesLength(String.raw`a \[x\](y) b`)).toBe('a [x](y) b'.length)
+  // Runs of brackets and of cut notes cost their length, once.
+  for (const run of [
+    '['.repeat(600_000),
+    '![a '.repeat(150_000),
+    '… [cut: '.repeat(70_000)
+  ]) {
+    const started = performance.now()
+    notesLength(run)
+    expect(performance.now() - started).toBeLessThan(1_000)
+  }
+  // A fence for code with very many backtick runs.
+  const { codeFence } = await import('../shared/notes')
+  expect(codeFence('` '.repeat(200_000))).toBe('```')
+})
+
+it('closes what a cut leaves open, as markdown reads the blocks', async () => {
+  const { openFence, outsideFences } = await import('../shared/fences')
+  // A block in a list item ends with the item: the fence after it opens a
+  // new block at the margin.
+  expect(openFence('10. Step\n\n    ```js\n    a()\n```\nb()')).toBe('```')
+  // A block that starts on the item's own line.
+  expect(openFence('- ```sh\n  make all')).toBe('  ```')
+  expect(openFence('- ```sh\n  make all\n  ```')).toBe('')
+  // Code stays as typed; the words around it change.
+  expect(outsideFences('a\n```\nb\n```\nc', (part) => part.toUpperCase())).toBe(
+    'A\n```\nb\n```\nC'
+  )
+})
+
 it('keeps a font only if it can load, else the nearest built-in', () => {
   expect(loadableFont('Inter')).toEqual({ value: 'Inter', replaced: false })
   expect(loadableFont('Georgia')).toEqual({ value: 'Georgia', replaced: false })
@@ -227,4 +277,35 @@ it('cuts a long article where a paragraph ends, never inside code, and says so',
     kept: 'Short.',
     left: 0
   })
+})
+
+it('reads a code block however its fence is indented, and writes it whole', async () => {
+  const { FencedCode } = await import('../app/notebook-editor-runtime')
+  const h = {
+    createNode: (type: string, attrs: unknown, content: unknown[]) => ({
+      type,
+      attrs,
+      content
+    }),
+    createTextNode: (text: string) => ({ type: 'text', text }),
+    renderChildren: () => '```js\nx()\n```'
+  }
+  const { parseMarkdown, renderMarkdown } = FencedCode.config as unknown as {
+    parseMarkdown: (token: object, h: object) => unknown
+    renderMarkdown: (node: object, h: object) => string
+  }
+  // A fence indented a space or three was dropped on the first edit.
+  expect(
+    parseMarkdown(
+      { type: 'code', raw: '  ```js\n  a()\n  ```', lang: 'js', text: 'a()' },
+      h
+    )
+  ).toEqual({
+    type: 'codeBlock',
+    attrs: { language: 'js' },
+    content: [{ type: 'text', text: 'a()' }]
+  })
+  expect(renderMarkdown({ attrs: { language: 'md' }, content: [{}] }, h)).toBe(
+    '````md\n```js\nx()\n```\n````'
+  )
 })

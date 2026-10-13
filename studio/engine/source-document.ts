@@ -1,4 +1,7 @@
 // Retained prose, extraction quality and narrative sources.
+import { openFence } from '../shared/fences'
+import { codeFence } from '../shared/notes'
+
 export type SourceRead = {
   kind: 'url' | 'narrative'
   url: string
@@ -176,7 +179,10 @@ export const articleText = (container: Element, base = '') => {
     const raw = (node.textContent || '').replace(/^\n+/, '').replace(/\s+$/, '')
     if (!raw.trim()) return
     codeBlocks += 1
-    blocks.push('```\n' + clip(raw, CODE_LIMIT, 'A code block') + '\n```')
+    // A fence its code can't close: code that shows a fence keeps it
+    // (review 6: the rest of the article turned to code).
+    const kept = clip(raw, CODE_LIMIT, 'A code block')
+    blocks.push(`${codeFence(kept)}\n${kept}\n${codeFence(kept)}`)
   }
   const table = (node: Element) => {
     const rows = Array.from(node.querySelectorAll('tr')).filter(
@@ -313,56 +319,6 @@ export const extractionOf = (
       ? `Only ${words} word${words === 1 ? '' : 's'} ${words === 1 ? 'was' : 'were'} read${where ? ` from ${where}` : ''} — it may be the page's navigation, not the article.`
       : ''
   }
-}
-
-/**
- * The code block still open at the end of `text`, by its fence as it stands
- * (indented with it, in a list item), if any. A fence indented four spaces
- * outside a list is a line of indented code, not a fence.
- */
-const openFence = (text: string) => {
-  let open: {
-    char: string
-    length: number
-    indent: number
-    fence: string
-  } | null = null
-  // Where a list item's text starts, while the list goes on.
-  let item: number | null = null
-  for (const line of text.split('\n')) {
-    const lead = /^[ \t]*/.exec(line)![0]
-    const indent = lead.replace(/\t/g, '    ').length
-    if (!open) {
-      const marker = /^[ \t]*(?:[-*+]|\d{1,9}[.)])[ \t]+/.exec(line)
-      if (marker) item = marker[0].replace(/\t/g, '    ').length
-      else if (line.trim() && !indent) item = null
-    }
-    const found = /^[ \t]*(`{3,}|~{3,})(.*)$/.exec(line)
-    if (!found) continue
-    const [, fence, rest] = found
-    if (open) {
-      // Closed by the same mark, at least as long, with nothing after it,
-      // where the block's own fence stands.
-      if (
-        fence[0] === open.char &&
-        fence.length >= open.length &&
-        !rest.trim() &&
-        Math.abs(indent - open.indent) < 4
-      )
-        open = null
-    } else if (
-      (indent < 4 || (item !== null && indent >= item && indent - item < 4)) &&
-      // A backtick fence's words hold no backtick: "```a```" is inline code.
-      (fence[0] === '~' || !rest.includes('`'))
-    )
-      open = {
-        char: fence[0],
-        length: fence.length,
-        indent,
-        fence: lead + fence
-      }
-  }
-  return open?.fence || ''
 }
 
 /**

@@ -2,11 +2,13 @@ import { it, expect } from 'vitest'
 import type { Project } from '../shared/model'
 import {
   keepingPlans,
+  movedKeysBack,
   notePlanKeys,
   planFits,
   reconcileVideo,
   refreshVideoKeys,
-  scenePlanKey
+  scenePlanKey,
+  takeNewKey
 } from './scene-model'
 const project = (): Project => ({
   id: 'p',
@@ -228,7 +230,7 @@ it('keeps an older plan when the model’s name changes before any reconcile', (
   expect(keys(p)).toEqual(before)
 })
 
-it('gives a scene d24d80b8 moved its key back, unless it was made again', () => {
+it('gives a scene d24d80b8 moved its key back as it is read, unless made again', () => {
   // d24d80b8 moved the key to the new form, and the keys of what the scene
   // had made went stale with it.
   const p = made(true)
@@ -243,7 +245,8 @@ it('gives a scene d24d80b8 moved its key back, unless it was made again', () => 
   const c = p.video!.scenes[2]
   c.animation = { ...c.animation!, inputKey: c.animationKey! }
   c.produced = { inputKey: c.inputKey, objectKey: 'again-final.mp4' }
-  reconcileVideo(p, { project: p, events: [] })
+  // No edit, no reconcile: reading the notebook is enough.
+  movedKeysBack(p)
   expect(keys(p).slice(0, 2)).toEqual(before.slice(0, 2))
   expect(c.planKey).toBe(c.legacyPlanKey!.to)
   expect(keys(p)[2]).toMatchObject({ animation: true, produced: true })
@@ -304,7 +307,7 @@ it('stops saying the video stopped once a stopped scene goes with its page, from
   expect(video.error).toBeNull()
 })
 
-it('counts a scene stopped for a blank page, and leaves a video’s own stop', () => {
+it('counts a scene stopped for a blank page; none stopped, the video isn’t', () => {
   const p = project()
   reconcileVideo(p, { project: p, events: [] })
   const video = p.video! as typeof p.video & {
@@ -321,11 +324,39 @@ it('counts a scene stopped for a blank page, and leaves a video’s own stop', (
   expect(video.error).toBe(
     '2 scenes stopped. Other saved animations are ready.'
   )
-  // A video that stopped for its join keeps its own line.
-  video.error = 'Could not produce the video. Try again.'
+  // A scene's own reason (its sign-in, say) stays while it is stopped, and
+  // goes once no scene is (review 6: it stayed after every scene was made).
+  video.error = 'Generation stopped because harness sign-in is required.'
+  reconcileVideo(p, { project: p, events: [] })
+  expect(video.error).toBe(
+    'Generation stopped because harness sign-in is required.'
+  )
   p.slides.splice(1, 1)
   p.slides.pop()
   reconcileVideo(p, { project: p, events: [] })
-  expect(video.phase).toBe('failed')
-  expect(video.error).toBe('Could not produce the video. Try again.')
+  expect(video.phase).toBe('idle')
+  expect(video.error).toBeNull()
+})
+
+it('keeps a plan through a look after its camera changed and came back', () => {
+  const p = made(false)
+  const scene = p.video!.scenes[0]
+  const look = (fill: string) =>
+    keepingPlans(p, () => {
+      for (const slide of p.slides) slide.svg = `<svg fill="${fill}"/>`
+    })
+  look('#111111')
+  // The camera set to low, then back to the notebook's default: each is a
+  // new plan, under the key the scene has then (review 6: a look after it
+  // took the key from before, and the plan no longer fitted).
+  for (const presence of ['low', null] as const) {
+    scene.presence = presence
+    takeNewKey(scene, scenePlanKey(p, scene))
+    scene.creativePlan = { recordId: 'again', inputKey: scene.planKey! }
+  }
+  const planned = scene.planKey!
+  look('#222222')
+  expect(planFits(planned, scene)).toBe(true)
+  reconcileVideo(p, { project: p, events: [] })
+  expect(planFits(planned, scene)).toBe(true)
 })

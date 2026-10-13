@@ -358,7 +358,8 @@ it('brings the video’s stopped line back with the only stopped scene', async (
     video.scenes[1].failure = 'production'
     video.scenes[1].error = 'Claude Code ran out of time.'
     video.phase = 'failed'
-    video.error = 'A scene stopped. Other saved animations are ready.'
+    // The scene's own reason, as Finish the video says it.
+    video.error = 'Generation stopped because harness sign-in is required.'
   })
   const gone = await editSlide('undo-stopped', {
     action: 'delete',
@@ -366,12 +367,13 @@ it('brings the video’s stopped line back with the only stopped scene', async (
   })
   expect(gone.project.video!.phase).toBe('idle')
   expect(gone.project.video!.error).toBeNull()
-  // Undo brings the scene back stopped, and the video says so again.
+  // Undo brings the scene back stopped, and the video says it again, as
+  // it was said.
   const back = await editSlide('undo-stopped', { action: 'undo-delete' })
   expect(back.project.video!.scenes[1].phase).toBe('failed')
   expect(back.project.video!.phase).toBe('failed')
   expect(back.project.video!.error).toBe(
-    'A scene stopped. Other saved animations are ready.'
+    'Generation stopped because harness sign-in is required.'
   )
 })
 
