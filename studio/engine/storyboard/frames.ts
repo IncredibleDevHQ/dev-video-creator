@@ -20,6 +20,9 @@ import { readSubmission, submissionSchema } from '../harness/submissions'
 import { upstreamPath } from './hyperframes'
 import { tryFrame } from './check'
 
+/** The GSAP the assembled episode loads (assemble-index.mjs, captions.mjs). */
+const GSAP_URL = 'https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js'
+
 type PacketCore = {
   buildFramePackets: (
     options: Record<string, unknown>
@@ -142,6 +145,7 @@ export const buildFrame = async (input: {
     '- Captions: enabled. Keep every element above y = 900 (the bottom 17% is the caption band).',
     '- Confirmed sketch: none',
     '- Paths: a file under PROJECT_DIR is referenced from the composition by its path inside it (assets/…), never with production/ in front.',
+    `- GSAP: load it inside the template with <script src="${GSAP_URL}"></script>, the version the assembled episode runs; a plugin comes from the same version's dist/.`,
     `- Media: ${input.media ? `${input.media} (muted <video>; the file is production/${input.media})` : 'none'}`,
     `- Logo: ${input.logo ? `${input.logo} (the brand's own: place it as the shot says, never redraw or recolour it)` : 'none'}`,
     ...(input.findings?.length

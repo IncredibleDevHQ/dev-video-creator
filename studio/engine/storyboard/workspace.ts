@@ -3,8 +3,9 @@
 // by the workflow's own build-frame script from the preset nearest the look.
 // The look carries the brand (palette, fonts) into every episode the same way.
 import { existsSync } from 'node:fs'
-import { mkdir, writeFile, readFile, rm } from 'node:fs/promises'
+import { copyFile, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { Branding } from '../../shared/settings'
 import { dataRoot } from '../persistence'
 import { cliTail, runCli, runScript } from './hyperframes'
@@ -89,6 +90,25 @@ const PRESET_NAME = /^[a-z0-9-]+$/
  * folder. A folder already made is kept, so a resumed production keeps its
  * built frames.
  */
+// The studio's own Inter, one variable file for every weight.
+const INTER = fileURLToPath(
+  new URL('../../app/assets/inter.woff2', import.meta.url)
+)
+const INTER_WEIGHTS = [400, 500, 600, 700, 800]
+
+/** The look's font as files the episode carries: build-frame stages what is
+ * under capture/assets/fonts and writes its @font-face into frame.md, which
+ * every frame and the captions use. Fonts a computer has (Georgia, the
+ * system faces) need no file. */
+const stageBrandFonts = async (dir: string, branding?: Branding) => {
+  const families = [branding?.fonts?.display, branding?.fonts?.body]
+  if (!families.includes('Inter') || !existsSync(INTER)) return
+  const fonts = join(dir, 'capture', 'assets', 'fonts')
+  await mkdir(fonts, { recursive: true })
+  for (const weight of INTER_WEIGHTS)
+    await copyFile(INTER, join(fonts, `Inter-${weight}.woff2`))
+}
+
 export const createWorkspace = async (input: {
   projectId: string
   productionId: string
@@ -124,6 +144,7 @@ export const createWorkspace = async (input: {
       2
     )
   )
+  await stageBrandFonts(dir, input.branding)
   const preset = presetFor(input.branding)
   if (!PRESET_NAME.test(preset)) throw new Error('Unknown frame preset')
   await runScript(
