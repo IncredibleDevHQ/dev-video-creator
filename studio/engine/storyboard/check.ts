@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs'
 import { cp, mkdir, rm, symlink, writeFile, readdir } from 'node:fs/promises'
 import { basename, join, relative } from 'node:path'
 import { cliJson, cliTail, runCli, runScript } from './hyperframes'
+import { runCommand } from '../voice'
 import { frameFill } from './fill'
 
 export type Finding = {
@@ -104,10 +105,34 @@ export const snapshotProject = async (
       .filter((name) => /^frame-.*\.png$/.test(name))
       .sort()
       .map((name) => join(outDir, name)),
-    sheet: files.includes('contact-sheet.jpg')
-      ? join(outDir, 'contact-sheet.jpg')
-      : null
+    sheet: await oneSheet(outDir, files)
   }
+}
+
+/** The contact sheet as one picture: past nine frames Hyperframes writes it
+ * in pages (contact-sheet-1.jpg, -2.jpg …), joined here one under another. */
+export const oneSheet = async (outDir: string, files: string[]) => {
+  const sheet = join(outDir, 'contact-sheet.jpg')
+  if (files.includes('contact-sheet.jpg')) return sheet
+  const pages = files
+    .filter((name) => /^contact-sheet-\d+\.jpg$/.test(name))
+    .sort((a, b) => parseInt(a.slice(14)) - parseInt(b.slice(14)))
+  if (!pages.length) return null
+  if (pages.length === 1) return join(outDir, pages[0])
+  await runCommand(
+    'ffmpeg',
+    [
+      '-y',
+      ...pages.flatMap((name) => ['-i', join(outDir, name)]),
+      '-filter_complex',
+      `${pages.map((_, index) => `[${index}:v]`).join('')}vstack=inputs=${pages.length}`,
+      '-q:v',
+      '3',
+      sheet
+    ],
+    60_000
+  )
+  return existsSync(sheet) ? sheet : join(outDir, pages[0])
 }
 
 /** When to look at a frame: as it settles in, in the middle, at its end. */
