@@ -752,7 +752,7 @@ export const makeVideoDialog = (
   },
   look?: Branding,
   /** The template the wireframes were planned from, chosen by default. */
-  planned?: { narrative?: string; direction?: VideoSettings['direction'] },
+  planned?: Pick<VideoSettings, 'narrative' | 'direction' | 'length'>,
   /** A wireframe of this notebook for the template's card, when no
    * wireframes are chosen here (the video's settings). */
   preview?: string
@@ -790,7 +790,7 @@ ${templatePicker(story, look, preview ?? choice?.slides.find((slide) => slide.sv
     voice.kind !== 'ai' || presence === 'off' ? 'hidden' : ''
   }>Your voice on camera and an AI voice elsewhere will sound different.</p>${
     choice
-      ? productionChoice(story?.direction?.length) +
+      ? productionChoice(planned?.length ?? story?.direction?.length) +
         sceneChoice(choice.slides, choice.selected, choice.only, choice.done)
       : ''
   }

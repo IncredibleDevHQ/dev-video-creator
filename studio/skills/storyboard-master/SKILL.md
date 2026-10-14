@@ -1,6 +1,6 @@
 ---
 name: storyboard-master
-description: Plan and build one episode of a narrated video as a single Hyperframes project, the way the faceless-explainer workflow does — a message, one structure, frames with type, beat and key message, time-coded shots, and one composition per frame — for every scene whatever it is built from (invented visuals, motion graphics, the creator on camera, a screen demo). Routes Plan Episode, Design Shots and Build Frame.
+description: Plan and build one episode of a narrated video as a single Hyperframes project, the way the faceless-explainer workflow does — a message, one structure, frames with type, beat and key message, time-coded shots, and one composition per frame — for every scene whatever it is built from (invented visuals, motion graphics, the creator on camera, a screen demo). Routes Plan Series, Plan Episode, Design Shots and Build Frame.
 metadata:
   version: "0.1.0"
   hyperframes: "v0.8.143 (3aa68869f7d4cec8b37cdfcb9cd539389b63abed)"
@@ -43,6 +43,7 @@ else:
 
 | Route | Read | Submit |
 | --- | --- | --- |
+| Plan Series | [workflows/plan-series.md](workflows/plan-series.md) | `plan/series.json` with `storyboard_submit_series` |
 | Plan Episode | [workflows/plan-episode.md](workflows/plan-episode.md) | `plan/episode.json` with `storyboard_submit_plan` |
 | Design Shots | [workflows/design-shots.md](workflows/design-shots.md) | `plan/shots.json` with `storyboard_submit_shots` |
 | Build Frame | [workflows/build-frame.md](workflows/build-frame.md) | `production/compositions/frames/<id>.html` with `storyboard_submit_frame` |

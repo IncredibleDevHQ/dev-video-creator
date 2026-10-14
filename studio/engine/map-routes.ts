@@ -14,6 +14,7 @@ import {
 } from './map-episodes'
 import { addNote, retryNote } from './map-notes'
 import { retryPick } from './map-picking'
+import { planSeries } from './series-plan'
 import { scheduleSegues } from './map-segues'
 import { groupTopics } from './map-topics'
 import { loadProject } from './projects'
@@ -25,7 +26,7 @@ const ok = (value: unknown): Reply => ({ status: 200, value })
 const projectRoute =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues|pick|episode-title)$/
 const seriesRoute =
-  /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order|episode-remove)$/
+  /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order|episode-remove|plan)$/
 
 export const mapRoute = (
   url: URL,
@@ -46,11 +47,13 @@ const route = async (
   const series = url.pathname.match(seriesRoute)
   if (series && method === 'POST')
     return ok(
-      series[2] === 'episode-order'
-        ? await moveEpisode(series[1], body)
-        : series[2] === 'episode-remove'
-          ? await removeEpisode(series[1], body)
-          : await addMapEpisode(series[1], body)
+      series[2] === 'plan'
+        ? await planSeries(series[1], body)
+        : series[2] === 'episode-order'
+          ? await moveEpisode(series[1], body)
+          : series[2] === 'episode-remove'
+            ? await removeEpisode(series[1], body)
+            : await addMapEpisode(series[1], body)
     )
   const project = url.pathname.match(projectRoute)
   if (!project) return null

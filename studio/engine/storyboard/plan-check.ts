@@ -39,6 +39,8 @@ export type PlanRules = {
    * scripts are too long for a strict length, so the plan may cut them
    * (Hyperframes' VO_MODE). */
   voMode?: 'verbatim' | 'restructure'
+  /** The brand has a logo a frame may show. */
+  logo?: boolean
 }
 
 const text = (value: unknown, limit: number) =>
@@ -170,8 +172,11 @@ export const checkEpisodePlan = (raw: unknown, rules: PlanRules) => {
           ? { blueprint: text(frame.blueprint, 60).replace(/\s*\(.*\)$/, '') }
           : {}),
         narrativeRole: text(frame.narrativeRole, 300),
-        keyMessage: text(frame.keyMessage, 300)
+        keyMessage: text(frame.keyMessage, 300),
+        ...(frame.logo === true ? { logo: true } : {})
       }
+      if (parsed.logo && !rules.logo)
+        problems.push(`${name}: there is no logo to show; leave logo out`)
       for (const key of [
         'title',
         'scene',

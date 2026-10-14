@@ -46,6 +46,9 @@ export const writeFramePackets = async (dir: string) => {
     projectDir: dir,
     storyboardPath: join(dir, 'STORYBOARD.md'),
     outDir: join(dir, '.hyperframes', 'frame-packets'),
+    // Hyperframes caps a packet at 48 kB; a shot citing several motion
+    // rules runs past it, and the worker's run reads more than that.
+    maxPacketBytes: 160_000,
     animationDir: upstreamPath('hyperframes-animation'),
     corePath: upstreamPath('hyperframes', 'references', 'frame-worker-core.md'),
     deltaPath: upstreamPath(
@@ -111,6 +114,8 @@ export const buildFrame = async (input: {
   build: BuildType
   duration: number
   media?: string
+  /** The brand's logo, for a frame the plan shows it in. */
+  logo?: string
   selection: CreativeSelection
   origin: string
   /** Findings from the episode's check, when the frame is built again. */
@@ -137,6 +142,7 @@ export const buildFrame = async (input: {
     '- Captions: enabled. Keep every element above y = 900 (the bottom 17% is the caption band).',
     '- Confirmed sketch: none',
     `- Media: ${input.media ? `production/${input.media}` : 'none'}`,
+    `- Logo: ${input.logo ? `production/${input.logo} (the brand's own: place it as the shot says, never redraw or recolour it)` : 'none'}`,
     ...(input.findings?.length
       ? [
           '',
@@ -161,6 +167,10 @@ export const buildFrame = async (input: {
   if (input.media)
     seed[`production/${input.media}`] = await readFile(
       join(input.dir, input.media)
+    )
+  if (input.logo)
+    seed[`production/${input.logo}`] = await readFile(
+      join(input.dir, input.logo)
     )
   let attempts = 0
   let accepted = false

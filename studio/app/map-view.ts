@@ -111,7 +111,11 @@ ${
           ? '<button type="button" class="quiet" data-map="group">Group again</button>'
           : ''
 }
-${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
+${
+  view?.series?.planning?.state === 'planning'
+    ? '<button type="button" class="quiet" disabled>Planning the episodes…</button>'
+    : `${view?.series?.planning?.state === 'failed' ? `<span class="map-tool-error" title="${escape(view.series.planning.error || '')}">Planning failed</span>` : ''}<button type="button" class="quiet" data-map="plan-series">${view?.series?.planning?.state === 'failed' ? 'Plan again' : 'Plan episodes'}</button>`
+}${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
 }
 
 const kindLabel = {

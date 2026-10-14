@@ -134,6 +134,25 @@ export const createWorkspace = async (input: {
   return dir
 }
 
+/** The brand's logo, put into the project as it was given (SVG, PNG or
+ * JPEG, by its bytes); null when the brand has none. */
+export const stageLogo = async (dir: string, logo: Buffer | null) => {
+  if (!logo) return null
+  const head = logo.subarray(0, 512).toString('utf8').trimStart()
+  const extension = /^(<\?xml|<svg)/i.test(head)
+    ? 'svg'
+    : logo[0] === 0x89 && logo[1] === 0x50
+      ? 'png'
+      : logo[0] === 0xff && logo[1] === 0xd8
+        ? 'jpg'
+        : null
+  if (!extension) return null
+  await mkdir(join(dir, 'assets', 'brand'), { recursive: true })
+  const path = `assets/brand/logo.${extension}`
+  await writeFile(join(dir, path), logo)
+  return path
+}
+
 /** The design truth the frames are built from. */
 export const readFrameDesign = (dir: string) =>
   readFile(join(dir, 'frame.md'), 'utf8')

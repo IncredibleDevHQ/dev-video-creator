@@ -444,7 +444,9 @@ ${button('Try again', 'video-settings', true)}`
           app.snapshot.project.branding,
           {
             narrative: app.snapshot.project.narrative,
-            direction: app.snapshot.project.direction
+            direction: app.snapshot.project.direction,
+            // An episode runs as long as its series asks.
+            length: app.snapshot.project.episode?.length
           }
         )
       )

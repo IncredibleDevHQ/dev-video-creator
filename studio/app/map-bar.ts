@@ -23,6 +23,23 @@ const content = (map: MapCanvas) => {
       ? `<form class="map-ask" data-map-form="episode"><label>New episode with ${chosen} page${chosen === 1 ? '' : 's'}<input name="title" maxlength="120" placeholder="Its title" autocomplete="off"></label><button type="submit" class="primary">Add episode</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
       : `<form class="map-ask" data-map-form="episode"><label>New episode<input name="title" maxlength="400" placeholder="What is this episode about?" autocomplete="off"></label><button type="submit" class="primary" disabled title="The agent chooses its pages from the map">Let the agent choose</button><button type="button" class="quiet" data-map="empty-episode">Start empty</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
   }
+  if (map.askingPlan) {
+    const series = view?.series
+    const length = series?.length || { min: 45, max: 120, strict: false }
+    const check = (name: string, label: string, on: boolean) =>
+      `<label class="map-plan-check"><input name="${name}" type="checkbox" ${on ? 'checked' : ''}>${label}</label>`
+    const range = (name: string, value: number) =>
+      `<input name="${name}" type="number" min="10" max="5400" step="5" value="${value}">`
+    return [
+      '<form class="map-ask map-plan" data-map-form="plan">',
+      `<label>Plan the episodes<input name="ideas" maxlength="4000" value="${escape(series?.ideas || '')}" placeholder="Your ideas for episodes, or leave it to the agent" autocomplete="off"></label>`,
+      `<label class="map-plan-length">Each${range('min', length.min)}to${range('max', length.max)}s</label>`,
+      check('strict', 'Must fit', length.strict),
+      check('autoplan', 'Keep planning', series?.autoplan !== false),
+      '<button type="submit" class="primary">Plan</button>',
+      '<button type="button" class="quiet" data-map="cancel">Cancel</button></form>'
+    ].join('')
+  }
   if (map.changing) {
     const slide = snapshot.project.slides.find((s) => s.id === map.changing)
     return `<form class="map-ask" data-map-form="change"><label>Change “${escape(slide?.title || 'this page')}”<input name="instruction" maxlength="4000" placeholder="Say what to add, cut or fix" autocomplete="off"></label><button type="submit" class="primary">Send</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`

@@ -40,6 +40,15 @@ export type Series = {
   branding?: Branding
   /** The notebook whose wireframes the episodes copy (the content map). */
   map?: string
+  /** The creator's own ideas for the episodes, in their words. */
+  ideas?: string
+  /** How long each episode runs: a range, and whether it must fit. */
+  length?: import('./storyboard').LengthGoal
+  /** Keep planning: pages drawn later are placed into the episodes. */
+  autoplan?: boolean
+  /** The series' through-line and the pages the last plan left out. */
+  through?: string
+  left?: string[]
 }
 
 /** On a notebook: the series it belongs to and what it carries over. */
@@ -52,6 +61,8 @@ export type EpisodeRef = {
   part?: SeriesPart
   /** What the last episode's numbers suggest for this one. */
   lessons?: string[]
+  /** The length the series asks of each episode. */
+  length?: import('./storyboard').LengthGoal
 }
 
 export type SeriesSummary = {

@@ -53,7 +53,9 @@ creator's pages and whose words are the creator's scripts.
    a beat), `transition` (registry names only, 2–3 kinds in the whole episode,
    frame 1 `cut`), `type`, `persuasion` (a named technique), `beat` (a specific
    feeling), `blueprint` when a proven shape fits (an id from the index; omit
-   otherwise), `narrativeRole`, `keyMessage`.
+   otherwise), `narrativeRole`, `keyMessage`, and `"logo": true` on the frames
+   that show the brand's logo when the brief names one (an end card, a corner
+   mark; never on every frame).
 5. **Continuity.** The message lands by frame 2. Consecutive body frames share
    a stage and a seam. In a series, the first frame calls back to the previous
    episode and the last hands off to the next (`continuity`, one line). Keep

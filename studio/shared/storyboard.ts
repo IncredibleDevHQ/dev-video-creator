@@ -82,6 +82,8 @@ export type PlanFrame = {
   beat: string
   /** A candidate blueprint id, when a proven shape fits the beat. */
   blueprint?: string
+  /** The brand's logo appears in this frame (an end card, a corner mark). */
+  logo?: boolean
   narrativeRole: string
   keyMessage: string
 }

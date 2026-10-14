@@ -78,7 +78,17 @@ export type MapEpisode = {
 export type MapView = {
   notebook: string
   title: string
-  series: { id: string; title: string } | null
+  series: {
+    id: string
+    title: string
+    /** The episodes being planned by the agent, or why they were not. */
+    planning?: { state: 'planning' | 'failed'; error?: string }
+    ideas?: string
+    length?: import('./storyboard').LengthGoal
+    autoplan?: boolean
+    /** The series' through-line, from its last plan. */
+    through?: string
+  } | null
   episodes: MapEpisode[]
   /** For each page of the map, the episodes that hold a copy of it. */
   usage: Record<string, string[]>

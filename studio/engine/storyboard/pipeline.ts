@@ -15,7 +15,7 @@ import { detectedHarness } from '../notebook-intake'
 import { resolveVoice } from '../voice-library'
 import { probeSeconds } from '../voice'
 import { loadSeries } from '../series'
-import { createWorkspace, productionDir } from './workspace'
+import { createWorkspace, productionDir, stageLogo } from './workspace'
 import { blueprintIds, planEpisode, type SeriesContext } from './plan'
 import { prepareEpisodeAudio } from './voice'
 import { buildFiles, designSceneShots } from './shots'
@@ -161,6 +161,8 @@ const planStage = async ({
   internal
 }: StageInput) => {
   const previous = storyboard.note ? internal.plan : undefined
+  const logoKey = snapshot.project.branding?.logoKey
+  const logo = await stageLogo(dir, logoKey ? await readAsset(logoKey) : null)
   const { plan, length, brief } = await planEpisode({
     snapshot,
     dir,
@@ -171,7 +173,8 @@ const planStage = async ({
     series: await seriesContext(snapshot),
     note: storyboard.note,
     previous,
-    builds: storyboard.builds
+    builds: storyboard.builds,
+    logo
   })
   const next: Internal = {
     plan,
@@ -179,7 +182,8 @@ const planStage = async ({
     brief,
     statuses: {},
     problems: {},
-    rounds: 0
+    rounds: 0,
+    ...(logo ? { logo } : {})
   }
   await writeInternal(dir, next)
   await writeFile(join(dir, 'BRIEF.md'), brief)
@@ -349,6 +353,7 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
           build: frame.build,
           duration: internal.durations?.[frame.number] ?? frame.duration,
           media: internal.media?.[frame.number],
+          logo: frame.logo ? internal.logo : undefined,
           selection,
           origin: origin(),
           findings: internal.problems![frame.number],

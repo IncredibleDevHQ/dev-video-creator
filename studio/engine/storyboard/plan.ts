@@ -63,6 +63,7 @@ export const planPages = (snapshot: Snapshot, pages: string[]): PlanPage[] =>
 export const lengthGoalOf = (snapshot: Snapshot): LengthGoal => {
   const settings = snapshot.project.video?.settings
   if (settings?.length) return settings.length
+  if (snapshot.project.episode?.length) return snapshot.project.episode.length
   const range =
     settings?.direction?.length || snapshot.project.direction?.length
   return range
@@ -93,8 +94,9 @@ export const episodeBrief = (input: {
   series?: SeriesContext
   note?: string
   builds?: Record<string, BuildType>
+  brand?: { name?: string; tagline?: string; logo?: string | null }
 }) => {
-  const { length, series } = input
+  const { length, series, brand } = input
   const lines = [
     '---',
     'workflow: faceless-explainer',
@@ -147,6 +149,18 @@ export const episodeBrief = (input: {
       'Keep the series one story: call back to what came before in the first frame, hand off to what comes next in the last, and keep the threads alive.',
       ''
     )
+  if (brand?.name || brand?.logo)
+    lines.push(
+      '## Brand',
+      '',
+      ...(brand.name
+        ? [`Name: ${brand.name}${brand.tagline ? ` — ${brand.tagline}` : ''}`]
+        : []),
+      brand.logo
+        ? `Logo: ${brand.logo}. Set "logo": true on the frames that show it (an end card, a corner mark); never invent or redraw one.`
+        : 'There is no logo: no frame shows one.',
+      ''
+    )
   const chosen = Object.entries(input.builds || {})
   if (chosen.length)
     lines.push(
@@ -170,6 +184,7 @@ export const planEpisode = async (input: {
   note?: string
   previous?: EpisodePlan
   builds?: Record<string, BuildType>
+  logo?: string | null
 }) => {
   const { snapshot } = input
   const pages = planPages(snapshot, input.pages)
@@ -183,7 +198,12 @@ export const planEpisode = async (input: {
     voMode,
     series: input.series,
     note: input.note,
-    builds: input.builds
+    builds: input.builds,
+    brand: {
+      name: snapshot.project.branding?.name,
+      tagline: snapshot.project.branding?.tagline,
+      logo: input.logo
+    }
   })
   const frameDesign = await readFile(join(input.dir, 'frame.md'), 'utf8')
   const blueprints = blueprintIds()
@@ -250,7 +270,8 @@ export const planEpisode = async (input: {
         length,
         blueprints,
         builds: input.builds,
-        voMode
+        voMode,
+        logo: Boolean(input.logo)
       })
   })
   return { plan, length, brief }

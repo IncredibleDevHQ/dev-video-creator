@@ -440,6 +440,7 @@ const submit = async (map: MapCanvas, form: HTMLFormElement) => {
     )
   }
   if (kind === 'episode') return map.addEpisode(String(data.get('title') || ''))
+  if (kind === 'plan') return map.planEpisodes(data)
   if (kind === 'rename') return map.saveTitle(String(data.get('title') || ''))
   if (kind === 'change' && map.changing) {
     const slideId = map.changing
@@ -516,6 +517,8 @@ const dispatch = async (
       return map.startSeries()
     case 'new-episode':
       return map.newEpisode()
+    case 'plan-series':
+      return map.askPlan()
     case 'empty-episode': {
       const input = map.root.querySelector<HTMLInputElement>(
         '[data-map-form="episode"] input'
@@ -523,6 +526,7 @@ const dispatch = async (
       return map.addEpisode(input?.value || '', true)
     }
     case 'cancel':
+      map.askingPlan = false
       map.naming = null
       map.changing = null
       map.renaming = null

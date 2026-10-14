@@ -23,6 +23,8 @@ export type StoryboardFiles = {
   mode?: 'collaborative' | 'autonomous'
   /** Per frame: real media the frame plays (a take, a capture). */
   media?: Record<number, string>
+  /** The brand's logo in the project, for frames that show it. */
+  logo?: string
 }
 
 const one = (value: string) => value.replace(/\s+/g, ' ').trim()
@@ -90,6 +92,7 @@ export const renderStoryboard = (plan: EpisodePlan, files: StoryboardFiles) => {
         ...(files.media?.[frame.number]
           ? [`- media: ${files.media[frame.number]}`]
           : []),
+        ...(frame.logo && files.logo ? [`- logo: ${files.logo}`] : []),
         ...(shot
           ? shotLines(shot)
           : frame.blueprint

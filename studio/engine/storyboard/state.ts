@@ -30,6 +30,8 @@ export type Internal = {
   rounds?: number
   /** The voice the episode was spoken in, for SCRIPT.md. */
   voiceName?: string
+  /** The brand's logo in the project (assets/brand/logo.*), when it has one. */
+  logo?: string
 }
 
 const statePath = (dir: string) => join(dir, '.studio', 'state.json')
@@ -59,7 +61,8 @@ export const writeProjectFiles = async (dir: string, internal: Internal) => {
       shots: internal.shots,
       durations: internal.durations,
       statuses: internal.statuses,
-      media: internal.media
+      media: internal.media,
+      logo: internal.logo
     })
   )
   await writeFile(

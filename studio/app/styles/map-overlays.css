@@ -251,3 +251,19 @@
   font-weight: 600;
   color: var(--accent);
 }
+/* Planning the series: the creator's ideas, each episode's length, and
+   whether new pages keep being planned in. */
+.map-plan .map-plan-length,
+.map-plan .map-plan-check {
+  flex: none;
+}
+.map-plan .map-plan-length input {
+  flex: none;
+  width: 64px;
+  min-width: 0;
+}
+.map-plan .map-plan-check input {
+  flex: none;
+  width: auto;
+  min-width: 0;
+}

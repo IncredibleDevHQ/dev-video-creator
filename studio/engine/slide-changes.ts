@@ -133,7 +133,14 @@ const working = new Map<string, Promise<void>>()
 /** Start the notebook's queue unless it is running; drawing must finish first. */
 export const scheduleChanges = (id: string) => {
   if (working.has(id)) return
-  const work = processChanges(id).finally(() => working.delete(id))
+  const work = processChanges(id).finally(() => {
+    working.delete(id)
+    // A map whose series keeps planning places its new pages (imported
+    // here, not above: the series planner reaches back into the map).
+    void import('./series-plan')
+      .then((plan) => plan.planNewPages(id))
+      .catch(() => {})
+  })
   working.set(id, work)
   void work.catch(() => {})
 }

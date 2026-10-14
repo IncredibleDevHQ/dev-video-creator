@@ -57,6 +57,8 @@ export class MapCanvas {
   fly: Record<string, { x: number; y: number }> = {}
   drag: DragState | null = null
   naming: { slides: string[] } | null = null
+  /** The bar asks how to plan the series' episodes. */
+  askingPlan = false
   renaming: { kind: 'episode' | 'series'; id: string; title: string } | null =
     null
   from = ''
@@ -443,6 +445,40 @@ export class MapCanvas {
         w: box.w + 320,
         h: box.h + 240
       })
+  }
+  /** Asks, in the bar, for the creator's episode ideas and the length. */
+  askPlan() {
+    this.askingPlan = true
+    this.sel = null
+    this.paint()
+    this.root
+      .querySelector<HTMLInputElement>(
+        '[data-map-form="plan"] input[name=ideas]'
+      )
+      ?.focus()
+  }
+  /** Plans the series' episodes from the map: the series starts first if
+   * there is none. */
+  async planEpisodes(data: FormData) {
+    this.askingPlan = false
+    this.paint()
+    const min = Number(data.get('min'))
+    const max = Number(data.get('max'))
+    if (!(min > 0 && max > min)) {
+      this.hooks.error(
+        new Error('Give the length as a range, the shorter end first')
+      )
+      return
+    }
+    await this.run(async () => {
+      const series = this.view?.series || (await mapApi.startSeries(this.mapId))
+      await mapApi.planSeries(series.id, {
+        ideas: String(data.get('ideas') || '').trim(),
+        length: { min, max, strict: data.get('strict') === 'on' },
+        autoplan: data.get('autoplan') === 'on'
+      })
+    }, 'Planning the episodes: they appear here as they are made')
+    this.fitted = false
   }
   async startSeries() {
     await this.run(

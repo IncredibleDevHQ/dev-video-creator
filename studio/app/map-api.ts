@@ -23,6 +23,14 @@ export const mapApi = {
       'POST',
       title ? { title } : {}
     ),
+  planSeries: (
+    series: string,
+    body: {
+      ideas: string
+      length: { min: number; max: number; strict: boolean }
+      autoplan: boolean
+    }
+  ) => request<Series>(`/series/${series}/plan`, 'POST', body),
   addEpisode: (
     series: string,
     body: { title?: string; about?: string; slides: string[]; only?: boolean }

@@ -565,7 +565,26 @@ export const mapView = async (mapId: string): Promise<MapView> => {
   return {
     notebook: mapId,
     title: map.project.title,
-    series: series ? { id: series.id, title: series.title } : null,
+    series: series
+      ? {
+          id: series.id,
+          title: series.title,
+          ...(series.planning
+            ? {
+                planning: {
+                  state: series.planning.state,
+                  ...(series.planning.error
+                    ? { error: series.planning.error }
+                    : {})
+                }
+              }
+            : {}),
+          ...(series.ideas ? { ideas: series.ideas } : {}),
+          ...(series.length ? { length: series.length } : {}),
+          ...(series.autoplan ? { autoplan: true } : {}),
+          ...(series.through ? { through: series.through } : {})
+        }
+      : null,
     episodes,
     usage
   }
