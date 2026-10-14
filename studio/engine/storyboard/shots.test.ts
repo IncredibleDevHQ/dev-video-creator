@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { checkShots } from './shots'
 import { frameShapeProblems, workerPacket } from './frames'
 import { presetFor, tokensFor } from './workspace'
-import { evenWords, wordsFrom } from './voice'
+import { evenWords, frameWords } from './voice'
 import { lookTimes } from './check'
 import { frameId } from '../../shared/storyboard'
 
@@ -112,17 +112,56 @@ it('times words for captions, from the aligner or spread evenly', () => {
     { id: 'w0', text: 'a', start: 0, end: 0.5 },
     { id: 'w1', text: 'b', start: 0.5, end: 1 }
   ])
-  const line = {
+  const line = (words: Array<[string, number, number]>) => ({
     id: '2',
     say: 'x',
     coverage: 1,
     startMs: 0,
     durationMs: 0,
     review: null,
-    words: [{ word: 'hello', startMs: 3200, endMs: 3600 }]
-  }
-  expect(wordsFrom(line, 3)).toEqual([
-    { id: 'w0', text: 'hello', start: 0.2, end: 0.6 }
+    words: words.map(([word, startMs, endMs]) => ({ word, startMs, endMs }))
+  })
+  // Heard words keep their times inside the frame's clip, which starts 3 s in.
+  expect(
+    frameWords(
+      'hello there',
+      line([
+        ['hello', 3200, 3600],
+        ['there', 3600, 4000]
+      ]),
+      3,
+      2
+    )
+  ).toEqual([
+    { id: 'w0', text: 'hello', start: 0.2, end: 0.6 },
+    { id: 'w1', text: 'there', start: 0.6, end: 1 }
   ])
+  // A missed word shares the gap; a dash is no word; a word heard in the
+  // next frame's clip is not this frame's.
+  const words = frameWords(
+    'run a custom video pipeline —',
+    line([
+      ['run', 0, 200],
+      ['a', 200, 300],
+      ['video', 700, 1000],
+      ['pipeline', 1000, 1500],
+      ['—', 5400, 5500]
+    ]),
+    0,
+    2
+  )
+  expect(words.map((word) => word.text)).toEqual([
+    'run',
+    'a',
+    'custom',
+    'video',
+    'pipeline'
+  ])
+  expect(words[2]).toMatchObject({ start: 0.3, end: 0.7 })
+  expect(words.every((word) => word.end <= 2)).toBe(true)
+  // Too little heard: the line is spread evenly.
+  expect(frameWords('one two three', line([]), 0, 3, 0)).toEqual(
+    evenWords('one two three', 3)
+  )
   expect(lookTimes(4)).toEqual([0.8, 2.2, 3.75])
 })

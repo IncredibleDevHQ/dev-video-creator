@@ -45,17 +45,76 @@ export const evenWords = (
   }))
 }
 
-/** The aligner's words for a line, moved to start at `offset` seconds. */
-export const wordsFrom = (
+/** A line's words as captions show them: a dash on its own is no word. */
+export const spokenWords = (line: string) =>
+  line.split(/\s+/).filter((word) => /[\p{L}\p{N}]/u.test(word))
+
+/**
+ * Every word of a frame's line, timed inside the frame's own clip, which
+ * starts `offset` seconds into what the aligner heard: the aligner's time
+ * where it heard the word (a time outside the clip belongs to another
+ * frame, and is dropped), the gaps around shared out over the words it
+ * missed. When it heard less than half, the line is spread evenly.
+ */
+export const frameWords = (
+  say: string,
   line: AlignedLine | undefined,
-  offset: number
-): MetaWord[] =>
-  (line?.words || []).map((word, index) => ({
-    id: `w${index}`,
-    text: word.word,
-    start: r3(Math.max(0, word.startMs / 1000 - offset)),
-    end: r3(Math.max(0, word.endMs / 1000 - offset))
-  }))
+  offset: number,
+  seconds: number,
+  settle = 0
+): MetaWord[] => {
+  const words = spokenWords(say)
+  const end = Math.max(0.5, seconds - settle)
+  const times: Array<{ start: number; end: number } | null> = words.map(
+    () => null
+  )
+  let next = 0
+  for (const heard of line?.words || []) {
+    const start = heard.startMs / 1000 - offset
+    const stop = heard.endMs / 1000 - offset
+    if (start < -0.25 || stop > seconds + 0.25) continue
+    const index = words.findIndex(
+      (word, at) => at >= next && word === heard.word
+    )
+    if (index < 0) continue
+    times[index] = {
+      start: Math.min(Math.max(0, start), seconds),
+      end: Math.min(Math.max(0, stop), seconds)
+    }
+    next = index + 1
+  }
+  if (times.filter(Boolean).length * 2 < words.length)
+    return evenWords(words.join(' '), end)
+  const filled = times.slice()
+  for (let index = 0; index < words.length; index++) {
+    if (filled[index]) continue
+    let last = index
+    while (last + 1 < words.length && !filled[last + 1]) last++
+    const from = index ? filled[index - 1]!.end : 0
+    const to =
+      last + 1 < words.length
+        ? filled[last + 1]!.start
+        : Math.max(from, Math.min(end, seconds))
+    const share = Math.max(0, to - from) / (last - index + 1)
+    for (let at = index; at <= last; at++)
+      filled[at] = {
+        start: from + (at - index) * share,
+        end: from + (at - index + 1) * share
+      }
+    index = last
+  }
+  let floor = 0
+  return words.map((text, index) => {
+    const start = Math.max(floor, filled[index]!.start)
+    floor = start
+    return {
+      id: `w${index}`,
+      text,
+      start: r3(start),
+      end: r3(Math.max(start, filled[index]!.end))
+    }
+  })
+}
 
 const toWav = (input: string, output: string, extra: string[] = []) =>
   runCommand(
@@ -122,17 +181,16 @@ const speakFrames = async (
     )
     const lines = voices.map((entry) => ({
       id: String(entry.frame),
-      say: frames.find((frame) => frame.number === entry.frame)!.voiceover
+      say: spokenWords(
+        frames.find((frame) => frame.number === entry.frame)!.voiceover
+      ).join(' ')
     }))
     const aligned = await alignTake(joined, lines).catch(() => null)
     let offset = 0
     for (const entry of voices) {
       const line = aligned?.find((item) => item.id === String(entry.frame))
       const say = lines.find((item) => item.id === String(entry.frame))!.say
-      entry.words =
-        line && line.coverage >= 0.5 && line.words.length
-          ? wordsFrom(line, offset)
-          : evenWords(say, Math.max(0.5, entry.duration_s - 0.35))
+      entry.words = frameWords(say, line, offset, entry.duration_s, 0.35)
       offset += entry.duration_s
     }
   }
@@ -151,7 +209,7 @@ const cutTake = async (
   const duration = await probeSeconds(takePath)
   const lines = frames.map((frame) => ({
     id: String(frame.number),
-    say: frame.voiceover
+    say: spokenWords(frame.voiceover).join(' ')
   }))
   const aligned = await alignTake(
     takePath,
@@ -212,7 +270,9 @@ const cutTake = async (
       frame: frame.number,
       path,
       duration_s: length,
-      words: frame.voiceover ? wordsFrom(line, span.start) : []
+      words: frame.voiceover
+        ? frameWords(frame.voiceover, line, span.start, length)
+        : []
     })
   }
   return { voices, media }
