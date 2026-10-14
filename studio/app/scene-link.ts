@@ -1,3 +1,4 @@
+export { productionChoice } from './production-choice'
 // A wireframe and its video scene point at each other: each wireframe tile
 // says whether its scene is in the video, the wireframe says where its scene
 // stands and plays it picture-in-picture once made, with a way to the Video

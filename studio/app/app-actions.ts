@@ -25,6 +25,11 @@ import { closePopover, openPopover } from './popover'
 import { headerMore } from './workspace-header'
 import { openPresenter } from './presenter-view'
 import { clickVideo, submitVideo } from './video-controller'
+import {
+  changeStoryboard,
+  clickStoryboard,
+  submitStoryboard
+} from './storyboard-controller'
 import { syncSceneChoice } from './scene-link'
 import { clickTemplates, openTemplates } from './template-controller'
 import { syncTemplateFields } from './template-picker'
@@ -45,6 +50,7 @@ export const installAppActions = (app: AppContext) => {
       await submitStart(app, form, values)
       await submitSlides(app, form, values)
       await submitVideo(app, form, values)
+      await submitStoryboard(app, form, values)
       await submitRepos(app, form, values)
       await submitSeries(app, form, values)
       await submitRelease(app, form, values)
@@ -300,6 +306,7 @@ export const installAppActions = (app: AppContext) => {
       const id = app.snapshot.project.id
       const slideId = app.snapshot.project.slides[app.selected]?.id
 
+      if (await clickStoryboard(app, target, action)) return
       await clickStart(app, target, action)
       await clickSlides(app, target, action)
       await clickVideo(app, target, action)
@@ -310,6 +317,10 @@ export const installAppActions = (app: AppContext) => {
     } catch (reason) {
       app.error(reason)
     }
+  })
+  // A storyboard scene's build, or a take file picked.
+  app.root.addEventListener('change', (event) => {
+    void changeStoryboard(app, event.target as Element).catch(app.error)
   })
   app.dialog.addEventListener('change', (event) => {
     const target = event.target as HTMLSelectElement

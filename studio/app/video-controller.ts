@@ -315,9 +315,20 @@ export const submitVideo = async (
       form.querySelector('.scene-choice') && ticked.length < slides.length
         ? ticked
         : undefined
+    const storyboard = values.get('production') === 'storyboard'
+    const min = Number(values.get('length-min'))
+    const max = Number(values.get('length-max'))
+    if (storyboard && !(min > 0 && max > min))
+      throw new Error('Give the length as a range, the shorter end first')
     app.snapshot = await api.makeVideo(app.snapshot.project.id, {
       ...next,
-      ...(scenes ? { scenes } : {})
+      ...(scenes ? { scenes } : {}),
+      ...(storyboard
+        ? {
+            production: 'storyboard' as const,
+            length: { min, max, strict: values.get('length-strict') === 'on' }
+          }
+        : {})
     })
     app.dialog.close()
     app.stage = 'video'

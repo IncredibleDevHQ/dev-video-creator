@@ -264,7 +264,9 @@ export const createClaudeCodeAdapter = (
         ? 'Read,Write,Edit,Glob,Grep,mcp__studio__plan_*'
         : run.inputs.capabilityScope === 'production'
           ? 'Read,Write,Edit,Glob,Grep,mcp__studio__produce_*'
-          : 'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
+          : run.inputs.capabilityScope === 'storyboard'
+            ? 'Read,Write,Edit,Glob,Grep,mcp__studio__storyboard_*'
+            : 'Read,Write,Edit,Bash(python3 *),mcp__studio__*',
       '--mcp-config',
       mcpConfig
     ]

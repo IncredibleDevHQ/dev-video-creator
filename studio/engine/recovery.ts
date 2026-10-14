@@ -1,3 +1,4 @@
+import { scheduleStoryboard } from './storyboard/pipeline'
 import { scheduleSource } from './notebook-intake'
 import { transitionScene } from './autopilot'
 import { generationStops } from './generation-errors'
@@ -32,6 +33,10 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
       })
       continue
     }
+    // A storyboard video that was working carries on from its stage; a
+    // paid call that finished is reused from its checkpoint.
+    if (saved.project.video?.storyboard?.status === 'working')
+      scheduleStoryboard(id)
     const resumeSlides = saved.status === 'building'
     const resumeScenes =
       saved.project.video?.scenes

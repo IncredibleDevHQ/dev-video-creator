@@ -1,3 +1,8 @@
+import {
+  saveTakeRequest,
+  storyboardRoute,
+  storyboardTakeRoute
+} from './storyboard/routes'
 import { saveLibraryBrand, redetectBrand } from './brand-library'
 import { answerEvidence, chatSlide, scheduleChanges } from './slide-changes'
 import { applyLook } from './look-apply'
@@ -205,6 +210,24 @@ export const createStudioServer = (
           )
         )
       }
+      const takeRoute = storyboardTakeRoute(url, request.method)
+      if (takeRoute) {
+        const bytes = await readBody(
+          request,
+          response,
+          600_000_000,
+          'Keep the take under 600 MB'
+        )
+        return send(
+          response,
+          200,
+          await saveTakeRequest(
+            takeRoute,
+            bytes,
+            String(request.headers['content-type'] || '')
+          )
+        )
+      }
       let body: Record<string, unknown> = {}
       if (request.method === 'POST' || request.method === 'PATCH') {
         const text = (
@@ -253,6 +276,9 @@ export const createStudioServer = (
         )
         return send(response, reply.httpStatus, reply.body)
       }
+      const storyboard = await storyboardRoute(url, request, body, response)
+      if (storyboard === 'sent') return
+      if (storyboard) return send(response, storyboard.status, storyboard.value)
       const routed = await studioRoute(url, request, body, response)
       if (routed === 'sent') return
       if (routed) return send(response, routed.status, routed.value)

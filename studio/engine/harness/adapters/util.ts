@@ -113,7 +113,8 @@ export const studioMcpUrl = (
   const url = new URL('/mcp', origin)
   if (
     inputs.capabilityScope === 'planning' ||
-    inputs.capabilityScope === 'production'
+    inputs.capabilityScope === 'production' ||
+    inputs.capabilityScope === 'storyboard'
   )
     url.searchParams.set('scope', inputs.capabilityScope)
   if (typeof inputs.submissionToken === 'string')

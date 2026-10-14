@@ -1,3 +1,4 @@
+import { storyboardScreen } from './storyboard-view'
 import { themeControl } from './appearance'
 import { notesOnly } from './progress'
 import { animationSecond } from '../shared/scene-time'
@@ -166,31 +167,33 @@ ${escape(project.title)}</h1>
 }${
       app.stage === 'notebook'
         ? notebookScreen(app.snapshot, app.pendingChats.has(project.id))
-        : app.stage === 'video'
-          ? videoScreen(
-              app.snapshot,
-              app.selected,
-              app.momentIndex,
-              app.second,
-              app.practiceOpen,
-              app.capture,
-              app.practiceStream,
-              app.wholeVideo,
-              app.liveConnected,
-              app.practiceScope === 'scene'
-            )
-          : presentationScreen(
-              app.snapshot,
-              app.selected,
-              app.pendingChats.has(project.id),
-              app.liveConnected,
-              {
-                plan: app.selectedPlan,
-                pin: app.pin,
-                pipOpen: !app.pipClosed,
-                creating: app.pending
-              }
-            )
+        : app.stage === 'video' && project.video?.storyboard
+          ? storyboardScreen(app.snapshot)
+          : app.stage === 'video'
+            ? videoScreen(
+                app.snapshot,
+                app.selected,
+                app.momentIndex,
+                app.second,
+                app.practiceOpen,
+                app.capture,
+                app.practiceStream,
+                app.wholeVideo,
+                app.liveConnected,
+                app.practiceScope === 'scene'
+              )
+            : presentationScreen(
+                app.snapshot,
+                app.selected,
+                app.pendingChats.has(project.id),
+                app.liveConnected,
+                {
+                  plan: app.selectedPlan,
+                  pin: app.pin,
+                  pipOpen: !app.pipClosed,
+                  creating: app.pending
+                }
+              )
     }</main>`,
     previousPlayer
   )

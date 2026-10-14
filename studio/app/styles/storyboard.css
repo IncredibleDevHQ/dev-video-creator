@@ -1,0 +1,281 @@
+/* A storyboard video: the plan as a proposal, its scenes and frames. */
+.storyboard {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 28px 56px;
+  display: grid;
+  gap: 20px;
+}
+.sb-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.sb-head-text {
+  display: grid;
+  gap: 6px;
+}
+.sb-head h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.sb-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.3px;
+}
+.sb-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sb-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sb-actions a.primary {
+  display: inline-block;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+}
+.sb-alert {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #8a1c1c;
+  font-size: 13px;
+}
+.sb-alert.is-waiting {
+  background: var(--selected);
+  color: var(--accent);
+}
+.sb-video video {
+  width: 100%;
+  border-radius: 10px;
+  background: #000;
+  aspect-ratio: 16 / 9;
+}
+.sb-video .sb-meta {
+  margin-top: 6px;
+}
+.sb-scenes,
+.sb-frames {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sb-scenes {
+  display: grid;
+  gap: 14px;
+}
+.sb-scene {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 14px 16px 8px;
+}
+.sb-scene-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sb-scene-head strong {
+  font-size: 15px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-scene-number,
+.sb-scene-time {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sb-build select,
+.sb-build.is-fixed {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--selected);
+  color: var(--accent);
+}
+.sb-reason {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sb-take {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.sb-take.is-ready {
+  border-style: solid;
+  border-color: var(--line);
+  color: var(--muted);
+}
+.sb-take-actions {
+  display: flex;
+  gap: 4px;
+}
+.sb-take-actions button {
+  padding: 5px 10px;
+  font-size: 13px;
+  border: 1px solid var(--line);
+}
+.sb-frame {
+  border-top: 1px solid var(--line);
+}
+.sb-frame summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.sb-frame summary::-webkit-details-marker {
+  display: none;
+}
+.sb-frame-number {
+  width: 22px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.sb-frame-title {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+.sb-frame-title strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.sb-frame-title small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.sb-frame-state {
+  font-size: 12px;
+  color: var(--accent);
+}
+.sb-frame.is-failed .sb-frame-state {
+  color: #b91c1c;
+}
+.sb-frame-body {
+  padding: 0 0 12px 34px;
+  display: grid;
+  gap: 8px;
+}
+.sb-line {
+  margin: 0;
+  font-size: 14px;
+}
+.sb-line.is-silent,
+.sb-frame-body dt {
+  color: var(--muted);
+}
+.sb-frame-body dl {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.sb-frame-body dd {
+  margin: 0;
+}
+.sb-problem {
+  margin: 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+.sb-change {
+  display: grid;
+  gap: 6px;
+}
+.sb-change label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.sb-change textarea {
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+}
+.sb-change button {
+  justify-self: start;
+  border: 1px solid var(--line);
+}
+.sb-sheet {
+  margin: 0;
+}
+.sb-sheet img {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+.sb-sheet figcaption {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.sb-recorder {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 14px;
+}
+.sb-recorder video {
+  width: 100%;
+  border-radius: 8px;
+  background: #000;
+  aspect-ratio: 16 / 9;
+}
+.sb-prompter {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.dialog-body .length-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+.dialog-body .length-choice legend {
+  width: 100%;
+}
+.dialog-body .length-choice label {
+  margin: 4px 0;
+}
+.dialog-body .length-choice input[type='number'] {
+  width: 72px;
+  padding: 4px 6px;
+}

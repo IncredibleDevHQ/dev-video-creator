@@ -37,9 +37,28 @@ import { availableHarness } from './notebook-intake'
 import { planCreativeScene } from './creative/scene'
 import { transitionScene } from './autopilot'
 import { Refusal, asRefusal } from './refusal'
+import { newStoryboard } from './storyboard/actions'
+import { scheduleStoryboard } from './storyboard/pipeline'
+import type { LengthGoal } from '../shared/storyboard'
 const running = new Map<string, Promise<void>>()
 const isPresence = (value: unknown): value is Presence =>
   ['off', 'low', 'high'].includes(String(value))
+/** A storyboard video's length: a range in seconds, strict or flexible. */
+export const validLength = (raw: unknown): LengthGoal | undefined => {
+  if (raw === undefined || raw === null) return undefined
+  const value = raw as Record<string, unknown>
+  const min = Math.round(Number(value.min))
+  const max = Math.round(Number(value.max))
+  if (
+    !Number.isFinite(min) ||
+    !Number.isFinite(max) ||
+    min < 10 ||
+    max > 5400 ||
+    min >= max
+  )
+    throw new Refusal('Give the length as a range, the shorter end first')
+  return { min, max, strict: value.strict === true }
+}
 export const validateVideoSettings = (value: unknown): VideoSettings => {
   const raw = value as VideoSettings
   if (!raw || !isPresence(raw.presence))
@@ -56,7 +75,12 @@ export const validateVideoSettings = (value: unknown): VideoSettings => {
   const narrative = raw.narrative ? narrativeById(raw.narrative) : undefined
   if (raw.narrative && !narrative)
     throw new Refusal('Choose one of the templates, or none')
+  const length = validLength(raw.length)
   return {
+    ...(raw.production === 'storyboard'
+      ? { production: 'storyboard' as const }
+      : {}),
+    ...(length ? { length } : {}),
     ...(raw.harness ? { harness: validateHarnessSelection(raw.harness) } : {}),
     ...(narrative
       ? {
@@ -118,6 +142,29 @@ export const makeVideo = async (id: string, settings: unknown) => {
       settings,
       current.project.slides.map((slide) => slide.id)
     )
+    // A storyboard video: one plan for the chosen pages, made frame by
+    // frame. Its scenes stay idle, so the scene by scene agents never run.
+    if (valid.production === 'storyboard') {
+      const done = donePages(current)
+      const pages = current.project.slides
+        .filter(
+          (slide) =>
+            (make ? make.has(slide.id) : true) &&
+            done.has(slide.id) &&
+            !slide.aside
+        )
+        .map((slide) => slide.id)
+      if (!pages.length)
+        throw new Refusal('Choose at least one drawn wireframe')
+      reconcileVideo(current.project, current, new Set())
+      current.project.video.storyboard = newStoryboard(pages)
+      addEvent(
+        current,
+        'video',
+        `Planning the episode: ${pages.length} ${pages.length === 1 ? 'page' : 'pages'}`
+      )
+      return
+    }
     // A scene whose wireframe is still drawn waits for it, then starts.
     const done = donePages(current)
     const wanted = make || new Set(current.project.slides.map((s) => s.id))
@@ -147,7 +194,8 @@ export const makeVideo = async (id: string, settings: unknown) => {
         : 'Writing your video scenes'
     )
   })
-  schedulePlanning(id)
+  if (snapshot.project.video?.storyboard) scheduleStoryboard(id)
+  else schedulePlanning(id)
   return snapshot
 }
 /** Make a scene the creator left out: it joins the queue to be written. */

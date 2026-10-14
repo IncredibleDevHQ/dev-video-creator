@@ -47,7 +47,7 @@ import { sceneOverlay } from './scene-overlay'
 import { escape, button } from './ui'
 import { agentNames } from './agent-setup'
 import { wireframeStatus } from './wireframe-copy'
-import { sceneChoice } from './scene-link'
+import { productionChoice, sceneChoice } from './scene-link'
 import { sceneShotChip } from './shot-picker'
 import {
   onCameraChoice,
@@ -790,7 +790,8 @@ ${templatePicker(story, look, preview ?? choice?.slides.find((slide) => slide.sv
     voice.kind !== 'ai' || presence === 'off' ? 'hidden' : ''
   }>Your voice on camera and an AI voice elsewhere will sound different.</p>${
     choice
-      ? sceneChoice(choice.slides, choice.selected, choice.only, choice.done)
+      ? productionChoice(story?.direction?.length) +
+        sceneChoice(choice.slides, choice.selected, choice.only, choice.done)
       : ''
   }
 <button type="submit" class="primary">Make the video →</button>

@@ -20,6 +20,11 @@ export type VideoSettings = {
   narrative?: string
   /** How this telling sounds and how long it runs, with the narrative. */
   direction?: Direction
+  /** How the video is made: one storyboard for the episode (Hyperframes,
+   * frame by frame), or the earlier scene by scene production. */
+  production?: 'storyboard' | 'scenes'
+  /** A storyboard video's length: a range, and whether it must fit. */
+  length?: import('./storyboard').LengthGoal
 }
 export type CameraWindow = 'none' | 'full' | 'start' | 'end' | 'both'
 export type MomentSegment = {
@@ -233,6 +238,8 @@ export type Project = {
     settings: VideoSettings
     phase?: 'idle' | 'preparing' | 'joining' | 'failed'
     error?: string | null
+    /** A storyboard video: its plan and how far it has been made. */
+    storyboard?: import('./storyboard').Storyboard
     scenes: Scene[]
     transitions: Transition[]
     inputKey: string

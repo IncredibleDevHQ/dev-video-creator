@@ -17,6 +17,9 @@ export type HarnessOperation =
   | 'composition'
   | 'chat'
   | 'extension'
+  | 'storyboard'
+  | 'shots'
+  | 'frame'
 
 export type ThinkingEffort = 'low' | 'medium' | 'high'
 
@@ -102,6 +105,30 @@ const BASE: Record<HarnessOperation, StageLimits> = {
     maxToolCalls: 12,
     effort: 'low',
     maxOutputTokens: 8_000
+  },
+  // The episode's whole storyboard: the story, every scene's frames.
+  storyboard: {
+    timeoutMs: minutes(14),
+    idleTimeoutMs: minutes(4),
+    maxToolCalls: 80,
+    effort: 'high',
+    maxOutputTokens: 64_000
+  },
+  // One scene's time-coded shots, read against the blueprints.
+  shots: {
+    timeoutMs: minutes(12),
+    idleTimeoutMs: minutes(4),
+    maxToolCalls: 60,
+    effort: 'high',
+    maxOutputTokens: 64_000
+  },
+  // One frame's composition, checked and looked at before it is accepted.
+  frame: {
+    timeoutMs: minutes(16),
+    idleTimeoutMs: minutes(4),
+    maxToolCalls: 60,
+    effort: 'high',
+    maxOutputTokens: 48_000
   }
 }
 

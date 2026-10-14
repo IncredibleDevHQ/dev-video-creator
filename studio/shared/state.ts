@@ -1,3 +1,4 @@
+import { STAGE_LABELS } from './storyboard'
 import { momentViewKey } from './model'
 import type { Snapshot } from './api'
 import type {
@@ -130,6 +131,25 @@ export const videoView = (project: Project) => {
       enabled: project.slides.length > 0,
       producedScenes: 0
     }
+  // A storyboard video is one production: made, or on its way.
+  const storyboard = video.storyboard
+  if (storyboard)
+    return {
+      action: storyboard.produced
+        ? ('export' as const)
+        : ('produce-video' as const),
+      enabled: Boolean(storyboard.produced),
+      producedScenes: storyboard.produced ? 1 : 0,
+      madeScenes: 1,
+      state:
+        storyboard.status === 'failed'
+          ? 'Stopped'
+          : storyboard.status === 'waiting'
+            ? storyboard.waitingFor === 'takes'
+              ? 'Waiting for your takes'
+              : 'Waiting for your approval'
+            : STAGE_LABELS[storyboard.stage]
+    }
   // The video is the scenes the creator made; a scene left out is not in it.
   const made = video.scenes.filter((scene) => scene.phase !== 'idle')
   const madeScenes = made.length
@@ -250,6 +270,23 @@ export const videoDisplay = (
   const video = snapshot.project.video
   if (!video)
     return { label: '', active: false, actionLabel: 'Make the video →' }
+  if (video.storyboard) {
+    const storyboard = video.storyboard
+    return {
+      label:
+        storyboard.status === 'working'
+          ? STAGE_LABELS[storyboard.stage]
+          : storyboard.status === 'waiting'
+            ? storyboard.waitingFor === 'takes'
+              ? 'Waiting for your takes'
+              : 'Plan ready for you'
+            : storyboard.status === 'failed'
+              ? 'Stopped'
+              : 'Made',
+      active: storyboard.status === 'working',
+      actionLabel: storyboard.produced ? 'Export MP4' : 'Making the video'
+    }
+  }
   const views =
     snapshot.views || projectViews(snapshot.project, snapshot.events)
   const active =

@@ -114,6 +114,20 @@ export const api = {
   // `scenes`: the wireframes whose scenes to make; the rest start left out.
   makeVideo: (id: string, body: VideoSettings & { scenes?: string[] }) =>
     request<Snapshot>(`/projects/${id}/video`, 'POST', body),
+  approveStoryboard: (id: string, note?: string) =>
+    request<Snapshot>(
+      `/projects/${id}/storyboard/approve`,
+      'POST',
+      note ? { note } : {}
+    ),
+  setStoryboardBuild: (id: string, pageId: string, build: string) =>
+    request<Snapshot>(
+      `/projects/${id}/storyboard/scenes/${pageId}/build`,
+      'POST',
+      { build }
+    ),
+  retryStoryboard: (id: string) =>
+    request<Snapshot>(`/projects/${id}/storyboard/retry`, 'POST', {}),
   makeScene: (id: string, sceneId: string) =>
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/make`, 'POST', {}),
   leaveOutScene: (id: string, sceneId: string) =>

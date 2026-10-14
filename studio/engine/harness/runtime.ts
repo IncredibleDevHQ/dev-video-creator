@@ -20,7 +20,16 @@ import type {
 } from './types'
 
 export type HarnessId = HarnessAdapter['id']
-export type HarnessStage = 'story' | 'drawing' | 'planning' | 'composition'
+export type HarnessStage =
+  | 'story'
+  | 'drawing'
+  | 'planning'
+  | 'composition'
+  // Storyboard production: plan the episode, design a scene's shots,
+  // build one frame (skills/storyboard-master).
+  | 'storyboard'
+  | 'shots'
+  | 'frame'
 export type EngineRun = {
   id: string
   projectId: string
@@ -44,14 +53,26 @@ const operations: Record<HarnessStage, HarnessOperation> = {
   story: 'story',
   drawing: 'page',
   planning: 'planning',
-  composition: 'composition'
+  composition: 'composition',
+  storyboard: 'storyboard',
+  shots: 'shots',
+  frame: 'frame'
 }
 const skills: Record<HarnessStage, string> = {
   story: 'story-master',
   drawing: 'page-master',
   planning: 'video-planner',
-  composition: 'scene-producer'
+  composition: 'scene-producer',
+  storyboard: 'storyboard-master',
+  shots: 'storyboard-master',
+  frame: 'storyboard-master'
 }
+/** The storyboard stages, which share one skill and its tool scope. */
+export const STORYBOARD_STAGES: HarnessStage[] = [
+  'storyboard',
+  'shots',
+  'frame'
+]
 // A page call reads its route and the packet; page-master's vendored
 // manuals, icon files and scripts (4.6 MB) stay with the studio.
 const skillFiles: Record<string, string[]> = {
@@ -120,6 +141,8 @@ export const runEngineStage = async (input: {
   adapterOverride?: HarnessAdapter
   /** Sizes the time and tool budgets for the chosen model (limits.ts). */
   operation?: HarnessOperation
+  /** The skill's files this run reads, when not the whole skill. */
+  skillFiles?: string[]
   timeoutMs?: number
   idleTimeoutMs?: number
   maxToolCalls?: number
@@ -150,7 +173,7 @@ export const runEngineStage = async (input: {
     if (!packetPath(name)) throw new Error('Invalid packet file')
   for (const name of Object.keys(input.productionSeed || {}))
     if (
-      input.stage !== 'composition' ||
+      !['composition', 'frame'].includes(input.stage) ||
       !name.startsWith('production/') ||
       !packetPath(name.replace(/^production\//, 'packet/'))
     )
@@ -339,7 +362,9 @@ export const runEngineStage = async (input: {
         input.stage === 'composition'
           ? ['scene-producer', 'video-planner']
           : [skills[input.stage]],
-      files: skillFiles
+      files: input.skillFiles
+        ? { ...skillFiles, [skills[input.stage]]: input.skillFiles }
+        : skillFiles
     })
     for (const [name, body] of Object.entries({
       ...input.packet,
@@ -428,7 +453,9 @@ export const runEngineStage = async (input: {
               ? 'production'
               : input.stage === 'planning'
                 ? 'planning'
-                : undefined
+                : STORYBOARD_STAGES.includes(input.stage)
+                  ? 'storyboard'
+                  : undefined
         }
       },
       emit,
