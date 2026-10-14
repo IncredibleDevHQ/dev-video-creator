@@ -18,6 +18,7 @@ import { changeProject } from '../projects'
 import { Refusal } from '../refusal'
 import { probeSeconds } from '../voice'
 import { scheduleStoryboard } from './pipeline'
+import { takeRefusal } from './takes'
 
 /** A new storyboard production for the episode's pages, in order. */
 export const newStoryboard = (pages: string[]): Storyboard => ({
@@ -150,11 +151,8 @@ export const saveStoryboardTake = async (
       (entry) => entry.pageId === pageId
     )
     if (!scene) throw new Refusal('Scene not found')
-    if (
-      ['shots', 'frames', 'assemble', 'render'].includes(storyboard.stage) &&
-      storyboard.status === 'working'
-    )
-      throw new Refusal('Wait until this step finishes to change a take')
+    const refusal = takeRefusal(storyboard, scene)
+    if (refusal) throw new Refusal(refusal)
     const replaced = Boolean(scene.take)
     scene.take = { objectKey: stored.objectKey, duration }
     const page = current.project.slides.find((slide) => slide.id === pageId)

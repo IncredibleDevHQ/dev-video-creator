@@ -35,6 +35,7 @@ import {
   writeProjectFiles,
   type Internal
 } from './state'
+import { afterFrames } from './takes'
 
 const origin = () =>
   process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
@@ -447,11 +448,17 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
     throw new Error(
       `${failed.length} frame${failed.length === 1 ? '' : 's'} could not be built: ${failed.map((frame) => frame.number).join(', ')}`
     )
-  const unvoiced = (internal.plan?.scenes || []).filter(
-    (scene) => !(internal.voiced || []).includes(scene.pageId)
-  )
   await update(snapshot.project.id, (current, ledger) => {
-    if (unvoiced.length) {
+    const next = afterFrames(current.plan?.scenes || [], internal.voiced || [])
+    if (next === 'voice') {
+      // A take that came in while these frames were built is voiced next.
+      current.stage = 'voice'
+      return
+    }
+    if (next === 'wait') {
+      const waiting = (current.plan?.scenes || []).filter(
+        (scene) => !(internal.voiced || []).includes(scene.pageId)
+      ).length
       // Made as far as it can be: the rest waits for its takes.
       current.stage = 'voice'
       current.status = 'waiting'
@@ -459,7 +466,7 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
       addEvent(
         ledger,
         'video',
-        `Built what can be built; ${unvoiced.length} ${unvoiced.length === 1 ? 'scene waits' : 'scenes wait'} for your take`
+        `Built what can be built; ${waiting} ${waiting === 1 ? 'scene waits' : 'scenes wait'} for your take`
       )
       return
     }

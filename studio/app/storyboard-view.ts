@@ -55,7 +55,10 @@ ${frame.problem ? `<p class="sb-problem">${escape(frame.problem)}</p>` : ''}
 
 const takeBlock = (scene: SceneSummary, storyboard: Storyboard) => {
   if (scene.take === undefined) return ''
+  // A scene waiting for its take can have it any time; a take is not
+  // replaced while the episode is being built.
   const changing =
+    Boolean(scene.take) &&
     ['shots', 'frames', 'assemble', 'render'].includes(storyboard.stage) &&
     storyboard.status === 'working'
   const actions = changing
