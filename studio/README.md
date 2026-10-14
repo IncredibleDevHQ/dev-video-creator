@@ -118,6 +118,42 @@ live in Settings. The
 presenter stand-in is for rehearsal/testing; actual capture and clone quality
 still require the acceptance checks below.
 
+## Storyboard videos
+
+Make the video offers two ways under How it’s made. **Storyboard** (the
+default) plans the chosen pages as one episode and builds it as one
+Hyperframes project, the way Hyperframes’ faceless explainer does; **Scene by
+scene** is the earlier production. A storyboard video also takes its length:
+a range, and Must fit when the plan has to land inside it.
+
+1. **The plan.** The agent writes the episode’s storyboard: the message, one
+   structure (concept, how-to, listicle or story), and every page as a scene
+   of frames, each with its job (hook, the problem, a step, the evidence, the
+   takeaway…), its feeling, the words spoken over it (the page’s script, word
+   for word) and why it is there. Each scene has a build: **Faceless**
+   (invented visuals), **Motion graphics**, **On camera** (your take, with
+   designed cards) or **Screen demo** (a product capture). The page shows it
+   as a proposal: the message, who it is for, and every frame’s job. Change a
+   scene’s build, ask for a change in your words, or Approve and make.
+2. **Takes.** An on-camera scene asks for its lines: Record them in the
+   studio, or Upload a take. Until it comes the scene waits, and the other
+   scenes are made meanwhile; the take is cut at its frames by the words you
+   say. Replacing a take remakes that scene.
+3. **Made frame by frame.** The voice is spoken frame by frame and its words
+   timed for the captions; each scene’s shots are designed against those
+   times; one agent builds each frame and checks it with Hyperframes’ own
+   check, looking at snapshots of it before it hands it in. The studio
+   assembles the episode with Hyperframes’ scripts (captions, transitions),
+   checks it whole, sends back any frame the check refuses, and renders it.
+   The made video plays on the page, with a contact sheet of every frame.
+
+The notebook’s look becomes the episode’s design (`frame.md`, from the
+nearest Hyperframes preset with the look’s colours and fonts), so every
+episode of a series looks the same, and the brand’s logo appears only where
+the plan places it. The Hyperframes files the studio runs are vendored byte
+for byte at v0.8.143 in `skills/storyboard-master/hyperframes`; the CLI is
+the same pinned version (`npx hyperframes@0.8.143`, or `STUDIO_HYPERFRAMES_BIN`).
+
 ## The content map
 
 Map, beside Look on the Wireframe stage, opens the notebook's wireframes as a
@@ -136,6 +172,14 @@ notebook's source as evidence. By order shows the pages in the notebook's
 order, where a note's page is numbered where it was placed. By topic groups
 them: Group by topic asks the agent, and a later page joins a topic when its
 note's sorting finds one. Unused and From notes filter what is lit.
+
+Plan episodes plans the whole series from the map: give your own ideas for
+episodes, or leave them out and the agent groups the pages itself, one arc
+whose threads run from episode to episode. Say how long each episode runs,
+and whether it must fit. Episodes that exist stay; with Keep planning on,
+pages drawn later from notes are planned in. Each episode keeps its part of
+the arc, the threads and the length, and its storyboard calls back to the
+last episode and hands off to the next.
 
 Start a series makes the series for the map. + Episode asks what the episode
 is about. Let the agent choose picks the map's pages that tell it, in order,

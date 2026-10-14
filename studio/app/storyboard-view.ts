@@ -1,4 +1,4 @@
-// A storyboard video's page: the plan as a proposal ("This video tells …"),
+// A storyboard video's page: the plan as a proposal (its message, for whom),
 // each scene with its build and its frames' jobs, the takes a camera scene
 // waits for, and the made video. One line per level; detail opens on demand.
 import type { Snapshot } from '../shared/api'
@@ -91,10 +91,20 @@ ${takeBlock(scene, storyboard)}
 </li>`
 }
 
-const lengthLine = (storyboard: Storyboard) =>
-  storyboard.length
-    ? `${seconds(storyboard.length.min)}–${seconds(storyboard.length.max)}${storyboard.length.strict ? ', must fit' : ''}`
+// The plan's length against what was asked: "43 s · aim 25 s–1:00".
+const lengthLine = (storyboard: Storyboard) => {
+  const total = (storyboard.plan?.scenes || []).reduce(
+    (sum, scene) => sum + sceneSeconds(scene),
+    0
+  )
+  const asked = storyboard.length
+    ? `${storyboard.length.strict ? 'must fit' : 'aim'} ${seconds(storyboard.length.min)}–${seconds(storyboard.length.max)}`
     : ''
+  return [total ? seconds(total) : '', asked].filter(Boolean).join(' · ')
+}
+
+const structureLabel = (structure: string) =>
+  structure.charAt(0).toUpperCase() + structure.slice(1).replace(/-/g, ' ')
 
 const statusLine = (storyboard: Storyboard) => {
   const total = frameCount(storyboard)
@@ -129,8 +139,9 @@ export const storyboardScreen = (snapshot: Snapshot) => {
 <p class="sb-kicker" role="status">${escape(statusLine(storyboard))}</p>
 ${
   plan
-    ? `<h2>This video tells ${escape(plan.audience)} that ${escape(plan.message.replace(/\.$/, ''))}.</h2>
-<p class="sb-meta">${escape(plan.structure)} · opens with ${escape(plan.hook.toLowerCase())}${lengthLine(storyboard) ? ` · ${escape(lengthLine(storyboard))}` : ''}</p>${plan.continuity ? `<p class="sb-meta">${escape(plan.continuity)}</p>` : ''}`
+    ? `<h2>${escape(plan.message)}</h2>
+<p class="sb-for">For ${escape(plan.audience)}</p>
+<p class="sb-meta">${escape(structureLabel(plan.structure))} · opens with ${escape(plan.hook.toLowerCase())}${lengthLine(storyboard) ? ` · ${escape(lengthLine(storyboard))}` : ''}</p>${plan.continuity ? `<p class="sb-meta">${escape(plan.continuity)}</p>` : ''}`
     : '<h2>Planning the episode</h2><p class="sb-meta">The message, its structure and every frame’s job come first; you approve them before anything is built.</p>'
 }
 </div>

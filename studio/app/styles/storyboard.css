@@ -22,6 +22,10 @@
   line-height: 1.3;
   text-wrap: balance;
 }
+.sb-for {
+  margin: 0;
+  font-size: 14px;
+}
 .sb-kicker {
   margin: 0;
   font-size: 12px;
