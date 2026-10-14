@@ -8,7 +8,7 @@ import {
 } from './plan-check'
 import { renderScript, renderStoryboard } from './plan-files'
 import { upstreamPath } from './hyperframes'
-import { episodeBrief } from './plan'
+import { episodeBrief, pageScript } from './plan'
 
 const pages = [
   {
@@ -216,4 +216,19 @@ it('briefs the episode with its length, the series around it and the creator’s
   expect(brief).toMatch(/Previously: We met the request timer\./)
   expect(brief).toMatch(/Open on the numbers/)
   expect(brief).toMatch(/no camera scenes/)
+})
+
+it('speaks an episode page once: its script already holds its segues', () => {
+  const bridge = 'So when does it stop being enough?'
+  const base = 'For many customers, it simply works.'
+  const outro = 'Next time: the pipeline.'
+  const slide = {
+    id: 'p',
+    title: 'P',
+    bridge,
+    base,
+    outro,
+    narration: [bridge, base, outro].join(' ')
+  } as Parameters<typeof pageScript>[0]
+  expect(pageScript(slide)).toBe(`${bridge} ${base} ${outro}`)
 })

@@ -38,13 +38,10 @@ export const blueprintIds = () =>
     .filter((name) => name.endsWith('.md'))
     .map((name) => name.replace(/\.md$/, ''))
 
-/** What is spoken over a page in this episode: its line in, its script, its
- * line out. */
-export const pageScript = (slide: Slide) =>
-  [slide.bridge, slide.narration, slide.outro]
-    .map((part) => (part || '').trim())
-    .filter(Boolean)
-    .join(' ')
+/** What is spoken over a page: its script. In an episode the script already
+ * holds the page's line in and line out (composeNarration), so they are
+ * never added again. */
+export const pageScript = (slide: Slide) => (slide.narration || '').trim()
 
 export const planPages = (snapshot: Snapshot, pages: string[]): PlanPage[] =>
   pages.map((id) => {
