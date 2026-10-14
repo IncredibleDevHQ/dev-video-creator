@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Branding } from '../../shared/settings'
 import { dataRoot } from '../persistence'
-import { cliTail, runCli, runScript } from './hyperframes'
+import { cliTail, presetDir, runCli, runScript } from './hyperframes'
 
 export const storyboardsRoot = () => join(dataRoot, 'storyboards')
 export const productionDir = (projectId: string, productionId: string) =>
@@ -90,6 +90,76 @@ const PRESET_NAME = /^[a-z0-9-]+$/
  * folder. A folder already made is kept, so a resumed production keeps its
  * built frames.
  */
+const COLOR_LINE = /^(\s+)([\w-]+):\s*"?(#[0-9a-fA-F]{6})"?(.*)$/
+const GROUND_KEY = /^(bg|background|canvas|paper|ground|surface)$/
+
+/** The `colors:` block of a frame.md: each key's hex. */
+const colorsOf = (md: string) => {
+  const found = new Map<string, string>()
+  let inside = false
+  for (const line of md.split(/\r?\n/)) {
+    if (/^colors:\s*$/.test(line)) inside = true
+    else if (inside && /^\S/.test(line)) break
+    else if (inside) {
+      const match = COLOR_LINE.exec(line)
+      if (match) found.set(match[2], match[3].toLowerCase())
+    }
+  }
+  return found
+}
+const channels = (hex: string) =>
+  [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16))
+const chroma = (hex: string) =>
+  Math.max(...channels(hex)) - Math.min(...channels(hex))
+const isDark = (hex: string) => {
+  const [r, g, b] = channels(hex)
+  return 0.299 * r + 0.587 * g + 0.114 * b < 128
+}
+
+/**
+ * Greys stay grey. With a preset of one accent, build-frame (upstream)
+ * takes one of its greys for the second accent and paints it with the
+ * brand's second colour: the muted text of a white Cloudflare look came out
+ * mint. A preset's neutral colour that came back coloured gets the preset's
+ * own grey again, mirrored when the brand's ground is dark and the preset's
+ * light.
+ */
+export const keepGreys = (frame: string, preset: string) => {
+  const before = colorsOf(preset)
+  const after = colorsOf(frame)
+  const ground = [...before.keys()].find((key) => GROUND_KEY.test(key))
+  const flipped =
+    ground !== undefined &&
+    after.has(ground) &&
+    isDark(before.get(ground)!) !== isDark(after.get(ground)!)
+  const greys = new Map<string, string>()
+  for (const [key, hex] of before)
+    if (chroma(hex) < 16 && after.has(key) && chroma(after.get(key)!) >= 16)
+      greys.set(
+        key,
+        flipped
+          ? `#${channels(hex)
+              .map((value) => (255 - value).toString(16).padStart(2, '0'))
+              .join('')}`
+          : hex
+      )
+  if (!greys.size) return frame
+  let inside = false
+  return frame
+    .split('\n')
+    .map((line) => {
+      if (/^colors:\s*$/.test(line)) inside = true
+      else if (inside && /^\S/.test(line)) inside = false
+      else if (inside) {
+        const match = COLOR_LINE.exec(line)
+        if (match && greys.has(match[2]))
+          return `${match[1]}${match[2]}: "${greys.get(match[2])}"${match[4]}`
+      }
+      return line
+    })
+    .join('\n')
+}
+
 // The studio's own Inter, one variable file for every weight.
 const INTER = fileURLToPath(
   new URL('../../app/assets/inter.woff2', import.meta.url)
@@ -152,6 +222,12 @@ export const createWorkspace = async (input: {
     ['--preset', preset, '--hyperframes', dir],
     dir
   )
+  const made = await readFile(join(dir, 'frame.md'), 'utf8')
+  const kept = keepGreys(
+    made,
+    await readFile(join(presetDir(), preset, 'FRAME.md'), 'utf8')
+  )
+  if (kept !== made) await writeFile(join(dir, 'frame.md'), kept)
   return dir
 }
 

@@ -62,7 +62,9 @@ creator's pages and whose words are the creator's scripts.
    to the length: the sum of the durations must fit the brief's range when it
    is strict.
 6. **Video direction**, once for the episode: `palette` (which roles of
-   `FRAME.md` carry what), `motion` (the grammar and the reveal model: each
+   `FRAME.md` carry what, named by role: the ground, the text, the accent;
+   colour names in its prose belong to the preset it was made from, not to
+   this brand), `motion` (the grammar and the reveal model: each
    piece on its spoken cue, long-tail eases), `held` (which frames hold still,
    and why), `never` (what never appears, including the slideshow and the
    screensaver).

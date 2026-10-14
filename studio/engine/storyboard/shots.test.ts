@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import { checkShots } from './shots'
 import { frameShapeProblems, workerPacket } from './frames'
-import { presetFor, tokensFor } from './workspace'
+import { keepGreys, presetFor, tokensFor } from './workspace'
 import { evenWords, frameWords } from './voice'
 import { lookTimes } from './check'
 import { frameId } from '../../shared/storyboard'
@@ -164,4 +164,18 @@ it('times words for captions, from the aligner or spread evenly', () => {
     evenWords('one two three', 3)
   )
   expect(lookTimes(4)).toEqual([0.8, 2.2, 3.75])
+})
+
+it('keeps a preset grey grey when the remix paints it a brand colour', () => {
+  const preset = 'colors:\n  bg: "#fdfae7"\n  text-muted: "#6b6b6b"\nradii:\n'
+  const made = 'colors:\n  bg: "#ffffff"\n  text-muted: "#99ffe4"\nradii:\n'
+  expect(keepGreys(made, preset)).toBe(
+    'colors:\n  bg: "#ffffff"\n  text-muted: "#6b6b6b"\nradii:\n'
+  )
+  // On a dark brand ground the grey is mirrored.
+  const dark = 'colors:\n  bg: "#101010"\n  text-muted: "#99ffe4"\nradii:\n'
+  expect(keepGreys(dark, preset)).toContain('text-muted: "#949494"')
+  // A grey that stayed grey is left alone.
+  const fine = 'colors:\n  bg: "#ffffff"\n  text-muted: "#6a6a6c"\nradii:\n'
+  expect(keepGreys(fine, preset)).toBe(fine)
 })
