@@ -32,6 +32,8 @@ export type Internal = {
   voiceName?: string
   /** The brand's logo in the project (assets/brand/logo.*), when it has one. */
   logo?: string
+  /** The pages already voiced (their take cut, or spoken). */
+  voiced?: string[]
 }
 
 const statePath = (dir: string) => join(dir, '.studio', 'state.json')

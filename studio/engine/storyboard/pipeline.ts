@@ -211,6 +211,16 @@ export const missingTakes = (storyboard: Storyboard, recordVoice: boolean) =>
     .filter((scene) => (scene.build === 'camera' || recordVoice) && !scene.take)
     .map((scene) => scene.pageId)
 
+/** A scene that needs the creator's take: a camera scene, or every scene
+ * when the creator speaks the whole episode. */
+const needsTake = (build: string, recordVoice: boolean) =>
+  build === 'camera' || recordVoice
+
+/**
+ * Voices every scene that can be voiced now: those with no take to wait for,
+ * and those whose take has come. A scene still waiting for its take is left
+ * for later; the others go on to their shots and frames meanwhile.
+ */
 const voiceStage = async ({
   snapshot,
   storyboard,
@@ -219,24 +229,47 @@ const voiceStage = async ({
 }: StageInput) => {
   const settings = snapshot.project.video!.settings
   const recordVoice = settings.voice.kind === 'record'
-  const missing = missingTakes(storyboard, recordVoice)
-  if (missing.length) {
+  const plan = internal.plan!
+  const frames = episodeFrames(plan)
+  // A take replaced: its scene is voiced, designed and built again.
+  const redo = storyboard.redo || []
+  internal.voiced = (internal.voiced || []).filter(
+    (page) => !redo.includes(page)
+  )
+  for (const frame of frames.filter((entry) => redo.includes(entry.pageId))) {
+    delete internal.shots?.[frame.number]
+    if (internal.statuses) internal.statuses[frame.number] = 'outline'
+  }
+  const summary = new Map(
+    (storyboard.plan?.scenes || []).map((scene) => [scene.pageId, scene])
+  )
+  const ready = plan.scenes.filter(
+    (scene) =>
+      !internal.voiced!.includes(scene.pageId) &&
+      (!needsTake(scene.build, recordVoice) || summary.get(scene.pageId)?.take)
+  )
+  if (!ready.length) {
+    await writeInternal(dir, internal)
+    const waiting = missingTakes(storyboard, recordVoice).length > 0
     await update(snapshot.project.id, (current) => {
-      current.status = 'waiting'
-      current.waitingFor = 'takes'
+      delete current.redo
+      if (waiting) {
+        current.status = 'waiting'
+        current.waitingFor = 'takes'
+      } else current.stage = 'shots'
     })
-    return 'stop' as const
+    return waiting ? ('stop' as const) : undefined
   }
   const takes: Record<string, string> = {}
+  const captures: Record<string, string> = {}
   await mkdir(join(dir, '.studio', 'takes'), { recursive: true })
-  for (const scene of storyboard.plan?.scenes || [])
-    if (scene.take) {
+  for (const scene of ready) {
+    const take = summary.get(scene.pageId)?.take
+    if (take) {
       const path = join(dir, '.studio', 'takes', `${scene.pageId}.media`)
-      await writeFile(path, await readAsset(scene.take.objectKey))
+      await writeFile(path, await readAsset(take.objectKey))
       takes[scene.pageId] = path
     }
-  const captures: Record<string, string> = {}
-  for (const scene of storyboard.plan?.scenes || []) {
     const capture = snapshot.project.slides.find(
       (slide) => slide.id === scene.pageId
     )?.capture
@@ -247,18 +280,27 @@ const voiceStage = async ({
       captures[scene.pageId] = path
     }
   }
-  const frames = episodeFrames(internal.plan!)
-  const voice = recordVoice ? {} : await resolveVoice(settings.voice)
+  const pages = ready.map((scene) => scene.pageId)
+  const voice =
+    recordVoice || ready.every((scene) => takes[scene.pageId])
+      ? {}
+      : await resolveVoice(settings.voice)
   const audio = await prepareEpisodeAudio({
     dir,
-    frames,
+    frames: frames.filter((frame) => pages.includes(frame.pageId)),
     voice,
     takes,
-    captures
+    captures,
+    previous: {
+      voices: internal.voices,
+      durations: internal.durations,
+      media: internal.media
+    }
   })
   internal.voices = audio.meta.voices
   internal.durations = audio.durations
   internal.media = audio.media
+  internal.voiced = [...internal.voiced!, ...pages]
   internal.voiceName =
     settings.voice.kind === 'record'
       ? 'The creator'
@@ -270,15 +312,20 @@ const voiceStage = async ({
   await update(snapshot.project.id, (current, ledger) => {
     current.plan = planSummary(internal, takesOf(current))
     current.stage = 'shots'
-    addEvent(ledger, 'video', 'The voice is recorded and timed', {
-      activity: 'complete'
-    })
+    delete current.redo
+    addEvent(
+      ledger,
+      'video',
+      `Voiced and timed: ${ready.length} ${ready.length === 1 ? 'scene' : 'scenes'}`,
+      { activity: 'complete' }
+    )
   })
 }
 
 const LAYOUTS = ['overlay.html', 'pip.html', 'split.html', 'stack.html']
 const MOTION = ['motion-vocabulary.md']
 
+/** Designs the shots of every voiced scene that has none yet. */
 const shotsStage = async ({
   snapshot,
   storyboard,
@@ -291,7 +338,14 @@ const shotsStage = async ({
   const blueprints = blueprintIds()
   const selection = await selectionOf(snapshot)
   internal.shots ||= {}
-  const scenes = plan.scenes.map((_, index) => index)
+  const scenes = plan.scenes
+    .map((scene, index) => ({ scene, index }))
+    .filter(
+      ({ scene }) =>
+        (internal.voiced || []).includes(scene.pageId) &&
+        scene.frames.some((frame) => !internal.shots![frame.number])
+    )
+    .map(({ index }) => index)
   let cursor = 0
   const lane = async () => {
     while (cursor < scenes.length) {
@@ -311,6 +365,7 @@ const shotsStage = async ({
         extraFiles: buildFiles(plan.scenes[index].build, LAYOUTS, MOTION)
       })
       for (const shot of shots) internal.shots![shot.number] = shot
+      await writeInternal(dir, internal)
     }
   }
   await Promise.all(Array.from({ length: Math.min(3, scenes.length) }, lane))
@@ -318,12 +373,18 @@ const shotsStage = async ({
   await writeProjectFiles(dir, internal)
   await update(snapshot.project.id, (current, ledger) => {
     current.stage = 'frames'
-    addEvent(ledger, 'video', 'Every frame has its shot', {
-      activity: 'complete'
-    })
+    if (scenes.length)
+      addEvent(
+        ledger,
+        'video',
+        `Shots designed: ${scenes.length} ${scenes.length === 1 ? 'scene' : 'scenes'}`,
+        { activity: 'complete' }
+      )
   })
 }
 
+/** Builds every designed frame not built yet; then assembles, or waits for
+ * the takes still to come. */
 const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
   const frames = episodeFrames(internal.plan!)
   internal.statuses ||= {}
@@ -332,7 +393,9 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
   await writeFramePackets(dir)
   const selection = await selectionOf(snapshot)
   const todo = frames.filter(
-    (frame) => internal.statuses![frame.number] !== 'animated'
+    (frame) =>
+      internal.shots?.[frame.number] &&
+      internal.statuses![frame.number] !== 'animated'
   )
   let cursor = 0
   const save = async () => {
@@ -376,14 +439,29 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
     Array.from({ length: Math.min(concurrency(), todo.length) }, lane)
   )
   await writeProjectFiles(dir, internal)
-  const failed = frames.filter(
+  const failed = todo.filter(
     (frame) => internal.statuses![frame.number] !== 'animated'
   )
   if (failed.length)
     throw new Error(
       `${failed.length} frame${failed.length === 1 ? '' : 's'} could not be built: ${failed.map((frame) => frame.number).join(', ')}`
     )
+  const unvoiced = (internal.plan?.scenes || []).filter(
+    (scene) => !(internal.voiced || []).includes(scene.pageId)
+  )
   await update(snapshot.project.id, (current, ledger) => {
+    if (unvoiced.length) {
+      // Made as far as it can be: the rest waits for its takes.
+      current.stage = 'voice'
+      current.status = 'waiting'
+      current.waitingFor = 'takes'
+      addEvent(
+        ledger,
+        'video',
+        `Built what can be built; ${unvoiced.length} ${unvoiced.length === 1 ? 'scene waits' : 'scenes wait'} for your take`
+      )
+      return
+    }
     current.stage = 'assemble'
     addEvent(ledger, 'video', 'Every frame is built', { activity: 'complete' })
   })

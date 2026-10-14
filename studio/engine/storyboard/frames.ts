@@ -141,8 +141,9 @@ export const buildFrame = async (input: {
     '- Canvas: 1920×1080',
     '- Captions: enabled. Keep every element above y = 900 (the bottom 17% is the caption band).',
     '- Confirmed sketch: none',
-    `- Media: ${input.media ? `production/${input.media}` : 'none'}`,
-    `- Logo: ${input.logo ? `production/${input.logo} (the brand's own: place it as the shot says, never redraw or recolour it)` : 'none'}`,
+    '- Paths: a file under PROJECT_DIR is referenced from the composition by its path inside it (assets/…), never with production/ in front.',
+    `- Media: ${input.media ? `${input.media} (muted <video>; the file is production/${input.media})` : 'none'}`,
+    `- Logo: ${input.logo ? `${input.logo} (the brand's own: place it as the shot says, never redraw or recolour it)` : 'none'}`,
     ...(input.findings?.length
       ? [
           '',

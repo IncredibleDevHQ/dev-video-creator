@@ -205,6 +205,8 @@ export type Storyboard = {
   builds?: Record<string, BuildType>
   /** A change the creator asked the plan to take, before approving it. */
   note?: string
+  /** Pages whose take was replaced after they were voiced: made again. */
+  redo?: string[]
   approved?: boolean
   contactSheetKey?: string
   produced?: { objectKey: string; duration: number; posterKey?: string }

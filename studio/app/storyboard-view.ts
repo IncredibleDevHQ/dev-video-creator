@@ -138,8 +138,8 @@ ${actions ? `<div class="sb-actions">${actions}</div>` : ''}
 </div>
 ${storyboard.status === 'failed' && storyboard.error ? `<p class="sb-alert" role="alert">${escape(storyboard.error)}</p>` : ''}
 ${
-  storyboard.waitingFor === 'takes' && missing.length
-    ? `<p class="sb-alert is-waiting">${missing.length === 1 ? 'One scene waits' : `${missing.length} scenes wait`} for your take. The rest is ready to make.</p>`
+  storyboard.approved && missing.length
+    ? `<p class="sb-alert is-waiting">${missing.length === 1 ? 'One scene waits' : `${missing.length} scenes wait`} for your take: record it or upload it below. ${storyboard.waitingFor === 'takes' ? 'Everything else is made.' : 'Everything else is being made meanwhile.'}</p>`
     : ''
 }
 ${

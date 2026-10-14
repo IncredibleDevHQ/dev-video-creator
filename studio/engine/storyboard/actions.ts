@@ -17,7 +17,7 @@ import { storeAsset } from '../persistence'
 import { changeProject } from '../projects'
 import { Refusal } from '../refusal'
 import { probeSeconds } from '../voice'
-import { missingTakes, scheduleStoryboard } from './pipeline'
+import { scheduleStoryboard } from './pipeline'
 
 /** A new storyboard production for the episode's pages, in order. */
 export const newStoryboard = (pages: string[]): Storyboard => ({
@@ -155,19 +155,24 @@ export const saveStoryboardTake = async (
       storyboard.status === 'working'
     )
       throw new Refusal('Wait until this step finishes to change a take')
+    const replaced = Boolean(scene.take)
     scene.take = { objectKey: stored.objectKey, duration }
     const page = current.project.slides.find((slide) => slide.id === pageId)
     addEvent(current, 'video', `Take saved for “${page?.title || 'a scene'}”`, {
       activity: 'complete'
     })
-    const recordVoice = current.project.video?.settings.voice.kind === 'record'
-    if (
-      storyboard.waitingFor === 'takes' &&
-      !missingTakes(storyboard, recordVoice).length
-    ) {
-      storyboard.status = 'working'
-      delete storyboard.waitingFor
-      resume = true
+    // Once the plan is approved, a take carries the production on: the
+    // scene is voiced, designed and built from it (again, when replaced).
+    if (storyboard.approved) {
+      if (replaced)
+        storyboard.redo = [...new Set([...(storyboard.redo || []), pageId])]
+      if (storyboard.waitingFor === 'takes' || storyboard.status === 'done') {
+        storyboard.stage = 'voice'
+        storyboard.status = 'working'
+        delete storyboard.waitingFor
+        delete storyboard.produced
+        resume = true
+      }
     }
     storyboard.updatedAt = new Date().toISOString()
   })

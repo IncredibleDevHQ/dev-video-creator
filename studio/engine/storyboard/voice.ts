@@ -4,7 +4,7 @@
 // video's voice; a scene with the creator's take speaks with the take,
 // cut where its frames' lines begin. Measured lengths become the frames'
 // durations (sync-durations: the real voice wins).
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { BuildType, PlanFrame } from '../../shared/storyboard'
 import { alignTake, takeClockOf, type AlignedLine } from '../take-clock'
@@ -268,7 +268,9 @@ const cutCapture = async (
 }
 
 /**
- * The episode's audio: audio_meta.json, each frame's measured length, and
+ * The episode's audio, scene by scene: the frames given are voiced now
+ * (their take cut, or spoken), merged with what was voiced before, and
+ * audio_meta.json written whole. Returns each frame's measured length and
  * the media each camera or screen frame plays.
  */
 export const prepareEpisodeAudio = async (input: {
@@ -279,16 +281,36 @@ export const prepareEpisodeAudio = async (input: {
   takes: Record<string, string>
   /** A product capture on disk per screen page. */
   captures: Record<string, string>
+  /** What earlier scenes were voiced with. */
+  previous?: {
+    voices?: FrameVoice[]
+    durations?: Record<number, number>
+    media?: Record<number, string>
+  }
 }) => {
   const { dir, frames } = input
-  await mkdir(join(dir, '.studio'), { recursive: true })
-  await rm(join(dir, 'assets', 'voice'), { recursive: true, force: true })
-  await mkdir(join(dir, 'assets', 'voice'), { recursive: true })
-  await mkdir(join(dir, 'assets', 'takes'), { recursive: true })
-  await mkdir(join(dir, 'assets', 'captures'), { recursive: true })
+  for (const folder of [
+    '.studio',
+    'assets/voice',
+    'assets/takes',
+    'assets/captures'
+  ])
+    await mkdir(join(dir, folder), { recursive: true })
+  const now = new Set(frames.map((frame) => frame.number))
   const pages = [...new Set(frames.map((frame) => frame.pageId))]
-  const voices: FrameVoice[] = []
-  const media: Record<number, string> = {}
+  const voices: FrameVoice[] = (input.previous?.voices || []).filter(
+    (entry) => !now.has(entry.frame)
+  )
+  const media: Record<number, string> = Object.fromEntries(
+    Object.entries(input.previous?.media || {}).filter(
+      ([frame]) => !now.has(Number(frame))
+    )
+  )
+  const durations: Record<number, number> = Object.fromEntries(
+    Object.entries(input.previous?.durations || {}).filter(
+      ([frame]) => !now.has(Number(frame))
+    )
+  )
   const spoken: EpisodeFrame[] = []
   for (const page of pages) {
     const scene = frames.filter((frame) => frame.pageId === page)
@@ -301,7 +323,6 @@ export const prepareEpisodeAudio = async (input: {
   }
   voices.push(...(await speakFrames(dir, spoken, input.voice)))
   voices.sort((a, b) => a.frame - b.frame)
-  const durations: Record<number, number> = {}
   for (const frame of frames) {
     const entry = voices.find((item) => item.frame === frame.number)
     durations[frame.number] = entry ? entry.duration_s : frame.duration
