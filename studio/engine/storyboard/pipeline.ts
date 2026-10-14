@@ -23,6 +23,7 @@ import { buildFrame, writeFramePackets } from './frames'
 import {
   assembleEpisode,
   checkEpisode,
+  episodePoster,
   episodeSheet,
   renderEpisode
 } from './assemble'
@@ -538,9 +539,24 @@ const renderStage = async ({ snapshot, dir, internal }: StageInput) => {
     extension: '.mp4',
     projectId: snapshot.project.id
   })
+  const first = episodeFrames(internal.plan!)[0]
+  const poster = await episodePoster(
+    output,
+    Math.max(0.5, (internal.durations?.[first.number] ?? first.duration) - 0.3)
+  ).catch(() => null)
+  const posterStored = poster
+    ? await storeAsset({
+        body: await readFile(poster),
+        contentType: 'image/jpeg',
+        kind: 'storyboard-poster',
+        extension: '.jpg',
+        projectId: snapshot.project.id
+      })
+    : null
   const goal = internal.length
   await update(snapshot.project.id, (current, ledger) => {
     current.produced = { objectKey: stored.objectKey, duration }
+    if (posterStored) current.posterKey = posterStored.objectKey
     current.stage = 'done'
     current.status = 'done'
     delete current.waitingFor

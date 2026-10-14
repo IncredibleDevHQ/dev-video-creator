@@ -15,6 +15,7 @@ import { tryFrame } from '../engine/storyboard/check'
 import {
   assembleEpisode,
   checkEpisode,
+  episodePoster,
   episodeSheet,
   renderEpisode
 } from '../engine/storyboard/assemble'
@@ -251,6 +252,7 @@ it('runs the storyboard machinery end to end on stub frames', async () => {
     0
   )
   expect(Math.abs(length - total)).toBeLessThan(1)
+  expect(await episodePoster(output, 1)).toMatch(/poster\.jpg$/)
   // To look at what it made: STORYBOARD_MACHINERY_OUT=<folder>.
   if (process.env.STORYBOARD_MACHINERY_OUT)
     await cp(dir, process.env.STORYBOARD_MACHINERY_OUT, { recursive: true })

@@ -5,6 +5,7 @@
 // then one render.
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { runCommand } from '../voice'
 import { cliTail, runCli, runScript } from './hyperframes'
 import {
   checkProject,
@@ -79,4 +80,26 @@ export const renderEpisode = async (dir: string, signal?: AbortSignal) => {
   if (result.code !== 0 || !existsSync(output))
     throw new Error(`The render failed: ${cliTail(result)}`)
   return output
+}
+
+/** The made video's poster: the picture at `at` seconds (the hook built). */
+export const episodePoster = async (video: string, at: number) => {
+  const output = join(video, '..', 'poster.jpg')
+  await runCommand(
+    'ffmpeg',
+    [
+      '-y',
+      '-ss',
+      String(at),
+      '-i',
+      video,
+      '-frames:v',
+      '1',
+      '-q:v',
+      '3',
+      output
+    ],
+    60_000
+  )
+  return existsSync(output) ? output : null
 }

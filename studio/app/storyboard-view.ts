@@ -128,10 +128,7 @@ export const storyboardScreen = (snapshot: Snapshot) => {
   const missing = (plan?.scenes || []).filter((scene) => scene.take === null)
   const actions = [
     reviewing ? button('Approve and make', 'sb-approve', true) : '',
-    storyboard.status === 'failed' ? button('Try again', 'sb-retry', true) : '',
-    storyboard.produced
-      ? `<a class="button primary" href="/objects/${escape(storyboard.produced.objectKey)}" download="video.mp4">Download MP4</a>`
-      : ''
+    storyboard.status === 'failed' ? button('Try again', 'sb-retry', true) : ''
   ].join('')
   return `<section class="storyboard" aria-label="Storyboard">
 <div class="sb-head">
@@ -155,7 +152,7 @@ ${
 }
 ${
   storyboard.produced
-    ? `<div class="sb-video"><video src="/objects/${escape(storyboard.produced.objectKey)}" controls playsinline preload="metadata"></video>${storyboard.lengthNote ? `<p class="sb-meta">${escape(storyboard.lengthNote)}</p>` : ''}</div>`
+    ? `<div class="sb-video"><video src="/objects/${escape(storyboard.produced.objectKey)}"${storyboard.posterKey ? ` poster="/objects/${escape(storyboard.posterKey)}"` : ''} controls playsinline preload="metadata"></video>${storyboard.lengthNote ? `<p class="sb-meta">${escape(storyboard.lengthNote)}</p>` : ''}</div>`
     : ''
 }
 ${plan ? `<ol class="sb-scenes">${plan.scenes.map((scene, index) => sceneBlock(snapshot, storyboard, scene, index)).join('')}</ol>` : ''}

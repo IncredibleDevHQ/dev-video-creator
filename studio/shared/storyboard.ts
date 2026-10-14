@@ -209,6 +209,8 @@ export type Storyboard = {
   redo?: string[]
   approved?: boolean
   contactSheetKey?: string
+  /** The made video's poster: its hook, built. */
+  posterKey?: string
   produced?: { objectKey: string; duration: number; posterKey?: string }
   /** Where the cut landed against the length asked for. */
   lengthNote?: string
