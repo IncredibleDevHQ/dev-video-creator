@@ -225,6 +225,7 @@ it('runs the storyboard machinery end to end on stub frames', async () => {
       })
       expect(tried.problems).toEqual([])
       expect(tried.snapshots.length).toBeGreaterThan(0)
+      expect(tried.fill[0]).toMatch(/its fullest moment, the content spans/)
     }
     await writeFile(
       join(dir, 'compositions', 'frames', `${entry.id}.html`),

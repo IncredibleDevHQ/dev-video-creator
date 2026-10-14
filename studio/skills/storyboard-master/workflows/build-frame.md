@@ -29,8 +29,11 @@ Write `production/compositions/frames/<frame_id>.html`: exactly one
 
 - `storyboard_try_frame` runs Hyperframes' own `check` on your frame alone and
   returns its findings and the paths of snapshots at the start, middle and
-  end. Read the snapshots: does the frame read as its shot says, is the hero
-  big enough (40–60% of the frame), nothing cut by the edge, nothing in the
-  caption band, nothing dumped at once? Fix what you see.
+  end. `fill` measures how much of the picture above the captions your
+  content spans at its fullest moment; a "Sparse frame" warning means the
+  hero is too small for the frame. Read the snapshots: does the frame read as
+  its shot says, is the hero big enough (40–60% of the frame), nothing cut by
+  the edge, nothing in the caption band, nothing dumped at once? Fix what you
+  see, then try again.
 - `storyboard_submit_frame` checks the frame again and accepts it when it has
   no errors. A refusal lists what to fix. Stop once accepted.

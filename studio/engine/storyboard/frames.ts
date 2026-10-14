@@ -187,6 +187,7 @@ export const buildFrame = async (input: {
         html,
         problems: shape,
         warnings: [] as string[],
+        fill: [] as string[],
         snapshots: [] as string[]
       }
     const tried = await tryFrame({
@@ -251,12 +252,13 @@ export const buildFrame = async (input: {
       {
         name: 'storyboard_try_frame',
         description:
-          "Check this frame alone with Hyperframes' check and return its findings and snapshot paths",
+          "Check this frame alone with Hyperframes' check and return its findings, how much of the picture it fills, and snapshot paths",
         inputSchema: submissionSchema,
         call: () =>
           trial(runDir).then((result) => ({
             problems: result.problems,
             warnings: result.warnings,
+            fill: result.fill,
             snapshots: result.snapshots
           }))
       },

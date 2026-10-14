@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs'
 import { cp, mkdir, rm, symlink, writeFile, readdir } from 'node:fs/promises'
 import { basename, join, relative } from 'node:path'
 import { cliJson, cliTail, runCli, runScript } from './hyperframes'
+import { frameFill } from './fill'
 
 export type Finding = {
   code: string
@@ -173,6 +174,7 @@ export const tryFrame = async (input: {
           : String(error)
       ],
       warnings: [] as string[],
+      fill: [] as string[],
       snapshots: [] as string[]
     }
   }
@@ -181,9 +183,14 @@ export const tryFrame = async (input: {
   const shots = checked.errors.length
     ? { frames: [] }
     : await snapshotProject(trial, times, join(trial, 'snapshots'))
+  const fill = await frameFill(shots.frames, times)
   return {
     problems: checked.errors.map(findingLine),
-    warnings: checked.warnings.map(findingLine),
+    warnings: [
+      ...checked.warnings.map(findingLine),
+      ...(fill.warning ? [fill.warning] : [])
+    ],
+    fill: fill.lines,
     snapshots: shots.frames
   }
 }
