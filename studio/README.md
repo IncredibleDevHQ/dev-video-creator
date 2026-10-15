@@ -132,20 +132,27 @@ a range, and Must fit when the plan has to land inside it.
    takeaway…), its feeling, the words spoken over it (the page’s script, word
    for word) and why it is there. Each scene has a build: **Faceless**
    (invented visuals), **Motion graphics**, **On camera** (your take, with
-   designed cards) or **Screen demo** (a product capture). The page shows it
-   as a proposal: the message, who it is for, and every frame’s job. Change a
-   scene’s build, ask for a change in your words, or Approve and make.
-2. **Takes.** An on-camera scene asks for its lines: Record them in the
-   studio, or Upload a take. Until it comes the scene waits, and the other
-   scenes are made meanwhile; the take is cut at its frames by the words you
-   say. Replacing a take remakes that scene.
+   designed cards) or **Screen demo** (a product capture). The Video page lays
+   the episode out like the Wireframe page: its scenes in the rail, the chosen
+   scene on the stage, its frames in a strip under it and the chosen frame’s
+   line, reason and picture below. Above it, the proposal: the message, who it
+   is for, the length and how it carries on from the episode before. Change a
+   scene’s build, Change the plan in your words, or Approve and make.
+2. **Takes.** An on-camera scene asks for its lines. Record records in place,
+   as the Video page always has: the camera comes on beside the page, a
+   three-second countdown, then one line at a time on the prompter (Enter for
+   the next, Esc to stop); review the take, then Save take, Retake or Discard.
+   Or Upload one. Until it comes the scene waits, and the other scenes are
+   made meanwhile; the take is cut at its frames by the words you say.
+   Replacing a take remakes that scene.
 3. **Made frame by frame.** The voice is spoken frame by frame and its words
    timed for the captions; each scene’s shots are designed against those
    times; one agent builds each frame and checks it with Hyperframes’ own
    check, looking at snapshots of it before it hands it in. The studio
    assembles the episode with Hyperframes’ scripts (captions, transitions),
    checks it whole, sends back any frame the check refuses, and renders it.
-   The made video plays on the page, with a contact sheet of every frame.
+   The made video plays on the stage: choosing a scene or a frame seeks to
+   it, and the rail and the strip follow as it plays.
 
 The notebook’s look becomes the episode’s design (`frame.md`, from the
 nearest Hyperframes preset with the look’s colours and fonts), so every

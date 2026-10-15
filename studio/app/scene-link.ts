@@ -6,6 +6,7 @@ export { productionChoice } from './production-choice'
 import type { Snapshot } from '../shared/api'
 import type { Scene, Slide } from '../shared/model'
 import { sceneDisplay, videoOpens } from '../shared/state'
+import { BUILD_LABELS } from '../shared/storyboard'
 import { escape, button } from './ui'
 
 export const sceneOfSlide = (snapshot: Snapshot, slideId?: string) =>
@@ -71,6 +72,31 @@ export const sceneLink = (
     line: `<div class="scene-line is-${kind}" role="group" aria-label="Scene ${number} of the video"><span>${words}</span>${actions}</div>`,
     pip: ''
   })
+  // A storyboard video: the page's scene in it, made the storyboard's way.
+  const storyboard = snapshot.project.video?.storyboard
+  if (storyboard) {
+    const scenes = storyboard.plan?.scenes || []
+    const at = scenes.findIndex((entry) => entry.pageId === slide.id)
+    if (!storyboard.pages.includes(slide.id))
+      return line('Not in this video', '')
+    if (at < 0)
+      return line(`${orbit}Planning the episode`, openScene, 'working')
+    const entry = scenes[at]
+    const built = entry.frames.every((frame) => frame.status === 'animated')
+    return line(
+      `Scene ${at + 1} · ${escape(BUILD_LABELS[entry.build])} · ${
+        entry.take === null
+          ? 'waits for your take'
+          : built
+            ? 'built'
+            : storyboard.approved
+              ? 'being made'
+              : 'planned'
+      }`,
+      openScene,
+      built ? 'ready' : entry.take === null ? 'written' : 'working'
+    )
+  }
   if (!scene)
     return line(
       'No video yet',

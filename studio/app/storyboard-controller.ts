@@ -1,10 +1,13 @@
-// The storyboard page's actions: approve or change the plan, choose a
-// scene's build, record or upload a scene's take, try again.
+// The storyboard page's actions: choose a scene or a frame (the made episode
+// seeks to it), approve or change the plan, choose a scene's build, record a
+// camera scene's take in place with the studio's recorder or upload one, try
+// again. While the episode plays, the rail and the strip follow it.
 import type { Snapshot } from '../shared/api'
 import type { AppContext } from './app-context'
 import { api } from './api'
 import { requestJson } from './http'
-import { button, escape } from './ui'
+import { episodeClock, takeMoments } from './storyboard-view'
+import { button } from './ui'
 
 const uploadTake = (projectId: string, pageId: string, blob: Blob) =>
   requestJson<Snapshot>(
@@ -16,79 +19,59 @@ const uploadTake = (projectId: string, pageId: string, blob: Blob) =>
     }
   )
 
-// The take being recorded: one at a time.
-let recording: {
-  pageId: string
-  stream: MediaStream
-  recorder: MediaRecorder | null
-  chunks: Blob[]
-  blob: Blob | null
-} | null = null
+const storyboardOf = (app: AppContext) =>
+  app.snapshot?.project.video?.storyboard
 
-const stopStream = () => {
-  recording?.stream.getTracks().forEach((track) => track.stop())
-  recording = null
+/** The scene and frame on show, for this notebook. */
+const viewOf = (app: AppContext) =>
+  app.sbView?.projectId === app.snapshot?.project.id
+    ? app.sbView!
+    : { projectId: app.snapshot!.project.id, scene: 0, frame: null }
+
+const player = (app: AppContext) =>
+  app.root.querySelector<HTMLVideoElement>('[data-sb-player]')
+
+// A hair past a boundary, so a seek lands inside the scene or frame asked
+// for, whatever the rounding of the durations that make the boundary.
+const INSIDE = 0.05
+
+/** Seek the made episode to a moment, now if it is on the page, else once
+ * the next render draws it. */
+const seek = (app: AppContext, start: number) => {
+  const at = start + INSIDE
+  const video = player(app)
+  if (video && video.readyState >= 1) video.currentTime = at
+  else app.sbSeek = at
 }
 
-const sceneLines = (snapshot: Snapshot, pageId: string) =>
-  snapshot.project.video?.storyboard?.plan?.scenes
-    .find((scene) => scene.pageId === pageId)
-    ?.frames.map((frame) => frame.voiceover)
-    .filter(Boolean) || []
+/** A take being recorded for a storyboard scene of this notebook. */
+export const storyboardRecording = (app: AppContext) =>
+  Boolean(
+    app.sbRecord &&
+    app.snapshot?.project.video?.storyboard &&
+    app.sbRecord.projectId === app.snapshot.project.id
+  )
 
-const recorderDialog = (
-  snapshot: Snapshot,
-  pageId: string,
-  state: 'ready' | 'recording' | 'review'
-) => {
-  const page = snapshot.project.slides.find((slide) => slide.id === pageId)
-  return `<h2>Record: ${escape(page?.title || 'this scene')}</h2>
-<div class="sb-recorder">
-<video data-sb-preview autoplay muted playsinline></video>
-<ol class="sb-prompter">${sceneLines(snapshot, pageId)
-    .map((line) => `<li>${escape(line)}</li>`)
-    .join('')}</ol>
-</div>
-<p class="sb-meta" role="status">${state === 'recording' ? 'Recording… read the lines in order, then stop.' : state === 'review' ? 'Keep this take, or record it again.' : 'Read the lines in order, at your own pace.'}</p>
-<div class="dialog-actions">${
-    state === 'recording'
-      ? button('Stop', 'sb-rec-stop', true)
-      : state === 'review'
-        ? `${button('Record again', 'sb-rec-start')}${button('Keep this take', 'sb-rec-save', true)}`
-        : button('Start recording', 'sb-rec-start', true)
-  }${button('Cancel', 'sb-rec-cancel')}</div>`
+/** The reviewed take saved as the scene's take; the production goes on. */
+export const saveStoryboardRecording = async (app: AppContext) => {
+  if (!app.capture.blob || !app.sbRecord) return
+  const { projectId, pageId } = app.sbRecord
+  app.capture.phase = 'uploading'
+  app.render()
+  try {
+    app.snapshot = await uploadTake(projectId, pageId, app.capture.blob)
+    app.capture.dispose()
+    app.sbRecord = null
+  } catch (reason) {
+    app.capture.phase = 'reviewing'
+    app.render()
+    throw reason
+  }
 }
 
-const openRecorder = async (app: AppContext, pageId: string) => {
-  stopStream()
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: true
-  })
-  recording = { pageId, stream, recorder: null, chunks: [], blob: null }
-  app.showDialog(recorderDialog(app.snapshot!, pageId, 'ready'))
-  const preview =
-    app.dialog.querySelector<HTMLVideoElement>('[data-sb-preview]')
-  if (preview) preview.srcObject = stream
-  app.dialog.addEventListener('close', stopStream, { once: true })
-}
-
-const showState = (
-  app: AppContext,
-  state: 'ready' | 'recording' | 'review'
-) => {
-  if (!recording || !app.snapshot) return
-  app.showDialog(recorderDialog(app.snapshot, recording.pageId, state))
-  const preview =
-    app.dialog.querySelector<HTMLVideoElement>('[data-sb-preview]')
-  if (!preview) return
-  if (state === 'review' && recording.blob) {
-    preview.srcObject = null
-    preview.muted = false
-    preview.controls = true
-    preview.src = URL.createObjectURL(recording.blob)
-  } else preview.srcObject = recording.stream
-}
+const changeDialog = () => `<h2>Change the plan</h2>
+<form id="storyboard-change" class="sb-change"><label for="sb-note">Say what to change, in your words</label><textarea id="sb-note" name="note" rows="3" placeholder="Open on the numbers; merge scenes 3 and 4"></textarea>
+<div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Plan again</button></div></form>`
 
 export const clickStoryboard = async (
   app: AppContext,
@@ -98,9 +81,34 @@ export const clickStoryboard = async (
   const snapshot = app.snapshot
   if (!snapshot || !action?.startsWith('sb-')) return false
   const id = snapshot.project.id
+  const storyboard = storyboardOf(app)
+  const busy = app.capture.phase !== 'idle'
+  if (action === 'sb-scene' || action === 'sb-frame') {
+    if (busy || !storyboard) return true
+    const view = viewOf(app)
+    const clock = episodeClock(storyboard)
+    if (action === 'sb-scene') {
+      const scene = Number(target.dataset.index)
+      app.sbView = { projectId: id, scene, frame: null }
+      if (clock[scene]) seek(app, clock[scene].start)
+    } else {
+      const number = Number(target.dataset.number)
+      app.sbView = { ...view, frame: number }
+      const at = clock[view.scene]?.frames.find(
+        (frame) => frame.number === number
+      )
+      if (at) seek(app, at.start)
+    }
+    app.render()
+    return true
+  }
   if (action === 'sb-approve') app.snapshot = await api.approveStoryboard(id)
   else if (action === 'sb-retry') app.snapshot = await api.retryStoryboard(id)
-  else if (action === 'sb-upload' && target.dataset.page) {
+  else if (action === 'sb-change') {
+    app.showDialog(changeDialog())
+    app.dialog.querySelector<HTMLTextAreaElement>('#sb-note')?.focus()
+    return true
+  } else if (action === 'sb-upload' && target.dataset.page) {
     const input = app.root.querySelector<HTMLInputElement>(
       '[data-sb-take-file]'
     )
@@ -110,36 +118,22 @@ export const clickStoryboard = async (
     input.click()
     return true
   } else if (action === 'sb-record' && target.dataset.page) {
-    await openRecorder(app, target.dataset.page)
-    return true
-  } else if (action === 'sb-rec-start' && recording) {
-    recording.chunks = []
-    recording.blob = null
-    const current = recording
-    const recorder = new MediaRecorder(current.stream)
-    recorder.ondataavailable = (event) =>
-      event.data.size && current.chunks.push(event.data)
-    recorder.onstop = () => {
-      current.blob = new Blob(current.chunks, {
-        type: recorder.mimeType || 'video/webm'
-      })
-      showState(app, 'review')
+    if (busy) throw new Error('Finish this take first')
+    const scene = storyboard?.plan?.scenes.find(
+      (entry) => entry.pageId === target.dataset.page
+    )
+    if (!scene) return true
+    const moments = takeMoments(scene)
+    if (!moments.length) throw new Error('This scene has no lines to record')
+    app.sbRecord = { projectId: id, pageId: scene.pageId }
+    app.recordingSceneId = ''
+    app.recordingProjectId = id
+    app.sbView = {
+      projectId: id,
+      scene: storyboard!.plan!.scenes.indexOf(scene),
+      frame: null
     }
-    current.recorder = recorder
-    recorder.start(1000)
-    showState(app, 'recording')
-    return true
-  } else if (action === 'sb-rec-stop' && recording?.recorder) {
-    recording.recorder.stop()
-    return true
-  } else if (action === 'sb-rec-save' && recording?.blob) {
-    const { pageId, blob } = recording
-    app.dialog.close()
-    stopStream()
-    app.snapshot = await uploadTake(id, pageId, blob)
-  } else if (action === 'sb-rec-cancel') {
-    app.dialog.close()
-    stopStream()
+    app.prepareRecordingPass(moments)
     return true
   } else return false
   app.render()
@@ -155,6 +149,7 @@ export const submitStoryboard = async (
   const note = String(values.get('note') || '').trim()
   if (!note) throw new Error('Say what to change')
   app.snapshot = await api.approveStoryboard(app.snapshot.project.id, note)
+  app.dialog.close()
   app.render()
 }
 
@@ -187,4 +182,67 @@ export const changeStoryboard = async (app: AppContext, element: Element) => {
     return true
   }
   return false
+}
+
+/** After a render: a seek asked for before the episode was on the page. */
+export const syncStoryboardPlayer = (app: AppContext) => {
+  const video = player(app)
+  if (!video || app.sbSeek === null) return
+  const at = app.sbSeek
+  app.sbSeek = null
+  if (video.readyState >= 1) video.currentTime = at
+  else
+    video.addEventListener(
+      'loadedmetadata',
+      () => {
+        video.currentTime = at
+      },
+      { once: true }
+    )
+}
+
+/** While the episode plays, the rail and the frame strip follow it. */
+export const installStoryboardPlayback = (app: AppContext) => {
+  app.root.addEventListener(
+    'timeupdate',
+    (event) => {
+      const video = event.target as HTMLVideoElement
+      const storyboard = storyboardOf(app)
+      if (!video.matches?.('[data-sb-player]') || !storyboard) return
+      const t = video.currentTime + INSIDE
+      const clock = episodeClock(storyboard)
+      const scene = clock.findIndex(
+        (entry, index) =>
+          t >= entry.start && (t < entry.end || index === clock.length - 1)
+      )
+      if (scene < 0) return
+      const frame = clock[scene].frames.find(
+        (entry) => t >= entry.start && t < entry.end
+      )
+      const view = viewOf(app)
+      if (scene !== view.scene) {
+        app.sbView = {
+          projectId: view.projectId,
+          scene,
+          frame: frame?.number ?? null
+        }
+        app.render()
+        return
+      }
+      for (const control of app.root.querySelectorAll<HTMLElement>(
+        '.sb-strip [data-action="sb-frame"]'
+      ))
+        control.classList.toggle(
+          'current',
+          Number(control.dataset.number) === frame?.number
+        )
+      const head = app.root.querySelector<HTMLElement>('.sb-playhead')
+      const span = clock[scene].end - clock[scene].start
+      if (head && span > 0) {
+        head.hidden = false
+        head.style.left = `${Math.min(100, Math.max(0, ((video.currentTime - clock[scene].start) / span) * 100))}%`
+      }
+    },
+    true
+  )
 }

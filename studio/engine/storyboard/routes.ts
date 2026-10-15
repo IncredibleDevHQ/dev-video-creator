@@ -4,9 +4,15 @@
 //   POST /api/projects/:id/storyboard/scenes/:pageId/build  {build}
 //   POST /api/projects/:id/storyboard/retry
 //   GET  /api/projects/:id/storyboard/sheet                 the contact sheet
+//   GET  /api/projects/:id/storyboard/frames/:frameId/snapshot  a built frame
+import { existsSync } from 'node:fs'
+import { readFile, readdir } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { join } from 'node:path'
+import { frameId } from '../../shared/storyboard'
 import { readAsset } from '../persistence'
 import { loadProject } from '../projects'
+import { productionDir } from './workspace'
 import {
   approveStoryboard,
   retryStoryboard,
@@ -16,6 +22,33 @@ import {
 
 const ROUTE =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/(approve|retry|sheet|scenes\/([a-zA-Z0-9_-]+)\/(build|take))$/
+
+const FRAME_ROUTE =
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(f\d{2}-[a-z0-9-]+)\/snapshot$/
+
+/** A built frame as its trial saw it, at its middle: the Video page shows it
+ * on the stage and in the frame strip before the episode is made. */
+export const frameSnapshot = async (projectId: string, id: string) => {
+  const storyboard = (await loadProject(projectId))?.project.video?.storyboard
+  const known = storyboard?.plan?.scenes.some((scene) =>
+    scene.frames.some((frame) => frameId(frame) === id)
+  )
+  if (!storyboard || !known) return null
+  const dir = join(
+    productionDir(projectId, storyboard.id),
+    '.studio',
+    'trial',
+    id,
+    'snapshots'
+  )
+  const names = existsSync(dir)
+    ? (await readdir(dir))
+        .filter((name) => /^frame-\d+-at-[\d.]+s\.png$/.test(name))
+        .sort()
+    : []
+  const middle = names[Math.floor(names.length / 2)]
+  return middle ? readFile(join(dir, middle)) : null
+}
 
 export const storyboardTakeRoute = (url: URL, method: string | undefined) => {
   const match = url.pathname.match(ROUTE)
@@ -36,6 +69,18 @@ export const storyboardRoute = async (
   body: Record<string, unknown>,
   response: ServerResponse
 ): Promise<{ status: number; value: unknown } | 'sent' | null> => {
+  const frame = url.pathname.match(FRAME_ROUTE)
+  if (frame && request.method === 'GET') {
+    const bytes = await frameSnapshot(frame[1], frame[2])
+    if (!bytes) return { status: 404, value: { error: 'Not built yet' } }
+    response.writeHead(200, {
+      'Content-Type': 'image/png',
+      'Content-Length': bytes.length,
+      'Cache-Control': 'no-cache'
+    })
+    response.end(bytes)
+    return 'sent'
+  }
   const match = url.pathname.match(ROUTE)
   if (!match) return null
   const [, projectId, action, pageId, sceneAction] = match

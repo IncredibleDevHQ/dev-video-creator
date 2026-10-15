@@ -28,6 +28,7 @@ import { Settings } from './settings'
 import { installSlidesController } from './slides-controller'
 import { installWireframePin } from './wireframe-pin'
 import { installPlayerBar } from './player-bar'
+import { installStoryboardPlayback } from './storyboard-controller'
 import {
   createAgo,
   createFitSource,
@@ -98,6 +99,9 @@ app.finishPractice = createFinishPractice(app)
 app.stopPractice = createStopPractice(app)
 app.replayPractice = createReplayPractice(app)
 app.recordingSceneId = ''
+app.sbView = null
+app.sbSeek = null
+app.sbRecord = null
 app.recordingProjectId = ''
 app.recordingAttempt = []
 app.recordingFailed = createRecordingFailed(app)
@@ -264,6 +268,7 @@ installAppActions(app)
 installSlidesController(app)
 installWireframePin(app)
 installPlayerBar(app)
+installStoryboardPlayback(app)
 app.render()
 app.parameters = new URLSearchParams(location.search)
 app.saved =

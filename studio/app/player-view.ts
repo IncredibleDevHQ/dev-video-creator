@@ -8,7 +8,7 @@ function replaceView(
   template.innerHTML = html
   const media =
     template.content.querySelector<HTMLMediaElement>(
-      '[data-scene-player],[data-take-player],[data-saved-presenter]'
+      '[data-scene-player],[data-take-player],[data-saved-presenter],[data-sb-player],[data-sb-take]'
     ) ||
     template.content.querySelector<HTMLMediaElement>(
       '[data-rehearsal-animation]'

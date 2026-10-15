@@ -488,6 +488,15 @@ ${button('Try again', 'video-settings', true)}`
   if (action === 'open-scene' || action === 'open-wireframe') {
     app.stopPractice()
     app.stage = action === 'open-scene' ? 'video' : 'presentation'
+    // A storyboard video opens on the wireframe's scene.
+    const scenes = app.snapshot.project.video?.storyboard?.plan?.scenes
+    const scene =
+      scenes?.findIndex(
+        (entry) =>
+          entry.pageId === app.snapshot!.project.slides[app.selected]?.id
+      ) ?? -1
+    if (action === 'open-scene' && scene >= 0)
+      app.sbView = { projectId: app.snapshot.project.id, scene, frame: null }
     app.selectedPlan = null
     app.momentIndex = 0
     app.second = 0

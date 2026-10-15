@@ -15,6 +15,10 @@ import { practiceControls, recordControl } from './practice-controls'
 import { sceneOverlay } from './scene-overlay'
 import { workspaceUrl } from './workspace-position'
 import { reviewLayoutSecond } from './take-review-clock'
+import {
+  saveStoryboardRecording,
+  storyboardRecording
+} from './storyboard-controller'
 
 /** Where practice stands: ready, counting down, running or finished. */
 export const practicePhase = (app: AppContext) =>
@@ -341,7 +345,10 @@ export const createDialogue = (app: AppContext) =>
   dialogueStudio(
     app.root,
     () => {
-      const scene = app.snapshot?.project.video?.scenes[app.selected]
+      // A storyboard video records with its own prompter, not moments.
+      const scene = app.snapshot?.project.video?.storyboard
+        ? undefined
+        : app.snapshot?.project.video?.scenes[app.selected]
       const recording = [
         'preparing',
         'ready',
@@ -761,6 +768,10 @@ export const clickRecording = async (
     else if (moments[0]) app.prepareRecording(moments[0], app.momentIndex)
   }
   if (action === 'discard-take') app.capture.dispose()
+  if (action === 'save-take' && app.capture.blob && storyboardRecording(app)) {
+    await saveStoryboardRecording(app)
+    return
+  }
   if (action === 'save-take' && app.capture.blob) {
     app.capture.phase = 'uploading'
     app.render()

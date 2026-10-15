@@ -1,30 +1,34 @@
-/* A storyboard video: the plan as a proposal, its scenes and frames. */
-.storyboard {
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 28px 28px 56px;
+/* A storyboard video's page, laid out like the Wireframe page: the scenes in
+   the rail, the chosen scene on the stage, its frames in a strip. The rail,
+   stage, strip and recording styles are the Video page's own. */
+.video-workspace.storyboard-workspace {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+/* The rail stays in view while the scene's page scrolls. */
+.storyboard-workspace > .scene-rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: start;
+}
+.storyboard-workspace > .stage-area {
+  max-width: 900px;
+  justify-self: center;
+  align-self: start;
+  padding: 22px 25px 36px;
   display: grid;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
 }
-.sb-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-}
-.sb-head-text {
+.sb-band {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
-.sb-head h2 {
+.sb-band h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.3;
   text-wrap: balance;
-}
-.sb-for {
-  margin: 0;
-  font-size: 14px;
 }
 .sb-kicker {
   margin: 0;
@@ -38,17 +42,6 @@
   font-size: 13px;
   color: var(--muted);
 }
-.sb-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.sb-actions a.primary {
-  display: inline-block;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 14px;
-}
 .sb-alert {
   margin: 0;
   padding: 10px 14px;
@@ -57,41 +50,47 @@
   color: #8a1c1c;
   font-size: 13px;
 }
-.sb-alert.is-waiting {
-  background: var(--selected);
-  color: var(--accent);
-}
-.sb-video video {
+.sb-stage > video,
+.sb-stage > img.sb-shot {
   width: 100%;
-  border-radius: 10px;
+  height: 100%;
+  object-fit: contain;
   background: #000;
-  aspect-ratio: 16 / 9;
+  display: block;
 }
-.sb-video .sb-meta {
-  margin-top: 6px;
-}
-.sb-scenes,
-.sb-frames {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.sb-scenes {
-  display: grid;
-  gap: 14px;
-}
-.sb-scene {
-  border: 1px solid var(--line);
-  border-radius: 10px;
+.sb-stage > img.sb-shot {
   background: var(--panel);
-  padding: 14px 16px 8px;
 }
-.sb-scene-head {
+.video-stage.presenter-layout-beside-slide > img.sb-shot {
+  position: absolute;
+  left: var(--content-x);
+  top: var(--content-y);
+  width: var(--content-width);
+  height: var(--content-height);
+}
+.sb-stage-note {
+  font-size: 13px;
+  color: var(--muted);
+}
+.sb-stage .presenter-preview video[data-sb-take] {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+.sb-prompter > small {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sb-scene-line {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 2px;
 }
-.sb-scene-head strong {
+.sb-scene-line strong {
   font-size: 15px;
   flex: 1;
   min-width: 0;
@@ -117,97 +116,51 @@
   color: var(--accent);
 }
 .sb-reason {
-  margin: 4px 0 8px;
+  margin: -8px 0 0;
   font-size: 13px;
   color: var(--muted);
 }
-.sb-take {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 8px;
-  padding: 8px 12px;
-  border: 1px dashed var(--accent);
-  border-radius: 8px;
-  font-size: 13px;
+.sb-strip .moment-strip {
+  position: relative;
 }
-.sb-take.is-ready {
-  border-style: solid;
-  border-color: var(--line);
-  color: var(--muted);
+.sb-strip .moment-item > .moment {
+  padding-right: 10px;
 }
-.sb-take-actions {
-  display: flex;
-  gap: 4px;
+.sb-playhead {
+  position: absolute;
+  top: 6px;
+  bottom: 4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+  border-radius: 1px;
+  pointer-events: none;
 }
-.sb-take-actions button {
-  padding: 5px 10px;
-  font-size: 13px;
-  border: 1px solid var(--line);
-}
-.sb-frame {
-  border-top: 1px solid var(--line);
-}
-.sb-frame summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 0;
-  cursor: pointer;
-  list-style: none;
-}
-.sb-frame summary::-webkit-details-marker {
-  display: none;
-}
-.sb-frame-number {
-  width: 22px;
-  font-size: 12px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.sb-frame-title {
-  display: grid;
-  gap: 1px;
-  flex: 1;
-  min-width: 0;
-}
-.sb-frame-title strong {
-  font-size: 14px;
-  font-weight: 600;
-}
-.sb-frame-title small {
-  font-size: 12px;
-  color: var(--muted);
-}
-.sb-frame-state {
-  font-size: 12px;
-  color: var(--accent);
-}
-.sb-frame.is-failed .sb-frame-state {
-  color: #b91c1c;
-}
-.sb-frame-body {
-  padding: 0 0 12px 34px;
+.sb-frame-detail {
   display: grid;
   gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
 }
 .sb-line {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.5;
 }
 .sb-line.is-silent,
-.sb-frame-body dt {
+.sb-frame-detail dt {
   color: var(--muted);
 }
-.sb-frame-body dl {
+.sb-frame-detail dl {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: 90px 1fr;
   gap: 4px 12px;
   margin: 0;
   font-size: 13px;
 }
-.sb-frame-body dd {
+.sb-frame-detail dd {
   margin: 0;
 }
 .sb-problem {
@@ -215,9 +168,25 @@
   font-size: 12px;
   color: #b91c1c;
 }
+.sb-rail-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.sb-rail-state.is-take {
+  color: var(--warn);
+}
+.sb-rail-state.is-working {
+  color: var(--muted);
+  font-weight: 500;
+}
 .sb-change {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 .sb-change label {
   font-size: 13px;
@@ -230,42 +199,6 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   resize: vertical;
-}
-.sb-change button {
-  justify-self: start;
-  border: 1px solid var(--line);
-}
-.sb-sheet {
-  margin: 0;
-}
-.sb-sheet img {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-}
-.sb-sheet figcaption {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-.sb-recorder {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 14px;
-}
-.sb-recorder video {
-  width: 100%;
-  border-radius: 8px;
-  background: #000;
-  aspect-ratio: 16 / 9;
-}
-.sb-prompter {
-  margin: 0;
-  padding-left: 18px;
-  max-height: 260px;
-  overflow-y: auto;
-  font-size: 15px;
-  line-height: 1.5;
 }
 .dialog-body .length-choice {
   display: flex;

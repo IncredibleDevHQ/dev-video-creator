@@ -1,3 +1,4 @@
+import { syncStoryboardPlayer } from './storyboard-controller'
 import { storyboardScreen } from './storyboard-view'
 import { themeControl } from './appearance'
 import { notesOnly } from './progress'
@@ -51,7 +52,7 @@ export const createRender = (app: AppContext) => () => {
   app.root.dataset.context = contextKey
   const previousPlayer =
     app.root.querySelector<HTMLMediaElement>(
-      '[data-scene-player],[data-take-player],[data-saved-presenter]'
+      '[data-scene-player],[data-take-player],[data-saved-presenter],[data-sb-player],[data-sb-take]'
     ) || app.root.querySelector<HTMLMediaElement>('[data-rehearsal-animation]')
   const playback = previousPlayer
     ? {
@@ -168,7 +169,14 @@ ${escape(project.title)}</h1>
       app.stage === 'notebook'
         ? notebookScreen(app.snapshot, app.pendingChats.has(project.id))
         : app.stage === 'video' && project.video?.storyboard
-          ? storyboardScreen(app.snapshot)
+          ? storyboardScreen(
+              app.snapshot,
+              app.sbView,
+              app.capture,
+              app.sbRecord?.projectId === project.id
+                ? app.sbRecord.pageId
+                : null
+            )
           : app.stage === 'video'
             ? videoScreen(
                 app.snapshot,
@@ -323,6 +331,7 @@ ${escape(project.title)}</h1>
     })
   }
   paintCameraStarting()
+  syncStoryboardPlayer(app)
   if (app.practiceLoading) {
     const button = app.root.querySelector<HTMLButtonElement>(
       '[data-action="practice"]'

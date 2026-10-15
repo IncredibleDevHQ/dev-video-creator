@@ -53,6 +53,11 @@ export interface AppContext {
   replayPractice: () => Promise<void>
   recordingSceneId: string
   recordingProjectId: string
+  /** A storyboard video's page: the scene and frame on show, a seek waiting
+   * for the episode to load, and the camera scene a take is recorded for. */
+  sbView: import('./storyboard-view').StoryboardView | null
+  sbSeek: number | null
+  sbRecord: { projectId: string; pageId: string } | null
   recordingAttempt: Moment[]
   recordingFailed: (reason: unknown) => void
   capture: Recording

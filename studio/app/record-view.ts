@@ -47,8 +47,9 @@ const meter =
   '<span class="mic-meter" data-mic-meter role="img" aria-label="Microphone level"><i></i></span>'
 const dot = '<span class="rec-dot" aria-hidden="true"></span>'
 
-/** The controls under the stage, for where recording stands. */
-export function recordActions(capture: Recording) {
+/** The controls under the stage, for where recording stands. What is
+ * recorded one at a time is a moment, or a storyboard scene's line. */
+export function recordActions(capture: Recording, unit = 'moment') {
   const many = capture.moments.length > 1,
     devices = capture.moments.some((moment) => moment.camera !== 'none')
       ? 'camera and microphone'
@@ -63,7 +64,7 @@ export function recordActions(capture: Recording) {
       'Cancel',
       'discard-take'
     )}<span class="practice-action-hint">${
-      many ? `${capture.moments.length} moments · ` : ''
+      many ? `${capture.moments.length} ${unit}s · ` : ''
     }3-second countdown · Enter to start</span>`
   if (capture.phase === 'countdown')
     return `${meter}${button('Cancel', 'discard-take')}<span class="practice-action-hint">Recording starts in ${capture.countdown}…</span>`
@@ -72,7 +73,7 @@ export function recordActions(capture: Recording) {
       many
         ? button(
             capture.current + 1 < capture.moments.length
-              ? 'Next moment'
+              ? `Next ${unit}`
               : 'Finish',
             'record-next',
             true
@@ -83,7 +84,7 @@ export function recordActions(capture: Recording) {
       'record-stop',
       !many
     )}<span class="practice-action-hint">${
-      many ? 'Enter for the next moment · ' : ''
+      many ? `Enter for the next ${unit} · ` : ''
     }Esc to stop</span>`
   return ''
 }
