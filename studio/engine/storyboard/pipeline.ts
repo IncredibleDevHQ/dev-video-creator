@@ -173,7 +173,7 @@ const planStage = async ({
     addEvent(
       ledger,
       'video',
-      `The plan is ready: ${plan.scenes.reduce((n, s) => n + s.frames.length, 0)} frames in ${plan.scenes.length} scenes`,
+      `The plan is ready: ${plan.scenes.reduce((n, s) => n + s.frames.length, 0)} frames in ${plan.scenes.length === 1 ? 'one scene' : `${plan.scenes.length} scenes`}`,
       { activity: 'complete' }
     )
   })
