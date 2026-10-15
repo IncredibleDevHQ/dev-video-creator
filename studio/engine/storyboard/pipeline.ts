@@ -468,7 +468,9 @@ const assembleStage = async ({ snapshot, dir, internal }: StageInput) => {
   if (refused.length && (internal.rounds || 0) < MOST_ROUNDS) {
     internal.rounds = (internal.rounds || 0) + 1
     for (const frame of refused) {
-      internal.statuses![frame.number] = 'outline'
+      internal.statuses![frame.number] = internal.stills?.[frame.number]
+        ? 'built'
+        : 'outline'
       internal.problems![frame.number] = checked.byFrame[frame.id]
     }
     await writeInternal(dir, internal)

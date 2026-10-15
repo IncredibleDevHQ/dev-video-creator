@@ -108,6 +108,7 @@ export const stillsStage = async ({
           duration: internal.durations?.[frame.number] ?? frame.duration,
           standIn: stand.get(frame.pageId),
           logo: frame.logo ? internal.logo : undefined,
+          direction: internal.plan!.direction,
           neighbours: [frames[at - 1], frames[at + 1]]
             .filter(Boolean)
             .map((other) => ({

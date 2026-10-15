@@ -111,7 +111,11 @@ const stillDialog = (
 <form id="storyboard-still" class="sb-change" data-number="${number}"><label for="sb-still-note">What should change?</label><textarea id="sb-still-note" name="note" rows="3" placeholder="Make the diagram fill the frame; put the number on the left"></textarea>
 <div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Pose it again</button></div></form>`
 
-const changeDialog = () => `<h2>Change the plan</h2>
+const changeDialog = (posed: boolean) => `<h2>Change the plan</h2>${
+  posed
+    ? '<p class="sb-meta">The new plan waits for your approval, then every still is posed again.</p>'
+    : ''
+}
 <form id="storyboard-change" class="sb-change"><label for="sb-note">Say what to change, in your words</label><textarea id="sb-note" name="note" rows="3" placeholder="Open on the numbers; merge scenes 3 and 4"></textarea>
 <div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Plan again</button></div></form>`
 
@@ -172,7 +176,7 @@ export const clickStoryboard = async (
   if (action === 'sb-approve') app.snapshot = await api.approveStoryboard(id)
   else if (action === 'sb-retry') app.snapshot = await api.retryStoryboard(id)
   else if (action === 'sb-change') {
-    app.showDialog(changeDialog())
+    app.showDialog(changeDialog(storyboard?.stage === 'board'))
     app.dialog.querySelector<HTMLTextAreaElement>('#sb-note')?.focus()
     return true
   } else if (action === 'sb-upload' && target.dataset.page) {

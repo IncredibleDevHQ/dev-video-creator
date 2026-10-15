@@ -294,3 +294,23 @@
   font-size: 13px;
   color: var(--muted);
 }
+/* On a phone the page is one column: the rail runs across the top (the
+   shared narrow rules), and the frame strip scrolls inside itself. */
+@media (max-width: 800px) {
+  .video-workspace.storyboard-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .storyboard-workspace > .scene-rail {
+    position: static;
+    height: auto;
+  }
+  .storyboard-workspace > .stage-area {
+    padding: 20px 16px 10px;
+  }
+  .sb-strip .moment-strip {
+    overflow-x: auto;
+  }
+  .sb-frame-detail dl {
+    grid-template-columns: 1fr;
+  }
+}

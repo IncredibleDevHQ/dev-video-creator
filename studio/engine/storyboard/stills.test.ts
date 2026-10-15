@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest'
 import type { EpisodePlan, PlanFrame } from '../../shared/storyboard'
 import { boardPage } from './board'
-import { frameDispatch } from './frames'
+import { frameDispatch, moves } from './frames'
 import { poseDispatch, poseMoment, poseProblems } from './stills'
 
 const frame = (number: number, over: Partial<PlanFrame> = {}): PlanFrame => ({
@@ -74,6 +74,7 @@ it('poses a frame still, with its stand-in, its neighbours and a note', () => {
     frameId: 'f03-frame-3',
     duration: 4,
     standIn: { kind: 'take', still: 'assets/standins/p2-take-abc.jpg' },
+    direction: plan.direction,
     neighbours: [{ number: 2, title: 'Frame 2', scene: 'A diagram' }]
   })
   expect(first).toContain(
@@ -87,6 +88,9 @@ it('poses a frame still, with its stand-in, its neighbours and a note', () => {
   )
   expect(first).toContain('frame 2 “Frame 2” (A diagram). Frame it differently')
   expect(first).toContain('- Captions: enabled')
+  expect(first).toContain(
+    '- Direction, for every frame of the episode: palette ink; held frames none; never none'
+  )
   expect(first).not.toContain('The creator’s note')
   const waiting = poseDispatch({
     frameId: 'f03-frame-3',
@@ -126,6 +130,9 @@ it('refuses a pose that moves; a placement is not motion', () => {
   expect(poseProblems('<div></div>', 'f01-frame-1')[0]).toMatch(
     /exactly one <template>/
   )
+  // The same test keeps a build from handing back its pose unmoved.
+  expect(moves(pose('tl.fromTo("#a", { y: 40 }, { y: 0 }, 0.2);'))).toBe(true)
+  expect(moves(pose('gsap.set("#a", { y: 0 });'))).toBe(false)
 })
 
 it('starts a frame’s build from its approved still when it has one', () => {

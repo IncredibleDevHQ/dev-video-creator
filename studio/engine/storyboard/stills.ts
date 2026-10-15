@@ -8,7 +8,7 @@
 import { existsSync } from 'node:fs'
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { BuildType } from '../../shared/storyboard'
+import type { BuildType, VideoDirection } from '../../shared/storyboard'
 import { HarnessStageError } from '../generation-errors'
 import { creativeContext, type CreativeSelection } from '../creative/stage'
 import { runEngineStage } from '../harness/runtime'
@@ -21,6 +21,7 @@ import {
   frameSeed,
   frameShapeProblems,
   logoLine,
+  moves,
   workerPacket,
   workerRole
 } from './frames'
@@ -41,6 +42,8 @@ export const poseDispatch = (input: {
   duration: number
   standIn?: StandIn
   logo?: string
+  /** The episode's direction, which every frame inherits. */
+  direction?: VideoDirection
   neighbours: Neighbour[]
   /** The creator's note on the still they saw, when it is posed again. */
   note?: string
@@ -66,6 +69,11 @@ export const poseDispatch = (input: {
         : `- Stand-in: ${what} and it does not exist yet. Draw a plain block where it plays, sized and framed as the ${media} will be, labelled “${input.standIn.kind === 'take' ? 'Your take' : 'Screen capture'}”.`
       : '- Stand-in: none; every visual is the frame’s own.',
     logoLine(input.logo),
+    ...(input.direction
+      ? [
+          `- Direction, for every frame of the episode: palette ${input.direction.palette}; held frames ${input.direction.held}; never ${input.direction.never}`
+        ]
+      : []),
     ...(input.neighbours.length
       ? [
           `- Beside it: ${input.neighbours.map((other) => `frame ${other.number} “${other.title}” (${other.scene})`).join('; ')}. Frame it differently from them.`
@@ -87,7 +95,7 @@ export const poseDispatch = (input: {
 /** What makes a pose not a still: tweens. `set` is a placement, not motion. */
 export const poseProblems = (html: string, frameId: string) => [
   ...frameShapeProblems(html, frameId),
-  ...(/\.(?:to|from|fromTo)\s*\(/.test(html)
+  ...(moves(html)
     ? [
         'A pose does not move: remove every tween (.to, .from, .fromTo) and place each element where it lands; the build adds the motion'
       ]
@@ -144,6 +152,7 @@ export const poseFrame = async (input: {
   duration: number
   standIn?: StandIn
   logo?: string
+  direction?: VideoDirection
   neighbours: Neighbour[]
   note?: string
   /** The skill files the scene's build reads (camera layouts, …). */

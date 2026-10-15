@@ -156,6 +156,9 @@ export const workerRole = async (dir: string, build: BuildType) => {
   return `${role.trim()}\n\n---\n\n${note.trim()}\n`
 }
 
+/** Whether a composition's timeline moves anything: a tween, not a set. */
+export const moves = (html: string) => /\.(?:to|from|fromTo)\s*\(/.test(html)
+
 /** The cheap checks before Hyperframes runs: the contract's shape. */
 export const frameShapeProblems = (html: string, frameId: string) => {
   const problems: string[] = []
@@ -226,7 +229,15 @@ export const buildFrame = async (input: {
   let accepted = false
   const trial = async (runDir: string) => {
     const html = (await readSubmission(runDir, target)).toString()
-    const shape = frameShapeProblems(html, input.frameId)
+    const shape = [
+      ...frameShapeProblems(html, input.frameId),
+      // Started from its still, a frame handed in unmoved is still the pose.
+      ...(sketch && !moves(html)
+        ? [
+            'The frame is still the approved pose: add the motion the shot describes, each piece revealed on its cue so the frame arrives at the still'
+          ]
+        : [])
+    ]
     if (shape.length)
       return {
         html,
