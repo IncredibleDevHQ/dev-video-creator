@@ -126,6 +126,45 @@
 .sb-strip .moment-item > .moment {
   padding-right: 10px;
 }
+/* How the next frame enters, between two frames; between two scenes the
+   rail's transition button says it in words. */
+.sb-strip .sb-transition {
+  flex: none;
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  margin: 0 -3px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  z-index: 1;
+}
+.sb-strip .sb-transition:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sb-strip .sb-transition:disabled {
+  cursor: default;
+}
+.scene-rail .sb-scene-change {
+  align-self: center;
+  margin: -12px 0;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 11px;
+  opacity: 0.8;
+}
+.scene-rail .sb-scene-change:hover:not(:disabled) {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+}
 .sb-playhead {
   position: absolute;
   top: 6px;

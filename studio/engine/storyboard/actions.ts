@@ -9,15 +9,19 @@ import type { Snapshot } from '../../shared/api'
 import {
   BUILD_TYPES,
   BUILD_LABELS,
+  TRANSITIONS,
+  TRANSITION_LABELS,
   type BuildType,
+  type FrameTransition,
   type Storyboard
 } from '../../shared/storyboard'
 import { addEvent } from '../activity'
 import { storeAsset } from '../persistence'
-import { changeProject } from '../projects'
+import { changeProject, loadProject } from '../projects'
 import { Refusal } from '../refusal'
 import { probeSeconds } from '../voice'
-import { scheduleStoryboard } from './pipeline'
+import { scheduleStoryboard, storyboardDir } from './pipeline'
+import { readInternal, writeInternal, writeProjectFiles } from './state'
 import { takeRefusal } from './takes'
 
 /** A new storyboard production for the episode's pages, in order. */
@@ -97,6 +101,65 @@ export const setStoryboardBuild = async (
     )
   })
   scheduleStoryboard(projectId)
+  return snapshot
+}
+
+/**
+ * Change how a frame enters. Before the episode is put together the plan just
+ * carries it; once it is made (or stopped putting it together), the episode is
+ * assembled and rendered again with it. No agent is asked.
+ */
+export const setStoryboardTransition = async (
+  projectId: string,
+  number: number,
+  raw: unknown
+) => {
+  const transition = String(
+    (raw as { transition?: unknown } | null)?.transition ?? ''
+  ) as FrameTransition
+  if (!TRANSITIONS.includes(transition))
+    throw new Refusal('Choose one of the transitions')
+  if (number === 1) throw new Refusal('The first frame enters with a cut')
+  const storyboard = (await loadProject(projectId))?.project.video?.storyboard
+  if (!storyboard?.plan) throw new Refusal('There is no plan yet')
+  if (storyboard.status === 'working')
+    throw new Refusal('Wait until this step finishes to change a transition')
+  const dir = storyboardDir(projectId, storyboard)
+  const internal = await readInternal(dir)
+  const frame = internal.plan?.scenes
+    .flatMap((scene) => scene.frames)
+    .find((entry) => entry.number === number)
+  if (!frame) throw new Refusal('Frame not found')
+  frame.transition = transition
+  delete frame.transitionWhy
+  await writeInternal(dir, internal)
+  await writeProjectFiles(dir, internal)
+  let again = false
+  const snapshot = await changeProject(projectId, (current) => {
+    const value = storyboardOf(current)
+    for (const scene of value.plan?.scenes || [])
+      for (const entry of scene.frames)
+        if (entry.number === number) {
+          entry.transition = transition
+          delete entry.transitionWhy
+        }
+    again =
+      value.status === 'done' ||
+      (value.status === 'failed' &&
+        ['assemble', 'render'].includes(value.stage))
+    if (again) {
+      value.stage = 'assemble'
+      value.status = 'working'
+      delete value.error
+    }
+    value.updatedAt = new Date().toISOString()
+    addEvent(
+      current,
+      'video',
+      `Frame ${number} now enters with ${TRANSITION_LABELS[transition].toLowerCase()}${again ? ': putting the episode together again' : ''}`
+    )
+  })
+  if (again) scheduleStoryboard(projectId)
   return snapshot
 }
 
@@ -194,8 +257,27 @@ export const retryStoryboard = async (projectId: string) => {
 }
 
 /** On startup: carry on with productions that were working. */
-export const resumeStoryboards = (snapshots: Snapshot[]) => {
-  for (const snapshot of snapshots)
-    if (snapshot.project.video?.storyboard?.status === 'working')
-      scheduleStoryboard(snapshot.project.id)
+/** A plan summarised before frames showed their transition gets them from
+ * its production's own plan (run once at start-up). */
+export const showTransitions = async (snapshot: Snapshot) => {
+  const storyboard = snapshot.project.video?.storyboard
+  const frames = storyboard?.plan?.scenes.flatMap((scene) => scene.frames)
+  if (!storyboard || !frames?.some((frame) => !frame.transition)) return
+  const internal = await readInternal(
+    storyboardDir(snapshot.project.id, storyboard)
+  )
+  const planned = new Map(
+    (internal.plan?.scenes || [])
+      .flatMap((scene) => scene.frames)
+      .map((frame) => [frame.number, frame])
+  )
+  await changeProject(snapshot.project.id, (current) => {
+    for (const scene of current.project.video?.storyboard?.plan?.scenes || [])
+      for (const frame of scene.frames) {
+        const from = planned.get(frame.number)
+        if (frame.transition || !from) continue
+        frame.transition = from.transition
+        if (from.transitionWhy) frame.transitionWhy = from.transitionWhy
+      }
+  })
 }

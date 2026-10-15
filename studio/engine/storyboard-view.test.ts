@@ -14,6 +14,8 @@ const frame = (number: number, duration: number): FrameSummary => ({
   scene: `What frame ${number} shows`,
   voiceover: `Line ${number} is spoken here.`,
   duration,
+  transition:
+    number === 1 ? 'cut' : number === 3 ? 'crossfade' : 'push-slide LEFT',
   type: 'hook',
   beat: 'curiosity',
   narrativeRole: `Why frame ${number} is there`,
@@ -190,4 +192,33 @@ it('says under a wireframe where its storyboard scene stands', () => {
   expect(sceneLink(made, 0, false).line).toContain('data-action="open-scene"')
   expect(sceneLink(made, 2, false).line).toContain('Not in this video')
   expect(sceneLink(made, 0, false).line).not.toContain('make-scene')
+})
+
+it('shows how each frame enters, and the change of scene in words', () => {
+  const html = storyboardScreen(
+    snapshot(storyboard({ stage: 'done', status: 'done' })),
+    { projectId: 'n', scene: 1, frame: 3 },
+    idle(),
+    null
+  )
+  // Between scenes 1 and 2, in the rail: a crossfade into a scene runs longer.
+  expect(html).toContain('Between scenes 1 and 2: Crossfade · 0.8 s')
+  expect(html).toMatch(
+    /sb-scene-change" data-action="sb-transition" data-number="3"/
+  )
+  // Between frames 3 and 4, in the strip, as a mark.
+  expect(html).toContain('title="Into frame 4: Push left"')
+  expect(html).toContain('<dt>Enters with</dt><dd>Crossfade · 0.8 s</dd>')
+  // While the episode is made, nothing changes it.
+  const working = storyboardScreen(
+    snapshot(
+      storyboard({ stage: 'frames', status: 'working', approved: true })
+    ),
+    { projectId: 'n', scene: 0, frame: null },
+    idle(),
+    null
+  )
+  expect(working).toMatch(
+    /data-action="sb-transition" data-number="2"[^>]*disabled/
+  )
 })

@@ -51,7 +51,10 @@ creator's pages and whose words are the creator's scripts.
    develops. For every frame set: `title`, `scene` (one visual idea, traced to
    the source), `voiceover`, `duration` (seconds; about 2.6 words a second plus
    a beat), `transition` (registry names only, 2–3 kinds in the whole episode,
-   frame 1 `cut`), `type`, `persuasion` (a named technique), `beat` (a specific
+   frame 1 `cut`; where one scene gives way to the next, its first frame marks
+   the change with a push or a crossfade, which the studio runs longer than
+   the rest, and a cut there needs its reason in `transitionWhy`), `type`,
+   `persuasion` (a named technique), `beat` (a specific
    feeling), `blueprint` when a proven shape fits (an id from the index; omit
    otherwise), `narrativeRole`, `keyMessage`, and `"logo": true` on the frames
    that show the brand's logo when the brief names one (an end card, a corner

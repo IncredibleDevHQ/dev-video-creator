@@ -9,11 +9,14 @@ import { presenterLayoutStyle } from '../shared/presenter-layout'
 import {
   BUILD_LABELS,
   BUILD_TYPES,
+  SCENE_CHANGE_SECONDS,
   STAGE_LABELS,
+  TRANSITION_LABELS,
   frameCount,
   frameId,
   framesDone,
   type FrameSummary,
+  type FrameTransition,
   type SceneSummary,
   type Storyboard
 } from '../shared/storyboard'
@@ -151,7 +154,16 @@ ${pages
 <span class="thumb-number">${index + 1}</span>
 <div>${page?.svg || '<span>Blank wireframe</span>'}</div>
 <span class="scene-meta"><span>${scene ? seconds(sceneSeconds(scene)) : ''}</span>${scene ? `<b>${escape(BUILD_LABELS[scene.build].toUpperCase())}</b>` : ''}</span>${scene ? railState(storyboard, scene) : ''}
-</button></div>`
+</button></div>${
+      scenes[index + 1]?.frames[0]
+        ? transitionMark(
+            scenes[index + 1].frames[0],
+            true,
+            canChange(storyboard) && !focused,
+            `Between scenes ${index + 1} and ${index + 2}`
+          )
+        : ''
+    }`
   })
   .join('')}</aside>`
 }
@@ -265,17 +277,52 @@ const frameState = (frame: FrameSummary) =>
       ? 'Stopped'
       : seconds(frame.duration)
 
+const GLYPHS: Record<FrameTransition, string> = {
+  cut: '│',
+  crossfade: '◐',
+  'blur-crossfade': '◍',
+  'push-slide LEFT': '←',
+  'push-slide RIGHT': '→',
+  'push-slide UP': '↑',
+  'push-slide DOWN': '↓',
+  'zoom-through': '⊕',
+  squeeze: '⇔'
+}
+
+/** How a frame enters, in words: a crossfade into a new scene runs longer. */
+export const transitionWords = (frame: FrameSummary, opensScene: boolean) =>
+  `${TRANSITION_LABELS[frame.transition] || frame.transition}${
+    opensScene && /crossfade$/.test(frame.transition)
+      ? ` · ${SCENE_CHANGE_SECONDS} s`
+      : ''
+  }`
+
+/** A transition can change while nothing is being made. */
+const canChange = (storyboard: Storyboard) =>
+  storyboard.status !== 'working' && Boolean(storyboard.plan)
+
+/** The mark between two frames (or two scenes) for how the next one enters. */
+const transitionMark = (
+  frame: FrameSummary,
+  opensScene: boolean,
+  enabled: boolean,
+  between: string
+) =>
+  frame.transition
+    ? `<button type="button" class="${opensScene ? 'transition-control sb-scene-change' : 'sb-transition'}" data-action="sb-transition" data-number="${frame.number}" title="${escape(`${between}: ${transitionWords(frame, opensScene)}`)}" aria-label="${escape(`${between}: ${transitionWords(frame, opensScene)}`)}" ${enabled ? '' : 'disabled'}>${opensScene ? escape(transitionWords(frame, true)) : GLYPHS[frame.transition] || '·'}</button>`
+    : ''
+
 /** The scene's frames, sized by how long each runs; the chosen one lit. */
 const strip = (
   scene: SceneSummary,
   current: number | undefined,
-  locked: boolean
+  locked: boolean,
+  changeable: boolean
 ) =>
   `<div class="moment-timeline sb-strip"><div class="moment-strip" aria-label="Frames">${scene.frames
     .map(
-      (
-        frame
-      ) => `<div class="moment-item" style="flex-grow:${Math.max(0.1, frame.duration)}">
+      (frame, index) =>
+        `${index ? transitionMark(frame, false, changeable && !locked, `Into frame ${frame.number}`) : ''}<div class="moment-item" style="flex-grow:${Math.max(0.1, frame.duration)}">
 <button type="button" class="moment ${frame.number === current ? 'current' : ''}" data-action="sb-frame" data-number="${frame.number}" ${locked ? 'disabled' : ''}>
 <span class="moment-head"><b class="moment-number">${frame.number}</b>${scene.build === 'camera' ? cameraCue('full') : ''}</span>
 <span class="moment-name" title="${escape(frame.title)}">${escape(frame.title)}</span>
@@ -287,10 +334,11 @@ const strip = (
     )}<span class="sb-playhead" aria-hidden="true" hidden></span></div></div>`
 
 const frameDetail = (
-  frame: FrameSummary
+  frame: FrameSummary,
+  opensScene: boolean
 ) => `<section class="sb-frame-detail" aria-label="Frame ${frame.number}">
 ${frame.voiceover ? `<p class="sb-line">“${escape(frame.voiceover)}”</p>` : '<p class="sb-line is-silent">No words: the picture carries it.</p>'}
-<dl><dt>Why</dt><dd>${escape(frame.narrativeRole)}</dd><dt>On screen</dt><dd>${escape(frame.scene)}</dd></dl>
+<dl><dt>Why</dt><dd>${escape(frame.narrativeRole)}</dd><dt>On screen</dt><dd>${escape(frame.scene)}</dd>${frame.transition ? `<dt>Enters with</dt><dd>${escape(transitionWords(frame, opensScene))}${frame.transitionWhy ? ` · ${escape(frame.transitionWhy)}` : ''}</dd>` : ''}</dl>
 ${frame.problem ? `<p class="sb-problem">${escape(frame.problem)}</p>` : ''}
 </section>`
 
@@ -366,8 +414,8 @@ ${storyboard.status === 'failed' && storyboard.error ? `<p class="sb-alert" role
 ${stage(snapshot, storyboard, scene, frame, capture, recording)}
 ${scene ? prompter(scene, capture, recording) : ''}
 ${scene && !focused ? sceneLine(storyboard, scene, chosen, page?.title || scene.pageId) : ''}
-${scene ? strip(scene, frame?.number, focused) : ''}
-${frame && !focused ? frameDetail(frame) : ''}
+${scene ? strip(scene, frame?.number, focused, canChange(storyboard)) : ''}
+${frame && !focused ? frameDetail(frame, chosen > 0 && scene?.frames[0]?.number === frame.number) : ''}
 ${
   !focused && storyboard.approved && missing.length
     ? `<div class="recording-nudge"><strong>Your turn</strong><span>${missing.length === 1 ? 'One scene waits' : `${missing.length} scenes wait`} for your take: record it on camera, or upload one. ${storyboard.waitingFor === 'takes' ? 'Everything else is made.' : 'Everything else is being made meanwhile.'}</span></div>`

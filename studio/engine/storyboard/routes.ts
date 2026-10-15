@@ -5,6 +5,7 @@
 //   POST /api/projects/:id/storyboard/retry
 //   GET  /api/projects/:id/storyboard/sheet                 the contact sheet
 //   GET  /api/projects/:id/storyboard/frames/:frameId/snapshot  a built frame
+//   POST /api/projects/:id/storyboard/frames/:number/transition {transition}
 import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -17,11 +18,15 @@ import {
   approveStoryboard,
   retryStoryboard,
   saveStoryboardTake,
-  setStoryboardBuild
+  setStoryboardBuild,
+  setStoryboardTransition
 } from './actions'
 
 const ROUTE =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/(approve|retry|sheet|scenes\/([a-zA-Z0-9_-]+)\/(build|take))$/
+
+const TRANSITION_ROUTE =
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(\d{1,3})\/transition$/
 
 const FRAME_ROUTE =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(f\d{2}-[a-z0-9-]+)\/snapshot$/
@@ -81,6 +86,16 @@ export const storyboardRoute = async (
     response.end(bytes)
     return 'sent'
   }
+  const transition = url.pathname.match(TRANSITION_ROUTE)
+  if (transition && request.method === 'POST')
+    return {
+      status: 200,
+      value: await setStoryboardTransition(
+        transition[1],
+        Number(transition[2]),
+        body
+      )
+    }
   const match = url.pathname.match(ROUTE)
   if (!match) return null
   const [, projectId, action, pageId, sceneAction] = match

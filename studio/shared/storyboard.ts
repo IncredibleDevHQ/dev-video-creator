@@ -53,6 +53,32 @@ export const TRANSITIONS = [
 ] as const
 export type FrameTransition = (typeof TRANSITIONS)[number]
 
+/** How each transition reads on the page. */
+export const TRANSITION_LABELS: Record<FrameTransition, string> = {
+  cut: 'Cut',
+  crossfade: 'Crossfade',
+  'blur-crossfade': 'Blur crossfade',
+  'push-slide LEFT': 'Push left',
+  'push-slide RIGHT': 'Push right',
+  'push-slide UP': 'Push up',
+  'push-slide DOWN': 'Push down',
+  'zoom-through': 'Zoom through',
+  squeeze: 'Squeeze'
+}
+
+/** A crossfade where one scene gives way to the next runs this long, so the
+ * change reads; within a scene the registry's own length holds. */
+export const SCENE_CHANGE_SECONDS = 0.8
+
+/** The `transition_in` Hyperframes is given for a frame. */
+export const transitionIn = (
+  transition: FrameTransition,
+  opensScene: boolean
+) =>
+  opensScene && /crossfade$/.test(transition)
+    ? `${transition} ${SCENE_CHANGE_SECONDS}s`
+    : transition
+
 /** The nine opening strategies (story-design.md § Hook strategy). */
 export const HOOK_STRATEGIES = [
   'Shocking statistic',
@@ -77,6 +103,8 @@ export type PlanFrame = {
   /** Seconds, an estimate until the voice is measured. */
   duration: number
   transition: FrameTransition
+  /** Why a frame that opens a new scene enters with a cut, when it does. */
+  transitionWhy?: string
   type: FrameType
   persuasion: string
   beat: string
@@ -165,6 +193,8 @@ export type FrameSummary = Pick<
   | 'scene'
   | 'voiceover'
   | 'duration'
+  | 'transition'
+  | 'transitionWhy'
   | 'type'
   | 'beat'
   | 'narrativeRole'

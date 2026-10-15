@@ -165,6 +165,9 @@ export const checkEpisodePlan = (raw: unknown, rules: PlanRules) => {
         voiceover: text(frame.voiceover, 1200),
         duration: Number(frame.duration),
         transition: text(frame.transition, 30) as FrameTransition,
+        ...(text(frame.transitionWhy, 200)
+          ? { transitionWhy: text(frame.transitionWhy, 200) }
+          : {}),
         type: text(frame.type, 30) as FrameType,
         persuasion: text(frame.persuasion, 160),
         beat: text(frame.beat, 80),
@@ -193,6 +196,16 @@ export const checkEpisodePlan = (raw: unknown, rules: PlanRules) => {
       else kinds.add(parsed.transition.replace(/ .*/, ''))
       if (number === 1 && parsed.transition !== 'cut')
         problems.push('Frame 1 enters with a cut')
+      // A new scene is marked: a cut there is a choice, with its reason.
+      if (
+        at === 0 &&
+        index > 0 &&
+        parsed.transition === 'cut' &&
+        !parsed.transitionWhy
+      )
+        problems.push(
+          `${name} opens scene ${index + 1} with a cut: mark the change of scene with a transition, or say why a cut in transitionWhy`
+        )
       if (
         !Number.isFinite(parsed.duration) ||
         parsed.duration < 1.5 ||

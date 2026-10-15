@@ -5,6 +5,7 @@
 // studio writes them from the checked plan; the scripts parse them.
 import {
   frameId,
+  transitionIn,
   type EpisodePlan,
   type FrameShot,
   type FrameStatus
@@ -71,8 +72,8 @@ export const renderStoryboard = (plan: EpisodePlan, files: StoryboardFiles) => {
     `- never: ${one(plan.direction.never)}`,
     ''
   ]
-  for (const scene of plan.scenes)
-    for (const frame of scene.frames) {
+  for (const [sceneIndex, scene] of plan.scenes.entries())
+    for (const [frameIndex, frame] of scene.frames.entries()) {
       const shot = files.shots?.[frame.number]
       const duration = files.durations?.[frame.number] ?? frame.duration
       lines.push(
@@ -81,7 +82,7 @@ export const renderStoryboard = (plan: EpisodePlan, files: StoryboardFiles) => {
         `- scene: ${one(frame.scene)}`,
         `- voiceover: ${quoted(frame.voiceover)}`,
         `- duration: ${seconds(duration)}`,
-        `- transition_in: ${frame.transition}`,
+        `- transition_in: ${transitionIn(frame.transition, sceneIndex > 0 && frameIndex === 0)}`,
         `- status: ${files.statuses?.[frame.number] === 'failed' ? 'outline' : files.statuses?.[frame.number] || 'outline'}`,
         `- src: ${frameSrc(frame)}`,
         `- type: ${frame.type}`,

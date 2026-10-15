@@ -190,6 +190,9 @@ it('writes STORYBOARD.md that Hyperframes’ own parser reads back', async () =>
   expect(markdown.indexOf('## Video direction')).toBeLessThan(
     markdown.indexOf('## Frame 1')
   )
+  // A crossfade into a new scene runs longer than one inside a scene.
+  expect(markdown).toContain('- transition_in: crossfade\n')
+  expect(markdown).toContain('- transition_in: crossfade 0.8s\n')
   const script = renderScript(report.value, { name: 'Test voice' })
   expect(script).toMatch(/## Line 3 — The trip \(Frame 3\)/)
   expect(script).toMatch(/\n {4}A frame goes in, changes, and comes back out\./)
@@ -231,4 +234,19 @@ it('speaks an episode page once: its script already holds its segues', () => {
     narration: [bridge, base, outro].join(' ')
   } as Parameters<typeof pageScript>[0]
   expect(pageScript(slide)).toBe(`${bridge} ${base} ${outro}`)
+})
+
+it('marks a change of scene, or says why it is a cut', () => {
+  const cut = plan()
+  cut.scenes[1].frames[0].transition = 'cut'
+  expect(checkEpisodePlan(cut, rules).problems.join(' ')).toMatch(
+    /Frame 3 opens scene 2 with a cut: mark the change of scene/
+  )
+  ;(cut.scenes[1].frames[0] as Record<string, unknown>).transitionWhy =
+    'A hard cut to the creator lands the verdict'
+  const report = checkEpisodePlan(cut, rules)
+  expect(report.problems).toEqual([])
+  expect(report.value.scenes[1].frames[0].transitionWhy).toBe(
+    'A hard cut to the creator lands the verdict'
+  )
 })

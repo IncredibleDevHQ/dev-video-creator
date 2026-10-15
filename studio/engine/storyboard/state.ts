@@ -102,6 +102,8 @@ export const planSummary = (
         scene: frame.scene,
         voiceover: frame.voiceover,
         duration: internal.durations?.[frame.number] ?? frame.duration,
+        transition: frame.transition,
+        ...(frame.transitionWhy ? { transitionWhy: frame.transitionWhy } : {}),
         type: frame.type,
         beat: frame.beat,
         narrativeRole: frame.narrativeRole,

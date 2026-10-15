@@ -4,10 +4,15 @@
 // again. While the episode plays, the rail and the strip follow it.
 import type { Snapshot } from '../shared/api'
 import type { AppContext } from './app-context'
+import {
+  SCENE_CHANGE_SECONDS,
+  TRANSITIONS,
+  TRANSITION_LABELS
+} from '../shared/storyboard'
 import { api } from './api'
 import { requestJson } from './http'
 import { episodeClock, takeMoments } from './storyboard-view'
-import { button } from './ui'
+import { button, escape } from './ui'
 
 const uploadTake = (projectId: string, pageId: string, blob: Blob) =>
   requestJson<Snapshot>(
@@ -69,6 +74,33 @@ export const saveStoryboardRecording = async (app: AppContext) => {
   }
 }
 
+/** The transitions a frame can enter with, the current one lit. A change
+ * to a made episode puts it together again, with no agent. */
+const transitionDialog = (app: AppContext, number: number) => {
+  const storyboard = storyboardOf(app)!
+  const scenes = storyboard.plan!.scenes
+  const at = scenes.findIndex((scene) => scene.frames[0]?.number === number)
+  const frame = scenes
+    .flatMap((scene) => scene.frames)
+    .find((entry) => entry.number === number)!
+  const heading =
+    at > 0 ? `Between scenes ${at} and ${at + 1}` : `Into frame ${number}`
+  return `<h2>${heading}</h2>
+<p class="sb-meta">${
+    storyboard.produced
+      ? 'The episode is put together again with it, in about a minute.'
+      : 'The episode is put together with it.'
+  }${at > 0 ? ` A crossfade into a new scene runs ${SCENE_CHANGE_SECONDS} s.` : ''}</p>${
+    frame.transitionWhy
+      ? `<p class="sb-meta">Planned as a cut: ${escape(frame.transitionWhy)}</p>`
+      : ''
+  }
+<div class="transition-choices">${TRANSITIONS.map(
+    (value) =>
+      `<button type="button" data-action="sb-transition-set" data-number="${number}" data-value="${value}" ${value === frame.transition ? 'class="primary" aria-pressed="true"' : ''}>${TRANSITION_LABELS[value]}</button>`
+  ).join('')}</div>`
+}
+
 const changeDialog = () => `<h2>Change the plan</h2>
 <form id="storyboard-change" class="sb-change"><label for="sb-note">Say what to change, in your words</label><textarea id="sb-note" name="note" rows="3" placeholder="Open on the numbers; merge scenes 3 and 4"></textarea>
 <div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Plan again</button></div></form>`
@@ -99,6 +131,21 @@ export const clickStoryboard = async (
       )
       if (at) seek(app, at.start)
     }
+    app.render()
+    return true
+  }
+  if (action === 'sb-transition') {
+    if (busy || !storyboard?.plan) return true
+    app.showDialog(transitionDialog(app, Number(target.dataset.number)))
+    return true
+  }
+  if (action === 'sb-transition-set') {
+    app.snapshot = await api.setStoryboardTransition(
+      id,
+      Number(target.dataset.number),
+      target.dataset.value || ''
+    )
+    app.dialog.close()
     app.render()
     return true
   }

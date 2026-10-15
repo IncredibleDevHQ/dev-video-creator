@@ -128,6 +128,12 @@ export const api = {
     ),
   retryStoryboard: (id: string) =>
     request<Snapshot>(`/projects/${id}/storyboard/retry`, 'POST', {}),
+  setStoryboardTransition: (id: string, frame: number, transition: string) =>
+    request<Snapshot>(
+      `/projects/${id}/storyboard/frames/${frame}/transition`,
+      'POST',
+      { transition }
+    ),
   makeScene: (id: string, sceneId: string) =>
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/make`, 'POST', {}),
   leaveOutScene: (id: string, sceneId: string) =>
