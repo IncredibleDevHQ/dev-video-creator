@@ -12,6 +12,8 @@ import {
   frameShapeProblems
 } from '../engine/storyboard/frames'
 import { tryFrame } from '../engine/storyboard/check'
+import { writeBoard } from '../engine/storyboard/board'
+import { poseMoment, poseProblems } from '../engine/storyboard/stills'
 import {
   assembleEpisode,
   checkEpisode,
@@ -30,14 +32,16 @@ import { runCommand, probeSeconds } from '../engine/voice'
 // workflow's scripts make its design, packets, captions, index and
 // transitions, the local voice and the aligner time the words, a camera
 // scene's take (a generated test pattern with a spoken track, standing in
-// for footage) is cut at its frames, Hyperframes checks stub frames and
-// renders the episode. The frames are stubs written here, not a model's.
+// for footage) is cut at its frames, Hyperframes checks a stub still and
+// stub frames and renders the episode. The still and the frames are stubs
+// written here, not a model's.
 
 const stubFrame = (
   id: string,
   title: string,
   duration: number,
-  media?: string
+  media?: string,
+  still = false
 ) => `<template>
   <div id="root" data-composition-id="${id}" data-width="1920" data-height="1080" data-duration="${duration}">
     <style>
@@ -53,7 +57,7 @@ const stubFrame = (
     <script>
       window.__timelines = window.__timelines || {};
       const tl = gsap.timeline({ paused: true });
-      tl.fromTo("#${id}-title", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, 0.2);
+      ${still ? '' : `tl.fromTo("#${id}-title", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, 0.2);`}
       window.__timelines["${id}"] = tl;
     </script>
   </div>
@@ -158,6 +162,27 @@ it('runs the storyboard machinery end to end on stub frames', async () => {
     length: { min: 5, max: 30, strict: false }
   }
   await writeProjectFiles(dir, internal)
+  // A still before anything is voiced: frame 3 posed, nothing moving,
+  // checked and looked at once, and the board written for it.
+  await writeFramePackets(dir)
+  const trip = episodeFrames(report.value)[2]
+  const pose = stubFrame(trip.id, trip.title, trip.duration, undefined, true)
+  expect(poseProblems(pose, trip.id)).toEqual([])
+  const still = await tryFrame({
+    dir,
+    frameId: trip.id,
+    html: pose,
+    duration: trip.duration,
+    at: [poseMoment(trip.duration)]
+  })
+  expect(still.problems).toEqual([])
+  expect(still.snapshots).toHaveLength(1)
+  await writeBoard(dir, internal, { p1: 'The limit', p2: 'The trip' })
+  expect(
+    (await readFile(join(dir, 'boards', 'storyboard.html'), 'utf8')).match(
+      /class="frame"/g
+    )
+  ).toHaveLength(3)
   // The camera scene's take: a test pattern with its lines spoken over it.
   await mkdir(join(dir, '.studio'), { recursive: true })
   const spoken = join(dir, '.studio', 'take-voice.aiff')

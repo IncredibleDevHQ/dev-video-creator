@@ -19,6 +19,7 @@ export type HarnessOperation =
   | 'extension'
   | 'storyboard'
   | 'shots'
+  | 'pose'
   | 'frame'
 
 export type ThinkingEffort = 'low' | 'medium' | 'high'
@@ -121,6 +122,15 @@ const BASE: Record<HarnessOperation, StageLimits> = {
     maxToolCalls: 60,
     effort: 'high',
     maxOutputTokens: 64_000
+  },
+  // One frame's still: its layout at its key moment, no motion, looked at
+  // once before it is accepted.
+  pose: {
+    timeoutMs: minutes(10),
+    idleTimeoutMs: minutes(4),
+    maxToolCalls: 40,
+    effort: 'high',
+    maxOutputTokens: 32_000
   },
   // One frame's composition, checked and looked at before it is accepted.
   frame: {

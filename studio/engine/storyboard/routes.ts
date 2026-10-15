@@ -5,7 +5,9 @@
 //   POST /api/projects/:id/storyboard/retry
 //   GET  /api/projects/:id/storyboard/sheet                 the contact sheet
 //   GET  /api/projects/:id/storyboard/frames/:frameId/snapshot  a built frame
+//   GET  /api/projects/:id/storyboard/frames/:frameId/still     its still
 //   POST /api/projects/:id/storyboard/frames/:number/transition {transition}
+//   POST /api/projects/:id/storyboard/frames/:number/note       {note}
 import { existsSync } from 'node:fs'
 import { readFile, readdir } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -14,8 +16,10 @@ import { frameId } from '../../shared/storyboard'
 import { readAsset } from '../persistence'
 import { loadProject } from '../projects'
 import { productionDir } from './workspace'
+import { stillFile } from './board'
 import {
   approveStoryboard,
+  noteStoryboardFrame,
   retryStoryboard,
   saveStoryboardTake,
   setStoryboardBuild,
@@ -25,11 +29,22 @@ import {
 const ROUTE =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/(approve|retry|sheet|scenes\/([a-zA-Z0-9_-]+)\/(build|take))$/
 
-const TRANSITION_ROUTE =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(\d{1,3})\/transition$/
+const FRAME_CHANGE_ROUTE =
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(\d{1,3})\/(transition|note)$/
 
 const FRAME_ROUTE =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(f\d{2}-[a-z0-9-]+)\/snapshot$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(f\d{2}-[a-z0-9-]+)\/(snapshot|still)$/
+
+/** A frame's posed still, once it has one: the board and the Video page. */
+export const frameStill = async (projectId: string, id: string) => {
+  const storyboard = (await loadProject(projectId))?.project.video?.storyboard
+  const posed = storyboard?.plan?.scenes.some((scene) =>
+    scene.frames.some((frame) => frameId(frame) === id && frame.still)
+  )
+  if (!storyboard || !posed) return null
+  const path = join(productionDir(projectId, storyboard.id), stillFile(id))
+  return existsSync(path) ? readFile(path) : null
+}
 
 /** A built frame as its trial saw it, at its middle: the Video page shows it
  * on the stage and in the frame strip before the episode is made. */
@@ -76,8 +91,17 @@ export const storyboardRoute = async (
 ): Promise<{ status: number; value: unknown } | 'sent' | null> => {
   const frame = url.pathname.match(FRAME_ROUTE)
   if (frame && request.method === 'GET') {
-    const bytes = await frameSnapshot(frame[1], frame[2])
-    if (!bytes) return { status: 404, value: { error: 'Not built yet' } }
+    const bytes =
+      frame[3] === 'still'
+        ? await frameStill(frame[1], frame[2])
+        : await frameSnapshot(frame[1], frame[2])
+    if (!bytes)
+      return {
+        status: 404,
+        value: {
+          error: frame[3] === 'still' ? 'Not posed yet' : 'Not built yet'
+        }
+      }
     response.writeHead(200, {
       'Content-Type': 'image/png',
       'Content-Length': bytes.length,
@@ -86,15 +110,14 @@ export const storyboardRoute = async (
     response.end(bytes)
     return 'sent'
   }
-  const transition = url.pathname.match(TRANSITION_ROUTE)
-  if (transition && request.method === 'POST')
+  const change = url.pathname.match(FRAME_CHANGE_ROUTE)
+  if (change && request.method === 'POST')
     return {
       status: 200,
-      value: await setStoryboardTransition(
-        transition[1],
-        Number(transition[2]),
-        body
-      )
+      value:
+        change[3] === 'note'
+          ? await noteStoryboardFrame(change[1], Number(change[2]), body)
+          : await setStoryboardTransition(change[1], Number(change[2]), body)
     }
   const match = url.pathname.match(ROUTE)
   if (!match) return null

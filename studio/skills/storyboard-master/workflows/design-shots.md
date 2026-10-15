@@ -9,8 +9,9 @@ write each frame's **time-coded shot sequence**; you write no HTML.
 1. `packet/SCENE.json`: the scene's build type and why, its frames (title,
    scene line, voiceover, type, persuasion, beat, candidate blueprint,
    narrative role, key message), each frame's **measured duration** and its
-   **spoken words with their times** inside the frame, and the scenes before
-   and after it.
+   **spoken words with their times** inside the frame, the scenes before and
+   after it, and each frame's **approved still** (`still`, a picture under
+   `packet/stills/`) when it has one.
 2. `packet/DIRECTION.md`: the episode's message, structure and `## Video
    direction` (palette roles, motion grammar, held frames, never). Every frame
    inherits it; your windows carry only the delta.
@@ -35,6 +36,12 @@ write each frame's **time-coded shot sequence**; you write no HTML.
      (motion).
 
 ## Design
+
+A frame with a `still` has a layout the creator approved: look at the
+picture first. Its placement, copy and sizes are settled; your shot stages
+how the frame arrives at that picture on the voice's cues and holds it. Name
+the still's own elements in `focal`, `roles` and the windows, and choose the
+blueprint whose motion fits the layout; never a different layout.
 
 For every frame of the scene:
 

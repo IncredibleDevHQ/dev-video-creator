@@ -255,3 +255,42 @@
   width: 72px;
   padding: 4px 6px;
 }
+/* Stills: each frame posed at its key moment before anything is made. The
+   rail shows a scene's first still, the strip each frame's own, small; a
+   blank holds a still's place while it is posed. */
+.thumbnail > div > img.sb-rail-still {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sb-strip .moment .sb-thumb {
+  display: block;
+  width: 100%;
+  max-width: 128px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--line);
+}
+.sb-strip .moment .sb-thumb.is-empty {
+  background: var(--selected);
+  border: 1px dashed var(--line);
+}
+.sb-posing {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--panel);
+  box-shadow: 0 2px 8px #15201920;
+}
+.sb-posing .sb-rail-state {
+  padding-top: 0;
+}
+.sb-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}

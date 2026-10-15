@@ -1,17 +1,18 @@
 // The storyboard production, stage by stage: plan → the creator approves →
-// voice (and takes) → shots per scene → one worker per frame → assembly and
-// Hyperframes' check (a refused frame is built again with the findings) →
-// render. Each stage's outcome is saved before the next starts, so a
-// restart resumes where it stopped and never repeats a paid call that
-// already succeeded (stage checkpoints).
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+// a still of every frame → the creator approves the board (a note poses one
+// frame again) → voice (and takes) → shots per scene → one worker per frame,
+// starting from its approved still → assembly and Hyperframes' check (a
+// refused frame is built again with the findings) → render. Each stage's
+// outcome is saved before the next starts, so a restart resumes where it
+// stopped and never repeats a paid call that already succeeded (stage
+// checkpoints).
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Snapshot } from '../../shared/api'
 import type { BuildType, Storyboard } from '../../shared/storyboard'
 import { addEvent } from '../activity'
 import { readAsset, storeAsset } from '../persistence'
-import { changeProject, loadProject } from '../projects'
-import { detectedHarness } from '../notebook-intake'
+import { loadProject } from '../projects'
 import { resolveVoice } from '../voice-library'
 import { probeSeconds } from '../voice'
 import { loadSeries } from '../series'
@@ -20,6 +21,19 @@ import { blueprintIds, planEpisode, type SeriesContext } from './plan'
 import { prepareEpisodeAudio } from './voice'
 import { buildFiles, designSceneShots } from './shots'
 import { buildFrame, writeFramePackets } from './frames'
+import { stillFile, writeBoard } from './board'
+import { stillsStage } from './stills-stage'
+import {
+  LAYOUTS,
+  MOTION,
+  concurrency,
+  origin,
+  pageTitles,
+  selectionOf,
+  takesOf,
+  update,
+  type StageInput
+} from './run'
 import {
   assembleEpisode,
   checkEpisode,
@@ -37,14 +51,6 @@ import {
 } from './state'
 import { afterFrames } from './takes'
 
-const origin = () =>
-  process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
-  `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`
-const concurrency = () =>
-  Math.max(
-    1,
-    Math.min(6, Number(process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY) || 3)
-  )
 /** Rounds of rebuilding frames the episode check refused. */
 const MOST_ROUNDS = 2
 
@@ -62,24 +68,6 @@ export const scheduleStoryboard = (projectId: string) => {
 export const settledStoryboard = async (projectId: string) => {
   while (running.has(projectId)) await running.get(projectId)
 }
-
-const update = (
-  projectId: string,
-  change: (storyboard: Storyboard, snapshot: Snapshot) => void
-) =>
-  changeProject(projectId, (snapshot) => {
-    const storyboard = snapshot.project.video?.storyboard
-    if (!storyboard) return
-    change(storyboard, snapshot)
-    storyboard.updatedAt = new Date().toISOString()
-  })
-
-const takesOf = (storyboard: Storyboard) =>
-  Object.fromEntries(
-    (storyboard.plan?.scenes || [])
-      .filter((scene) => scene.take !== undefined)
-      .map((scene) => [scene.pageId, scene.take ?? null])
-  )
 
 const seriesContext = async (
   snapshot: Snapshot
@@ -101,16 +89,6 @@ const seriesContext = async (
     ...(ref.previously ? { previously: ref.previously } : {}),
     ...(ref.threads?.length ? { threads: ref.threads } : {}),
     ...(next ? { next: `${next.title}: ${next.carries}` } : {})
-  }
-}
-
-const selectionOf = async (snapshot: Snapshot) => {
-  const chosen =
-    snapshot.project.video?.settings.harness || snapshot.project.harness
-  const selection = chosen || (await detectedHarness())
-  return {
-    adapter: selection.adapter,
-    ...(selection.model ? { model: selection.model } : {})
   }
 }
 
@@ -149,13 +127,6 @@ const advance = async (projectId: string) => {
   }
 }
 
-type StageInput = {
-  snapshot: Snapshot
-  storyboard: Storyboard
-  dir: string
-  internal: Internal
-}
-
 const planStage = async ({
   snapshot,
   storyboard,
@@ -187,6 +158,8 @@ const planStage = async ({
     rounds: 0,
     ...(logo ? { logo } : {})
   }
+  // A new plan is posed afresh: the stills of the last one go.
+  await rm(join(dir, 'boards'), { recursive: true, force: true })
   await writeInternal(dir, next)
   await writeFile(join(dir, 'BRIEF.md'), brief)
   await writeProjectFiles(dir, next)
@@ -240,7 +213,11 @@ const voiceStage = async ({
   )
   for (const frame of frames.filter((entry) => redo.includes(entry.pageId))) {
     delete internal.shots?.[frame.number]
-    if (internal.statuses) internal.statuses[frame.number] = 'outline'
+    // Its still holds: the take changes the timing, not the layout.
+    if (internal.statuses)
+      internal.statuses[frame.number] = internal.stills?.[frame.number]
+        ? 'built'
+        : 'outline'
   }
   const summary = new Map(
     (storyboard.plan?.scenes || []).map((scene) => [scene.pageId, scene])
@@ -311,6 +288,7 @@ const voiceStage = async ({
         : `AI voice ${settings.voice.id}`
   await writeInternal(dir, internal)
   await writeProjectFiles(dir, internal)
+  await writeBoard(dir, internal, pageTitles(snapshot))
   await update(snapshot.project.id, (current, ledger) => {
     current.plan = planSummary(internal, takesOf(current))
     current.stage = 'shots'
@@ -323,9 +301,6 @@ const voiceStage = async ({
     )
   })
 }
-
-const LAYOUTS = ['overlay.html', 'pip.html', 'split.html', 'stack.html']
-const MOTION = ['motion-vocabulary.md']
 
 /** Designs the shots of every voiced scene that has none yet. */
 const shotsStage = async ({
@@ -364,7 +339,12 @@ const shotsStage = async ({
         blueprints,
         selection,
         origin: origin(),
-        extraFiles: buildFiles(plan.scenes[index].build, LAYOUTS, MOTION)
+        extraFiles: buildFiles(plan.scenes[index].build, LAYOUTS, MOTION),
+        stills: Object.fromEntries(
+          frames
+            .filter((frame) => internal.stills?.[frame.number])
+            .map((frame) => [frame.number, join(dir, stillFile(frame.id))])
+        )
       })
       for (const shot of shots) internal.shots![shot.number] = shot
       await writeInternal(dir, internal)
@@ -419,6 +399,7 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
           duration: internal.durations?.[frame.number] ?? frame.duration,
           media: internal.media?.[frame.number],
           logo: frame.logo ? internal.logo : undefined,
+          sketch: Boolean(internal.stills?.[frame.number]),
           selection,
           origin: origin(),
           findings: internal.problems![frame.number],
@@ -581,6 +562,7 @@ const renderStage = async ({ snapshot, dir, internal }: StageInput) => {
 
 const STAGES = {
   plan: planStage,
+  stills: stillsStage,
   voice: voiceStage,
   shots: shotsStage,
   frames: framesStage,

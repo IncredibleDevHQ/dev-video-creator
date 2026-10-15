@@ -165,6 +165,8 @@ export type LengthGoal = { min: number; max: number; strict: boolean }
 export type StoryboardStage =
   | 'plan'
   | 'review'
+  | 'stills'
+  | 'board'
   | 'voice'
   | 'shots'
   | 'frames'
@@ -175,6 +177,8 @@ export type StoryboardStage =
 export const STAGE_LABELS: Record<StoryboardStage, string> = {
   plan: 'Planning the episode',
   review: 'Waiting for your approval',
+  stills: 'Posing the stills',
+  board: 'Waiting for your go on the stills',
   voice: 'Recording the voice',
   shots: 'Designing the shots',
   frames: 'Building the frames',
@@ -183,6 +187,8 @@ export const STAGE_LABELS: Record<StoryboardStage, string> = {
   done: 'Made'
 }
 
+/** A frame's state as Hyperframes names it: `built` once its still is posed
+ * (its layout, at its key moment), `animated` once its motion is built. */
 export type FrameStatus = 'outline' | 'built' | 'animated' | 'failed'
 
 /** The frame as the creator sees it in the plan. */
@@ -199,7 +205,12 @@ export type FrameSummary = Pick<
   | 'beat'
   | 'narrativeRole'
   | 'keyMessage'
-> & { status: FrameStatus; problem?: string }
+> & {
+  status: FrameStatus
+  problem?: string
+  /** When its still was posed: the still exists, and this names its version. */
+  still?: string
+}
 
 export type SceneSummary = {
   pageId: string
@@ -235,6 +246,9 @@ export type Storyboard = {
   builds?: Record<string, BuildType>
   /** A change the creator asked the plan to take, before approving it. */
   note?: string
+  /** The creator's note on a still, by frame number: that frame is posed
+   * again with it, and the note goes once it is. */
+  frameNotes?: Record<number, string>
   /** Pages whose take was replaced after they were voiced: made again. */
   redo?: string[]
   approved?: boolean
@@ -250,6 +264,14 @@ export type Storyboard = {
 export const frameCount = (storyboard: Storyboard) =>
   (storyboard.plan?.scenes || []).reduce(
     (total, scene) => total + scene.frames.length,
+    0
+  )
+
+/** Frames whose still is posed. */
+export const framesPosed = (storyboard: Storyboard) =>
+  (storyboard.plan?.scenes || []).reduce(
+    (total, scene) =>
+      total + scene.frames.filter((frame) => frame.still).length,
     0
   )
 

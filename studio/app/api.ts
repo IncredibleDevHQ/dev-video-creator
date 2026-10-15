@@ -134,6 +134,12 @@ export const api = {
       'POST',
       { transition }
     ),
+  noteStoryboardFrame: (id: string, frame: number, note: string) =>
+    request<Snapshot>(
+      `/projects/${id}/storyboard/frames/${frame}/note`,
+      'POST',
+      { note }
+    ),
   makeScene: (id: string, sceneId: string) =>
     request<Snapshot>(`/projects/${id}/scenes/${sceneId}/make`, 'POST', {}),
   leaveOutScene: (id: string, sceneId: string) =>

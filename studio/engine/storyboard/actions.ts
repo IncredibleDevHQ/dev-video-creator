@@ -1,6 +1,7 @@
 // What the creator does to a storyboard video: start it with the episode's
-// pages, approve the plan or ask for a change, choose a scene's build,
-// record or upload a camera scene's take, and try again after a stop.
+// pages, approve the plan or ask for a change, approve the stills or leave a
+// note on one, choose a scene's build, record or upload a camera scene's
+// take, and try again after a stop.
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -39,30 +40,85 @@ const storyboardOf = (snapshot: Snapshot) => {
   return storyboard
 }
 
-/** Approve the plan, or send it back with a change in the creator's words. */
-export const approveStoryboard = async (projectId: string, raw: unknown) => {
-  const note = String((raw as { note?: unknown } | null)?.note ?? '')
+const noteOf = (raw: unknown) =>
+  String((raw as { note?: unknown } | null)?.note ?? '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 2000)
+
+/**
+ * Approve what waits for the creator, or send the plan back with a change in
+ * their words. The plan, approved, is posed as stills; the stills, approved,
+ * are made into the video. A change asked of the board plans again, and the
+ * new plan waits for approval.
+ */
+export const approveStoryboard = async (projectId: string, raw: unknown) => {
+  const note = noteOf(raw)
   const snapshot = await changeProject(projectId, (current) => {
     const storyboard = storyboardOf(current)
-    if (storyboard.stage !== 'review' || storyboard.waitingFor !== 'approval')
-      throw new Refusal('The plan is not waiting for you')
+    const stage = storyboard.stage
+    if (
+      !['review', 'board'].includes(stage) ||
+      storyboard.waitingFor !== 'approval'
+    )
+      throw new Refusal('Nothing is waiting for your approval')
     if (note) {
       storyboard.note = note
       storyboard.stage = 'plan'
+      delete storyboard.approved
+      delete storyboard.frameNotes
       addEvent(current, 'video', 'Planning again with your change')
-    } else {
+    } else if (stage === 'review') {
       storyboard.approved = true
+      storyboard.stage = 'stills'
+      addEvent(current, 'video', 'Plan approved: posing the stills')
+    } else {
       storyboard.stage = 'voice'
-      addEvent(current, 'video', 'Plan approved: making the video')
+      addEvent(current, 'video', 'Stills approved: making the video')
     }
     storyboard.status = 'working'
     delete storyboard.waitingFor
     storyboard.updatedAt = new Date().toISOString()
   })
   scheduleStoryboard(projectId)
+  return snapshot
+}
+
+/**
+ * A note on one frame's still: that frame is posed again with it, and no
+ * other. A note made while stills are posed waits for the next round.
+ */
+export const noteStoryboardFrame = async (
+  projectId: string,
+  number: number,
+  raw: unknown
+) => {
+  const note = noteOf(raw)
+  if (!note) throw new Refusal('Say what to change in this still')
+  let start = false
+  const snapshot = await changeProject(projectId, (current) => {
+    const storyboard = storyboardOf(current)
+    const frame = storyboard.plan?.scenes
+      .flatMap((scene) => scene.frames)
+      .find((entry) => entry.number === number)
+    if (!frame) throw new Refusal('Frame not found')
+    const waiting =
+      storyboard.stage === 'board' && storyboard.status === 'waiting'
+    const posing =
+      storyboard.stage === 'stills' && storyboard.status === 'working'
+    if (!waiting && !posing)
+      throw new Refusal('A still can change before you approve the stills')
+    storyboard.frameNotes = { ...storyboard.frameNotes, [number]: note }
+    if (waiting) {
+      storyboard.stage = 'stills'
+      storyboard.status = 'working'
+      delete storyboard.waitingFor
+      start = true
+    }
+    storyboard.updatedAt = new Date().toISOString()
+    addEvent(current, 'video', `Posing frame ${number} again with your note`)
+  })
+  if (start) scheduleStoryboard(projectId)
   return snapshot
 }
 

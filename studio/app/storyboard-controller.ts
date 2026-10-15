@@ -1,7 +1,8 @@
 // The storyboard page's actions: choose a scene or a frame (the made episode
-// seeks to it), approve or change the plan, choose a scene's build, record a
-// camera scene's take in place with the studio's recorder or upload one, try
-// again. While the episode plays, the rail and the strip follow it.
+// seeks to it), approve or change the plan, approve the stills or change one
+// with a note, choose a scene's build, record a camera scene's take in place
+// with the studio's recorder or upload one, try again. While the episode
+// plays, the rail and the strip follow it.
 import type { Snapshot } from '../shared/api'
 import type { AppContext } from './app-context'
 import {
@@ -101,6 +102,15 @@ const transitionDialog = (app: AppContext, number: number) => {
   ).join('')}</div>`
 }
 
+/** A note on one still: that frame is posed again with it. */
+const stillDialog = (
+  number: number,
+  title: string
+) => `<h2>Change frame ${number}’s still</h2>
+<p class="sb-meta">${escape(title)} is posed again with your note; the other stills stay as they are.</p>
+<form id="storyboard-still" class="sb-change" data-number="${number}"><label for="sb-still-note">What should change?</label><textarea id="sb-still-note" name="note" rows="3" placeholder="Make the diagram fill the frame; put the number on the left"></textarea>
+<div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Pose it again</button></div></form>`
+
 const changeDialog = () => `<h2>Change the plan</h2>
 <form id="storyboard-change" class="sb-change"><label for="sb-note">Say what to change, in your words</label><textarea id="sb-note" name="note" rows="3" placeholder="Open on the numbers; merge scenes 3 and 4"></textarea>
 <div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Plan again</button></div></form>`
@@ -149,6 +159,16 @@ export const clickStoryboard = async (
     app.render()
     return true
   }
+  if (action === 'sb-still') {
+    const number = Number(target.dataset.number)
+    const frame = storyboard?.plan?.scenes
+      .flatMap((scene) => scene.frames)
+      .find((entry) => entry.number === number)
+    if (busy || !frame) return true
+    app.showDialog(stillDialog(number, frame.title))
+    app.dialog.querySelector<HTMLTextAreaElement>('#sb-still-note')?.focus()
+    return true
+  }
   if (action === 'sb-approve') app.snapshot = await api.approveStoryboard(id)
   else if (action === 'sb-retry') app.snapshot = await api.retryStoryboard(id)
   else if (action === 'sb-change') {
@@ -192,10 +212,18 @@ export const submitStoryboard = async (
   form: HTMLFormElement,
   values: FormData
 ) => {
-  if (form.id !== 'storyboard-change' || !app.snapshot) return
+  if (!['storyboard-change', 'storyboard-still'].includes(form.id)) return
+  if (!app.snapshot) return
   const note = String(values.get('note') || '').trim()
   if (!note) throw new Error('Say what to change')
-  app.snapshot = await api.approveStoryboard(app.snapshot.project.id, note)
+  app.snapshot =
+    form.id === 'storyboard-still'
+      ? await api.noteStoryboardFrame(
+          app.snapshot.project.id,
+          Number(form.dataset.number),
+          note
+        )
+      : await api.approveStoryboard(app.snapshot.project.id, note)
   app.dialog.close()
   app.render()
 }

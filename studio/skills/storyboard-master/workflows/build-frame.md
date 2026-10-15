@@ -13,7 +13,8 @@ frame. You are that worker.
    rule it cites, inlined. Its `RULES_DIR` holds any recipe it names but does
    not inline.
 3. `packet/DISPATCH.md`: `PROJECT_DIR`, your `frame_id`, the canvas, the
-   captions and their keep-out band, and the media your frame plays.
+   captions and their keep-out band, whether your frame has a confirmed
+   sketch, and the media your frame plays.
 4. `production/frame.md`: the design truth. Its fonts ship in
    `production/assets/fonts/` when the design names files.
 5. `.claude/skills/storyboard-master/hyperframes/skills/faceless-explainer/references/cut-catalog.md`
@@ -24,6 +25,19 @@ frame. You are that worker.
 Write `production/compositions/frames/<frame_id>.html`: exactly one
 `<template>…</template>`, as the role says. Ids and classes start with your
 `frame_id` (it starts with a letter).
+
+## When the dispatch names a confirmed sketch
+
+The creator approved your frame's still on the board. Its pose is already the
+file you write, and its still sits in `production/boards/stills/`. The role's
+"When a confirmed sketch exists" holds, with this difference: the sketch is
+that composition and its still, not a cell of a `storyboard.html`. Read both
+first and keep the composition: placement, hierarchy, copy and sizes were
+approved. Put the real media where the pose shows a stand-in (a plain block
+or a picture from the take or capture), then add the motion: each Scene of
+your shot a phase of the timeline, each piece revealed on its cue, so the
+frame arrives at the approved still and holds it. Your snapshot at the end
+should read as that still, now reached by motion.
 
 ## Check, look, submit
 

@@ -1,8 +1,15 @@
 // Design Shots: one agent call per scene writes each frame's time-coded
 // shot (storyboard-master/workflows/design-shots.md), against the frame's
-// measured duration and its spoken words with their times.
+// measured duration and its spoken words with their times, and onto the
+// still the creator approved for it.
+import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import type { Snapshot } from '../../shared/api'
-import type { EpisodePlan, FrameShot } from '../../shared/storyboard'
+import {
+  frameId,
+  type EpisodePlan,
+  type FrameShot
+} from '../../shared/storyboard'
 import {
   runValidatedJsonStage,
   type CreativeSelection
@@ -137,9 +144,17 @@ export const designSceneShots = async (input: {
   origin: string
   /** Skill files for this scene's build (layouts for camera, …). */
   extraFiles?: string[]
+  /** Each frame's approved still, by number: the picture's path. */
+  stills?: Record<number, string>
 }) => {
   const scene = input.plan.scenes[input.sceneIndex]
   const frames = input.frames.filter((frame) => frame.pageId === scene.pageId)
+  const stills: Record<string, Buffer> = {}
+  for (const frame of frames)
+    if (input.stills?.[frame.number])
+      stills[`packet/stills/${frameId(frame)}.png`] = await readFile(
+        input.stills[frame.number]
+      )
   const neighbour = (index: number) => {
     const other = input.plan.scenes[index]
     return other
@@ -166,7 +181,10 @@ export const designSceneShots = async (input: {
       beat: frame.beat,
       ...(frame.blueprint ? { blueprint: frame.blueprint } : {}),
       narrativeRole: frame.narrativeRole,
-      keyMessage: frame.keyMessage
+      keyMessage: frame.keyMessage,
+      ...(stills[`packet/stills/${frameId(frame)}.png`]
+        ? { still: `packet/stills/${frameId(frame)}.png` }
+        : {})
     }))
   }
   const direction = [
@@ -194,7 +212,14 @@ export const designSceneShots = async (input: {
       scene: sceneJson,
       direction,
       frameDesign: input.frameDesign,
-      harness: input.selection
+      harness: input.selection,
+      ...(Object.keys(stills).length
+        ? {
+            stills: Object.values(stills).map((bytes) =>
+              createHash('sha1').update(bytes).digest('hex')
+            )
+          }
+        : {})
     }),
     checkpoint: `storyboard-shots-${scene.pageId}`,
     stage: 'shots',
@@ -213,7 +238,8 @@ export const designSceneShots = async (input: {
     packet: {
       'packet/SCENE.json': JSON.stringify(sceneJson, null, 1),
       'packet/DIRECTION.md': direction,
-      'packet/FRAME.md': input.frameDesign
+      'packet/FRAME.md': input.frameDesign,
+      ...stills
     },
     selection: input.selection,
     origin: input.origin,

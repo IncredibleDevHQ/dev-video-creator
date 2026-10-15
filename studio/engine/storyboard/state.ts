@@ -34,6 +34,9 @@ export type Internal = {
   logo?: string
   /** The pages already voiced (their take cut, or spoken). */
   voiced?: string[]
+  /** Frames whose still is posed (boards/poses/<id>.html, its picture in
+   * boards/stills/<id>.png), by number: when it was posed. */
+  stills?: Record<number, string>
 }
 
 const statePath = (dir: string) => join(dir, '.studio', 'state.json')
@@ -111,6 +114,9 @@ export const planSummary = (
         status: internal.statuses?.[frame.number] || 'outline',
         ...(internal.problems?.[frame.number]?.length
           ? { problem: internal.problems[frame.number][0] }
+          : {}),
+        ...(internal.stills?.[frame.number]
+          ? { still: internal.stills[frame.number] }
           : {})
       }))
     }))

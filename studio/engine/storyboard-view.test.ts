@@ -222,3 +222,105 @@ it('shows how each frame enters, and the change of scene in words', () => {
     /data-action="sb-transition" data-number="2"[^>]*disabled/
   )
 })
+
+const posed = (value: Storyboard, numbers: number[]) => ({
+  ...value,
+  plan: {
+    ...value.plan!,
+    scenes: value.plan!.scenes.map((scene) => ({
+      ...scene,
+      frames: scene.frames.map((entry) =>
+        numbers.includes(entry.number)
+          ? { ...entry, status: 'built' as const, still: `t${entry.number}` }
+          : entry
+      )
+    }))
+  }
+})
+
+it('shows the stills for the creator’s go: the stage, the strip and the rail', () => {
+  const value = posed(
+    storyboard({
+      stage: 'board',
+      status: 'waiting',
+      waitingFor: 'approval',
+      approved: true
+    }),
+    [1, 2, 3, 4]
+  )
+  const html = storyboardScreen(
+    snapshot(value),
+    { projectId: 'n', scene: 0, frame: 2 },
+    idle(),
+    null
+  )
+  expect(html).toContain('The stills are ready: approve them, or change one')
+  // The chosen frame's still on the stage, every frame's small in the strip,
+  // each scene's first still in the rail.
+  expect(html).toContain(
+    '<img class="sb-shot" src="/api/projects/n/storyboard/frames/f02-frame-2/still?v=t2" alt="Frame 2, its still">'
+  )
+  expect(html).toContain(
+    '<img class="sb-thumb" src="/api/projects/n/storyboard/frames/f01-frame-1/still?v=t1" alt="">'
+  )
+  expect(html).toContain(
+    '<img class="sb-rail-still" src="/api/projects/n/storyboard/frames/f03-frame-3/still?v=t3" alt="">'
+  )
+  expect(html).not.toContain('<svg id="p1"')
+  expect(html).toContain('data-action="sb-still" data-number="2"')
+  expect(html).toMatch(
+    /data-action="sb-approve" class="primary"\s*>Approve the stills<\/button>/
+  )
+  // Nothing is made yet: no nudge for the camera scene's take.
+  expect(html).not.toContain('recording-nudge')
+  // A camera scene's still carries its own layout: no stand-in beside it.
+  const camera = storyboardScreen(
+    snapshot(value),
+    { projectId: 'n', scene: 1, frame: 3 },
+    idle(),
+    null
+  )
+  expect(camera).not.toContain('Your take goes here')
+  // Record is there, and does not compete with the approval.
+  expect(camera).toMatch(/data-action="sb-record" data-page="p2"\s+>Record</)
+  expect(camera).toContain('f03-frame-3/still?v=t3" alt="Frame 3, its still"')
+})
+
+it('poses the stills in view: blanks hold their place, and a note says it is posed again', () => {
+  const value = posed(
+    storyboard({
+      stage: 'stills',
+      status: 'working',
+      approved: true,
+      frameNotes: { 1: 'Make the timer bigger' }
+    }),
+    [1]
+  )
+  const html = storyboardScreen(
+    snapshot(value),
+    { projectId: 'n', scene: 0, frame: 1 },
+    idle(),
+    null
+  )
+  expect(html).toContain('Posing the stills · 1 of 4')
+  expect(html).toContain('<span class="sb-thumb is-empty" aria-hidden="true">')
+  expect(html).toContain('Posing this still again')
+  expect(html).toContain('Your note: “Make the timer bigger”')
+  expect(html).toContain('Hook · Posing again')
+  expect(html).toContain('Hook · Posing</small>')
+  expect(html).toMatch(/sb-rail-state is-working.*Posing/)
+  // Being posed again, it is not offered for another change; no approval yet.
+  expect(html).not.toContain('data-action="sb-still"')
+  expect(html).not.toContain('data-action="sb-approve"')
+  // A posed frame can take a note while the others are posed.
+  const other = storyboardScreen(
+    snapshot({ ...value, frameNotes: undefined }),
+    { projectId: 'n', scene: 0, frame: 1 },
+    idle(),
+    null
+  )
+  expect(other).toContain('data-action="sb-still" data-number="1"')
+  // The plan itself is approved before any still is posed.
+  const plan = storyboardScreen(snapshot(storyboard()), null, idle(), null)
+  expect(plan).toContain('>Approve the plan</button>')
+})

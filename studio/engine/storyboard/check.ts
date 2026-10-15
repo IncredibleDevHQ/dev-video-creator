@@ -157,6 +157,8 @@ export const tryFrame = async (input: {
   html: string
   duration: number
   media?: string
+  /** When to check and look, in seconds; a still is looked at once. */
+  at?: number[]
 }) => {
   const trial = join(input.dir, '.studio', 'trial', input.frameId)
   await rm(trial, { recursive: true, force: true })
@@ -203,7 +205,7 @@ export const tryFrame = async (input: {
       snapshots: [] as string[]
     }
   }
-  const times = lookTimes(input.duration)
+  const times = input.at?.length ? input.at : lookTimes(input.duration)
   const checked = await checkProject(trial, { at: times, captions: true })
   const shots = checked.errors.length
     ? { frames: [] }

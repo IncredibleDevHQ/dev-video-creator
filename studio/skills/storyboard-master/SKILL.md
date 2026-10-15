@@ -1,6 +1,6 @@
 ---
 name: storyboard-master
-description: Plan and build one episode of a narrated video as a single Hyperframes project, the way the faceless-explainer workflow does — a message, one structure, frames with type, beat and key message, time-coded shots, and one composition per frame — for every scene whatever it is built from (invented visuals, motion graphics, the creator on camera, a screen demo). Routes Plan Series, Plan Episode, Design Shots and Build Frame.
+description: Plan and build one episode of a narrated video as a single Hyperframes project, the way the faceless-explainer workflow does — a message, one structure, frames with type, beat and key message, a still of every frame the creator approves, time-coded shots, and one composition per frame — for every scene whatever it is built from (invented visuals, motion graphics, the creator on camera, a screen demo). Routes Plan Series, Plan Episode, Pose Frame, Design Shots and Build Frame.
 metadata:
   version: "0.1.0"
   hyperframes: "v0.8.143 (3aa68869f7d4cec8b37cdfcb9cd539389b63abed)"
@@ -24,7 +24,7 @@ and no package commands. Write only inside the run directory.
 `hyperframes/PROVENANCE.md`). Paths below are relative to it. Read a reference
 when its route says so; do not read the whole library.
 
-The studio adapts the faceless-explainer workflow in three ways, and nothing
+The studio adapts the faceless-explainer workflow in four ways, and nothing
 else:
 
 1. **One structure for every scene.** An episode is one storyboard. Every
@@ -38,6 +38,12 @@ else:
    never write `STORYBOARD.md` or `index.html` yourself, and never touch audio.
    You submit through the studio's tool; it checks your work and writes the
    project files.
+4. **Stills come first, as Hyperframes does from v0.8.158.** Once the plan is
+   approved, each frame is posed as a still at its key moment, one worker per
+   frame, and the creator approves the board before anything is voiced or
+   animated. The studio snapshots the stills and writes the board
+   (`boards/storyboard.html`); the shots are designed onto the approved
+   stills, and each frame is built from its pose (a confirmed sketch).
 
 ## Routes
 
@@ -45,6 +51,7 @@ else:
 | --- | --- | --- |
 | Plan Series | [workflows/plan-series.md](workflows/plan-series.md) | `plan/series.json` with `storyboard_submit_series` |
 | Plan Episode | [workflows/plan-episode.md](workflows/plan-episode.md) | `plan/episode.json` with `storyboard_submit_plan` |
+| Pose Frame | [workflows/pose-frame.md](workflows/pose-frame.md) | `production/compositions/frames/<id>.html` with `storyboard_submit_pose` |
 | Design Shots | [workflows/design-shots.md](workflows/design-shots.md) | `plan/shots.json` with `storyboard_submit_shots` |
 | Build Frame | [workflows/build-frame.md](workflows/build-frame.md) | `production/compositions/frames/<id>.html` with `storyboard_submit_frame` |
 
