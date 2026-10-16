@@ -88,7 +88,6 @@ export const notebookHint = (snapshot: Snapshot, editable: boolean) => {
     return line(
       `<b>${escape(agent)} is ${escape((buildPhase(snapshot)?.line || 'Drawing the wireframes').toLowerCase())}.</b> Watch them arrive in Wireframe.`
     )
-  return line(
-    '<b>Your wireframes are ready.</b> Review them in Wireframe, then make the video.'
-  )
+  // Ready: the header's one button says what is next; it is not said twice.
+  return ''
 }

@@ -201,6 +201,10 @@ export class AiCursor {
     if (this.marked) delete this.marked.dataset.ai
     this.marked = null
   }
+  /** How loud its voice is now, 0 to 1: its arrow glows with it. */
+  voice(level: number) {
+    this.node?.style.setProperty('--ai-voice', level.toFixed(3))
+  }
   /** What it is doing, beside its name. */
   doing(text: string | null) {
     const label = this.part('tag')?.querySelector('em')

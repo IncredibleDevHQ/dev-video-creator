@@ -17,14 +17,13 @@
 .scene-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
   padding: 7px 0 0;
 }
 .scene-meta b {
-  font-size: 9px;
-  letter-spacing: 0.5px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
 }
 .scene-state {
   display: block;
@@ -92,8 +91,7 @@
   text-overflow: ellipsis;
 }
 .moment small {
-  font-size: 10px;
-  font-family: monospace;
+  font-size: 11px;
   color: var(--muted);
   margin-left: auto;
 }
@@ -210,7 +208,6 @@
   font-size: 14px;
 }
 .practice-cue strong {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 11px;
+  font-weight: 600;
 }

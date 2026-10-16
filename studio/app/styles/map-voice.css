@@ -13,7 +13,20 @@
   --map-ai-soft: rgba(255, 111, 156, 0.16);
 }
 
-/* The dock: Talk, or the call. */
+/* Talk sits at the top of the creation tools, in Studio AI's colour; a
+   call takes the top of the canvas. */
+.map-toolpill .map-tool-talk {
+  background: var(--map-ai);
+  color: #fff;
+}
+.map-toolpill .map-tool-talk:hover {
+  filter: brightness(1.08);
+}
+.map-page:has(.map-voice.is-on) .map-tool-talk {
+  box-shadow: 0 0 0 3px var(--map-ai-soft);
+}
+
+/* The call. */
 .map-voice {
   position: absolute;
   top: 12px;
@@ -179,10 +192,8 @@
   line-height: 1.45;
 }
 .map-caption-who {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--map-you);
 }
 .map-caption-text {
@@ -244,6 +255,10 @@
   stroke-linejoin: round;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
   transition: transform 0.12s ease;
+}
+.map-ai-cursor .map-ai-arrow {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25))
+    drop-shadow(0 0 calc(var(--ai-voice, 0) * 14px) var(--map-ai));
 }
 .map-ai-cursor.is-dragging .map-ai-arrow {
   transform: scale(0.88);

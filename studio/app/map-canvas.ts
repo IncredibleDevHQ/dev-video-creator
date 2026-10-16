@@ -24,6 +24,12 @@ import { paintWorld } from './map-paint'
 import { mapNotes, mapPage, mapStages, mapTools } from './map-view'
 import { replacePlayerView } from './player-view'
 import { MapComments } from './map-comments'
+import {
+  installChrome,
+  noteCount,
+  restoreChrome,
+  restoreView
+} from './map-chrome'
 import { VoiceCall } from './map-voice'
 
 export type MapSel =
@@ -86,6 +92,8 @@ export class MapCanvas {
   /** The bar asks for the series' outcome or audience. */
   briefing: 'outcome' | 'audience' | null = null
   private adding = false
+  /** The map just opened: its last view is put back once, else it fits. */
+  private returning = true
   private fitted = false
   private fittedPages = 0
   private poll: ReturnType<typeof setInterval> | null = null
@@ -106,6 +114,7 @@ export class MapCanvas {
     this.comments = new MapComments(this)
     this.voice.install()
     this.comments.install()
+    installChrome(this)
   }
   slot(name: string) {
     return this.root.querySelector<HTMLElement>(`[data-map-slot="${name}"]`)
@@ -128,11 +137,13 @@ export class MapCanvas {
     this.sel = null
     this.clip = null
     this.toldRun = null
+    this.returning = true
     this.comments.reset()
     this.fitted = false
     this.fittedPages = 0
     this.els.clear()
     replacePlayerView(this.root, mapPage('Loading…'), null)
+    restoreChrome(this)
     const url = new URL(location.href)
     url.searchParams.set('map', id)
     history.replaceState(null, '', url)
@@ -199,6 +210,7 @@ export class MapCanvas {
     )
     this.fill('stages', mapStages(this.snapshot))
     this.fill('notes', mapNotes(this.snapshot, this.openNotes))
+    this.fill('note-count', noteCount(this))
     // Notes pile into a drawn map; while it forms they wait.
     const ready = this.snapshot.status === 'ready'
     const note = this.root.querySelector<HTMLTextAreaElement>(
@@ -229,7 +241,9 @@ export class MapCanvas {
     if ((!this.fitted || (this.fittedPages === 0 && pages > 0)) && this.view) {
       this.fitted = true
       this.fittedPages = pages
-      this.fit()
+      const back = this.returning && pages > 0 && restoreView(this)
+      if (pages > 0) this.returning = false
+      if (!back) this.fit()
     }
   }
   private fill(name: string, html: string) {
@@ -259,14 +273,16 @@ export class MapCanvas {
     if (!this.layout || !this.canvas) return
     const box = extent(this.layout, focus)
     const rect = this.canvas.getBoundingClientRect()
-    const width = rect.width - 24
+    // The tool bar floats on the left: what is fitted starts past it.
+    const left = 72
+    const width = rect.width - left - 16
     const height = rect.height - 90
     if (width <= 0 || height <= 0) return
     const k = Math.max(0.2, Math.min(width / box.w, height / box.h, 1))
     // Too big even at the smallest zoom, it shows from its top left.
     this.camera = {
       k,
-      x: 12 + Math.max(0, (width - box.w * k) / 2) - box.x * k,
+      x: left + Math.max(0, (width - box.w * k) / 2) - box.x * k,
       y: 16 + Math.max(0, (height - box.h * k) / 2) - box.y * k
     }
     this.applyCamera(true)

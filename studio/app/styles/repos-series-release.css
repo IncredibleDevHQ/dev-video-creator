@@ -145,9 +145,8 @@
 .capture-block h3 {
   margin: 0;
   font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--muted);
+  font-weight: 600;
 }
 .capture-form {
   display: grid;

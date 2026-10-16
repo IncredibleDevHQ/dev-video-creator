@@ -96,16 +96,17 @@
     padding-left: 6px;
   }
 }
-/* Narrower, Map, Look and Rehearse keep only their icons. */
+/* Map, Look and Rehearse keep only their icons, as a toolbar's tools do;
+   the tooltip names each with its shortcut. */
+.workspace-header .header-look {
+  justify-content: center;
+  width: 32px;
+  padding: 6px;
+}
+.workspace-header .header-look span {
+  display: none;
+}
 @media (max-width: 1365px) {
-  .workspace-header .header-look {
-    justify-content: center;
-    width: 30px;
-    padding: 6px;
-  }
-  .workspace-header .header-look span {
-    display: none;
-  }
   .workspace-header .agent-pill {
     max-width: 220px;
   }

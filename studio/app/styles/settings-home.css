@@ -191,10 +191,8 @@
   text-align: left;
 }
 .saved-notebooks h2 {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
   margin: 0 0 14px;
 }

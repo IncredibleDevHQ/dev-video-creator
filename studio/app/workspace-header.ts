@@ -28,8 +28,8 @@ const wireframeTools = (snapshot: Snapshot) => {
   const { status } = snapshot
   const drawn = snapshot.project.slides.some((slide) => slide.svg)
   return (
-    `<button type="button" data-action="open-map" class="header-look" aria-label="Map" title="The content map: notes, episodes, and where each page is used" ${status !== 'ready' && status !== 'building' ? 'disabled' : ''}>${mapIcon}<span>Map</span></button>` +
-    `<button type="button" data-action="look-panel" class="header-look" aria-label="Look" title="Colours and fonts">${palette}<span>Look</span></button>` +
+    `<button type="button" data-action="open-map" class="header-look" aria-label="Map" title="Content map: your notes, the episodes, and where each card is used" ${status !== 'ready' && status !== 'building' ? 'disabled' : ''}>${mapIcon}<span>Map</span></button>` +
+    `<button type="button" data-action="look-panel" class="header-look" aria-label="Look" title="Look: colours and fonts">${palette}<span>Look</span></button>` +
     `<button type="button" data-action="rehearse" class="header-look" aria-label="Rehearse" title="${drawn ? 'Rehearse with the script: ← → P F Esc' : 'Rehearse once a wireframe is drawn'}" ${drawn ? '' : 'disabled'}>${play}<span>Rehearse</span></button>`
   )
 }

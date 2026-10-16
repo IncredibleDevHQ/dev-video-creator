@@ -71,6 +71,37 @@
   padding: 4px 10px;
   font-size: 12px;
 }
+/* The line itself opens the scene: one control, quiet until pointed at. */
+.scene-line .scene-line-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: inherit;
+}
+.scene-line.is-ready .scene-line-open,
+.scene-line.is-working .scene-line-open {
+  color: var(--accent);
+}
+.scene-line .scene-line-open i {
+  font-style: normal;
+  opacity: 0;
+  transform: translateX(-3px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+.scene-line .scene-line-open:hover {
+  background: var(--selected);
+}
+.scene-line .scene-line-open:hover i,
+.scene-line .scene-line-open:focus-visible i {
+  opacity: 1;
+  transform: none;
+}
 
 /* A made scene plays picture-in-picture in the wireframe's lower right
    corner; it folds to a chip. */
@@ -229,9 +260,7 @@
   margin: 14px 4px 6px;
   padding-top: 10px;
   border-top: 1px solid var(--line);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--muted);
 }

@@ -4,7 +4,6 @@
 import type { Snapshot } from '../shared/api'
 import type { MapCopy, MapEpisode, MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
-import { themeControl } from './appearance'
 import { escape } from './ui'
 import { videoOpens } from '../shared/state'
 import incredibleLogo from './assets/incredible-logo.svg'
@@ -16,6 +15,13 @@ import {
   type MapMode,
   type MapPage
 } from './map-layout'
+
+const dots =
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>'
+const closeIcon =
+  '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+const chevron =
+  '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
 
 export const EPISODE_COLORS = [
   '#3f9e5f',
@@ -47,21 +53,20 @@ export const mapPage = (title: string) => `<div class="map-page">
 <nav class="map-stages" aria-label="Stages" data-map-slot="stages"></nav>
 </div>
 <button type="button" class="quiet map-back" data-map="close" title="Back to the wireframes">← Wireframe</button>
-<button type="button" class="quiet map-notes-toggle" data-map="notes" aria-expanded="false">Notes</button>
-<div class="map-pill map-pill-tools"><div class="map-tools" data-map-slot="tools"></div>${themeControl()}</div>
+<div class="map-pill map-pill-tools"><button type="button" class="map-notes-toggle" data-map="notes" aria-expanded="false" aria-controls="map-notes-panel" title="Notes · N"><span>Notes</span><b data-map-slot="note-count"></b></button><div class="map-tools" data-map-slot="tools"></div><button type="button" class="map-more-button" data-map="map-more" aria-label="More" title="More">${dots}</button></div>
 </header>
 <div class="map-body">
-<aside class="map-rail" aria-label="Notes"><div class="map-rail-head"><strong>Notes</strong></div>
+<aside class="map-rail" id="map-notes-panel" aria-label="Notes"><div class="map-rail-head"><strong>Notes</strong><button type="button" class="map-rail-close" data-map="notes" aria-label="Close the notes" title="Close · N">${closeIcon}</button></div>
 <div class="map-notes" data-map-slot="notes"></div>
 <form class="map-composer" data-map-form="note"><textarea name="note" rows="4" placeholder="Add a note: an idea, a link, a half-thought…" aria-label="A note for the map"></textarea><button type="submit" class="primary">Add</button></form>
 </aside>
 <section class="map-stage">
 <div class="map-canvas" data-map-canvas><div class="map-world" data-map-world><svg class="map-wires" data-map-wires></svg></div></div>
 <nav class="map-toolpill" aria-label="Canvas tools">
+<button type="button" class="map-tool-talk" data-voice="talk" title="Talk to Studio AI · T: it hears you, answers, and works on the canvas" aria-label="Talk to Studio AI">${voiceIcon('spark', 17)}</button>
 <button type="button" class="map-tool-add" data-map="add" title="Add a direction, a note or an episode · or double-click the canvas" aria-label="Add">+</button>
 <button type="button" data-comment="tool" title="Comment · C: say it or type it" aria-label="Comment" aria-pressed="false">${voiceIcon('comment')}</button>
-<button type="button" data-map="fit" title="Fit everything" aria-label="Fit everything">⤢</button>
-<button type="button" data-map="help" title="Shortcuts" aria-label="Shortcuts">?</button></nav>
+</nav>
 <div class="map-queue" data-map-slot="queue"></div>
 <div class="map-zoom"><button type="button" data-map="zoom-out" aria-label="Zoom out">−</button><span data-map-slot="zoom">100%</span><button type="button" data-map="zoom-in" aria-label="Zoom in">+</button><button type="button" data-map="fit" title="Fit everything · double-click a block to zoom to it">Fit</button><button type="button" data-map="help" aria-label="Shortcuts" title="Shortcuts">?</button></div>
 <div class="map-toast" data-map-slot="toast" hidden></div>
@@ -87,40 +92,25 @@ export const mapStages = (snapshot: Snapshot) =>
     )
     .join('')
 
-/** The header's tools: views, filters, grouping, the series. */
+/** The header's tools: one View menu for how the map is arranged and
+ * filtered (Figma and Miro keep such choices behind one control), and the
+ * series' one next step. Nothing while the map forms. */
 export const mapTools = (
   snapshot: Snapshot,
   view: MapView | null,
   mode: MapMode,
   filter: MapFilter
 ) => {
-  const grouping = snapshot.project.grouping
-  const seg = (value: MapMode, label: string) =>
-    `<button type="button" data-map="mode:${value}" aria-pressed="${mode === value}">${label}</button>`
-  const chip = (value: MapFilter, label: string) =>
-    `<button type="button" class="map-chip" data-map="filter:${value}" aria-pressed="${filter === value}">${label}</button>`
-  // Only what can be used now: nothing while the map forms; Unused once a
-  // series uses pages; From notes once a note has landed. A filter pressed
-  // again shows every page.
   if (snapshot.status !== 'ready') return ''
-  const filters = [
-    ...(view?.series ? [chip('unused', 'Unused')] : []),
-    ...(snapshot.project.notes?.length ? [chip('new', 'From notes')] : [])
+  const grouping = snapshot.project.grouping
+  const shown = [
+    mode === 'topic' ? 'By topic' : 'By order',
+    filter === 'unused' ? 'unused' : filter === 'new' ? 'from notes' : '',
+    mode === 'topic' && grouping?.state === 'grouping' ? 'grouping…' : ''
   ]
-  return `<div class="map-seg" role="group" aria-label="Arrange the map">${seg('order', 'By order')}${seg('topic', 'By topic')}</div>
-${filters.join('')}
-${
-  mode !== 'topic'
-    ? ''
-    : grouping?.state === 'grouping'
-      ? '<button type="button" class="quiet" disabled>Grouping… about a minute</button>'
-      : grouping?.state === 'failed'
-        ? `<span class="map-tool-error" title="${escape(grouping.error || '')}">Grouping failed</span><button type="button" class="quiet" data-map="group">Group again</button>`
-        : snapshot.project.topics?.length
-          ? '<button type="button" class="quiet" data-map="group">Group again</button>'
-          : ''
-}
-${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
+    .filter(Boolean)
+    .join(' · ')
+  return `<button type="button" class="map-view-button${filter !== 'all' ? ' is-filtered' : ''}" data-map="view-menu" aria-haspopup="menu" title="Arrange and filter the map">${escape(shown)}${chevron}</button>${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
 }
 
 const kindLabel = {

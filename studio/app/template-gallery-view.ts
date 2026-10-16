@@ -3,7 +3,6 @@
 // tabs, a player that walks its beats as that direction tells them, and
 // what the story insists on. Every sketch is drawn in the notebook's look.
 import incredibleLogo from './assets/incredible-logo.svg'
-import { themeControl } from './appearance'
 import { escape, html } from './ui'
 import { galleryIcon } from './template-icons'
 import { listPage } from './template-gallery-lists'
@@ -239,9 +238,7 @@ export const templateGalleryPage = (state: GalleryState) => {
         ><img src="${incredibleLogo}" alt="" />Incredible</a
       ><span>Templates</span>
       <div class="header-actions">
-        ${themeControl()}<button type="button" data-tpl-close>
-          ← ${escape(state.back)}
-        </button>
+        <button type="button" data-tpl-close>← ${escape(state.back)}</button>
       </div>
     </header>
     <main class="tpl-layout" style="${lookStyle(state.look)}">

@@ -31,10 +31,9 @@ export const notebookScreen = (snapshot: Snapshot, pending: boolean) => {
   const titled = firstHeading === title.trim().toLowerCase()
   return `<article class="notebook">
 <div class="notebook-heading">
-<div class="notebook-eyebrow">NOTEBOOK <span>·</span> ${words.toLocaleString()} words</div>
 ${titled ? '' : `<h1>${escape(title)}</h1>`}
 <div class="notebook-meta">
-<div class="notebook-source">${project.sourceUrl ? `<a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener" title="Open original article">${escape(sourceLabel)} ↗</a>${editable ? button('Refresh', 'refresh-source') : ''}` : '<span>Your notes</span>'}</div>
+<div class="notebook-source"><span>${words.toLocaleString()} words</span><span aria-hidden="true">·</span>${project.sourceUrl ? `<a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener" title="Open original article">${escape(sourceLabel)} ↗</a>${editable ? button('Refresh', 'refresh-source') : ''}` : '<span>Your notes</span>'}</div>
 </div>
 ${notebookHint(snapshot, editable)}</div>
 ${editable ? notebookToolbar() : ''}

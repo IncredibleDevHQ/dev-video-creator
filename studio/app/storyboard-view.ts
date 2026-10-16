@@ -195,7 +195,7 @@ ${pages
     return `<div class="scene-card"><button type="button" class="thumbnail ${index === chosen ? 'selected' : ''}" data-action="sb-scene" data-index="${index}" aria-label="Scene ${index + 1}: ${escape(page?.title || '')}">
 <span class="thumb-number">${index + 1}</span>
 <div>${first?.still ? `<img class="sb-rail-still" src="${stillSrc(snapshot.project.id, first)}" alt="">` : page?.svg || '<span>Blank wireframe</span>'}</div>
-<span class="scene-meta"><span>${scene ? seconds(sceneSeconds(scene)) : ''}</span>${scene ? `<b>${escape(BUILD_LABELS[scene.build].toUpperCase())}</b>` : ''}</span>${scene ? railState(storyboard, scene) : ''}
+<span class="scene-meta"><span>${scene ? seconds(sceneSeconds(scene)) : ''}</span>${scene ? `<b>${escape(BUILD_LABELS[scene.build])}</b>` : ''}</span>${scene ? railState(storyboard, scene) : ''}
 </button></div>${
       scenes[index + 1]?.frames[0]
         ? transitionMark(
@@ -321,9 +321,10 @@ const sceneLine = (
 <p class="sb-reason">${escape(scene.buildReason)}</p>`
 }
 
+// A built frame says nothing: its scene says "Built" once, in the rail.
 const frameState = (storyboard: Storyboard, frame: FrameSummary) =>
   frame.status === 'animated'
-    ? 'Built'
+    ? ''
     : frame.status === 'failed'
       ? 'Stopped'
       : posing(storyboard, frame)
@@ -384,7 +385,7 @@ const strip = (
 ${frame.still ? `<img class="sb-thumb" src="${stillSrc(snapshot.project.id, frame)}" alt="">` : boarding(storyboard) ? '<span class="sb-thumb is-empty" aria-hidden="true"></span>' : ''}
 <span class="moment-head"><b class="moment-number">${frame.number}</b>${scene.build === 'camera' ? cameraCue('full') : ''}</span>
 <span class="moment-name" title="${escape(frame.title)}">${escape(frame.title)}</span>
-<small>${escape(TYPE_LABELS[frame.type] || frame.type)} · ${escape(frameState(storyboard, frame))}</small>
+<small>${escape([TYPE_LABELS[frame.type] || frame.type, frameState(storyboard, frame)].filter(Boolean).join(' · '))}</small>
 </button></div>`
     )
     .join(

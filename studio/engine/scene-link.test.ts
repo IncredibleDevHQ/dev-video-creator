@@ -93,7 +93,10 @@ it('says under the wireframe where its scene is, and plays it once made', () => 
   expect(ready.pip).toContain('data-action="pip-toggle"')
   // Folded, the picture-in-picture is a chip.
   expect(sceneLink(made, 1, false).pip).toContain('scene-pip-chip')
-  expect(sceneLink(made, 2, true).line).toContain('Open in Video')
+  // The scene's line is itself the way into it: no second button.
+  const working = sceneLink(made, 2, true).line
+  expect(working).toContain('class="scene-line-open" data-action="open-scene"')
+  expect(working).not.toContain('Open in Video')
   expect(sceneLink(snapshot(false), 0, true).line).toContain(
     'data-action="make-video-one"'
   )

@@ -323,10 +323,10 @@ export class VoiceCall {
         '--you',
         this.mic?.muted ? '0' : Math.min(1, this.level * 6).toFixed(3)
       )
-      dock?.style.setProperty(
-        '--ai',
-        speaking ? (this.player?.level() ?? 0).toFixed(3) : '0'
-      )
+      const voice = speaking ? (this.player?.level() ?? 0) : 0
+      dock?.style.setProperty('--ai', voice.toFixed(3))
+      // Its cursor glows with its voice, as Figma pulses a speaker's cursor.
+      this.cursor.voice(voice)
       if (this.state === 'speaking' && !speaking) this.set('listening')
       this.frame = requestAnimationFrame(tick)
     }
@@ -344,10 +344,11 @@ export class VoiceCall {
       }, 7000)
   }
 
-  /** The dock: Talk, or the call with its state, meters and caption. */
+  /** The call at the top of the canvas: its state, meters and caption. */
   private dock() {
-    if (!this.on)
-      return `<button type="button" class="map-talk" data-voice="talk" title="Talk with Studio AI: it hears you, answers, and works on the canvas">${voiceIcon('mic')}<span>Talk to Studio AI</span></button>`
+    // At rest the Talk button sits with the creation tools (as Miro keeps
+    // its AI at the top of the creation bar); the call takes the top.
+    if (!this.on) return ''
     const muted = Boolean(this.mic?.muted)
     const caption = this.you.text
       ? `<p class="map-caption"><span class="map-caption-who">You</span><span class="map-caption-text">${escape(this.you.text)}</span>${readingChip(this.you.reading, this.jev)}</p>`

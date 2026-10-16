@@ -20,6 +20,7 @@ import {
   flowSubmit,
   startFlowPointer
 } from './map-flow-input'
+import { chromeAction } from './map-chrome'
 
 export type DragState = {
   key: string
@@ -488,6 +489,7 @@ const dispatch = async (
   const menu = map.slot('menu')
   const reopened = menu && !menu.hidden && menu.dataset.for === action
   if (name !== 'cancel' && name !== 'copy-post') hideMenu(map)
+  if (chromeAction(map, name, target, Boolean(reopened))) return
   if (await flowAction(map, name, arg)) return
   switch (name) {
     case 'close':
@@ -518,8 +520,7 @@ const dispatch = async (
       map.mode = arg === 'topic' ? 'topic' : 'order'
       return map.paint()
     case 'filter':
-      map.filter =
-        (arg === 'unused' || arg === 'new') && map.filter !== arg ? arg : 'all'
+      map.filter = arg === 'unused' || arg === 'new' ? arg : 'all'
       return map.paint()
     case 'group':
       return map.run(
@@ -616,13 +617,6 @@ const dispatch = async (
       return map.reveal(arg)
     case 'help':
       return target && !reopened ? showHelp(map, target) : undefined
-    case 'notes': {
-      const shell = map.root.querySelector('.map-page')
-      const open = !shell?.classList.contains('is-notes-open')
-      shell?.classList.toggle('is-notes-open', open)
-      target?.setAttribute('aria-expanded', String(open))
-      return
-    }
     case 'note-more':
       if (map.openNotes.has(arg)) map.openNotes.delete(arg)
       else map.openNotes.add(arg)

@@ -1,4 +1,3 @@
-import { themeControl } from './appearance'
 import { html } from './ui'
 import incredibleLogo from './assets/incredible-logo.svg'
 import type { StudioSettings } from '../shared/settings'
@@ -26,7 +25,7 @@ export const settingsScreen = (
         ><img src="${incredibleLogo}" alt="" />Incredible</a
       ><span>Settings</span>
       <div class="header-actions">
-        ${themeControl()}${button('← Back to notebook', 'close-settings')}
+        ${button('← Back to notebook', 'close-settings')}
       </div>
     </header>
     <main class="settings-layout">

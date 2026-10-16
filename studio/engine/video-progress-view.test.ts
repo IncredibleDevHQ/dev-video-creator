@@ -184,7 +184,8 @@ it('keeps presentation ready while video processing appears only in its own stat
   input.events[0].stage = 'composition'
   input.events[0].activity = 'processing'
   const html = presentationScreen(input, 0)
-  expect(html).toContain('Wireframes ready')
+  // Ready is said by the stage's tab; the footer does not repeat it.
+  expect(html).not.toContain('Check each one and its script')
   // The scene's progress shows only as the scene, under its wireframe.
   const sceneLine = html.match(/<div class="scene-line[\s\S]*?<\/div>/)?.[0]
   expect(sceneLine).toContain('Creating the scene preview')

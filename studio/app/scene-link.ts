@@ -69,7 +69,12 @@ export const sceneLink = (
   const number = index + 1
   const scene = sceneOfSlide(snapshot, slide.id)
   const line = (words: string, actions: string, kind = 'none') => ({
-    line: `<div class="scene-line is-${kind}" role="group" aria-label="Scene ${number} of the video"><span>${words}</span>${actions}</div>`,
+    line: `<div class="scene-line is-${kind}" role="group" aria-label="Scene ${number} of the video">${
+      // Opening the scene is the line itself, not a second button.
+      actions === openScene
+        ? `<button type="button" class="scene-line-open" data-action="open-scene" title="Open this scene in Video">${words}<i aria-hidden="true">→</i></button>`
+        : `<span>${words}</span>${actions}`
+    }</div>`,
     pip: ''
   })
   // A storyboard video: the page's scene in it, made the storyboard's way.
@@ -120,7 +125,7 @@ export const sceneLink = (
   if (status.kind === 'ready' && scene.produced) {
     const length = clock(scene.moments.at(-1)?.end || 0)
     return {
-      line: `<div class="scene-line is-ready" role="group" aria-label="Scene ${number} of the video"><span>▶ Scene ${number} ready · ${length}</span>${openScene}</div>`,
+      line: `<div class="scene-line is-ready" role="group" aria-label="Scene ${number} of the video"><button type="button" class="scene-line-open" data-action="open-scene" title="Open this scene in Video">▶ Scene ${number} ready · ${length}<i aria-hidden="true">→</i></button></div>`,
       pip: pipOpen
         ? `<aside class="scene-pip" aria-label="Scene ${number}, picture-in-picture"><video class="scene-pip-video" src="/objects/${escape(
             scene.produced.objectKey

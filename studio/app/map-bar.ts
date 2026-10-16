@@ -316,6 +316,11 @@ export const showPosts = (
 }
 
 const SHORTCUTS = [
+  ['Double-click the canvas', 'add a direction, a note or an episode'],
+  ['T', 'talk to Studio AI, or end the call'],
+  ['C', 'comment: say it or type it'],
+  ['N', 'show or hide the notes'],
+  ['⌘\\', 'hide or show the interface'],
   ['Drag a page onto an episode', 'copy it there'],
   ['Hold ⌥ while dragging', 'cut it: that episode only'],
   ['Drag a copy', 'reorder, or move it'],

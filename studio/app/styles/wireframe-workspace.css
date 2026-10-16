@@ -187,8 +187,6 @@
   margin: 0 0 6px;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 .script-notes h3 small {
@@ -475,8 +473,6 @@
   margin: 0 0 4px;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 .evidence-asks h3 small {

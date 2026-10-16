@@ -305,11 +305,12 @@ export const presentationScreen = (
         ? html`<section class="script-notes" aria-labelledby="script-heading">
             <h3 id="script-heading">
               Script
-              <small
-                >${scriptEditable
-                  ? 'What the video says over this wireframe. Changes save as you type.'
-                  : 'From the story. You can edit it once the wireframes are ready.'}</small
-              >
+              ${scriptEditable
+                ? ''
+                : html`<small
+                    >From the story. You can edit it once the wireframes are
+                    ready.</small
+                  >`}
             </h3>
             ${slide?.bridge
               ? html`<p class="script-segue">
@@ -374,9 +375,7 @@ ${escape(script)}</textarea
               ? 'Reconnecting… your work is saved.'
               : exchange && !change
                 ? wireframeStatus(exchange.message)
-                : status === 'ready' && !change
-                  ? 'Wireframes ready. Check each one and its script, then Make the video, top right.'
-                  : ''
+                : ''
           )}</span
         >${snapshot.sourceFailure
           ? button('Paste article text', 'paste-source', true)

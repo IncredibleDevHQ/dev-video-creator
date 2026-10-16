@@ -1,6 +1,5 @@
 import { syncStoryboardPlayer } from './storyboard-controller'
 import { storyboardScreen } from './storyboard-view'
-import { themeControl } from './appearance'
 import { notesOnly } from './progress'
 import { animationSecond } from '../shared/scene-time'
 import { videoSecond } from '../shared/video-clock'
@@ -83,7 +82,7 @@ export const createRender = (app: AppContext) => () => {
       `<header>
 <a class="brand" href="/" aria-label="Incredible Studio">
 <img src="${incredibleLogo}" alt="">Incredible</a>
-<div class="header-actions">${themeControl()}</div></header>
+</header>
 ${notebookOpeningView(app.opening.state)}`,
       null
     )

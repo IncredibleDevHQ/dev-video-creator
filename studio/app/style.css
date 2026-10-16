@@ -1,5 +1,6 @@
 /* Keep imports in cascade order; later screen refinements override foundations. */
 @import './styles/foundation.css';
+@import './styles/tooltip.css';
 @import './styles/video.css';
 @import './styles/dialogs-recording.css';
 @import './styles/settings-home.css';
@@ -31,4 +32,5 @@
 @import './styles/map-overlays.css';
 @import './styles/map-flow.css';
 @import './styles/map-voice.css';
+@import './styles/map-chrome.css';
 @import './styles/storyboard.css';

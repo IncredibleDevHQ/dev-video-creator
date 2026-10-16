@@ -252,7 +252,7 @@ export class MapComments {
         at,
         `is-${comment.by}${this.thread === comment.id ? ' is-open' : ''}${comment.audio ? ' is-said' : ''}`,
         `<i>${face}</i>${count}`,
-        `data-pin="${comment.id}" aria-label="Comment by ${comment.by === 'ai' ? 'Studio AI' : 'you'}: ${escape(said.slice(0, 80))}"`
+        `data-pin="${comment.id}" aria-label="Comment by ${comment.by === 'ai' ? 'Studio AI' : 'you'}: ${escape(said.slice(0, 80))}" title="${escape(`${comment.by === 'ai' ? 'Studio AI' : 'You'}: ${said.length > 140 ? `${said.slice(0, 139)}…` : said}`)}"`
       )
     })
     const waiting = this.sending.map((place, i) =>

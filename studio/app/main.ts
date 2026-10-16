@@ -2,6 +2,7 @@ import { TemplateGallery } from './template-gallery'
 import { MapCanvas } from './map-canvas'
 import { useTemplate } from './template-controller'
 import { installAppearance } from './appearance'
+import { installTooltips } from './tooltip'
 import { showError } from './error-surface'
 import type { Snapshot } from '../shared/api'
 import { api } from './api'
@@ -53,6 +54,7 @@ import { syncPublishForm } from './release-controller'
 import { keptMakeChoices } from './template-picker'
 import { clickVideo } from './video-controller'
 installAppearance()
+installTooltips()
 const app = {} as AppContext
 app.root = document.querySelector<HTMLDivElement>('#app')!
 app.syncMediaRecovery = savedMediaRecovery(app.root)
