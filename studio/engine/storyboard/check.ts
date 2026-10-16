@@ -36,6 +36,33 @@ export const findingLine = (finding: Finding) =>
     finding.fixHint ? ` Fix: ${finding.fixHint}` : ''
   ].join('')
 
+// What a check finding means, in the creator's words.
+const PLAIN: Array<[RegExp, string]> = [
+  [/^font_family_without_font_face|font/i, 'a font the video can’t load'],
+  [/contrast/i, 'text too faint to read'],
+  [
+    /overflow|clip|off.?canvas|out.?of.?(frame|bounds)/i,
+    'something running off its frame'
+  ],
+  [/runtime|script|exception|console/i, 'a frame that fails as it plays']
+]
+
+/** The check's findings said plainly in one line, the findings themselves
+ * on the next: the page shows the line, the rest behind Details (the Jev
+ * series run showed the raw finding as the reason). */
+export const stoppedByCheck = (lines: string[]) => {
+  const said = [
+    ...new Set(
+      lines.map(
+        (line) =>
+          PLAIN.find(([pattern]) => pattern.test(line))?.[1] ||
+          'a problem in a frame'
+      )
+    )
+  ]
+  return `The finished check still finds ${said.slice(0, 2).join(' and ')}.\n${lines.slice(0, 3).join(' · ')}`
+}
+
 /** The frame a finding belongs to, from its source file. */
 export const frameOfFinding = (finding: Finding) => {
   const match = /compositions\/frames\/([a-zA-Z0-9_-]+)\.html/.exec(

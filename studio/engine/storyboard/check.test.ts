@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
 import { runCommand } from '../voice'
-import { oneSheet } from './check'
+import { oneSheet, stoppedByCheck } from './check'
 
 it('joins a contact sheet written in pages into one picture', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'storyboard-sheet-'))
@@ -46,4 +46,16 @@ it('joins a contact sheet written in pages into one picture', async () => {
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
+})
+
+it('says why the finished check stopped in the creator’s words, the findings after', () => {
+  const font =
+    'font_family_without_font_face: Font family used without @font-face declaration: space grotesk.'
+  const [line, details] = stoppedByCheck([font, 'mystery_code: odd']).split(
+    '\n'
+  )
+  expect(line).toBe(
+    'The finished check still finds a font the video can’t load and a problem in a frame.'
+  )
+  expect(details).toContain('space grotesk')
 })

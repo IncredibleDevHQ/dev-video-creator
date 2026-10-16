@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest'
+import { parseHTML } from 'linkedom'
 import type { Snapshot } from '../shared/api'
 import {
   frameId,
@@ -170,6 +171,31 @@ it('records a camera scene in place, a line at a time on the prompter', () => {
   expect(html).toContain('<span data-prompter>Line 3 is spoken here.</span>')
   expect(html).toContain('Then: Line 4 is spoken here.')
   expect(html).toContain('2 lines · 3-second countdown')
+})
+
+it('says why the production stopped in a line, what the check found behind Details', () => {
+  const { document } = parseHTML(
+    `<div>${storyboardScreen(
+      snapshot(
+        storyboard({
+          status: 'failed',
+          error:
+            'The finished check still finds a font the video can’t load.\nfont_family_without_font_face: space grotesk'
+        })
+      ),
+      null,
+      idle(),
+      null
+    )}</div>`
+  )
+  const alert = document.querySelector('.sb-alert')!
+  expect(alert.querySelector(':scope > p')?.textContent).toBe(
+    'The finished check still finds a font the video can’t load.'
+  )
+  expect(alert.querySelector('details summary')?.textContent).toBe('Details')
+  expect(alert.querySelector('details p')?.textContent).toContain(
+    'font_family_without_font_face'
+  )
 })
 
 it('cuts a take across a scene’s spoken frames and times the episode', () => {

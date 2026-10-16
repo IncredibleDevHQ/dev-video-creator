@@ -173,6 +173,13 @@ export const takeMoments = (scene: SceneSummary): Moment[] => {
   )
 }
 
+/** Why the production stopped, in a line; what the check found behind
+ * Details. */
+const stopAlert = (error: string) => {
+  const [line, ...more] = error.split('\n')
+  return `<div class="sb-alert" role="alert"><p>${escape(line)}</p>${more.length ? `<details><summary>Details</summary><p>${escape(more.join('\n'))}</p></details>` : ''}</div>`
+}
+
 const working = (label: string) =>
   `<span class="sb-rail-state is-working"><span class="activity-orbit" aria-hidden="true"></span>${label}</span>`
 
@@ -576,7 +583,7 @@ ${
     ? `<div class="focus-heading"><div><strong>${reviewingTake ? 'Review your take' : recordTitle(capture)}</strong><span>Scene ${chosen + 1} · ${reviewingTake ? `${lines.length} ${lines.length === 1 ? 'line' : 'lines'}` : `Frame ${frame?.number ?? 1}${lines.length > 1 ? ` · ${Math.min(capture.current, lines.length - 1) + 1} of ${lines.length}` : ''}`}</span>${recordLight(capture)}</div></div>`
     : band(storyboard)
 }
-${storyboard.status === 'failed' && storyboard.error ? `<p class="sb-alert" role="alert">${escape(storyboard.error)}</p>` : ''}
+${storyboard.status === 'failed' && storyboard.error ? stopAlert(storyboard.error) : ''}
 ${stage(snapshot, storyboard, scene, frame, capture, recording)}
 ${takes || heard ? `<div class="sb-take-actions">${heard || voiceTake(scene)}${takes}</div>` : ''}
 ${scene ? prompter(scene, capture, recording) : ''}

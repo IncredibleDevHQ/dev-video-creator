@@ -50,6 +50,21 @@
   color: #8a1c1c;
   font-size: 13px;
 }
+.sb-alert p {
+  margin: 0;
+}
+.sb-alert details {
+  margin-top: 6px;
+}
+.sb-alert summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.sb-alert details p {
+  margin-top: 4px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 .sb-stage > video,
 .sb-stage > img.sb-shot {
   width: 100%;

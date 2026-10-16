@@ -43,6 +43,7 @@ import {
   episodeSheet,
   renderEpisode
 } from './assemble'
+import { stoppedByCheck } from './check'
 import {
   episodeFrames,
   readInternal,
@@ -142,7 +143,8 @@ const fail = (projectId: string, error: unknown) =>
   update(projectId, (storyboard, snapshot) => {
     storyboard.status = 'failed'
     storyboard.error = error instanceof Error ? error.message : String(error)
-    addEvent(snapshot, 'video', `Stopped: ${storyboard.error}`, {
+    // The activity says why in one line; the details stay with the error.
+    addEvent(snapshot, 'video', `Stopped: ${storyboard.error.split('\n')[0]}`, {
       activity: 'failed'
     })
   })
@@ -592,10 +594,7 @@ const assembleStage = async ({ snapshot, dir, internal }: StageInput) => {
     ...refused.flatMap((frame) => checked.byFrame[frame.id]),
     ...checked.other
   ]
-  if (left.length)
-    throw new Error(
-      `Hyperframes' check still finds: ${left.slice(0, 3).join(' · ')}`
-    )
+  if (left.length) throw new Error(stoppedByCheck(left))
   let at = 0
   const middles = frames.map((frame) => {
     const length = internal.durations?.[frame.number] ?? frame.duration
