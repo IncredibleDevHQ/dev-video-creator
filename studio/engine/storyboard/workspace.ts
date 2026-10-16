@@ -85,6 +85,10 @@ export const tokensFor = (
       (name, index, all) =>
         name && !GENERIC.test(name) && all.indexOf(name) === index
     )
+  // A look of system faces only names none the renderer can supply: it is
+  // set in the studio's own Inter, never the preset's face (the Jev series
+  // run stopped on Space Grotesk, which nothing shipped).
+  if (!names.length) names.push('Inter')
   // build-frame sets every heading and every line of text in its text face
   // and caps each weight to the weights it is told: those of the files of
   // the faces it sets, so a heading never asks for a bold the face lacks.
@@ -261,15 +265,29 @@ export const stageBrandFonts = async (dir: string, branding?: Branding) => {
     for (const name of stagedNames(file))
       await writeFile(join(fonts, name), bytes)
   }
+  // The studio's Inter, for a look that names it or names only system
+  // faces (tokensFor sets those in Inter).
+  const named = families
+    .map(family)
+    .filter((name) => name && !GENERIC.test(name))
   if (
-    !families.includes('Inter') ||
-    files.some((file) => file.family === 'Inter') ||
-    !existsSync(INTER)
+    (named.length && !named.includes('Inter')) ||
+    files.some((file) => file.family === 'Inter')
   )
     return
+  await stageInter(dir)
+}
+
+/** The studio's Inter under capture/assets/fonts, a file per weight, as
+ * build-frame and the captions read them; the names of its files. */
+export const stageInter = async (dir: string) => {
+  if (!existsSync(INTER)) return []
+  const fonts = join(dir, 'capture', 'assets', 'fonts')
   await mkdir(fonts, { recursive: true })
-  for (const weight of INTER_WEIGHTS)
-    await copyFile(INTER, join(fonts, `Inter-${weight}.woff2`))
+  const names = INTER_WEIGHTS.map((weight) => `Inter-${weight}.woff2`)
+  for (const name of names)
+    if (!existsSync(join(fonts, name))) await copyFile(INTER, join(fonts, name))
+  return names
 }
 
 export const createWorkspace = async (input: {

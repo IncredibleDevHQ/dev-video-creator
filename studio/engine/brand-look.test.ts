@@ -204,6 +204,27 @@ it('carries the look’s faces into the episode: files by family and weight, the
   ])
 })
 
+it('sets a look of system faces in the studio’s Inter, never the preset’s face, its files staged', async () => {
+  // A site read with system faces only (dev.to's, in the Jev series run).
+  const branding = {
+    ...withLook(undefined, siteLook(await sourceWith())!),
+    fonts: { display: 'system-ui', body: 'system-ui', mono: 'ui-monospace' },
+    fontFiles: []
+  }
+  expect(tokensFor('T', 'D', branding).fonts).toEqual([{ family: 'Inter' }])
+  const dir = join(work, 'system-faces')
+  await stageBrandFonts(dir, branding)
+  expect(
+    (await readdir(join(dir, 'capture', 'assets', 'fonts'))).sort()
+  ).toEqual([
+    'Inter-400.woff2',
+    'Inter-500.woff2',
+    'Inter-600.woff2',
+    'Inter-700.woff2',
+    'Inter-800.woff2'
+  ])
+})
+
 it('names the brand’s faces whole in every preset’s frame, at weights they ship', async () => {
   const source = await sourceWith()
   const branding = {

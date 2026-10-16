@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { runCommand } from '../voice'
 import { cliTail, runCli, runScript } from './hyperframes'
+import { supplyFonts } from './fonts'
 import {
   checkProject,
   findingLine,
@@ -46,6 +47,8 @@ export const assembleEpisode = async (dir: string) => {
     ['verify', '--storyboard', './STORYBOARD.md', '--index', './index.html'],
     dir
   )
+  // A face no one supplies is set in Inter before the episode is checked.
+  await supplyFonts(dir)
 }
 
 /** The episode checked whole: errors by frame, the rest, and warnings. */
