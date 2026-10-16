@@ -14,8 +14,8 @@ import { Refusal } from './refusal'
 /**
  * What a chosen look carries beyond its colours and fonts, taken from what
  * the studio itself read or saved, never from the request: the site's look
- * its faces' files, a saved look the files it was saved with, the creator's
- * own changes the files of the faces they kept.
+ * its words and its faces' files, a saved look the files it was saved with,
+ * the creator's own changes the files of the faces they kept.
  */
 export const lookExtras = (
   look: Look,
@@ -26,8 +26,11 @@ export const lookExtras = (
   // What the notebook's site offers goes with every look (a notebook made
   // before the studio read it gets it now).
   const offer = siteOffer(source)
+  // The site's look says where it was read (the request's words are not kept).
+  const words = look.id === 'site' ? siteLook(source)?.description : undefined
   return {
     ...(offer ? { site: offer } : {}),
+    ...(words ? { description: words } : {}),
     ...filesOf(look, branding, source, library)
   }
 }

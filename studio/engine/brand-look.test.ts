@@ -124,6 +124,11 @@ it('takes a look’s files from what the studio read, never from the request', a
     []
   )
   expect(site.fontFiles?.map((file) => file.family)).toEqual(['Inter'])
+  // Its words are the studio's own, kept as the look's note.
+  expect(site.description).toMatch(/^Colours read from Fixture\./)
+  expect(
+    withLook(branding, { ...LOOKS[0], id: 'site', ...site }).look?.note
+  ).toBe(site.description)
   // The creator's own change keeps the files of the faces still in use,
   // including a face of the site's they chose from the menu.
   const custom = lookExtras(

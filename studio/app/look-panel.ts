@@ -35,7 +35,11 @@ export const currentLook = (app: AppContext): Look => {
   return {
     id: branding.look?.id || 'custom',
     name: branding.look?.name || named?.name || 'Your look',
-    description: named?.description || branding.look?.note || '',
+    description:
+      named?.description ||
+      branding.look?.note ||
+      (branding.look?.id === 'site' && branding.site?.look?.description) ||
+      '',
     palette: { ...branding.palette, accent: branding.accent },
     fonts: branding.fonts || NEUTRAL_LOOK.fonts,
     ...(branding.fontFiles ? { fontFiles: branding.fontFiles } : {})
