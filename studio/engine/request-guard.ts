@@ -72,3 +72,23 @@ export const foreignRequest = (
     return 'Send the request as JSON'
   return null
 }
+
+/**
+ * Why a socket upgrade is refused, or null when it is the studio's own. A
+ * page on any site may open a socket to this computer, so the page's
+ * origin must be the studio's, and it must say so.
+ */
+export const foreignSocket = (
+  request: Pick<IncomingMessage, 'headers'> & {
+    socket?: { localPort?: number }
+  },
+  env: NodeJS.ProcessEnv = process.env
+): string | null => {
+  const own = ownPlaces(env, request.socket?.localPort)
+  if (!own.has(placeOf(`http://${request.headers.host || ''}`)))
+    return 'The studio answers only on this computer'
+  const origin = request.headers.origin
+  if (!origin || !own.has(placeOf(String(origin))))
+    return 'The studio refuses sockets from other sites'
+  return null
+}

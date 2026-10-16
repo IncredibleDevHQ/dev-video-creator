@@ -10,6 +10,8 @@ import { setNotebookLength, setNotebookTemplate } from './notebook-intake'
 import { checkCoverage, suggestTemplate } from './template-suggest'
 import { studioRoute } from './studio-routes'
 import { mapRoute } from './map-routes'
+import { addVoiceComment } from './map-comments'
+import { stopVoiceSessions, voiceUpgrade } from './voice-relay'
 import { afterEpisodeEdit } from './map-episodes'
 import { settleInterruptedWork } from './studio-recovery'
 import {
@@ -131,8 +133,8 @@ const readBody = async (
 }
 export const createStudioServer = (
   options: { readOnly?: boolean; eventsLifetimeMs?: number } = {}
-) =>
-  createServer(async (request, response) => {
+) => {
+  const server = createServer(async (request, response) => {
     try {
       if (options.readOnly && request.method !== 'GET')
         return send(response, 403, {
@@ -209,6 +211,35 @@ export const createStudioServer = (
               : undefined
           )
         )
+      }
+      const saidRoute = url.pathname.match(
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)\/comments\/voice$/
+      )
+      if (saidRoute && request.method === 'PUT') {
+        let meta: unknown
+        try {
+          meta = JSON.parse(
+            decodeURIComponent(
+              String(request.headers['x-studio-comment'] || '{}')
+            )
+          )
+        } catch {
+          throw new Refusal('Send where the comment goes as JSON')
+        }
+        const bytes = await readBody(
+          request,
+          response,
+          4_000_000,
+          'Keep a said comment under a minute'
+        )
+        return send(response, 200, {
+          comments: await addVoiceComment(
+            saidRoute[1],
+            bytes,
+            String(request.headers['content-type'] || ''),
+            requestObject(meta)
+          )
+        })
       }
       const takeRoute = storyboardTakeRoute(url, request.method)
       if (takeRoute) {
@@ -643,6 +674,12 @@ export const createStudioServer = (
         })
     }
   })
+  // Talking with Studio AI on the content map is the only socket.
+  server.on('upgrade', (request, socket, head) => {
+    if (!voiceUpgrade(request, socket, head, options)) socket.destroy()
+  })
+  return server
+}
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
@@ -673,6 +710,7 @@ if (
   const stop = async () => {
     if (stopping) return
     stopping = true
+    stopVoiceSessions()
     server.close()
     server.closeAllConnections()
     const finished = await stopEngineRuns()

@@ -1,0 +1,688 @@
+/* Talking with Studio AI, and comments said or typed: the call pill at the
+   top of the canvas with its meters and the creator's caption, Studio AI's
+   cursor with its name, its words and the note it types, pins on the
+   canvas and the comment threads. Studio AI has a colour of its own,
+   apart from the episodes'. Both appearances. */
+.map-page {
+  --map-ai: #d63f73;
+  --map-ai-soft: rgba(214, 63, 115, 0.12);
+  --map-you: var(--accent);
+}
+:root[data-theme='dark'] .map-page {
+  --map-ai: #ff6f9c;
+  --map-ai-soft: rgba(255, 111, 156, 0.16);
+}
+
+/* The dock: Talk, or the call. */
+.map-voice {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 140px);
+  pointer-events: none;
+}
+.map-voice > * {
+  pointer-events: auto;
+}
+.map-talk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px 9px 13px;
+  border-radius: 999px;
+  background: #19211d;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  box-shadow: var(--map-shadow);
+  transition: transform 0.15s ease;
+}
+.map-talk:hover {
+  transform: translateY(-1px);
+}
+:root[data-theme='dark'] .map-talk {
+  background: #f2f4f3;
+  color: #111;
+}
+.map-call {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 5px 5px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+  backdrop-filter: blur(14px);
+}
+.map-call-faces {
+  display: flex;
+}
+.map-face {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  border: 2px solid var(--map-pill);
+}
+.map-face.is-you {
+  background: var(--map-you);
+}
+.map-face.is-ai {
+  margin-left: -8px;
+  background: var(--map-ai);
+  box-shadow: 0 0 0 calc(var(--ai, 0) * 9px) var(--map-ai-soft);
+  transition: box-shadow 0.08s linear;
+}
+.map-call-state {
+  min-width: 10.5em;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.map-call.is-joining .map-call-state,
+.map-call.is-thinking .map-call-state {
+  color: var(--map-label);
+  font-weight: 500;
+}
+.map-call.is-acting .map-call-state {
+  color: var(--map-ai);
+}
+.map-call-meter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+}
+.map-call-meter i {
+  width: 3px;
+  height: calc(4px + var(--you, 0) * 14px);
+  border-radius: 2px;
+  background: var(--map-you);
+  opacity: 0.85;
+  transition: height 0.06s linear;
+}
+.map-call-meter i:nth-child(2),
+.map-call-meter i:nth-child(4) {
+  height: calc(4px + var(--you, 0) * 10px);
+}
+.map-call-meter i:nth-child(3) {
+  height: calc(4px + var(--you, 0) * 18px);
+}
+.map-call-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--map-label);
+}
+.map-call-btn:hover,
+.map-call-btn[aria-pressed='true'] {
+  background: var(--map-frame-line);
+  color: inherit;
+}
+.map-call-end {
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: #c8433a;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.map-call-type {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: min(420px, 100%);
+  padding: 4px 4px 4px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+}
+.map-call-type input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-size: 13.5px;
+  color: inherit;
+}
+.map-caption {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  max-width: 580px;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.map-caption-who {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--map-you);
+}
+.map-caption-text {
+  flex: 1 1 220px;
+}
+.map-reading {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--map-pill-line);
+  font-size: 11.5px;
+  color: var(--map-label);
+  white-space: nowrap;
+}
+.map-reading b {
+  font-weight: 600;
+  color: inherit;
+}
+.map-reading.is-act {
+  border-color: transparent;
+  background: var(--map-ai-soft);
+  color: var(--map-ai);
+}
+.map-reading.is-missing {
+  border-style: dashed;
+}
+.map-held {
+  max-width: 520px;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--map-note);
+  border: 1px solid var(--map-note-line);
+  font-size: 12.5px;
+  color: var(--map-gap);
+}
+
+/* Studio AI's cursor: over the canvas, in screen pixels. */
+.map-ai-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 85;
+  pointer-events: none;
+  overflow: hidden;
+}
+.map-ai-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.map-ai-arrow {
+  display: block;
+  width: 20px;
+  height: 22px;
+  fill: var(--map-ai);
+  stroke: #fff;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+  transition: transform 0.12s ease;
+}
+.map-ai-cursor.is-dragging .map-ai-arrow {
+  transform: scale(0.88);
+}
+.map-ai-cursor::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: -14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--map-ai);
+  opacity: 0;
+  transform: scale(0.4);
+}
+.map-ai-cursor.is-pressing::before {
+  animation: map-ai-press 0.32s ease-out;
+}
+@keyframes map-ai-press {
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+.map-ai-tag {
+  position: absolute;
+  left: 15px;
+  top: 19px;
+  display: inline-flex;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px 999px 999px 4px;
+  background: var(--map-ai);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+}
+.map-ai-tag em {
+  font-style: normal;
+  opacity: 0.88;
+}
+.map-ai-tag em::before {
+  content: '· ';
+}
+.map-ai-bubble,
+.map-ai-typing {
+  position: absolute;
+  left: 15px;
+  top: 46px;
+  width: max-content;
+  max-width: 290px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 4px 14px 14px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: var(--map-shadow);
+}
+.map-ai-bubble {
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+}
+.map-ai-typing {
+  border: 1px solid var(--map-note-line);
+  background: var(--map-note);
+}
+.map-ai-typing:not([hidden]) + .map-ai-bubble:not([hidden]) {
+  top: auto;
+  bottom: 36px;
+  border-radius: 14px 14px 14px 4px;
+}
+.map-ai-typing::after {
+  content: '';
+  display: inline-block;
+  width: 1.5px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--map-ai);
+  animation: map-ai-caret 0.9s steps(2) infinite;
+}
+@keyframes map-ai-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.map-el[data-ai='on'] {
+  outline: 2px solid var(--map-ai);
+  outline-offset: 3px;
+}
+.map-flow.is-ai {
+  stroke: var(--map-ai);
+  stroke-dasharray: 6 5;
+  opacity: 1;
+}
+.map-add > button.is-ai-pick {
+  background: var(--map-ai-soft);
+  box-shadow: inset 0 0 0 1px var(--map-ai);
+}
+
+/* Comments: the tool, pins on the canvas, the composer and threads. */
+.map-toolpill [data-comment='tool'][aria-pressed='true'] {
+  background: var(--map-ai-soft);
+  color: var(--map-ai);
+}
+.map-canvas.is-commenting,
+.map-canvas.is-commenting .map-el {
+  cursor: crosshair;
+}
+.map-comment-hint {
+  position: absolute;
+  top: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #19211d;
+  color: #fff;
+  font-size: 12.5px;
+  pointer-events: none;
+}
+/* A call fills the top of the canvas: the hint goes to the bottom. */
+.map-stage:has(.map-voice.is-on) .map-comment-hint {
+  top: auto;
+  bottom: 120px;
+}
+:root[data-theme='dark'] .map-comment-hint {
+  background: #f2f4f3;
+  color: #111;
+}
+.map-pins {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 20;
+}
+.map-pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+  padding: 3px 7px 3px 3px;
+  border-radius: 15px 15px 15px 3px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+  transition: box-shadow 0.15s ease;
+}
+.map-pin i {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--map-you);
+  color: #fff;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+}
+.map-pin.is-ai i {
+  background: var(--map-ai);
+}
+.map-pin b {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.map-pin:not(:has(b)) {
+  padding-right: 3px;
+}
+.map-pin.is-open,
+.map-pin:hover {
+  box-shadow:
+    0 0 0 2px var(--map-ai),
+    var(--map-shadow);
+}
+.map-pin.is-sending i {
+  background: transparent;
+  border: 2px solid var(--map-pill-line);
+  border-top-color: var(--map-you);
+  animation: map-spin 0.8s linear infinite;
+}
+@keyframes map-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.map-pops {
+  position: absolute;
+  inset: 0;
+  z-index: 72;
+  pointer-events: none;
+}
+.map-pop {
+  position: absolute;
+  width: 330px;
+  max-width: calc(100% - 24px);
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-node);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+  pointer-events: auto;
+}
+.map-pop header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.map-pop header > span:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--map-label);
+}
+.map-pop-x {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--map-label);
+}
+.map-kind {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--map-ai-soft);
+  color: var(--map-ai);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.map-compose-row,
+.map-reply {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.map-compose-row input,
+.map-reply input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--map-node-line);
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+}
+.map-compose-row .primary {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.map-hold {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px 7px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--map-node-line);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  touch-action: none;
+  user-select: none;
+}
+.map-hold.is-small {
+  padding: 6px;
+}
+.map-hold:hover {
+  border-color: var(--map-ai);
+  color: var(--map-ai);
+}
+.map-recording {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.map-hold.is-recording {
+  padding: 7px;
+  border-color: transparent;
+  background: #c8433a;
+  color: #fff;
+  box-shadow: 0 0 0 calc(var(--rec, 0) * 10px) rgba(200, 67, 58, 0.22);
+}
+.map-rec-time {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.map-rec-meter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+}
+.map-rec-meter i {
+  width: 3px;
+  height: calc(3px + var(--rec, 0) * 16px);
+  border-radius: 2px;
+  background: #c8433a;
+}
+.map-rec-meter i:nth-child(odd) {
+  height: calc(3px + var(--rec, 0) * 9px);
+}
+.map-rec-hint {
+  margin-left: auto;
+  font-size: 11.5px;
+  color: var(--map-label);
+}
+.map-thread-list {
+  display: grid;
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.map-entry {
+  display: flex;
+  gap: 8px;
+}
+.map-entry .map-face {
+  width: 24px;
+  height: 24px;
+  border: 0;
+}
+.map-entry > div {
+  flex: 1;
+  min-width: 0;
+}
+.map-entry p {
+  margin: 0;
+  line-height: 1.45;
+}
+.map-entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px !important;
+  font-size: 12px;
+}
+.map-entry-meta span {
+  color: var(--map-label);
+}
+.map-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--map-node-line);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.map-play.is-playing {
+  border-color: var(--map-ai);
+  color: var(--map-ai);
+}
+.map-unheard {
+  color: var(--map-label);
+  font-style: italic;
+}
+.map-thread-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.map-thread-actions > button {
+  padding: 6px 11px;
+  font-size: 12.5px;
+}
+.map-thread-more {
+  position: relative;
+  margin-left: auto;
+}
+.map-thread-more summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--map-label);
+}
+.map-thread-more summary::-webkit-details-marker {
+  display: none;
+}
+.map-thread-more > div {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 2;
+  display: grid;
+  min-width: 190px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-node);
+  box-shadow: var(--map-shadow);
+}
+.map-thread-more > div button {
+  padding: 7px 10px;
+  text-align: left;
+  font-size: 12.5px;
+}
+.map-thread-more .danger {
+  color: #c8433a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-ai-cursor,
+  .map-ai-arrow,
+  .map-face.is-ai,
+  .map-call-meter i,
+  .map-pin {
+    transition: none !important;
+  }
+  .map-ai-cursor.is-pressing::before,
+  .map-ai-typing::after,
+  .map-pin.is-sending i {
+    animation: none;
+  }
+}

@@ -9,6 +9,7 @@ import { escape } from './ui'
 import { videoOpens } from '../shared/state'
 import incredibleLogo from './assets/incredible-logo.svg'
 import { lineColor, ports } from './map-nodes'
+import { voiceIcon } from './voice-icons'
 import {
   noteDay,
   type MapFilter,
@@ -56,7 +57,11 @@ export const mapPage = (title: string) => `<div class="map-page">
 </aside>
 <section class="map-stage">
 <div class="map-canvas" data-map-canvas><div class="map-world" data-map-world><svg class="map-wires" data-map-wires></svg></div></div>
-<nav class="map-toolpill" aria-label="Canvas tools"><button type="button" class="map-tool-add" data-map="add" title="Add a direction, a note or an episode · or double-click the canvas" aria-label="Add">+</button><button type="button" data-map="fit" title="Fit everything" aria-label="Fit everything">⤢</button><button type="button" data-map="help" title="Shortcuts" aria-label="Shortcuts">?</button></nav>
+<nav class="map-toolpill" aria-label="Canvas tools">
+<button type="button" class="map-tool-add" data-map="add" title="Add a direction, a note or an episode · or double-click the canvas" aria-label="Add">+</button>
+<button type="button" data-comment="tool" title="Comment · C: say it or type it" aria-label="Comment" aria-pressed="false">${voiceIcon('comment')}</button>
+<button type="button" data-map="fit" title="Fit everything" aria-label="Fit everything">⤢</button>
+<button type="button" data-map="help" title="Shortcuts" aria-label="Shortcuts">?</button></nav>
 <div class="map-queue" data-map-slot="queue"></div>
 <div class="map-zoom"><button type="button" data-map="zoom-out" aria-label="Zoom out">−</button><span data-map-slot="zoom">100%</span><button type="button" data-map="zoom-in" aria-label="Zoom in">+</button><button type="button" data-map="fit" title="Fit everything · double-click a block to zoom to it">Fit</button><button type="button" data-map="help" aria-label="Shortcuts" title="Shortcuts">?</button></div>
 <div class="map-toast" data-map-slot="toast" hidden></div>

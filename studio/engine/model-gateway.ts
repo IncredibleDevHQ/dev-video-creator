@@ -278,6 +278,14 @@ export const publicModelSettings = async (): Promise<ModelSettingsPublic> => {
   }
 }
 
+/** OpenAI's own key, for its voice and transcription APIs: a saved OpenAI
+ * choice's key, else the environment's. Only the engine reads it. */
+export const openAiKey = async () => {
+  const { settings } = await loadModelSettings()
+  if (settings?.provider === 'openai' && settings.apiKey) return settings.apiKey
+  return (environmentKey || process.env.OPENAI_API_KEY || '').trim()
+}
+
 export const hasModelAccess = async () => {
   const { settings } = await loadModelSettings()
   if (!settings) return false

@@ -41,7 +41,8 @@
     "lucide": "^1.49.0",
     "marked": "^18.0.14",
     "pg": "^8.23.0",
-    "puppeteer": "25.12.0"
+    "puppeteer": "25.12.0",
+    "ws": "^8.21.3"
   },
   "packageManager": "yarn@1.22.22"
 }

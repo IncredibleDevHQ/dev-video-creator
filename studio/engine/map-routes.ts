@@ -13,6 +13,7 @@ import {
   startMapSeries
 } from './map-episodes'
 import { addNote, retryNote } from './map-notes'
+import { changeComment } from './map-comments'
 import { retryPick } from './map-picking'
 import { planSeries } from './series-plan'
 import { placeEpisodeAfter } from './series-apply'
@@ -33,7 +34,7 @@ type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues|pick|episode-title)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues|pick|episode-title|comments)$/
 const seriesRoute =
   /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order|episode-remove|plan|directions|direction-remove|brief|gap|organize|organize-undo)$/
 
@@ -68,6 +69,8 @@ const route = async (
         : await addNote(id, body)
     )
   if (action === 'pick') return ok(await retryPick(id))
+  if (action === 'comments')
+    return ok({ comments: await changeComment(id, body) })
   if (action === 'episode-title') return ok(await retitleEpisode(id, body))
   if (action === 'topics') return ok(await groupTopics(id))
   if (action === 'map-series') return ok(await startMapSeries(id, body))

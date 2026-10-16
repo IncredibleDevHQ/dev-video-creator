@@ -10,6 +10,7 @@ import type { MapCopy, MapEpisode, MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
 import { organizes, type Series } from '../shared/series'
 import { addEvent } from './activity'
+import { loadComments } from './map-comments'
 import { readRow, writeRow } from './persistence'
 import { changeProject, keptForUndo, loadProject } from './projects'
 import { Refusal } from './refusal'
@@ -620,6 +621,7 @@ export const mapView = async (mapId: string): Promise<MapView> => {
         }
       : null,
     episodes,
-    usage
+    usage,
+    comments: await loadComments(mapId)
   }
 }

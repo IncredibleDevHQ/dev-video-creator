@@ -23,6 +23,8 @@ import {
 import { paintWorld } from './map-paint'
 import { mapNotes, mapPage, mapStages, mapTools } from './map-view'
 import { replacePlayerView } from './player-view'
+import { MapComments } from './map-comments'
+import { VoiceCall } from './map-voice'
 
 export type MapSel =
   | { t: 'page'; id: string }
@@ -89,12 +91,21 @@ export class MapCanvas {
   private poll: ReturnType<typeof setInterval> | null = null
   private unsubscribe: (() => void) | null = null
   private toastTimer: ReturnType<typeof setTimeout> | null = null
+  /** What follows the camera: Studio AI's cursor, the comments' pins. */
+  readonly onCamera: Array<(animate: boolean) => void> = []
+  /** Talking with Studio AI, and comments said or typed. */
+  readonly voice: VoiceCall
+  readonly comments: MapComments
   constructor(
     readonly root: HTMLElement,
     readonly hooks: Hooks
   ) {
     installMapInput(this)
     installFlowInput(this)
+    this.voice = new VoiceCall(this)
+    this.comments = new MapComments(this)
+    this.voice.install()
+    this.comments.install()
   }
   slot(name: string) {
     return this.root.querySelector<HTMLElement>(`[data-map-slot="${name}"]`)
@@ -117,6 +128,7 @@ export class MapCanvas {
     this.sel = null
     this.clip = null
     this.toldRun = null
+    this.comments.reset()
     this.fitted = false
     this.fittedPages = 0
     this.els.clear()
@@ -171,6 +183,7 @@ export class MapCanvas {
     history.replaceState(null, '', url)
   }
   private stop() {
+    this.voice.stop()
     if (this.poll) clearInterval(this.poll)
     this.poll = null
     this.unsubscribe?.()
@@ -209,6 +222,8 @@ export class MapCanvas {
       queuePill(queueItems(this.snapshot, this.view), this.queueOpen)
     )
     tellOrganized(this)
+    this.comments.paint()
+    this.voice.paint()
     // Fit once the map has its pages: at first, and when the story plans them.
     const pages = this.layout ? Object.keys(this.layout.cards).length : 0
     if ((!this.fitted || (this.fittedPages === 0 && pages > 0)) && this.view) {
@@ -238,6 +253,7 @@ export class MapCanvas {
     this.root
       .querySelector<SVGElement>('[data-map-wires]')
       ?.style.setProperty('--k', String(this.camera.k))
+    for (const follow of this.onCamera) follow(animate)
   }
   fit(focus?: Box) {
     if (!this.layout || !this.canvas) return

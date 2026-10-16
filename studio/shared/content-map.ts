@@ -113,6 +113,8 @@ export type MapView = {
   episodes: MapEpisode[]
   /** For each page of the map, the episodes that hold a copy of it. */
   usage: Record<string, string[]>
+  /** Comments pinned on the canvas, said or typed. */
+  comments?: import('./voice').MapComment[]
 }
 
 /**

@@ -3,6 +3,7 @@
 import type { Snapshot } from '../shared/api'
 import type { MapView } from '../shared/content-map'
 import type { Series } from '../shared/series'
+import type { MapComment } from '../shared/voice'
 import { studioApi } from './studio-api'
 
 const { request } = studioApi
@@ -93,5 +94,12 @@ export const mapApi = {
       aspect: '9:16'
     }),
   posts: (episode: string) =>
-    request<Snapshot>(`/projects/${episode}/posts`, 'POST', {})
+    request<Snapshot>(`/projects/${episode}/posts`, 'POST', {}),
+  /** A typed comment, a reply, or resolving, reopening or removing one. */
+  comments: (id: string, body: Record<string, unknown>) =>
+    request<{ comments: MapComment[] }>(
+      `/projects/${id}/comments`,
+      'POST',
+      body
+    )
 }
