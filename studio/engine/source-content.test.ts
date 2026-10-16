@@ -7,8 +7,11 @@ import { readSourceUrl } from './source-reader'
 vi.mock('./source-fetch', async (original) => ({
   ...(await original<typeof import('./source-fetch')>()),
   fetchText: vi.fn(),
-  fetchBinary: vi.fn().mockResolvedValue(null),
-  renderedRead: vi.fn().mockResolvedValue(null)
+  fetchBinary: vi.fn().mockResolvedValue(null)
+}))
+// No browser in these checks: the page's stylesheets are what is read.
+vi.mock('./site-brand', () => ({
+  readSiteBrand: vi.fn().mockResolvedValue(null)
 }))
 const { fetchText } = await import('./source-fetch')
 const content = (html: string) => sourceContent(parseHTML(html).document)

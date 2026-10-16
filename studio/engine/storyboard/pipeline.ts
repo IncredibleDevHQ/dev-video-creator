@@ -134,7 +134,13 @@ const planStage = async ({
   internal
 }: StageInput) => {
   const previous = storyboard.note ? internal.plan : undefined
-  const logoKey = snapshot.project.branding?.logoKey
+  // The site's logo, when chosen, goes as its drawing: crisp at any size.
+  const branding = snapshot.project.branding
+  const siteLogo = branding?.site?.logo
+  const logoKey =
+    siteLogo?.svgKey && branding?.logoKey === siteLogo.pngKey
+      ? siteLogo.svgKey
+      : branding?.logoKey
   const logo = await stageLogo(dir, logoKey ? await readAsset(logoKey) : null)
   const { plan, length, brief } = await planEpisode({
     snapshot,

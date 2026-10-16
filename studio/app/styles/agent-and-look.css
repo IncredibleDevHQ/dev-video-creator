@@ -466,6 +466,7 @@ body.has-look-panel main.workspace {
 .look-actions {
   flex: none;
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   margin: 0 -16px;
@@ -728,4 +729,20 @@ dialog[data-story] .brand-story {
   margin: 6px 0 0;
   color: var(--muted);
   font-size: 13px;
+}
+/* The logo the notebook's site shows, to use in videos or not. */
+.look-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.look-logo img {
+  max-width: 120px;
+  max-height: 32px;
+  object-fit: contain;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
 }

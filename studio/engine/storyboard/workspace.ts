@@ -6,8 +6,8 @@ import { existsSync } from 'node:fs'
 import { copyFile, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { Branding } from '../../shared/settings'
-import { dataRoot } from '../persistence'
+import type { BrandFontFile, Branding } from '../../shared/settings'
+import { dataRoot, readAsset } from '../persistence'
 import { cliTail, presetDir, runCli, runScript } from './hyperframes'
 
 export const storyboardsRoot = () => join(dataRoot, 'storyboards')
@@ -73,15 +73,60 @@ export const tokensFor = (
         { hex: palette.secondary, textCount: 60 }
       ].filter((stat) => /^#[0-9a-f]{6}$/i.test(stat.hex))
     : []
-  const fonts = [branding?.fonts?.display, branding?.fonts?.body]
+  // The code face too: build-frame gives a monospaced brand face the
+  // preset's code role.
+  const names = [
+    branding?.fonts?.display,
+    branding?.fonts?.body,
+    branding?.fonts?.mono
+  ]
     .map(family)
     .filter(
       (name, index, all) =>
         name && !GENERIC.test(name) && all.indexOf(name) === index
     )
-    .map((name) => ({ family: name }))
+  // build-frame sets every heading and every line of text in its text face
+  // and caps each weight to the weights it is told: those of the files of
+  // the faces it sets, so a heading never asks for a bold the face lacks.
+  const { text, code } = buildFaces(names)
+  const fonts = names.map((name) => {
+    const weights =
+      name === text || name === code
+        ? weightsOf(
+            (branding?.fontFiles || []).filter((file) => file.family === name)
+          )
+        : []
+    return { family: name, ...(weights.length ? { weights } : {}) }
+  })
   return { title, description, colors, colorStats, fonts }
 }
+
+// build-frame's code faces, by name (its own rule).
+const MONO_FACE =
+  /(?:^|[\s_-])mono(?:[\s_-]|$)|monospace|consol|courier|menlo|monaco|jetbrains|berkeley|space\s*mono|ibm\s*plex\s*mono|sf\s*mono|roboto\s*mono|source\s*code|fira\s*code|geist\s*mono|dm\s*mono/i
+
+/** The brand faces build-frame sets: the first face not a code face for
+ * headings and text alike, the first code face for code. */
+const buildFaces = (names: string[]) => ({
+  text: names.find((name) => !MONO_FACE.test(name)) ?? names[0],
+  code: names.find((name) => MONO_FACE.test(name))
+})
+
+/** The weights a face's files cover: a variable file every hundred. */
+const weightsOf = (files: BrandFontFile[]) =>
+  [
+    ...new Set(
+      files.flatMap((file) =>
+        Array.isArray(file.weight)
+          ? [100, 200, 300, 400, 500, 600, 700, 800, 900].filter(
+              (weight) =>
+                weight >= (file.weight as number[])[0] &&
+                weight <= (file.weight as number[])[1]
+            )
+          : [file.weight]
+      )
+    )
+  ].sort((a, b) => a - b)
 
 const PRESET_NAME = /^[a-z0-9-]+$/
 
@@ -166,14 +211,62 @@ const INTER = fileURLToPath(
 )
 const INTER_WEIGHTS = [400, 500, 600, 700, 800]
 
+const EXTENSIONS: Record<BrandFontFile['format'], string> = {
+  woff2: 'woff2',
+  woff: 'woff',
+  truetype: 'ttf',
+  opentype: 'otf'
+}
+
+/** A face's staged names: build-frame reads the family, the weight and the
+ * style back out of them, one name per weight a variable file covers. */
+export const stagedNames = (file: BrandFontFile) => {
+  const stem = file.family.replace(/[^A-Za-z0-9]/g, '')
+  const weights = Array.isArray(file.weight)
+    ? INTER_WEIGHTS.filter(
+        (weight) =>
+          weight >= (file.weight as number[])[0] &&
+          weight <= (file.weight as number[])[1]
+      )
+    : [file.weight]
+  return weights.map(
+    (weight) =>
+      `${stem}-${weight}${file.style === 'italic' ? '-Italic' : ''}.${EXTENSIONS[file.format]}`
+  )
+}
+
 /** The look's font as files the episode carries: build-frame stages what is
  * under capture/assets/fonts and writes its @font-face into frame.md, which
- * every frame and the captions use. Fonts a computer has (Georgia, the
- * system faces) need no file. */
-const stageBrandFonts = async (dir: string, branding?: Branding) => {
-  const families = [branding?.fonts?.display, branding?.fonts?.body]
-  if (!families.includes('Inter') || !existsSync(INTER)) return
+ * every frame and the captions use. A site's open faces travel as the look
+ * read them; the studio's own Inter otherwise. Fonts a computer has
+ * (Georgia, the system faces) need no file. */
+export const stageBrandFonts = async (dir: string, branding?: Branding) => {
+  const families = [
+    branding?.fonts?.display,
+    branding?.fonts?.body,
+    branding?.fonts?.mono
+  ]
   const fonts = join(dir, 'capture', 'assets', 'fonts')
+  const files = (branding?.fontFiles || []).filter((file) =>
+    families.includes(file.family)
+  )
+  if (files.length) await mkdir(fonts, { recursive: true })
+  for (const file of files) {
+    let bytes: Buffer
+    try {
+      bytes = await readAsset(file.objectKey)
+    } catch {
+      continue
+    }
+    for (const name of stagedNames(file))
+      await writeFile(join(fonts, name), bytes)
+  }
+  if (
+    !families.includes('Inter') ||
+    files.some((file) => file.family === 'Inter') ||
+    !existsSync(INTER)
+  )
+    return
   await mkdir(fonts, { recursive: true })
   for (const weight of INTER_WEIGHTS)
     await copyFile(INTER, join(fonts, `Inter-${weight}.woff2`))
@@ -206,13 +299,14 @@ export const createWorkspace = async (input: {
     join(dir, 'capture', 'extracted', 'visible-text.txt'),
     input.source
   )
+  const tokens = tokensFor(
+    input.title,
+    input.source.slice(0, 280),
+    input.branding
+  )
   await writeFile(
     join(dir, 'capture', 'extracted', 'tokens.json'),
-    JSON.stringify(
-      tokensFor(input.title, input.source.slice(0, 280), input.branding),
-      null,
-      2
-    )
+    JSON.stringify(tokens, null, 2)
   )
   await stageBrandFonts(dir, input.branding)
   const preset = presetFor(input.branding)
@@ -223,12 +317,94 @@ export const createWorkspace = async (input: {
     dir
   )
   const made = await readFile(join(dir, 'frame.md'), 'utf8')
-  const kept = keepGreys(
-    made,
-    await readFile(join(presetDir(), preset, 'FRAME.md'), 'utf8')
+  const presetFrame = await readFile(
+    join(presetDir(), preset, 'FRAME.md'),
+    'utf8'
+  )
+  const kept = keepFaceNames(
+    keepGreys(made, presetFrame),
+    presetFrame,
+    tokens.fonts.map((font) => font.family)
   )
   if (kept !== made) await writeFile(join(dir, 'frame.md'), kept)
   return dir
+}
+
+/** A preset's faces by role, as build-frame reads them from its
+ * typography block (its own order of keys). */
+const presetFaces = (preset: string) => {
+  const roles: Record<string, string> = {}
+  let inside = false
+  for (const line of preset.split(/\r?\n/)) {
+    if (/^typography:\s*$/.test(line)) inside = true
+    else if (inside && /^\S/.test(line)) break
+    else if (inside) {
+      const match = /^\s+([\w-]+):\s*\{[^}]*fontFamily:\s*"([^"]+)"/.exec(line)
+      if (match) roles[match[1]] = match[2]
+    }
+  }
+  const pick = (...keys: string[]) =>
+    keys.map((key) => roles[key]).find(Boolean)
+  const body = pick('body', 'subtitle') ?? Object.values(roles)[0]
+  const display =
+    pick(
+      'display',
+      'headline',
+      'card-headline',
+      'section-headline',
+      'quote-display',
+      'h1',
+      'h2',
+      'title',
+      'hero'
+    ) ?? body
+  const mono = pick(
+    'mono',
+    'mono-tag',
+    'mono-chrome',
+    'mono-tick',
+    'code',
+    'data',
+    'pagenum'
+  )
+  return { display, body, mono }
+}
+
+const wholeName = (name: string) =>
+  new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g')
+
+/**
+ * Face names as build-frame meant them. It swaps the preset's display face,
+ * then its body face, each by whole name across frame.md, and both to the
+ * brand's text face: a text face holding the preset body's name ("Inter
+ * Tight" over "Inter") comes out doubled ("Inter Tight Tight") everywhere
+ * the first swap put it, so headings fall back to another font. Its swaps
+ * are replayed on the preset's own names to find what they garbled.
+ */
+export const keepFaceNames = (
+  frame: string,
+  preset: string,
+  names: string[]
+) => {
+  const { text, code } = buildFaces(names)
+  if (!text) return frame
+  const faces = presetFaces(preset)
+  const swaps: [string | undefined, string][] = [[faces.display, text]]
+  if (faces.body !== faces.display) swaps.push([faces.body, text])
+  if (code && faces.mono !== faces.body && faces.mono !== faces.display)
+    swaps.push([faces.mono, code])
+  const replay = (name: string) =>
+    swaps.reduce(
+      (value, [from, to]) =>
+        from && from !== to ? value.replace(wholeName(from), to) : value,
+      name
+    )
+  let kept = frame
+  for (const [from, to] of swaps) {
+    const garbled = from ? replay(from) : to
+    if (garbled !== to) kept = kept.split(garbled).join(to)
+  }
+  return kept
 }
 
 /** The brand's logo, put into the project as it was given (SVG, PNG or

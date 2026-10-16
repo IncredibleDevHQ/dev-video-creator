@@ -15,7 +15,22 @@ export type Look = {
   description: string
   palette: LookPalette
   fonts: LookFonts
+  /** Files for the look's fonts that are not built in (a site's open faces). */
+  fontFiles?: import('./settings').BrandFontFile[]
+  /** What the look's site offers: its logo, icon and open faces. */
+  site?: import('./settings').SiteOffer
+  /** The logo a saved brand chose. */
+  logoKey?: string | null
 }
+
+/** The files a look's fonts need, from those on offer. */
+export const filesFor = (
+  fonts: LookFonts,
+  files: import('./settings').BrandFontFile[] = []
+) =>
+  files.filter((file) =>
+    [fonts.display, fonts.body, fonts.mono].includes(file.family)
+  )
 
 const sans: LookFonts = {
   display: 'Inter',
@@ -214,19 +229,46 @@ export const recolourLook = (
     return cache.get(key)!
   })
   if (fonts)
-    out = out.replace(/font-family="([^"]*)"/g, (_whole, value: string) => {
-      let family = value
-      for (const key of ['display', 'body', 'mono'] as const)
-        if (fonts.from[key] && fonts.from[key] !== fonts.to[key])
-          family = family
-            .split(',')
-            .map((part) =>
-              part.trim().replace(/^['"]|['"]$/g, '') === fonts.from[key]
-                ? fonts.to[key]
-                : part.trim()
-            )
-            .join(', ')
-      return `font-family="${family}"`
+    out = out.replace(/<[a-zA-Z][^>]*\sfont-family="[^"]*"[^>]*>/g, (tag) => {
+      const size = Number(/\sfont-size="([\d.]+)/.exec(tag)?.[1] || 0)
+      return tag.replace(
+        /font-family="([^"]*)"/,
+        (_whole, value: string) =>
+          `font-family="${swapFamilies(value, size, fonts)}"`
+      )
     })
   return out
+}
+
+// One family stack, each name swapped once for its role's new face. A face
+// the old look used for two roles goes by the text it sets: a monospaced
+// stack is code, large type (28 px and up on the 1280 × 720 page) is a
+// heading, the rest body text.
+const swapFamilies = (
+  value: string,
+  size: number,
+  fonts: { from: LookFonts; to: LookFonts }
+) => {
+  const coded = /mono|menlo|courier|consolas/i.test(value)
+  return value
+    .split(',')
+    .map((raw) => {
+      const part = raw.trim()
+      const name = part.replace(/^['"]|['"]$/g, '')
+      const roles = (['display', 'body', 'mono'] as const).filter(
+        (key) => fonts.from[key] === name
+      )
+      if (!roles.length) return part
+      const role =
+        roles.length === 1
+          ? roles[0]
+          : coded && roles.includes('mono')
+            ? 'mono'
+            : roles.includes('display') &&
+                (size >= 28 || !roles.includes('body'))
+              ? 'display'
+              : 'body'
+      return fonts.to[role]
+    })
+    .join(', ')
 }

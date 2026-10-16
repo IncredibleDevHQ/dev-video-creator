@@ -1,4 +1,27 @@
 import type { Voice } from './model'
+/** A font file a look carries: an openly licensed face read from the site
+ * the look came from, stored by the studio. */
+export type BrandFontFile = {
+  family: string
+  /** One weight, or the range a variable face covers. */
+  weight: number | [number, number]
+  style: 'normal' | 'italic'
+  objectKey: string
+  format: 'woff2' | 'woff' | 'truetype' | 'opentype'
+}
+/** The logo a site shows, read with its look: offered, used only when the
+ * creator chooses it. */
+export type SiteLogo = {
+  /** A transparent PNG, the logo as the site paints it. */
+  pngKey: string
+  /** The drawing itself, made safe, when the site drew it as SVG. */
+  svgKey?: string
+  width: number
+  height: number
+  label: string
+  /** The site it was read from. */
+  from: string
+}
 export type Branding = {
   name: string
   tagline: string
@@ -10,6 +33,24 @@ export type Branding = {
   /** The named look the palette and fonts came from (review 5), and what
    * it says of them: a site's fonts that stand in for its own (review 6). */
   look?: { id: string; name: string; note?: string }
+  /** The files of the look's fonts that are not built in. */
+  fontFiles?: BrandFontFile[]
+  /** What the notebook's site offers, whichever look it wears: its logo
+   * (`logoKey` is its PNG once chosen), its icon, its open faces. */
+  site?: SiteOffer
+}
+export type SiteOffer = {
+  from: string
+  /** The look read from the site, offered beside the named looks. */
+  look?: {
+    name: string
+    description: string
+    palette: { ground: string; text: string; accent: string; secondary: string }
+    fonts: { display: string; body: string; mono: string }
+  }
+  logo?: SiteLogo
+  symbol?: SiteLogo
+  fontFiles: BrandFontFile[]
 }
 export type VoiceClone = {
   id: string

@@ -1,9 +1,11 @@
 // The look, beside the wireframes (review 5, borrowed from Open Slide's
 // themes and design panel): named looks with a sample, then three colours
-// and two font menus. Drawn wireframes change colour as you choose, and
-// nothing is saved until Apply. It replaces the brand dialog before Create.
+// and two font menus (the site's own open faces among them), and the logo
+// the site shows, to use in videos or not. Drawn wireframes change as you
+// choose, and nothing is saved until Apply. It replaces the brand dialog.
 import {
   FONT_CHOICES,
+  filesFor,
   fontName,
   loadableFont,
   LOOKS,
@@ -14,6 +16,7 @@ import {
 } from '../shared/looks'
 import { api } from './api'
 import type { AppContext } from './app-context'
+import { syncBrandFonts } from './brand-fonts'
 import { escape } from './ui'
 
 type Panel = {
@@ -34,8 +37,16 @@ export const currentLook = (app: AppContext): Look => {
     name: branding.look?.name || named?.name || 'Your look',
     description: named?.description || branding.look?.note || '',
     palette: { ...branding.palette, accent: branding.accent },
-    fonts: branding.fonts || NEUTRAL_LOOK.fonts
+    fonts: branding.fonts || NEUTRAL_LOOK.fonts,
+    ...(branding.fontFiles ? { fontFiles: branding.fontFiles } : {})
   }
+}
+
+/** The faces the notebook can show beyond the built-in ones: its site's
+ * open fonts and the files its look already carries. */
+export const offeredFaces = (app: AppContext) => {
+  const branding = app.snapshot?.project.branding
+  return [...(branding?.site?.fontFiles || []), ...(branding?.fontFiles || [])]
 }
 
 /** A small title page in a look: the notebook's title over a little diagram. */
@@ -45,11 +56,22 @@ export const lookSample = (title: string, look: Look) =>
 const tile = (title: string, look: Look, pressed: boolean) =>
   `<button type="button" class="look-tile" data-look-id="${escape(look.id)}" aria-pressed="${pressed}">${lookSample(title, look)}<span class="look-name">${escape(look.name)}</span><small>${escape(look.description)}</small></button>`
 
-const fontMenu = (key: 'display' | 'body', value: string) => {
-  // A font that can't load says what shows instead.
+const fontMenu = (
+  key: 'display' | 'body',
+  value: string,
+  offered: string[]
+) => {
+  // The site's own faces come first; a font that can't load says what
+  // shows instead.
   const font = loadableFont(value)
-  const options = FONT_CHOICES.some((choice) => choice.value === value)
-    ? FONT_CHOICES
+  const choices = [
+    ...offered
+      .filter((family) => !FONT_CHOICES.some((c) => c.value === family))
+      .map((family) => ({ value: family, label: family })),
+    ...FONT_CHOICES
+  ]
+  const options = choices.some((choice) => choice.value === value)
+    ? choices
     : [
         {
           value,
@@ -57,7 +79,7 @@ const fontMenu = (key: 'display' | 'body', value: string) => {
             ? `${value} (shows as ${fontName(font.value)})`
             : value
         },
-        ...FONT_CHOICES
+        ...choices
       ]
   return `<select data-look-font="${key}">${options
     .map(
@@ -67,8 +89,21 @@ const fontMenu = (key: 'display' | 'body', value: string) => {
     .join('')}</select>`
 }
 
+/** The look read from the notebook's site, offered whatever look it wears. */
+const siteTile = (app: AppContext): Look | null => {
+  const site = app.snapshot?.project.branding?.site
+  if (!site?.look) return null
+  return {
+    id: 'site',
+    ...site.look,
+    fontFiles: filesFor(site.look.fonts, site.fontFiles)
+  }
+}
+
 const looksFor = (app: AppContext, from: Look) => {
   const list = [...LOOKS]
+  const site = siteTile(app)
+  if (site && from.id !== 'site') list.unshift(site)
   if (!LOOKS.some((look) => look.id === from.id)) list.unshift(from)
   return list
 }
@@ -128,6 +163,12 @@ export const openLookPanel = (app: AppContext) => {
           .replace(/^www\./, '')
       : ''
   } catch {}
+  const branding = app.snapshot.project.branding
+  const siteLogo = branding?.site?.logo
+  const logoUsed = Boolean(siteLogo && branding?.logoKey === siteLogo.pngKey)
+  let useLogo = logoUsed
+  const offered = [...new Set(offeredFaces(app).map((file) => file.family))]
+  syncBrandFonts(offeredFaces(app))
   const element = document.createElement('aside')
   element.className = 'look-panel'
   element.setAttribute('aria-label', 'Look')
@@ -156,9 +197,10 @@ export const openLookPanel = (app: AppContext) => {
       )
       .join('')}</div>
 <h3>Fonts</h3>
-<div class="look-fonts"><label>Headings${fontMenu('display', draft.fonts.display)}</label><label>Text${fontMenu('body', draft.fonts.body)}</label></div>
+<div class="look-fonts"><label>Headings${fontMenu('display', draft.fonts.display, offered)}</label><label>Text${fontMenu('body', draft.fonts.body, offered)}</label></div>
+${siteLogo ? `<h3>Logo</h3><label class="look-logo"><input type="checkbox" data-look-logo ${useLogo ? 'checked' : ''}><img src="/objects/${escape(siteLogo.pngKey)}" alt="${escape(siteLogo.from)} logo"><span>Use ${escape(siteLogo.from)}’s logo in videos</span></label>` : ''}
 <p class="popover-error" role="alert" data-look-error></p></div>
-<div class="look-actions">${domain ? `<label class="look-remember"><input type="checkbox" data-look-remember> Save for ${escape(domain)}</label>` : ''}<button type="button" data-look-cancel>Cancel</button><button type="button" class="primary" data-look-apply ${draft === from ? 'disabled' : ''}>${drawn ? 'Apply to all wireframes' : 'Use this look'}</button></div>`
+<div class="look-actions">${domain ? `<label class="look-remember"><input type="checkbox" data-look-remember> Save for ${escape(domain)}</label>` : ''}<button type="button" data-look-cancel>Cancel</button><button type="button" class="primary" data-look-apply ${draft === from && useLogo === logoUsed ? 'disabled' : ''}>${drawn ? 'Apply to all wireframes' : 'Use this look'}</button></div>`
     syncLookPreview(app.root)
   }
   const change = (next: Look) => {
@@ -188,17 +230,26 @@ export const openLookPanel = (app: AppContext) => {
       const remember = element.querySelector<HTMLInputElement>(
         '[data-look-remember]'
       )?.checked
-      const snapshot = await api.applyLook(id, draft)
+      const snapshot = await api.applyLook(
+        id,
+        draft,
+        useLogo === logoUsed ? undefined : useLogo
+      )
       if (remember && domain) {
         const saved = (await api.settings()).brandLibrary?.find(
           (entry) => entry.domain === domain
         )
+        // What the engine made of the look (its font files, the site's
+        // logo when chosen) is what's saved; the creator's own name isn't.
+        const applied = snapshot.project.branding
+        const site = applied?.site?.logo
         await api.saveLibraryBrand({
           domain,
           brand: {
             name: draft.name,
             tagline: '',
-            logoKey: null,
+            logoKey:
+              site && applied?.logoKey === site.pngKey ? site.pngKey : null,
             accent: draft.palette.accent,
             useAccent: true,
             palette: {
@@ -207,7 +258,9 @@ export const openLookPanel = (app: AppContext) => {
               secondary: draft.palette.secondary
             },
             fonts: draft.fonts,
-            look: { id: draft.id, name: draft.name }
+            look: { id: draft.id, name: draft.name },
+            ...(applied?.fontFiles ? { fontFiles: applied.fontFiles } : {}),
+            ...(applied?.site ? { site: applied.site } : {})
           },
           ...(saved
             ? { overwriteId: saved.id, expectedUpdatedAt: saved.updatedAt }
@@ -226,6 +279,12 @@ export const openLookPanel = (app: AppContext) => {
   })
   element.addEventListener('input', (event) => {
     const input = event.target as HTMLInputElement | HTMLSelectElement
+    if ('lookLogo' in input.dataset) {
+      useLogo = (input as HTMLInputElement).checked
+      element.querySelector<HTMLButtonElement>('[data-look-apply]')!.disabled =
+        open!.draft === from && useLogo === logoUsed
+      return
+    }
     const draft = open!.draft
     const colour = input.dataset.lookColour as keyof LookPalette | undefined
     const font = input.dataset.lookFont as 'display' | 'body' | undefined

@@ -2,10 +2,11 @@
 // saved for the site, the colours read from the site, or the neutral Paper
 // look when the site showed none (review 5: the built-in orange fallback was
 // presented as "Suggestion from stripe.com").
-import type { Branding } from '../shared/settings'
+import type { BrandFontFile, Branding, SiteOffer } from '../shared/settings'
 import {
   LOOKS,
   NEUTRAL_LOOK,
+  filesFor,
   type Look,
   type LookPalette
 } from '../shared/looks'
@@ -31,6 +32,71 @@ export const fontsStandingIn = (standing: Array<{ value: string }>) => {
   return `${standing.length > 1 ? 'Its fonts' : 'One of its fonts'} can’t be loaded here, so ${names.join(' and ')} ${names.length > 1 ? 'stand' : 'stands'} in.`
 }
 
+/** A face the look can show: one it carries a file for keeps its name; any
+ * other is the nearest built-in, said as replaced. */
+const showable = (family: string, files: BrandFontFile[]) =>
+  files.some((file) => file.family === family)
+    ? { value: family, replaced: false }
+    : loadableFont(family)
+
+/** The look read from a source's site: its colours and the fonts it can
+ * show (a face it carries a file for keeps its name). Null when the site
+ * showed no colours of its own. */
+const siteLookCore = (source: SourceRead | null) => {
+  if (source?.palette.provenance !== 'extracted') return null
+  const files = source.brand?.fontFiles || []
+  const display = showable(source.fonts.display, files)
+  const body = showable(source.fonts.body, files)
+  const standing = [display, body].filter((font) => font.replaced)
+  const domain = source.url ? brandDomain(source.url) : null
+  const site = source.site || domain
+  return {
+    name: source.site || domain || 'The site',
+    // Only the fonts that stand in are named (one may load as it is).
+    description: standing.length
+      ? `Colours read from ${site}. ${fontsStandingIn(standing)}`
+      : `Colours and fonts read from ${site}.`,
+    palette: {
+      ground: source.palette.ground,
+      text: source.palette.text,
+      accent: source.palette.accent,
+      secondary: source.palette.secondary
+    },
+    fonts: {
+      display: display.value,
+      body: body.value,
+      mono: showable(source.fonts.mono, files).value
+    }
+  }
+}
+
+/** What a source's site offers a notebook: its look, logo, icon and open
+ * faces. */
+export const siteOffer = (source: SourceRead | null): SiteOffer | undefined => {
+  if (!source?.url || !(source.brand || siteLookCore(source))) return undefined
+  const look = siteLookCore(source)
+  return {
+    from: brandDomain(source.url) || source.site,
+    ...(look ? { look } : {}),
+    ...(source.brand?.logo ? { logo: source.brand.logo } : {}),
+    ...(source.brand?.symbol ? { symbol: source.brand.symbol } : {}),
+    fontFiles: source.brand?.fontFiles || []
+  }
+}
+
+/** The look read from a source's site, or null when it showed no colours. */
+export const siteLook = (source: SourceRead | null): Look | null => {
+  const core = siteLookCore(source)
+  if (!core) return null
+  const offer = siteOffer(source)
+  return {
+    id: 'site',
+    ...core,
+    fontFiles: filesFor(core.fonts, source?.brand?.fontFiles || []),
+    ...(offer ? { site: offer } : {})
+  }
+}
+
 /** The look a notebook starts with, before the creator chooses one. */
 export const startingLook = async (
   source: SourceRead | null
@@ -39,13 +105,20 @@ export const startingLook = async (
   const saved = domain
     ? (await loadBrandLibrary()).find((entry) => entry.domain === domain)
     : undefined
+  const offer = saved?.brand.site || siteOffer(source)
   if (saved?.brand.palette && saved.brand.fonts) {
+    const files = saved.brand.fontFiles || []
     const fonts = {
-      display: loadableFont(saved.brand.fonts.display),
-      body: loadableFont(saved.brand.fonts.body),
-      mono: loadableFont(saved.brand.fonts.mono)
+      display: showable(saved.brand.fonts.display, files),
+      body: showable(saved.brand.fonts.body, files),
+      mono: showable(saved.brand.fonts.mono, files)
     }
     const standing = [fonts.display, fonts.body].filter((font) => font.replaced)
+    const chosen = {
+      display: fonts.display.value,
+      body: fonts.body.value,
+      mono: fonts.mono.value
+    }
     return {
       id: `saved:${saved.id}`,
       name: saved.brand.look?.name || saved.brand.name || domain!,
@@ -53,41 +126,19 @@ export const startingLook = async (
         ? `Your saved look for ${domain}. ${fontsStandingIn(standing)}`
         : `Your saved look for ${domain}.`,
       palette: { ...saved.brand.palette, accent: saved.brand.accent },
-      fonts: {
-        display: fonts.display.value,
-        body: fonts.body.value,
-        mono: fonts.mono.value
-      }
+      fonts: chosen,
+      fontFiles: filesFor(chosen, files),
+      ...(offer ? { site: offer } : {}),
+      // The logo the creator chose for this site's notebooks.
+      ...(saved.brand.logoKey ? { logoKey: saved.brand.logoKey } : {})
     }
   }
-  if (source?.palette.provenance === 'extracted') {
-    // A site's own fonts can't be loaded: the nearest built-in stands in,
-    // and the look says so.
-    const display = loadableFont(source.fonts.display)
-    const body = loadableFont(source.fonts.body)
-    const standing = [display, body].filter((font) => font.replaced)
-    const site = source.site || domain
-    return {
-      id: 'site',
-      name: source.site || domain || 'The site',
-      // Only the fonts that stand in are named (one may load as it is).
-      description: standing.length
-        ? `Colours read from ${site}. ${fontsStandingIn(standing)}`
-        : `Colours and fonts read from ${site}.`,
-      palette: {
-        ground: source.palette.ground,
-        text: source.palette.text,
-        accent: source.palette.accent,
-        secondary: source.palette.secondary
-      },
-      fonts: {
-        display: display.value,
-        body: body.value,
-        mono: loadableFont(source.fonts.mono).value
-      }
+  return (
+    siteLook(source) || {
+      ...NEUTRAL_LOOK,
+      ...(offer ? { site: offer } : {})
     }
-  }
-  return NEUTRAL_LOOK
+  )
 }
 
 /** A notebook's branding wearing a look; the creator's identity is kept. */
@@ -112,7 +163,11 @@ export const withLook = (
     ...(LOOKS.some((item) => item.id === look.id) || !look.description
       ? {}
       : { note: look.description })
-  }
+  },
+  // The files its fonts need go with it; a built-in look needs none.
+  fontFiles: look.fontFiles?.length ? look.fontFiles : undefined,
+  ...(look.site ? { site: look.site } : {}),
+  ...(look.logoKey ? { logoKey: look.logoKey } : {})
 })
 
 export const paletteOf = (

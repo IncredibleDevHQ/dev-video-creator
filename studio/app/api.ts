@@ -20,8 +20,16 @@ const request = <T>(path: string, method = 'GET', body?: unknown): Promise<T> =>
     body: body ? JSON.stringify(body) : undefined
   })
 export const api = {
-  applyLook: (id: string, look: import('../shared/looks').Look) =>
-    request<Snapshot>(`/projects/${id}/look`, 'POST', { look }),
+  applyLook: (
+    id: string,
+    look: import('../shared/looks').Look,
+    useLogo?: boolean
+  ) =>
+    request<Snapshot>(
+      `/projects/${id}/look`,
+      'POST',
+      useLogo === undefined ? { look } : { look, useLogo }
+    ),
   setLength: (id: string, length: import('../shared/model').StoryLength) =>
     request<Snapshot>(`/projects/${id}/length`, 'POST', { length }),
   setTemplate: (

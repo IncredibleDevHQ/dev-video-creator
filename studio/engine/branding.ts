@@ -1,4 +1,9 @@
-import type { Branding } from '../shared/settings'
+import type {
+  BrandFontFile,
+  Branding,
+  SiteLogo,
+  SiteOffer
+} from '../shared/settings'
 import {
   loadSetting,
   saveSetting,
@@ -21,6 +26,110 @@ export const loadBranding = async (): Promise<Branding> => ({
   ...DEFAULT_BRANDING,
   ...((await loadSetting('branding')) as Partial<Branding>)
 })
+const FONT_FORMATS = ['woff2', 'woff', 'truetype', 'opentype']
+
+/** Font files a brand names: the studio's own stored faces, nothing else. */
+const fontFilesOf = (value: unknown): BrandFontFile[] | undefined => {
+  if (value === undefined) return undefined
+  const files = Array.isArray(value) ? value.slice(0, 16) : null
+  const weight = (raw: unknown) =>
+    typeof raw === 'number'
+      ? raw >= 1 && raw <= 1000
+      : Array.isArray(raw) &&
+        raw.length === 2 &&
+        raw.every(
+          (part) => typeof part === 'number' && part >= 1 && part <= 1000
+        )
+  if (
+    !files ||
+    !files.every(
+      (file: BrandFontFile) =>
+        typeof file?.family === 'string' &&
+        file.family.trim().length > 0 &&
+        file.family.length <= 100 &&
+        weight(file.weight) &&
+        ['normal', 'italic'].includes(file.style) &&
+        FONT_FORMATS.includes(file.format) &&
+        validObjectKey(file.objectKey) &&
+        /\.(woff2?|ttf|otf)$/i.test(file.objectKey)
+    )
+  )
+    throw new Refusal('Check the look’s font files')
+  return files.map((file: BrandFontFile) => ({
+    family: file.family.trim(),
+    weight: file.weight,
+    style: file.style,
+    objectKey: file.objectKey,
+    format: file.format
+  }))
+}
+
+const logoOf = (value: unknown): SiteLogo | undefined => {
+  const logo = value as SiteLogo | undefined
+  if (!logo) return undefined
+  if (
+    !validObjectKey(logo.pngKey) ||
+    !/\.png$/i.test(logo.pngKey) ||
+    (logo.svgKey !== undefined &&
+      (!validObjectKey(logo.svgKey) || !/\.svg$/i.test(logo.svgKey))) ||
+    typeof logo.width !== 'number' ||
+    typeof logo.height !== 'number' ||
+    typeof logo.label !== 'string' ||
+    typeof logo.from !== 'string'
+  )
+    throw new Refusal('Check the site’s logo')
+  return {
+    pngKey: logo.pngKey,
+    ...(logo.svgKey ? { svgKey: logo.svgKey } : {}),
+    width: Math.round(logo.width),
+    height: Math.round(logo.height),
+    label: logo.label.slice(0, 120),
+    from: logo.from.slice(0, 120)
+  }
+}
+
+const siteOf = (value: unknown): SiteOffer | undefined => {
+  const site = value as SiteOffer | undefined
+  if (!site) return undefined
+  if (typeof site.from !== 'string' || site.from.length > 120)
+    throw new Refusal('Check the site')
+  const logo = logoOf(site.logo)
+  const symbol = logoOf(site.symbol)
+  const look = site.look
+  if (
+    look &&
+    (typeof look.name !== 'string' ||
+      look.name.length > 100 ||
+      typeof look.description !== 'string' ||
+      look.description.length > 400 ||
+      !['ground', 'text', 'accent', 'secondary'].every((key) =>
+        /^#[a-f0-9]{6}$/i.test(look.palette?.[key as 'ground'] || '')
+      ) ||
+      !['display', 'body', 'mono'].every(
+        (key) =>
+          typeof look.fonts?.[key as 'display'] === 'string' &&
+          look.fonts[key as 'display'].length <= 100
+      ))
+  )
+    throw new Refusal('Check the site’s look')
+  return {
+    from: site.from,
+    ...(look
+      ? {
+          look: {
+            name: look.name,
+            description: look.description,
+            palette: { ...look.palette },
+            fonts: { ...look.fonts }
+          }
+        }
+      : {}),
+    ...(logo ? { logo } : {}),
+    ...(symbol ? { symbol } : {}),
+    fontFiles: fontFilesOf(site.fontFiles) || []
+  }
+}
+
 export const validateBranding = async (value: unknown): Promise<Branding> => {
   const raw = value as Branding
   if (
@@ -62,7 +171,11 @@ export const validateBranding = async (value: unknown): Promise<Branding> => {
       raw.look.name.length > 100)
   )
     throw new Refusal('Check the look')
+  const fontFiles = fontFilesOf(raw.fontFiles)
+  const site = siteOf(raw.site)
   const brand = {
+    ...(fontFiles?.length ? { fontFiles } : {}),
+    ...(site ? { site } : {}),
     ...(raw.palette ? { palette: raw.palette } : {}),
     ...(raw.fonts ? { fonts: raw.fonts } : {}),
     ...(raw.look

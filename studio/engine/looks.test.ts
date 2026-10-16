@@ -39,6 +39,35 @@ it('re-mixes a page’s tints in the new look and keeps colours that mean someth
   expect(moved).not.toMatch(/f5a623|Segoe/i)
 })
 
+it('swaps a face the old look used for headings and text by what each line is', () => {
+  // A site's look brings Inter Tight for headings and keeps Inter for text:
+  // the page's Inter becomes Inter Tight only where it sets a heading.
+  const page =
+    '<svg><text font-family="Inter, Helvetica, sans-serif" font-size="40">Title</text>' +
+    '<text font-family="Inter, Helvetica, sans-serif" font-size="18">Body</text>' +
+    '<text font-family="Inter, Menlo, monospace" font-size="20">code</text></svg>'
+  const moved = recolourLook(page, fallback, fallback, {
+    from: { display: 'Inter', body: 'Inter', mono: 'Inter' },
+    to: { display: 'Inter Tight', body: 'Inter', mono: 'JetBrains Mono' }
+  })
+  expect(moved).toContain(
+    '<text font-family="Inter Tight, Helvetica, sans-serif" font-size="40">'
+  )
+  expect(moved).toContain(
+    '<text font-family="Inter, Helvetica, sans-serif" font-size="18">'
+  )
+  expect(moved).toContain(
+    '<text font-family="JetBrains Mono, Menlo, monospace" font-size="20">'
+  )
+  // Swapped once: applying the same change again changes nothing more.
+  expect(
+    recolourLook(moved, fallback, fallback, {
+      from: { display: 'Inter Tight', body: 'Inter', mono: 'JetBrains Mono' },
+      to: { display: 'Inter Tight', body: 'Inter', mono: 'JetBrains Mono' }
+    })
+  ).toBe(moved)
+})
+
 it('starts a notebook with a saved look, else the site’s colours, else Paper — never the fallback orange', async () => {
   const notes = readSourceNarrative('Plain notes have no site and no colours.')
   expect((await startingLook(notes)).id).toBe('paper')

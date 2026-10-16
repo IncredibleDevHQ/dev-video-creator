@@ -507,7 +507,11 @@ export const createStudioServer = (
         if (action === 'video' && request.method === 'PATCH')
           return send(response, 200, await updateVideoSettings(id, body))
         if (action === 'look' && request.method === 'POST')
-          return send(response, 200, await applyLook(id, body?.look))
+          return send(
+            response,
+            200,
+            await applyLook(id, body?.look, body?.useLogo)
+          )
         if (action === 'length' && request.method === 'POST')
           return send(response, 200, await setNotebookLength(id, body?.length))
         if (action === 'template' && request.method === 'POST')
@@ -586,9 +590,19 @@ export const createStudioServer = (
           'assets',
           assetIdOf(name)
         )
+        const contentType = metadata?.contentType || 'application/octet-stream'
+        // A stored drawing stays a drawing: an SVG opened on its own runs no
+        // script, and nothing is read as another type than it was stored.
         const headers = {
-          'Content-Type': metadata?.contentType || 'application/octet-stream',
-          'Accept-Ranges': 'bytes'
+          'Content-Type': contentType,
+          'Accept-Ranges': 'bytes',
+          'X-Content-Type-Options': 'nosniff',
+          ...(/svg/i.test(contentType)
+            ? {
+                'Content-Security-Policy':
+                  "default-src 'none'; style-src 'unsafe-inline'; img-src data:"
+              }
+            : {})
         }
         const range = request.headers.range?.match(/^bytes=(\d+)-(\d*)$/)
         if (range) {

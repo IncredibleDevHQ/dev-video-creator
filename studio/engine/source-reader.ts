@@ -1,4 +1,3 @@
-import { storeAsset } from './persistence'
 // Assemble a web source from prose, branding and host documents.
 import { parseHTML } from 'linkedom'
 import { hsl } from './source-colours'
@@ -10,21 +9,14 @@ import {
   FALLBACK_PALETTE,
   type SourceRead
 } from './source-document'
-import {
-  assertPublicUrl,
-  fetchText,
-  fetchBinary,
-  renderedRead,
-  absolute
-} from './source-fetch'
+import { assertPublicUrl, fetchText, absolute } from './source-fetch'
+import { readSiteBrand } from './site-brand'
 import {
   BROWSER_COLOURS,
-  GENERIC_FONTS,
   Tally,
   hexOf,
   isNeutral,
   cssColours,
-  cleanFontName,
   cssFonts
 } from './source-brand'
 import { githubDocumentOf, readGithubDocument } from './source-github'
@@ -181,43 +173,23 @@ export const readSourceUrl = async (
       warnings.push(`A stylesheet could not be read: ${new URL(href).pathname}`)
     }
   }
-  const rendered = await renderedRead(target.toString())
-  const grounds = new Tally()
-  const inks = new Tally()
-  if (rendered) {
-    rendered.backgrounds.forEach(([colour, weight]) =>
-      grounds.add(hexOf(colour), weight)
+  // The rendered page, read for how its colours are used, the faces it
+  // sets text in, its logo and its open font files (site-brand.ts).
+  const brand = await readSiteBrand(target.toString())
+  if (brand)
+    brand.palette.forEach((colour, at) =>
+      colours.add(colour.toLowerCase(), 24 - at)
     )
-    rendered.inks.forEach(([colour, weight]) => inks.add(hexOf(colour), weight))
-    rendered.fonts.forEach(([rawFamily, weight]) => {
-      const family = cleanFontName(rawFamily)
-      const key = family.toLowerCase()
-      if (family && !GENERIC_FONTS.has(key) && !/icon|awesome/i.test(key))
-        fontTally.set(family, (fontTally.get(family) || 0) + weight * 4)
-    })
-    // rendered colours join the candidate tally with their real prominence
-    rendered.backgrounds
-      .slice(0, 12)
-      .forEach(([colour, weight]) =>
-        colours.add(hexOf(colour), Math.sqrt(weight))
-      )
-    rendered.inks
-      .slice(0, 12)
-      .forEach(([colour, weight]) =>
-        colours.add(hexOf(colour), Math.sqrt(weight))
-      )
-  } else
+  else
     warnings.push(
       'The page could not be rendered for its painted colours; stylesheet colours were used'
     )
-
+  const lower = (value?: string) => value?.toLowerCase()
   const ground =
-    grounds.top(1)[0]?.hex ||
+    lower(brand?.roles?.ground) ||
     (colours.top(40).find((c) => hsl(c.hex).l > 0.9)?.hex ?? '#ffffff')
-  const inkCandidates = inks.top(6).map((c) => c.hex)
   const textColour =
-    inkCandidates.find((hex) => Math.abs(hsl(hex).l - hsl(ground).l) > 0.4) ||
-    (hsl(ground).l > 0.5 ? '#1a1a1a' : '#f2f2f2')
+    lower(brand?.roles?.text) || (hsl(ground).l > 0.5 ? '#1a1a1a' : '#f2f2f2')
   // A browser's own link colours are not a brand's (F5 of the Perplexity
   // review): a page that paints none of its own has no brand colours.
   const saturated = colours
@@ -229,22 +201,26 @@ export const readSourceUrl = async (
         c.hex !== textColour &&
         !BROWSER_COLOURS.has(c.hex)
     )
-  // an accent has to carry on a dark video ground: prefer saturated colours of middling lightness over a brand's near-black navy
+  // Without a rendered read, an accent has to carry on a video ground:
+  // saturated colours of middling lightness over a near-black navy.
   const carries = (hex: string) => {
     const { s, l } = hsl(hex)
     return s >= 0.35 && l >= 0.28 && l <= 0.78
   }
   const accentRead = Boolean(
+    brand?.roles?.accent ||
     (themeColor && !isNeutral(themeColor) && carries(themeColor)) ||
     saturated.length
   )
   const accent =
-    themeColor && !isNeutral(themeColor) && carries(themeColor)
+    lower(brand?.roles?.accent) ||
+    (themeColor && !isNeutral(themeColor) && carries(themeColor)
       ? themeColor
       : saturated.find((c) => carries(c.hex))?.hex ||
         saturated[0]?.hex ||
-        FALLBACK_PALETTE.accent
+        FALLBACK_PALETTE.accent)
   const secondary =
+    lower(brand?.roles?.second) ||
     saturated.find(
       (c) => c.hex !== accent && Math.abs(hsl(c.hex).h - hsl(accent).h) > 25
     )?.hex ||
@@ -260,56 +236,22 @@ export const readSourceUrl = async (
       .filter((c) => ![ground, textColour, accent, secondary].includes(c.hex))
   ]
 
-  const fontsSeen = [...fontTally.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([family]) => family)
-    .slice(0, 6)
-  const headingFont = cleanFontName(rendered?.headingFont || '')
-  const bodyFont = cleanFontName(rendered?.bodyFont || '')
+  const fontsSeen =
+    brand?.fonts.seen ||
+    [...fontTally.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([family]) => family)
+      .slice(0, 6)
   // A site that names no font of its own uses the system's, which every
   // browser shows as it is (review 6: Segoe UI and Consolas stood in).
-  const display =
-    headingFont && !GENERIC_FONTS.has(headingFont.toLowerCase())
-      ? headingFont
-      : fontsSeen[0] || 'system-ui'
-  const body =
-    bodyFont && !GENERIC_FONTS.has(bodyFont.toLowerCase())
-      ? bodyFont
-      : fontsSeen[1] || fontsSeen[0] || 'system-ui'
+  const display = brand?.fonts.display || fontsSeen[0] || 'system-ui'
+  const body = brand?.fonts.body || fontsSeen[1] || fontsSeen[0] || 'system-ui'
   const mono =
+    brand?.fonts.mono ||
     fontsSeen.find((f) =>
       /mono|code|courier|menlo|consolas|jetbrains|fira/i.test(f)
-    ) || 'ui-monospace'
-
-  // keep the best two logo candidates locally so the render can stage them
-  for (const logo of logos.slice(0, 2)) {
-    const file = await fetchBinary(logo.url, 1024 * 1024)
-    if (!file) continue
-    const extension = /svg/.test(file.contentType)
-      ? '.svg'
-      : /png/.test(file.contentType)
-        ? '.png'
-        : /jpe?g/.test(file.contentType)
-          ? '.jpg'
-          : /webp/.test(file.contentType)
-            ? '.webp'
-            : /x-icon|vnd\.microsoft\.icon/.test(file.contentType)
-              ? '.ico'
-              : ''
-    if (!extension || extension === '.ico') continue
-    try {
-      const stored = await storeAsset({
-        body: file.buffer,
-        contentType: file.contentType,
-        projectId: options.projectId,
-        kind: 'brand-logo',
-        extension
-      })
-      logo.localUrl = `/objects/${stored.objectKey}`
-    } catch {
-      /* the original url still works for preview */
-    }
-  }
+    ) ||
+    'ui-monospace'
 
   return {
     kind: 'url',
@@ -336,6 +278,15 @@ export const readSourceUrl = async (
         : `${target.hostname.replace(/^www\./, '')} showed no brand colours`
     },
     fonts: { display, body, mono, seen: fontsSeen },
+    ...(brand
+      ? {
+          brand: {
+            fontFiles: brand.fontFiles,
+            ...(brand.logo ? { logo: brand.logo } : {}),
+            ...(brand.symbol ? { symbol: brand.symbol } : {})
+          }
+        }
+      : {}),
     warnings,
     extraction: {
       ...extractionOf(text, headings.length, site),

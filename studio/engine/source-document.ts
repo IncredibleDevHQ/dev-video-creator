@@ -33,6 +33,13 @@ export type SourceRead = {
     from: string
   }
   fonts: { display: string; body: string; mono: string; seen: string[] }
+  /** What the rendered page showed of its brand beyond colours and font
+   * names: its logo and square icon, and its open faces as files. */
+  brand?: {
+    logo?: import('../shared/settings').SiteLogo
+    symbol?: import('../shared/settings').SiteLogo
+    fontFiles: import('../shared/settings').BrandFontFile[]
+  }
   warnings: string[]
   // How much was read, and how likely it is the article (F3): a thin read
   // may be a page's navigation, and is not planned from unless the creator

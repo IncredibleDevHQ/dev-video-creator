@@ -23,6 +23,7 @@ import { videoScreen } from './video-screen'
 import { workspaceHeader } from './workspace-header'
 import { momentOnShow, workspaceUrl } from './workspace-position'
 import { syncLookPreview } from './look-panel'
+import { syncBrandFonts } from './brand-fonts'
 import { meterStream } from './mic-meter'
 import { markPin } from './wireframe-pin'
 import { syncPlayerBar } from './player-bar'
@@ -441,6 +442,11 @@ ${escape(project.title)}</h1>
       : null
   )
   syncLookPreview(app.root)
+  // The look's own faces (a site's open fonts) load for the drawn pages.
+  syncBrandFonts([
+    ...(app.snapshot?.project.branding?.site?.fontFiles || []),
+    ...(app.snapshot?.project.branding?.fontFiles || [])
+  ])
   markPin(app.root, app.pin)
   syncPlayerBar(app.root)
 }
