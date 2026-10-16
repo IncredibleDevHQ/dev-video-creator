@@ -517,6 +517,24 @@ describe('questions, directions and organising on the map (review 7)', () => {
     expect(map.noteAsk).toEqual({ text: '', gap: 'do' })
   })
 
+  it('brings a new series into view at once, and fits again when a plan’s first episodes appear (Jev series run)', async () => {
+    const empty = view()
+    empty.episodes = []
+    empty.usage = {}
+    const { map } = await openMap(empty)
+    const fit = vi.spyOn(map, 'fit')
+    // Starting the series fits now, not at a later refresh.
+    await map.startSeries()
+    expect(fit).toHaveBeenCalledTimes(1)
+    // The plan's episodes appear: one fit, and a repaint doesn't fit again.
+    vi.mocked(mapApi.view).mockImplementation(async () => view())
+    await map.refresh()
+    expect(fit).toHaveBeenCalledTimes(2)
+    map.paint()
+    await map.refresh()
+    expect(fit).toHaveBeenCalledTimes(2)
+  })
+
   it('keeps an Undo showing when organising news comes, then says the news', async () => {
     const { map } = await openMap()
     vi.useFakeTimers()

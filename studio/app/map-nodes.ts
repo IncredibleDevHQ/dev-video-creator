@@ -31,8 +31,12 @@ const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`
 
 /** How long each episode runs, as a chip that opens the slider. */
+/** A window as its chip says it: "2–4 min each · must fit". */
+export const lengthWords = (length: LengthGoal) =>
+  `${windowLabel(length)} each${length.strict ? ' · must fit' : ''}`
+
 export const lengthChip = (length: LengthGoal = DEFAULT_LENGTH) =>
-  `<button type="button" class="quiet map-length" data-map="length" data-popover="series-length" title="How long each episode runs">${windowLabel(length)} each${length.strict ? ' · must fit' : ''}</button>`
+  `<button type="button" class="quiet map-length" data-map="length" data-popover="series-length" title="How long each episode runs">${lengthWords(length)}</button>`
 
 /** The series' head: its name, the outcome and audience (the planner's are
  * marked suggested until the creator edits them), the through-lines, the

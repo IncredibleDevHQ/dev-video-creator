@@ -60,7 +60,15 @@
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-  max-width: calc(100% - 24px);
+  /* Between the zoom pill and the Queue, never over either. */
+  max-width: calc(100% - 412px);
+}
+/* Too narrow for that: it rises above them instead. */
+@media (max-width: 980px) {
+  .map-bar {
+    bottom: 62px;
+    max-width: calc(100% - 24px);
+  }
 }
 .map-bar button {
   padding: 5px 10px;

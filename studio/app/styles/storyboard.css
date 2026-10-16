@@ -120,8 +120,16 @@
   font-size: 13px;
   color: var(--muted);
 }
+/* Each frame keeps a title you can read; a scene of many frames scrolls
+   sideways instead of cutting them to "One …" (the Jev series run). */
 .sb-strip .moment-strip {
   position: relative;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
+}
+.sb-strip .moment-item {
+  flex: 1 0 128px;
 }
 .sb-strip .moment-item > .moment {
   padding-right: 10px;

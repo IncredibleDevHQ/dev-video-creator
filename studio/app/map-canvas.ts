@@ -103,6 +103,7 @@ export class MapCanvas {
   private returning = true
   private fitted = false
   private fittedPages = 0
+  private fittedLanes = 0
   private poll: ReturnType<typeof setInterval> | null = null
   private unsubscribe: (() => void) | null = null
   private toastTimer: ReturnType<typeof setTimeout> | null = null
@@ -153,6 +154,7 @@ export class MapCanvas {
     this.voice.recheckKey()
     this.fitted = false
     this.fittedPages = 0
+    this.fittedLanes = 0
     this.els.clear()
     replacePlayerView(this.root, mapPage('Loading…'), null)
     restoreChrome(this)
@@ -266,11 +268,17 @@ export class MapCanvas {
     tellOrganized(this)
     this.comments.paint()
     this.voice.paint()
-    // Fit once the map has its pages: at first, and when the story plans them.
+    // Fit once the map has its pages: at first, when the story plans them,
+    // and when a plan's first episodes appear.
     const pages = this.layout ? Object.keys(this.layout.cards).length : 0
-    if ((!this.fitted || (this.fittedPages === 0 && pages > 0)) && this.view) {
+    const lanes = this.layout ? Object.keys(this.layout.lanes).length : 0
+    const grew =
+      (this.fittedPages === 0 && pages > 0) ||
+      (this.fittedLanes === 0 && lanes > 0)
+    if ((!this.fitted || grew) && this.view) {
       this.fitted = true
       this.fittedPages = pages
+      this.fittedLanes = lanes
       const back = this.returning && pages > 0 && restoreView(this)
       if (pages > 0) this.returning = false
       if (!back) this.fit()
@@ -565,13 +573,15 @@ export class MapCanvas {
         organize: data.get('organize') === 'on'
       })
     }, 'Planning the series: it reads every card, then the episodes take shape')
-    this.fitted = false
   }
   async startSeries() {
     await this.run(
       () => mapApi.startSeries(this.mapId),
       'Series started. Say what a viewer can do by the end, then plan it.'
     )
+    // The series comes into view now, not at some later refresh: it
+    // jumped there when the length was saved (Jev series run).
     this.fitted = false
+    this.paint()
   }
 }
