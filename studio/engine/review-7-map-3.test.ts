@@ -180,6 +180,28 @@ describe('a direction and comments on the map (independent audit)', () => {
     expect(hooks.error).not.toHaveBeenCalled()
   })
 
+  it('brings a refused new direction back with its words, and its Save works again', async () => {
+    const { map, root, hooks } = await openMap()
+    vi.mocked(mapApi.direction).mockRejectedValueOnce(
+      new Error('A series takes up to 30 directions')
+    )
+    const form = draft(root)
+    form.querySelector('textarea')!.value = 'Open on the outage'
+    fire(form, 'submit')
+    await settle()
+    expect(hooks.error).toHaveBeenCalledOnce()
+    expect(map.editingDirection).toBe('__draft__')
+    const again = root.querySelector<HTMLFormElement>(
+      '[data-map-form="direction"][data-direction="__draft__"]'
+    )!
+    expect(again.querySelector('textarea')!.value).toBe('Open on the outage')
+    fire(again, 'submit')
+    await settle()
+    const calls = vi.mocked(mapApi.direction).mock.calls
+    expect(calls).toHaveLength(2)
+    expect(calls[1][1]).toMatchObject({ text: 'Open on the outage' })
+  })
+
   it('pins a comment on a direction being written to its spot, never to the unsaved draft', async () => {
     const { map, root } = await openMap()
     draft(root)

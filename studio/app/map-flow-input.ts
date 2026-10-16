@@ -577,7 +577,8 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
       await map.run(() => mapApi.removeDirection(series.id, id))
       return true
     }
-    await map.run(
+    const mapId = map.mapId
+    const saved = await map.run(
       () =>
         mapApi.direction(
           series.id,
@@ -585,6 +586,13 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
         ),
       'Saved. Wire it to what it guides; the next plan answers it.'
     )
+    // Refused: it is being written again, its words kept, on its own map
+    // only, as a refused note is; its Save works again.
+    if (!saved && map.isOpen && map.mapId === mapId && !map.editingDirection) {
+      map.editingDirection = id
+      if (draft) map.draftDirection = { ...draft, text }
+      map.paint()
+    }
     return true
   }
   if (kind === 'brief' && series && map.briefing) {
