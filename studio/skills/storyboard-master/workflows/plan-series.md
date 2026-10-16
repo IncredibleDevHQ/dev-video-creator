@@ -17,7 +17,8 @@ Every episode later becomes one storyboard (Plan Episode).
    - `length`: how long each episode runs, a range in seconds, and whether it
      is strict;
    - `episodes`: the episodes that exist, each with its id (`episode`), its
-     cards, and `made` (true once its video has started);
+     `title`, its cards, `made` (true once its video has started) and `named`
+     (true when the creator named it);
    - `last`: the last outline, when there was one: its through-lines, each
      episode's win and teachings, and its `gaps`, each with what the creator
      did with it (`state`: open, explained or ignored).
@@ -52,7 +53,10 @@ Every episode later becomes one storyboard (Plan Episode).
      never needs something a later one teaches.
    - The first episode gives an early win and a reason to watch the next.
      The middle lifts, with a payoff or a turn. The last lands the outcome.
-   - Name episodes like chapters of a journey, not categories.
+   - Name episodes like chapters of a journey, not categories. An open
+     episode's title is yours to change: when its cards change, name it for
+     what it holds now, not for a card that moved away. A made episode keeps
+     its title, and so does one the creator `named`.
    - Don't force episodes to the same size. Merge thin ones; split ones that
      carry two messages.
    - `carries` says what the episode picks up from the one before and hands

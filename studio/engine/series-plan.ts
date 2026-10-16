@@ -103,6 +103,7 @@ export const existingOf = async (series: Series) => {
     number: number
     title: string
     made: boolean
+    named?: boolean
     pages: string[]
   }> = []
   for (const episode of series.episodes) {
@@ -113,6 +114,7 @@ export const existingOf = async (series: Series) => {
       number: episode.number,
       title: notebook.project.title,
       made: isMade(notebook),
+      ...(notebook.project.episode?.named ? { named: true } : {}),
       pages: pagesOf(notebook)
     })
   }
@@ -165,11 +167,12 @@ const runPlan = async (seriesId: string) => {
     length: series.length || null,
     directions,
     episodes: existing.map(
-      ({ notebook, number, title, made, pages: used }) => ({
+      ({ notebook, number, title, made, named, pages: used }) => ({
         episode: notebook,
         number,
         title,
         made,
+        ...(named ? { named } : {}),
         pages: used
       })
     ),

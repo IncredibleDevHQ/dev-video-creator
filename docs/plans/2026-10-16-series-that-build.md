@@ -145,6 +145,13 @@ where the series lost track of itself:
 - **Open episodes kept stale copies.** The plan reads the map's cards as they
   are; an open episode now holds them as they are too. A copy the creator
   edited in the episode, or chose to keep, stays as it was.
+- **Reshaped episodes kept their old names.** The plan's title reached only
+  the episode's part; the map showed the name the episode was born with, and
+  the next plan reused it. An open episode now takes the plan's name unless
+  the creator named it by hand, and the planner is told which names are the
+  creator's and that its own follow the cards. A made episode keeps its name.
+- **An episode that organising started had no hand-off line.** It now
+  carries its part, through-lines and length, like a planned one.
 
 ## Not in this pass
 

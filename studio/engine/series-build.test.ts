@@ -542,7 +542,9 @@ it('calls an open episode what the plan made it, unless the creator named it; a 
     lines: ['why'],
     pages
   })
-  replies['Plan Series'] = () => ({
+  let told: Array<{ episode: string; named?: boolean }> = []
+  replies['Plan Series'] = (input) => ({
+    ...((told = packetOf(input, 'SERIES.json').episodes), {}),
     outcome: 'Run a pipeline',
     audience: 'Workers developers',
     lines: [{ id: 'why', name: 'Why', line: 'It fills a gap' }],
@@ -557,6 +559,7 @@ it('calls an open episode what the plan made it, unless the creator named it; a 
   })
   await planSeries(series.id, {})
   await settledSeriesPlan(series.id)
+  expect(told.map((item) => Boolean(item.named))).toEqual([false, false, true])
   const titled = async (id: string) => (await loadProject(id))!
   expect((await titled(made)).project.title).toBe('Made')
   expect((await titled(open)).project.title).toBe('What the plan made it')
@@ -564,7 +567,7 @@ it('calls an open episode what the plan made it, unless the creator named it; a 
     'Planned as episode 2, “What the plan made it”: Win of What the plan made it'
   )
   expect((await titled(mine)).project.title).toBe('My own name')
-  // Each keeps the plan's part, which is what "next time" reads.
+  // Each holds the plan's part, which the scene planner reads.
   expect((await titled(mine)).project.episode?.part?.title).toBe(
     'What the plan would call it'
   )
