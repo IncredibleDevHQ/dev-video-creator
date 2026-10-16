@@ -1,43 +1,88 @@
 # Route: Plan Series
 
-Group a content map's pages (its cards) into the episodes of one series: an
-arc with threads that run through it, and episodes that each tell one part
-of it, in order. Every episode later becomes one storyboard (Plan Episode).
+Outline one series from a content map's cards, the way a course is outlined
+from its material: what a viewer can do by the end, the lines that run through
+it, episodes in the order a viewer learns, and what the material doesn't cover.
+Every episode later becomes one storyboard (Plan Episode).
 
 ## Read
 
-1. `packet/SERIES.json`: the series' title and what it is about, the creator's
-   own ideas for episodes (`ideas`, possibly empty), the length each episode
-   should run (`length`: a range in seconds, and whether it is strict), and the
-   episodes that already exist (`kept`), each with its pages.
-2. `packet/PAGES.json`: every drawn page of the map in the map's order: its
-   id, title, idea, topic when grouped, and `seconds`, about how long its
-   script runs when spoken.
-3. `packet/SOURCE.md`: the source the map came from.
+1. `packet/SERIES.json`:
+   - the series' `title` and what it is `about`;
+   - `outcome` and `audience` (null when the creator gave none; then you
+     propose them);
+   - `directions`: the creator's own ideas for the series, each with an `id`,
+     its `text`, and what it is `about` (the whole series, one episode, or
+     some cards);
+   - `length`: how long each episode runs, a range in seconds, and whether it
+     is strict;
+   - `episodes`: the episodes that exist, each with its id (`episode`), its
+     cards, and `made` (true once its video has started);
+   - `last`: the last outline, when there was one.
+2. `packet/PAGES.json`: every drawn card, in the map's order. Each has its id,
+   title, idea, `evidence` (lines from the source), `opens` (how its script
+   begins), topic and `seconds` (about how long it runs when spoken).
+3. `packet/SOURCE.md`: the source the map came from, with every note added
+   since.
 4. `hyperframes/skills/hyperframes-creative/references/story-spine.md` (value
    before evidence; every part traces to the message) and
    `hyperframes/skills/faceless-explainer/references/story-design.md` § 1
    (the teaching truth).
 
-## Decide
+## Decide, top down
 
-1. **The arc**: the series' through-line in one sentence, and the threads
-   (questions, objects, numbers) that run from episode to episode.
-2. **The episodes**, in order. When the creator gave ideas, follow them: their
-   episodes, their order, their names where they named them. Where they gave
-   none, organise the pages yourself: each episode one part of the arc, one
-   message, built from pages that belong together; earlier episodes set up what
-   later ones need.
-3. **Kept episodes stay**: list them first, in their order, with all their
-   pages. A new page that belongs to one of them may be added at its end.
-4. **Every page once.** Each drawn page goes into exactly one episode, except a
-   page that fits none, which you leave out and name in `left`.
-5. **The length.** Sum each episode's `seconds`: it must land inside the range
-   when the length is strict, and near it when flexible. Split or merge
-   episodes to get there.
-6. For each episode: `title` (short), `about` (its message, one sentence),
-   `carries` (what it picks up from the episode before and hands to the next),
-   and `pages` (ids, in the order a viewer meets them).
+1. **Outcome and audience.** Complete "By the end, viewers can …" with
+   something specific a viewer could show. Name who it is for and what they
+   already know. Keep the creator's when given; propose them when not. A
+   vague outcome makes a list of topics, not a series.
+2. **Through-lines.** Read all the cards together: their ideas and evidence,
+   not only their titles. Name one to four lines that run from episode to
+   episode: a question that keeps coming back, an object the viewer follows,
+   a number that changes. Each has an `id` (a short slug), a `name` (two to
+   four words) and a `line` (one sentence).
+3. **Episodes, in the order a viewer learns.** This is not the order the
+   cards were written in.
+   - Each episode has one message (`about`) and gives one `win`: what the
+     viewer can do or understand after it.
+   - `teaches` lists one to four things it introduces.
+   - `needs` lists what it assumes. Each need comes `from` an earlier
+     episode's number (one that teaches it) or names a `gap`. An episode
+     never needs something a later one teaches.
+   - The first episode gives an early win and a reason to watch the next.
+     The middle lifts, with a payoff or a turn. The last lands the outcome.
+   - Name episodes like chapters of a journey, not categories.
+   - Don't force episodes to the same size. Merge thin ones; split ones that
+     carry two messages.
+   - `carries` says what the episode picks up from the one before and hands
+     to the next: the open loop.
+   - `lines` lists the through-line ids it carries.
+   - `pages` lists its cards' ids, in the order a viewer meets them.
+4. **Every card once.** Each drawn card goes into exactly one episode, or into
+   `left` with why it fits none.
+5. **Episodes that exist.** Each appears once, with its `episode` id.
+   - A **made** episode keeps its number and exactly its cards.
+   - Open episodes you may move, rename and re-card freely.
+   - New episodes have no `episode`.
+6. **Gaps.** List what the series needs that no card covers: a prerequisite
+   the cards assume, a step they skip, a payoff they promise. Each gap has:
+   - an `id`;
+   - what is `missing`;
+   - the `episode` number that needs it;
+   - `why` it matters;
+   - `ask`: the question that would fill it, put to the creator.
+
+   Never invent material to cover a gap. Up to eight gaps.
+7. **Directions.** Follow them wherever you can: their episodes, their order,
+   their names, their emphasis. When two disagree, follow the more specific
+   one (an episode's over the whole series'). Answer every one: `followed`,
+   `partly` or `not`, with `why` in a line.
+8. **The length.** Sum each episode's `seconds`. It must land inside the range
+   when the length is strict, and near it when not. Split or merge episodes
+   to get there.
+9. **Check it as the viewer.** Read the outline as someone in the audience.
+   Where would you be confused, bored (`slow`), `overloaded`, or lost because
+   something is assumed (`assumes`)? Fix what you can in the plan. Flag what
+   remains, at most six flags, each with its episode number and a line.
 
 ## Write and submit
 
@@ -45,20 +90,48 @@ Write `plan/series.json`:
 
 ```json
 {
-  "arc": "From one request to a live pipeline, and what it costs to run",
-  "threads": ["the frozen timer", "the cost of a minute"],
+  "outcome": "By the end, viewers can run their own video pipeline on Cloudflare",
+  "audience": "Developers who ship on Workers and have never processed video",
+  "lines": [
+    { "id": "lifecycle", "name": "The session that outlives", "line": "A session keeps running after the request that started it ends." }
+  ],
   "episodes": [
     {
-      "title": "Why a request isn't enough",
-      "about": "A stream outlives any request, so it needs a pipeline.",
-      "carries": "Opens the series; hands off the question of how a frame travels.",
-      "pages": ["page-id-1", "page-id-2"]
+      "episode": "notebook-id-of-an-existing-episode",
+      "title": "When streaming isn't enough",
+      "about": "Managed streaming leaves cases you must build yourself.",
+      "win": "Tell when a custom pipeline is worth building",
+      "teaches": ["what managed streaming covers", "the cases it leaves"],
+      "needs": [],
+      "carries": "Opens the series; hands off the question of what a pipeline is made of.",
+      "lines": ["lifecycle"],
+      "pages": ["card-id-1", "card-id-2"]
+    },
+    {
+      "title": "Two halves, three primitives",
+      "about": "A pipeline is a container that outlives a Worker that controls it.",
+      "win": "Sketch the pieces of a pipeline and what each does",
+      "teaches": ["container", "orchestrator", "controller"],
+      "needs": [{ "what": "the cases managed streaming leaves", "from": 1 }, { "what": "what a Durable Object is", "gap": "durable-objects" }],
+      "carries": "Picks up why to build; hands off how the session stays alive.",
+      "lines": ["lifecycle"],
+      "pages": ["card-id-3"]
     }
   ],
-  "left": []
+  "gaps": [
+    { "id": "durable-objects", "missing": "What a Durable Object is", "episode": 2, "why": "Episode 2's orchestrator is one, and no card says what it is", "ask": "In a line or two: what is a Durable Object, and why does the orchestrator need one?" }
+  ],
+  "overlaps": [{ "pages": ["card-id-4", "card-id-5"], "note": "Both explain the WebSocket preview" }],
+  "left": [{ "page": "card-id-6", "why": "A product announcement, outside this series' story" }],
+  "directions": [{ "id": "direction-id", "state": "followed", "why": "The security story now closes the series" }],
+  "flags": [{ "episode": 2, "kind": "overloaded", "line": "Three new primitives in one episode" }]
 }
 ```
 
 Then call `storyboard_submit_series` with `projectDir` set to the run
-directory. The studio checks it (every page once, kept episodes first, the
-length) and makes the new episodes.
+directory. The studio checks it and puts it into the episodes:
+- every made episode at its place, with its cards;
+- every card once, or left with why;
+- each need from an earlier episode or a gap;
+- every direction answered;
+- the length.

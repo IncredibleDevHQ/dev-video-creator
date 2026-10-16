@@ -80,6 +80,14 @@ export type SeriesContext = {
   previously?: string
   threads?: string[]
   next?: string
+  /** What a viewer can do by the end of the series, and who it is for. */
+  outcome?: string
+  audience?: string
+  /** This episode in what the series teaches: its win, what it teaches,
+   * and what it builds on (from which earlier episode). */
+  win?: string
+  teaches?: string[]
+  needs?: string[]
 }
 
 /** BRIEF.md: the episode, its length, its series, what may be shown. */
@@ -122,6 +130,24 @@ export const episodeBrief = (input: {
       '## Series',
       '',
       `Episode ${series.number} of "${series.title}": ${series.about}`,
+      ...(series.outcome
+        ? ['', `By the end of the series, viewers can: ${series.outcome}`]
+        : []),
+      ...(series.audience ? [`For: ${series.audience}`] : []),
+      ...(series.win
+        ? [
+            '',
+            `This episode's win (what the viewer can do after it): ${series.win}`,
+            ...(series.teaches?.length
+              ? [`It teaches: ${series.teaches.join('; ')}`]
+              : []),
+            ...(series.needs?.length
+              ? [
+                  `It builds on: ${series.needs.join('; ')}. Say each in a line, never teach it again.`
+                ]
+              : [])
+          ]
+        : []),
       ...(series.arc?.length
         ? [
             '',

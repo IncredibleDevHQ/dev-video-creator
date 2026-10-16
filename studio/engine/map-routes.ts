@@ -15,6 +15,15 @@ import {
 import { addNote, retryNote } from './map-notes'
 import { retryPick } from './map-picking'
 import { planSeries } from './series-plan'
+import { placeEpisodeAfter } from './series-apply'
+import {
+  removeDirection,
+  saveDirection,
+  setGap,
+  updateBrief
+} from './series-directions'
+import { organizeNewPages, undoOrganize } from './series-organize'
+import { loadSeries } from './series'
 import { scheduleSegues } from './map-segues'
 import { groupTopics } from './map-topics'
 import { loadProject } from './projects'
@@ -26,7 +35,7 @@ const ok = (value: unknown): Reply => ({ status: 200, value })
 const projectRoute =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(map|notes|topics|map-series|copies|aside|segues|pick|episode-title)$/
 const seriesRoute =
-  /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order|episode-remove|plan)$/
+  /^\/api\/series\/([a-zA-Z0-9_-]+)\/(map-episodes|episode-order|episode-remove|plan|directions|direction-remove|brief|gap|organize|organize-undo)$/
 
 export const mapRoute = (
   url: URL,
@@ -46,15 +55,7 @@ const route = async (
 ): Promise<Reply> => {
   const series = url.pathname.match(seriesRoute)
   if (series && method === 'POST')
-    return ok(
-      series[2] === 'plan'
-        ? await planSeries(series[1], body)
-        : series[2] === 'episode-order'
-          ? await moveEpisode(series[1], body)
-          : series[2] === 'episode-remove'
-            ? await removeEpisode(series[1], body)
-            : await addMapEpisode(series[1], body)
-    )
+    return ok(await seriesAction(series[1], series[2], body))
   const project = url.pathname.match(projectRoute)
   if (!project) return null
   const [, id, action] = project
@@ -80,4 +81,29 @@ const route = async (
     return ok({ writing: true })
   }
   return null
+}
+
+const seriesAction = async (
+  id: string,
+  action: string,
+  body: Record<string, unknown>
+) => {
+  if (action === 'plan') return planSeries(id, body)
+  if (action === 'episode-order')
+    return body.after !== undefined
+      ? placeEpisodeAfter(id, body)
+      : moveEpisode(id, body)
+  if (action === 'episode-remove') return removeEpisode(id, body)
+  if (action === 'directions') return saveDirection(id, body)
+  if (action === 'direction-remove') return removeDirection(id, body)
+  if (action === 'brief') return updateBrief(id, body)
+  if (action === 'gap') return setGap(id, body)
+  if (action === 'organize-undo') return undoOrganize(id, body)
+  if (action === 'organize') {
+    const series = await loadSeries(id)
+    if (!series?.map) throw new Refusal('This series has no content map')
+    await organizeNewPages(series.map)
+    return loadSeries(id)
+  }
+  return addMapEpisode(id, body)
 }

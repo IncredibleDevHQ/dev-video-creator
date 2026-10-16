@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto'
 import type { Snapshot } from '../shared/api'
 import type { MapCopy, MapEpisode, MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
-import type { Series } from '../shared/series'
+import { organizes, type Series } from '../shared/series'
 import { addEvent } from './activity'
 import { readRow, writeRow } from './persistence'
 import { changeProject, keptForUndo, loadProject } from './projects'
@@ -23,6 +23,7 @@ import {
 } from './map-segues'
 import { copyOf, pageHash, syncEvidence } from './map-copy'
 import { schedulePick } from './map-picking'
+import { directionsOf } from './series-directions'
 export { copyOf, pageHash, syncEvidence } from './map-copy'
 
 const words = (value: unknown, limit: number) =>
@@ -521,11 +522,22 @@ export const mapView = async (mapId: string): Promise<MapView> => {
       }
     })
     const video = ep.project.video
+    const entry = series?.episodes.find((e) => e.notebookId === ep.project.id)
     episodes.push({
       notebook: ep.project.id,
       number: ep.project.episode?.number || episodes.length + 1,
       title: ep.project.title,
       status: ep.status,
+      made: Boolean(
+        video &&
+        (video.produced ||
+          video.storyboard ||
+          video.scenes.some((s) => s.phase !== 'idle' || s.produced))
+      ),
+      ...(entry?.outline ? { outline: entry.outline } : {}),
+      ...(ep.project.episode?.part?.carries
+        ? { carries: ep.project.episode.part.carries }
+        : {}),
       ...(ep.project.segues ? { segues: ep.project.segues.state } : {}),
       ...(ep.project.picking
         ? {
@@ -581,8 +593,30 @@ export const mapView = async (mapId: string): Promise<MapView> => {
             : {}),
           ...(series.ideas ? { ideas: series.ideas } : {}),
           ...(series.length ? { length: series.length } : {}),
-          ...(series.autoplan ? { autoplan: true } : {}),
-          ...(series.through ? { through: series.through } : {})
+          organize: organizes(series),
+          ...(series.organizing
+            ? {
+                organizing: {
+                  state: series.organizing.state,
+                  ...(series.organizing.error
+                    ? { error: series.organizing.error }
+                    : {})
+                }
+              }
+            : {}),
+          ...(series.organized?.at(-1) && !series.organized.at(-1)!.undone
+            ? { organized: series.organized.at(-1) }
+            : {}),
+          ...(series.through ? { through: series.through } : {}),
+          ...(series.outcome ? { outcome: series.outcome } : {}),
+          ...(series.audience ? { audience: series.audience } : {}),
+          ...(series.suggested?.length ? { suggested: series.suggested } : {}),
+          directions: directionsOf(series),
+          lines: series.lines || [],
+          gaps: series.gaps || [],
+          flags: series.flags || [],
+          left: series.left || [],
+          held: series.held || []
         }
       : null,
     episodes,

@@ -50,6 +50,7 @@ else:
 | Route | Read | Submit |
 | --- | --- | --- |
 | Plan Series | [workflows/plan-series.md](workflows/plan-series.md) | `plan/series.json` with `storyboard_submit_series` |
+| Place Pages | [workflows/place-pages.md](workflows/place-pages.md) | `plan/place.json` with `storyboard_submit_placement` |
 | Plan Episode | [workflows/plan-episode.md](workflows/plan-episode.md) | `plan/episode.json` with `storyboard_submit_plan` |
 | Pose Frame | [workflows/pose-frame.md](workflows/pose-frame.md) | `production/compositions/frames/<id>.html` with `storyboard_submit_pose` |
 | Design Shots | [workflows/design-shots.md](workflows/design-shots.md) | `plan/shots.json` with `storyboard_submit_shots` |

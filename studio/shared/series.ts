@@ -19,6 +19,76 @@ export type SeriesEpisode = {
   part?: number
   /** Each repo's branch head when the episode was started. */
   commits?: Record<string, string>
+  /** What the episode does in the series, from the last plan. */
+  outline?: EpisodeOutline
+}
+
+/** An episode's place in what the series teaches: what the viewer can do
+ * after it, what it teaches, and what it needs from earlier (an episode
+ * that taught it, or a gap no card fills yet). */
+export type EpisodeOutline = {
+  win: string
+  teaches: string[]
+  needs: Array<{ what: string; from?: string; gap?: string }>
+  /** The through-lines it carries, by id. */
+  lines: string[]
+}
+
+/** A line that runs through the series, from episode to episode. */
+export type ThroughLine = { id: string; name: string; line: string }
+
+/** Something the series needs that no card covers. */
+export type SeriesGap = {
+  id: string
+  missing: string
+  /** The episode that needs it (its notebook), when one does. */
+  episode?: string
+  why: string
+  /** The question that would fill it, put to the creator. */
+  ask: string
+  state: 'open' | 'explained' | 'ignored' | 'closed'
+  /** The card that closed it. */
+  closedBy?: string
+}
+
+/** The creator's guidance for the plan, as a note on the canvas: about the
+ * whole series, one episode, or some cards. */
+export type Direction = {
+  id: string
+  text: string
+  at: string
+  /** What it is wired to; neither means the whole series. */
+  to?: { episode?: string; pages?: string[] }
+  /** Where it sits on the canvas, in world units. */
+  spot?: { x: number; y: number }
+  /** How the last plan took it. */
+  answer?: { state: 'followed' | 'partly' | 'not'; why: string; at: string }
+}
+
+/** A viewer's-eye note on one episode of the plan. */
+export type ViewerFlag = {
+  episode: string
+  kind: 'confusing' | 'slow' | 'overloaded' | 'assumes'
+  line: string
+}
+
+/** One organising run: the new cards it placed, and how to take them out. */
+export type OrganizeRun = {
+  id: string
+  at: string
+  moves: Array<{
+    page: string
+    title: string
+    kind: 'into' | 'new' | 'closes' | 'left'
+    /** The episode it went into (or started), when it went in. */
+    episode?: string
+    /** The copy made in it, for Undo. */
+    copy?: string
+    why?: string
+  }>
+  /** Episodes this run started, taken out again by Undo. */
+  started: string[]
+  undone?: boolean
 }
 
 export type Series = {
@@ -44,12 +114,34 @@ export type Series = {
   ideas?: string
   /** How long each episode runs: a range, and whether it must fit. */
   length?: import('./storyboard').LengthGoal
-  /** Keep planning: pages drawn later are placed into the episodes. */
+  /** Keep planning: pages drawn later are placed into the episodes.
+   * Read with `organizes()`; `organize` is the current name. */
   autoplan?: boolean
+  organize?: boolean
   /** The series' through-line and the pages the last plan left out. */
   through?: string
   left?: string[]
+  /** What a viewer can do by the end, and who the series is for; the
+   * planner's proposals are listed in `suggested` until the creator edits. */
+  outcome?: string
+  audience?: string
+  suggested?: Array<'outcome' | 'audience'>
+  directions?: Direction[]
+  lines?: ThroughLine[]
+  gaps?: SeriesGap[]
+  flags?: ViewerFlag[]
+  /** The last organising runs, newest last. */
+  organized?: OrganizeRun[]
+  /** New cards being organised into the episodes, or why they were not. */
+  organizing?: { state: 'organizing' | 'failed'; error?: string; at: string }
+  /** Cards the creator took back from organising: they wait unused until
+   * placed by hand or by a new plan. */
+  held?: string[]
 }
+
+/** New cards organise themselves into the episodes, unless turned off. */
+export const organizes = (series: Pick<Series, 'organize' | 'autoplan'>) =>
+  series.organize ?? series.autoplan ?? true
 
 /** On a notebook: the series it belongs to and what it carries over. */
 export type EpisodeRef = {

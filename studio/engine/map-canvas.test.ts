@@ -45,6 +45,17 @@ const map = (
   error: null,
   events: []
 })
+const seriesView = (): NonNullable<MapView['series']> => ({
+  id: 's',
+  title: 'Series',
+  organize: true,
+  directions: [],
+  lines: [],
+  gaps: [],
+  flags: [],
+  left: [],
+  held: []
+})
 const episode = (
   notebook: string,
   number: number,
@@ -54,6 +65,7 @@ const episode = (
   number,
   title: `Episode ${number}`,
   status: 'ready',
+  made: false,
   copies,
   video: null,
   teasers: [],
@@ -118,7 +130,7 @@ describe('the map’s layout', () => {
     const view: MapView = {
       notebook: 'map',
       title: 'Streamline',
-      series: { id: 's', title: 'Series' },
+      series: seriesView(),
       episodes: [
         episode('e1', 1, [copy('x', 'a'), copy('y', 'b')]),
         episode('e2', 2, [])
@@ -154,7 +166,7 @@ describe('the map’s markup', () => {
   const view: MapView = {
     notebook: 'map',
     title: 'Streamline',
-    series: { id: 's', title: 'Series' },
+    series: seriesView(),
     episodes: [
       episode('e1', 1, [
         copy('x', 'a', { bridge: 'So, why?' }),

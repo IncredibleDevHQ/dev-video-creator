@@ -54,6 +54,12 @@ export type MapEpisode = {
   number: number
   title: string
   status: Snapshot['status']
+  /** Its video has started: the plan keeps it as it is. */
+  made: boolean
+  /** What it does in the series, from the last plan. */
+  outline?: import('./series').EpisodeOutline
+  /** What it picks up and hands on, from the last plan. */
+  carries?: string
   /** Writing the segues between its pages. */
   segues?: 'writing' | 'failed'
   /** Choosing its pages from what the creator said it is about. */
@@ -86,8 +92,23 @@ export type MapView = {
     ideas?: string
     length?: import('./storyboard').LengthGoal
     autoplan?: boolean
+    /** New cards organise themselves into the episodes. */
+    organize: boolean
+    organizing?: { state: 'organizing' | 'failed'; error?: string }
+    /** The last organising run, while it can be undone. */
+    organized?: import('./series').OrganizeRun
     /** The series' through-line, from its last plan. */
     through?: string
+    outcome?: string
+    audience?: string
+    suggested?: Array<'outcome' | 'audience'>
+    directions: import('./series').Direction[]
+    lines: import('./series').ThroughLine[]
+    gaps: import('./series').SeriesGap[]
+    flags: import('./series').ViewerFlag[]
+    /** Cards the last plan left out, and cards held back from organising. */
+    left: string[]
+    held: string[]
   } | null
   episodes: MapEpisode[]
   /** For each page of the map, the episodes that hold a copy of it. */

@@ -15,7 +15,7 @@ import { readAsset, storeAsset } from '../persistence'
 import { loadProject } from '../projects'
 import { resolveVoice } from '../voice-library'
 import { probeSeconds } from '../voice'
-import { loadSeries } from '../series'
+import { loadSeries, previouslyOf } from '../series'
 import { createWorkspace, productionDir, stageLogo } from './workspace'
 import { blueprintIds, planEpisode, type SeriesContext } from './plan'
 import { prepareEpisodeAudio } from './voice'
@@ -77,18 +77,57 @@ const seriesContext = async (
   const series = await loadSeries(ref.series)
   if (!series) return undefined
   const parts = series.arc?.parts || []
-  const next = ref.part
+  // Before and after in the series as it is ordered now, not as it was
+  // when the episode was made.
+  const at = series.episodes.findIndex(
+    (item) => item.notebookId === snapshot.project.id
+  )
+  const neighbour = async (index: number) =>
+    index >= 0 && index < series.episodes.length
+      ? loadProject(series.episodes[index].notebookId)
+      : null
+  const before = at >= 0 ? await neighbour(at - 1) : null
+  const after = at >= 0 ? await neighbour(at + 1) : null
+  const nextPart = after?.project.episode?.part
+  const fallback = ref.part
     ? parts[parts.findIndex((part) => part.title === ref.part!.title) + 1]
     : parts[ref.number]
+  const next = after
+    ? `${after.project.title}${nextPart?.carries ? `: ${nextPart.carries}` : ''}`
+    : at < 0 && fallback
+      ? `${fallback.title}: ${fallback.carries}`
+      : undefined
+  const previously = at >= 0 ? previouslyOf(before) : ref.previously
+  const outline = at >= 0 ? series.episodes[at].outline : undefined
+  const titleOf = new Map<string, string>()
+  for (const need of outline?.needs || [])
+    if (need.from && !titleOf.has(need.from))
+      titleOf.set(
+        need.from,
+        (await loadProject(need.from))?.project.title || ''
+      )
   return {
     title: series.title,
     about: series.about,
     ...(parts.length ? { arc: parts } : {}),
     ...(ref.part ? { part: ref.part } : {}),
     number: ref.number,
-    ...(ref.previously ? { previously: ref.previously } : {}),
+    ...(previously ? { previously } : {}),
     ...(ref.threads?.length ? { threads: ref.threads } : {}),
-    ...(next ? { next: `${next.title}: ${next.carries}` } : {})
+    ...(next ? { next } : {}),
+    ...(series.outcome ? { outcome: series.outcome } : {}),
+    ...(series.audience ? { audience: series.audience } : {}),
+    ...(outline
+      ? {
+          win: outline.win,
+          teaches: outline.teaches,
+          needs: outline.needs.map((need) =>
+            need.from && titleOf.get(need.from)
+              ? `${need.what} (from “${titleOf.get(need.from)}”)`
+              : need.what
+          )
+        }
+      : {})
   }
 }
 
