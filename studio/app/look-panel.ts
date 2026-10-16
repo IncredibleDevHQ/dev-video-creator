@@ -350,6 +350,12 @@ ${siteLogo ? `<h3>Logo</h3><label class="look-logo"><input type="checkbox" data-
       .forEach((item) => item.setAttribute('aria-pressed', 'false'))
     element.querySelector<HTMLButtonElement>('[data-look-apply]')!.disabled =
       false
+    // The logo stays on the ground it will be seen on (review 7).
+    if (colour === 'ground') {
+      const logo = element.querySelector<HTMLElement>('.look-logo img')
+      if (logo) logo.style.background = input.value
+      void checkLogo(element, input.value)
+    }
     syncLookPreview(app.root)
   })
   draw()

@@ -66,16 +66,17 @@ export const saveStoryboardRecording = async (app: AppContext) => {
   app.render()
   try {
     const saved = await uploadTake(projectId, pageId, app.capture.blob)
-    // Saved either way: the recorder lets go of its take, and the page shows
-    // it only while the creator is still on its notebook (review 7).
+    // Saved either way: the page shows it while the creator is still on its
+    // notebook, and the recorder lets go of its take (review 7). The
+    // snapshot comes first, so the redraw shows the take.
+    if (app.snapshot?.project.id === projectId) app.snapshot = saved
     if (
       app.sbRecord?.projectId === projectId &&
       app.sbRecord.pageId === pageId
     ) {
-      app.capture.dispose()
       app.sbRecord = null
+      app.capture.dispose()
     }
-    if (app.snapshot?.project.id === projectId) app.snapshot = saved
   } catch (reason) {
     app.capture.phase = 'reviewing'
     app.render()

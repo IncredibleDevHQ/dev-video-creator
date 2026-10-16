@@ -156,7 +156,8 @@ export const canvasText = (
       lines.push(`  A viewer can then: ${quote(episode.outline.win, 160)}`)
     lines.push(`  Cards: ${cards || 'none yet'}`)
   }
-  const directions = series.directions
+  // A direction still being written isn't one yet (review 7).
+  const directions = series.directions.filter((d) => d.id !== '__draft__')
   if (directions.length) lines.push('', 'Directions:')
   for (const direction of directions) {
     const to = direction.to

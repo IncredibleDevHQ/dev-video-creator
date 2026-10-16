@@ -2,9 +2,11 @@
 // quoted wherever the studio writes one (SR-13), a font change alone leaves
 // the colours as drawn (UX-5), and a logo says when it blends into the
 // look's ground (UX-6).
+import { parseHTML } from 'linkedom'
 import { describe, expect, it } from 'vitest'
 import { cssFamily, NEUTRAL_LOOK, recolourLook } from '../shared/looks'
 import { logoContrast } from '../app/look-panel'
+import { markRuns } from '../app/map-length'
 import { deckSpec } from './creative/page-spec'
 import { renderPage, type PageBrand } from './source-page'
 import type { OutlineScene } from './source-outline'
@@ -71,6 +73,22 @@ describe('review 7: the look’s fonts and logo', () => {
     expect(swapped).toContain('fill="#f6f3ec"')
     expect(swapped).toContain('fill="#e3ead9"')
     expect(swapped).toContain(`font-family="'Source Sans 3', sans-serif"`)
+  })
+
+  it('says an episode’s length against the window as the slider moves, in words as well as colour', () => {
+    const { document } = parseHTML(
+      '<div><span class="map-runs" data-runs="30">30 s</span></div>'
+    )
+    const root = document.querySelector('div')!
+    const runs = root.querySelector('span')!
+    markRuns(root, { min: 45, max: 120, strict: false })
+    expect(runs.textContent).toBe('30 s · under 45 s')
+    expect(runs.querySelector('.map-runs-arrow')).not.toBeNull()
+    expect(runs.classList.contains('is-short')).toBe(true)
+    expect(runs.getAttribute('title')).toContain('each episode asks for')
+    markRuns(root, { min: 15, max: 30, strict: false })
+    expect(runs.textContent).toBe('30 s')
+    expect(runs.classList.contains('is-short')).toBe(false)
   })
 
   it('measures how much of a logo stands out from a ground', () => {

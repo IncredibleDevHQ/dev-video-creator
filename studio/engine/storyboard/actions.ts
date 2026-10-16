@@ -24,6 +24,7 @@ import { Refusal } from '../refusal'
 import { probeSeconds } from '../voice'
 import { scheduleStoryboard, storyboardDir } from './pipeline'
 import { readInternal, writeInternal, writeProjectFiles } from './state'
+import { summaryNow, update } from './run'
 import { takeRefusal } from './takes'
 
 /** A new storyboard production for the episode's pages, in order. */
@@ -158,7 +159,13 @@ export const setStoryboardBuild = async (
       throw new Refusal('Record a product capture before choosing Screen demo')
     delete storyboard.error
     storyboard.builds = { ...storyboard.builds, [pageId]: build }
-    storyboard.note = `Build the scene for “${page?.title || pageId}” as ${BUILD_LABELS[build].toLowerCase()}; keep the rest of the plan.`
+    const asked = `Build the scene for “${page?.title || pageId}” as ${BUILD_LABELS[build].toLowerCase()}; keep the rest of the plan.`
+    // A change asked for that a failed plan didn't make yet stays, with this
+    // one after it (review 7).
+    storyboard.note =
+      storyboard.status === 'failed' && storyboard.note
+        ? `${storyboard.note}\n${asked}`
+        : asked
     storyboard.stage = 'plan'
     storyboard.status = 'working'
     delete storyboard.waitingFor
@@ -277,7 +284,7 @@ export const saveStoryboardTake = async (
     projectId
   })
   let resume = false
-  const snapshot = await changeProject(projectId, (current) => {
+  const snapshot = await changeProject(projectId, async (current) => {
     const storyboard = storyboardOf(current)
     const scene = storyboard.plan?.scenes.find(
       (entry) => entry.pageId === pageId
@@ -285,7 +292,15 @@ export const saveStoryboardTake = async (
     if (!scene) throw new Refusal('Scene not found')
     const refusal = takeRefusal(storyboard, scene)
     if (refusal) throw new Refusal(refusal)
-    const replaced = Boolean(scene.take)
+    // A first take for a scene already voiced without one (the voice became
+    // the creator's afterwards) is voiced again from it, as a replaced take
+    // is (review 7).
+    const voiced =
+      Boolean(storyboard.approved && !scene.take) &&
+      (await readInternal(storyboardDir(projectId, storyboard))
+        .then((internal) => Boolean(internal.voiced?.includes(pageId)))
+        .catch(() => false))
+    const replaced = Boolean(scene.take) || voiced
     scene.take = { objectKey: stored.objectKey, duration }
     const page = current.project.slides.find((slide) => slide.id === pageId)
     addEvent(current, 'video', `Take saved for “${page?.title || 'a scene'}”`, {
@@ -367,5 +382,21 @@ export const showTransitions = async (snapshot: Snapshot) => {
         frame.transition = from.transition
         if (from.transitionWhy) frame.transitionWhy = from.transitionWhy
       }
+  })
+}
+
+/** A production that stopped to wait for takes before every scene needing
+ * one had its place shows those places now, so Record and Upload are there
+ * (run once at start-up; review 7). */
+export const showTakeSlots = async (snapshot: Snapshot) => {
+  const storyboard = snapshot.project.video?.storyboard
+  if (storyboard?.status !== 'waiting' || storyboard.waitingFor !== 'takes')
+    return
+  const internal = await readInternal(
+    storyboardDir(snapshot.project.id, storyboard)
+  )
+  if (!internal.plan) return
+  await update(snapshot.project.id, (current, ledger) => {
+    current.plan = summaryNow(internal, current, ledger)
   })
 }

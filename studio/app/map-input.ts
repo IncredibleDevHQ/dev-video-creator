@@ -22,6 +22,7 @@ import {
   startFlowPointer
 } from './map-flow-input'
 import { chromeAction } from './map-chrome'
+import { dialogOpen } from './ui'
 
 export type DragState = {
   key: string
@@ -127,14 +128,17 @@ export const installMapInput = (map: MapCanvas) => {
   root.addEventListener('focusin', (event) => {
     const el = event.target as HTMLElement
     const canvas = map.canvas
-    if (
-      !el.classList?.contains('map-el') ||
-      !canvas?.contains(el) ||
-      !el.matches(':focus-visible')
-    )
+    if (!canvas?.contains(el)) return
+    // No focus scrolls the canvas itself, by mouse or by key: the camera is
+    // the only view (review 7). Once now, and once after the browser's own.
+    const still = () => {
+      canvas.scrollLeft = 0
+      canvas.scrollTop = 0
+    }
+    still()
+    requestAnimationFrame(still)
+    if (!el.classList?.contains('map-el') || !el.matches(':focus-visible'))
       return
-    canvas.scrollLeft = 0
-    canvas.scrollTop = 0
     const at = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(
       el.style.transform
     )
@@ -320,7 +324,8 @@ export const installMapInput = (map: MapCanvas) => {
     map.fit()
   })
   globalThis.addEventListener?.('keydown', (event) => {
-    if (!map.isOpen || event.defaultPrevented) return
+    // A dialog open over the map has the keys (review 7).
+    if (!map.isOpen || event.defaultPrevented || dialogOpen()) return
     const e = event as KeyboardEvent
     if ((e.target as Element)?.closest?.('input, textarea, select')) return
     const mod = e.metaKey || e.ctrlKey
@@ -339,9 +344,12 @@ export const installMapInput = (map: MapCanvas) => {
       e.preventDefault()
       void map.removeCopy(sel.id)
     } else if (key === 'escape') {
-      // One Esc closes one thing: an open menu is the chrome's to close.
+      // One Esc closes one thing: an open menu or the Notes panel is the
+      // chrome's to close; then the selection goes.
       const menu = map.slot('menu')
       if (menu && !menu.hidden) return
+      if (map.root.querySelector('.map-page.is-notes-open')) return
+      e.preventDefault()
       map.naming = null
       map.changing = null
       map.renaming = null

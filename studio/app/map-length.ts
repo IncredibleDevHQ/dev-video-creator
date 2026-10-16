@@ -9,6 +9,7 @@ import { lengthRange, wireLengthRanges } from './length-range'
 import { mapApi } from './map-api'
 import type { MapCanvas } from './map-canvas'
 import { closePopover, openPopover } from './popover'
+import { runsText, runsTitle } from './map-view'
 
 /** The episodes a window leaves outside, said once; '' with none to say. */
 export const outsideLine = (view: MapView, goal: LengthGoal) => {
@@ -19,12 +20,16 @@ export const outsideLine = (view: MapView, goal: LengthGoal) => {
   return `<b>${outside.map((e) => `Ep ${e.number}`).join(', ')}</b> ${outside.length === 1 ? 'runs' : 'run'} outside it.`
 }
 
-/** Marks each lane's running time against a window, without a repaint. */
+/** Marks each lane's running time against a window, without a repaint:
+ * its colour, its words and its tooltip together. */
 export const markRuns = (root: ParentNode, goal: LengthGoal) => {
   for (const runs of root.querySelectorAll<HTMLElement>('[data-runs]')) {
-    const fit = fitOf(Number(runs.dataset.runs), goal)
+    const seconds = Number(runs.dataset.runs)
+    const fit = fitOf(seconds, goal)
     runs.classList.toggle('is-long', fit === 'long')
     runs.classList.toggle('is-short', fit === 'short')
+    runs.innerHTML = runsText(seconds, goal)
+    runs.title = runsTitle(seconds, goal)
   }
 }
 

@@ -17,6 +17,10 @@ export const button = (
   `<button type="button" data-action="${action}" ${primary ? 'class="primary"' : ''} ${disabled ? 'disabled' : ''}${disabled && why ? ` title="${escape(why)}"` : ''}>${label}</button>`
 
 /** Whether the creator is typing in a field inside this element. */
+/** Whether a dialog is open over the page: shortcuts behind it wait. */
+export const dialogOpen = () =>
+  Boolean(globalThis.document?.querySelector('dialog[open]'))
+
 export const typingIn = (root: Element) => {
   const active = document.activeElement
   return Boolean(

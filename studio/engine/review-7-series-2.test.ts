@@ -1,0 +1,329 @@
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterAll, beforeEach, expect, it, vi } from 'vitest'
+import type { Snapshot } from '../shared/api'
+import type { Slide } from '../shared/model'
+// Review 7's second look at the series: Undo and a notebook the creator took
+// out, a renumbered episode whose video started, an edit carried over an
+// untouched copy, and a circular placement. The agents are stand-ins: these
+// checks prove the plumbing, not what a model would plan.
+const { stage, replies } = vi.hoisted(() => ({
+  stage: vi.fn(),
+  replies: {} as Record<string, (input: Record<string, unknown>) => unknown>
+}))
+vi.mock('./creative/stage', () => ({ runValidatedJsonStage: stage }))
+vi.mock('./slide-changes', async (original) => ({
+  ...(await original<typeof import('./slide-changes')>()),
+  scheduleChanges: vi.fn()
+}))
+const root = await mkdtemp(join(tmpdir(), 'minimal-review-7-series-'))
+process.env.MINIMAL_STUDIO_DATA_DIR = join(root, 'data')
+const { writeRow, readRow } = await import('./persistence')
+const { loadProject, changeProject } = await import('./projects')
+const episodes = await import('./map-episodes')
+const segues = await import('./map-segues')
+const { changeSeries, loadSeries } = await import('./series')
+const { planSeries, settledSeriesPlan } = await import('./series-plan')
+const organize = await import('./series-organize')
+const directions = await import('./series-directions')
+const { applySeriesLength, setEpisodePages } = await import('./series-apply')
+const { mapRoute } = await import('./map-routes')
+const { settleSeries } = await import('./studio-recovery')
+afterAll(async () => {
+  await segues.settledAllSegues()
+  await rm(root, { recursive: true, force: true })
+})
+
+stage.mockImplementation(async (input: Record<string, unknown>) => {
+  const reply = replies[input.route as string]
+  if (!reply) throw new Error(`No stand-in for ${input.route}`)
+  const validate = input.validate as (raw: unknown) => {
+    ok: boolean
+    problems: string[]
+    value: unknown
+  }
+  // A stand-in may take its time, as an agent does, while the creator acts.
+  const report = validate(await reply(input))
+  if (!report.ok) throw new Error(report.problems.join('; '))
+  return report.value
+})
+const packetOf = (input: Record<string, unknown>, name: string) =>
+  JSON.parse((input.packet as Record<string, string>)[`packet/${name}`])
+
+const card = (id: string, title: string): Slide => ({
+  id,
+  title,
+  svg: `<svg><text>${title}</text></svg>`,
+  idea: `${title}, in a sentence`,
+  evidence: [`The source on ${title.toLowerCase()}.`],
+  narration: `What ${title.toLowerCase()} says, for a while.`
+})
+const TITLES = [
+  'Why it exists',
+  'Managed streaming',
+  'The parts',
+  'Outlives the request',
+  'One config',
+  'Security'
+]
+const drawnMap = async (id: string, count = TITLES.length) => {
+  const slides = TITLES.slice(0, count).map((title, index) =>
+    card(`${id}-${index + 1}`, title)
+  )
+  const snapshot: Snapshot = {
+    project: {
+      id,
+      title: 'Streamline',
+      source: 'Streamline runs custom video pipelines.',
+      harness: { adapter: 'claude-code' },
+      slides,
+      video: null
+    },
+    status: 'ready',
+    error: null,
+    events: []
+  }
+  await writeRow('projects', id, snapshot)
+  await writeRow('outlines', id, {
+    source: { title: 'Streamline', text: snapshot.project.source },
+    brand: {},
+    outline: {
+      title: 'Streamline',
+      scenes: slides.map((s) => ({ title: s.title }))
+    },
+    slideIds: slides.map((s) => s.id)
+  })
+  await writeRow('sources', id, {
+    title: 'Streamline',
+    text: snapshot.project.source
+  })
+  return snapshot
+}
+const makeVideo = (id: string) =>
+  changeProject(id, (current) => {
+    current.project.video = {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: { objectKey: 'made.mp4' } as never
+    }
+  })
+/** The creator starts the episode's storyboard: its video has started. */
+const startStoryboard = (id: string) =>
+  changeProject(id, (current) => {
+    current.project.video = {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: null,
+      storyboard: {
+        id: 'sb',
+        pages: current.project.slides.map((slide) => slide.id),
+        stage: 'plan',
+        status: 'working'
+      }
+    } as never
+  })
+const pagesIn = async (notebook: string) =>
+  ((await loadProject(notebook))?.project.slides || []).map(
+    (slide) => slide.copyOf?.slide
+  )
+const titleOf = async (notebook: string) =>
+  (await loadProject(notebook))!.project.title
+const add = async (seriesId: string, title: string, slides: string[]) =>
+  (await episodes.addMapEpisode(seriesId, { title, slides })).notebook.project
+    .id
+/** The planner's outline: the episodes as given, each card placed once. */
+const outline = (
+  groups: Array<{ episode?: string; title: string; pages: string[] }>,
+  extra: Record<string, unknown> = {}
+) => ({
+  outcome: 'Run a pipeline',
+  audience: 'Workers developers',
+  lines: [{ id: 'why', name: 'Why', line: 'It fills a gap' }],
+  episodes: groups.map((group, index) => ({
+    ...(group.episode ? { episode: group.episode } : {}),
+    title: group.title,
+    about: group.title,
+    win: `Win of ${group.title}`,
+    teaches: [`t${index}`],
+    needs: [],
+    carries: 'Picks up the last; hands on the next.',
+    lines: ['why'],
+    pages: group.pages
+  })),
+  gaps: [],
+  directions: [],
+  flags: [],
+  ...extra
+})
+/** A new episode the organiser starts after another. */
+const started = (key: string, title: string, after: string | null) => ({
+  key,
+  title,
+  about: title,
+  win: `Win of ${title}`,
+  teaches: [key],
+  carries: 'Hands on',
+  lines: [],
+  after
+})
+/** Holds a stand-in, as a slow agent would, until the test lets it answer. */
+const gate = () => {
+  let open = () => {}
+  const opened = new Promise<void>((resolve) => {
+    open = resolve
+  })
+  return { open: () => open(), opened }
+}
+
+beforeEach(() => {
+  for (const key of Object.keys(replies)) delete replies[key]
+  replies['Write Segues'] = (input) => {
+    const brief = packetOf(input, 'EPISODE.json')
+    return {
+      pages: brief.pages.map((p: { id: string }, i: number) => ({
+        id: p.id,
+        bridge:
+          !i && brief.previous ? `Last time: ${brief.previous.title}.` : 'So.'
+      })),
+      outro: brief.next
+        ? `Next time: ${brief.next.title}.`
+        : 'That is the series.'
+    }
+  }
+})
+
+it('leaves a notebook the creator took out of the series alone when its organising run is undone', async () => {
+  const map = await drawnMap('m-out')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-out', {})
+  const first = await add(series.id, '', ids.slice(0, 4))
+  await segues.settledAllSegues()
+  replies['Place Pages'] = () => ({
+    moves: ids.slice(4).map((page, index) => ({
+      page,
+      start: `k${index}`,
+      why: 'A part of its own'
+    })),
+    start: [started('k0', 'Part one', first), started('k1', 'Part two', first)]
+  })
+  await organize.organizeNewPages('m-out')
+  await organize.settledOrganize(series.id)
+  await segues.settledAllSegues()
+  const run = (await loadSeries(series.id))!.organized!.at(-1)!
+  const [renamed, left] = run.started
+  // The creator names one, then takes both out of the series.
+  await episodes.retitleEpisode(renamed, { title: 'Mine now' })
+  await episodes.removeEpisode(series.id, { episode: renamed })
+  await episodes.removeEpisode(series.id, { episode: left })
+  await segues.settledAllSegues()
+  await organize.undoOrganize(series.id, { run: run.id })
+  await segues.settledAllSegues()
+  // Both are the creator's own notebooks now: Undo deletes neither.
+  expect(await readRow('projects', renamed)).not.toBeNull()
+  expect(await readRow('projects', left)).not.toBeNull()
+  expect(await titleOf(renamed)).toBe('Mine now')
+})
+
+it('stops an organising run when an episode it would renumber started its video meanwhile', async () => {
+  const map = await drawnMap('m-renumber')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-renumber', {})
+  const first = await add(series.id, '', ids.slice(0, 2))
+  const second = await add(series.id, '', ids.slice(2, 4))
+  await segues.settledAllSegues()
+  replies['Place Pages'] = async () => {
+    // Episode 2's storyboard starts while the cards are placed.
+    await startStoryboard(second)
+    return {
+      moves: ids
+        .slice(4)
+        .map((page) => ({ page, start: 'k', why: 'Between the two' })),
+      start: [started('k', 'In between', first)]
+    }
+  }
+  await organize.organizeNewPages('m-renumber')
+  await organize.settledOrganize(series.id)
+  const after = (await loadSeries(series.id))!
+  expect(after.organizing).toMatchObject({
+    state: 'failed',
+    error: 'An episode’s video started; plan again'
+  })
+  expect(after.episodes.map((e) => [e.notebookId, e.number])).toEqual([
+    [first, 1],
+    [second, 2]
+  ])
+  await segues.settledAllSegues()
+})
+
+it('puts the creator’s edit over an untouched copy of its card in the episode a plan keeps it in', async () => {
+  const map = await drawnMap('m-carry2')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-carry2', {})
+  const one = await add(series.id, '', [ids[0], ids[1]])
+  const two = await add(series.id, '', [ids[1], ids[2]])
+  await segues.settledAllSegues()
+  // The card is in both; the creator redraws it in episode 1 only.
+  await changeProject(one, (current) => {
+    current.project.slides[1].svg = '<svg><text>Redrawn</text></svg>'
+  })
+  replies['Plan Series'] = () =>
+    outline([
+      { episode: one, title: 'Opening', pages: [ids[0]] },
+      { episode: two, title: 'Then', pages: [ids[1], ids[2]] },
+      { title: 'The rest', pages: ids.slice(3) }
+    ])
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  const kept = (await loadProject(two))!.project.slides.find(
+    (slide) => slide.copyOf?.slide === ids[1]
+  )
+  expect(kept?.svg).toBe('<svg><text>Redrawn</text></svg>')
+  await segues.settledAllSegues()
+})
+
+it('refuses new cards that follow each other in a circle while the agent can still change them', () => {
+  const report = organize.validatePlacement(
+    {
+      moves: [
+        { page: 'a', into: 'e1', after: 'b', why: 'After b' },
+        { page: 'b', into: 'e1', after: 'a', why: 'After a' }
+      ],
+      start: []
+    },
+    {
+      fresh: ['a', 'b'],
+      episodes: [{ notebook: 'e1', made: false, pages: ['x'] }],
+      gaps: [],
+      lines: []
+    }
+  )
+  expect(report.ok).toBe(false)
+  expect(report.problems.filter((p) => p.includes('circle'))).toHaveLength(1)
+})
+
+it('refuses an organising Undo while new cards are being placed', async () => {
+  const map = await drawnMap('m-busy')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-busy', {})
+  const first = await add(series.id, '', ids.slice(0, 5))
+  await segues.settledAllSegues()
+  replies['Place Pages'] = () => ({
+    moves: [{ page: ids[5], into: first, after: ids[4], why: 'It closes it' }],
+    start: []
+  })
+  await organize.organizeNewPages('m-busy')
+  await organize.settledOrganize(series.id)
+  const run = (await loadSeries(series.id))!.organized!.at(-1)!
+  await changeSeries(series.id, (current) => {
+    current.organizing = { state: 'organizing', at: new Date().toISOString() }
+  })
+  await expect(
+    organize.undoOrganize(series.id, { run: run.id })
+  ).rejects.toThrow('Wait until the new cards are organised, then undo')
+  await segues.settledAllSegues()
+})

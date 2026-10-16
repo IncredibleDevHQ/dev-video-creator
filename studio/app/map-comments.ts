@@ -13,7 +13,7 @@ import { targetWords } from './map-ai-canvas'
 import type { MapCanvas } from './map-canvas'
 import { mapApi } from './map-api'
 import { DH, DW, type Box } from './map-layout'
-import { escape } from './ui'
+import { dialogOpen, escape } from './ui'
 import { voiceIcon } from './voice-icons'
 
 type Point = { x: number; y: number }
@@ -356,7 +356,11 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
     const thread = this.thread
       ? this.open.find((comment) => comment.id === this.thread)
       : undefined
-    if (this.thread && !thread) this.thread = null
+    // A thread resolved or removed elsewhere takes its reply with it.
+    if (this.thread && !thread) {
+      this.cancelRecording()
+      this.thread = null
+    }
     const hint =
       this.tool && !this.composer
         ? '<p class="map-comment-hint" role="status">Click where the comment goes · Esc to stop</p>'
@@ -738,7 +742,7 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
       true
     )
     globalThis.addEventListener?.('keydown', (event) => {
-      if (!this.map.isOpen || event.defaultPrevented) return
+      if (!this.map.isOpen || event.defaultPrevented || dialogOpen()) return
       const e = event as KeyboardEvent
       if (
         e.key === 'Escape' &&

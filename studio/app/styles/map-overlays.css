@@ -120,7 +120,8 @@
 }
 .map-menu {
   position: absolute;
-  z-index: 70;
+  /* Above an open Notes panel (75): a menu is what was just asked for. */
+  z-index: 78;
   min-width: 200px;
   padding: 6px;
   border-radius: 11px;

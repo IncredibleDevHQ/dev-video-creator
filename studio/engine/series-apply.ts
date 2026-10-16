@@ -96,15 +96,20 @@ export const setEpisodePages = async (
         .filter((page) => cards.has(page))
         .map((page) => {
           const was = held.get(page)
-          if (!was) {
-            const edited = carried.get(page)
-            if (!edited) return copyOf(map.project.id, cards.get(page)!)
+          // An edited or kept copy goes with its card, over an untouched copy
+          // here too (review 7: the edit was lost when both held the card).
+          const edited = carried.get(page)
+          const replaces =
+            !was ||
+            (untouched(was) && !was.copyOf?.kept && edited?.id !== was.id)
+          if (edited && replaces) {
             const moved = structuredClone(edited)
             delete moved.bridge
             delete moved.outro
             moved.narration = moved.base || moved.narration
             return moved
           }
+          if (!was) return copyOf(map.project.id, cards.get(page)!)
           const fresh = caughtUp(map.project.id, was, cards.get(page)!)
           if (fresh) updated += 1
           return fresh || was

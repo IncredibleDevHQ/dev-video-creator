@@ -1,4 +1,4 @@
-import { showTransitions } from './storyboard/actions'
+import { showTakeSlots, showTransitions } from './storyboard/actions'
 import { scheduleStoryboard } from './storyboard/pipeline'
 import { scheduleSource } from './notebook-intake'
 import { transitionScene } from './autopilot'
@@ -38,8 +38,10 @@ export const recoverProjects = async (jobs: RecoveryJobs) => {
     // paid call that finished is reused from its checkpoint.
     if (saved.project.video?.storyboard?.status === 'working')
       scheduleStoryboard(id)
-    if (saved.project.video?.storyboard)
+    if (saved.project.video?.storyboard) {
       await showTransitions(saved).catch(() => undefined)
+      await showTakeSlots(saved).catch(() => undefined)
+    }
     const resumeSlides = saved.status === 'building'
     const resumeScenes =
       saved.project.video?.scenes

@@ -476,7 +476,7 @@
 .map-pops {
   position: absolute;
   inset: 0;
-  z-index: 72;
+  z-index: 77;
   pointer-events: none;
 }
 .map-pop {

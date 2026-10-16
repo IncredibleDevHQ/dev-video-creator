@@ -457,6 +457,14 @@ describe('Home (UX-10, UX-11)', () => {
     expect(
       entries.map((entry) => entry.querySelector('small')?.textContent)
     ).toEqual(['Wireframes ready', 'Video ready', 'Video in progress'])
+    // In the words the notebook tiles use, never the raw status.
+    const said = (status: NotebookSummary['status']) =>
+      doc(
+        seriesSection([series], [summary('e1', { status }), ...notebooks])
+      ).querySelectorAll('ol > li small')[1]?.textContent
+    expect(said('draft')).toBe('Ready to create wireframes')
+    expect(said('reading')).toBe('Reading the source')
+    expect(said('failed')).toBe('Needs another try')
   })
 
   it('keeps the series’ notebooks out of the loose ones, which come below', async () => {

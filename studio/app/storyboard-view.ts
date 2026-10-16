@@ -150,7 +150,9 @@ const building = (storyboard: Storyboard) =>
   ['shots', 'frames', 'assemble', 'render'].includes(storyboard.stage) &&
   storyboard.status === 'working'
 
-/** A camera scene's frames as the moments a take is recorded across. */
+/** A scene's frames as the moments a take is recorded across: on camera
+ * for a camera scene, the voice alone for one the creator only speaks
+ * (review 7: the camera came on with nothing to show). */
 export const takeMoments = (scene: SceneSummary): Moment[] =>
   scene.frames
     .filter((frame) => frame.voiceover.trim())
@@ -160,7 +162,7 @@ export const takeMoments = (scene: SceneSummary): Moment[] =>
           id: frameId(frame),
           recordingKey: `${scene.pageId}:${frame.number}`,
           title: frame.title,
-          camera: 'full',
+          camera: scene.build === 'camera' ? 'full' : 'none',
           layout: 'beside-slide',
           start: 0,
           end: frame.duration
@@ -334,13 +336,17 @@ const sceneLine = (
   const choosing =
     (storyboard.stage === 'review' && storyboard.status === 'waiting') ||
     (storyboard.stage === 'plan' && storyboard.status === 'failed')
+  // After a failed plan, the build the creator chose, not the last plan's.
+  const chosen =
+    (storyboard.status === 'failed' && storyboard.builds?.[scene.pageId]) ||
+    scene.build
   const build = choosing
     ? `<label class="sb-build"><span class="sr">Built as</span><select data-sb-build data-page="${escape(scene.pageId)}">${BUILD_TYPES.filter(
         (type) => type !== 'screen' || hasCapture
       )
         .map(
           (type) =>
-            `<option value="${type}" ${type === scene.build ? 'selected' : ''}>${BUILD_LABELS[type]}</option>`
+            `<option value="${type}" ${type === chosen ? 'selected' : ''}>${BUILD_LABELS[type]}</option>`
         )
         .join('')}</select></label>`
     : `<span class="sb-build is-fixed">${BUILD_LABELS[scene.build]}</span>`

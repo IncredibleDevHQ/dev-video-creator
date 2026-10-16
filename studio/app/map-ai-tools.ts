@@ -88,15 +88,20 @@ const pickFromAdd = async (ctx: Ctx, at: Point, choice: string) => {
   )
   const menu = ctx.map.slot('menu')
   const option = menu?.querySelector<HTMLElement>(`[data-map="${choice}"]`)
-  if (option) {
-    await ctx.cursor.glideTo(option)
-    option.classList.add('is-ai-pick')
-    await ctx.cursor.press()
+  try {
+    if (option) {
+      await ctx.cursor.glideTo(option)
+      option.classList.add('is-ai-pick')
+      await ctx.cursor.press()
+    }
+  } finally {
+    // Closed even when the call ends mid-way (review 7); the menu took focus
+    // to be keyed, and it goes back where it was.
+    if (menu) menu.hidden = true
+    if (before && before !== document.body)
+      before.focus({ preventScroll: true })
+    else (document.activeElement as HTMLElement | null)?.blur?.()
   }
-  if (menu) menu.hidden = true
-  // The menu took focus to be keyed; it goes back where it was.
-  if (before && before !== document.body) before.focus({ preventScroll: true })
-  else (document.activeElement as HTMLElement | null)?.blur?.()
 }
 
 /** A free place for a new direction, in the strip above the series. */

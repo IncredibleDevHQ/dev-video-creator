@@ -10,6 +10,7 @@ import {
   windowLabel
 } from '../shared/length'
 import type { Slide } from '../shared/model'
+import type { LengthGoal } from '../shared/storyboard'
 import { escape } from './ui'
 import { videoOpens } from '../shared/state'
 import incredibleLogo from './assets/incredible-logo.svg'
@@ -121,7 +122,11 @@ export const mapTools = (
   ]
     .filter(Boolean)
     .join(' · ')
-  return `<button type="button" class="map-view-button${filter !== 'all' ? ' is-filtered' : ''}" data-map="view-menu" aria-haspopup="menu" title="Arrange and filter the map">${escape(shown)}${chevron}</button>${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
+  const failed =
+    mode === 'topic' && grouping?.state === 'failed'
+      ? `Grouping failed${grouping.error ? `: ${grouping.error}` : ''}`
+      : ''
+  return `<button type="button" class="map-view-button${filter !== 'all' ? ' is-filtered' : ''}" data-map="view-menu" aria-haspopup="menu" title="${escape(failed || 'Arrange and filter the map')}">${escape(shown)}${chevron}</button>${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
 }
 
 const kindLabel = {
@@ -298,21 +303,30 @@ export const segueCard = (episode: MapEpisode, end: boolean, last: boolean) => {
 const fitArrow = (fit: 'short' | 'long') =>
   `<svg class="map-runs-arrow" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${fit === 'short' ? 'M12 5v14m-6-6 6 6 6-6' : 'M12 19V5m-6 6 6-6 6 6'}"/></svg>`
 
+/** A running time against a window: the time and, outside it, the reason
+ * in words with an arrow, never by colour alone (review 7). The slider
+ * redraws it as it moves. */
+export const runsText = (seconds: number, goal: LengthGoal) => {
+  const fit = fitOf(seconds, goal)
+  const reason =
+    fit === 'within'
+      ? ''
+      : ` · ${fitArrow(fit)}${fit === 'short' ? `under ${lengthLabel(goal.min)}` : `over ${lengthLabel(goal.max)}`}`
+  return `${lengthLabel(seconds)}${reason}`
+}
+
+/** The same, said in full for its tooltip. */
+export const runsTitle = (seconds: number, goal: LengthGoal) =>
+  fitOf(seconds, goal) === 'within'
+    ? `About ${lengthLabel(seconds)} spoken, inside ${windowLabel(goal)}`
+    : `About ${lengthLabel(seconds)} spoken; each episode asks for ${windowLabel(goal)}`
+
 /** About how long the episode runs, against the series' window. */
 const runs = (view: MapView, episode: MapEpisode) => {
   if (!episode.seconds) return ''
   const goal = view.series?.length || DEFAULT_LENGTH
   const fit = fitOf(episode.seconds, goal)
-  const said =
-    fit === 'within'
-      ? `About ${lengthLabel(episode.seconds)} spoken, inside ${windowLabel(goal)}`
-      : `About ${lengthLabel(episode.seconds)} spoken; each episode asks for ${windowLabel(goal)}`
-  // Outside the window, said in words with an arrow, never by colour alone.
-  const reason =
-    fit === 'within'
-      ? ''
-      : ` · ${fitArrow(fit)}${fit === 'short' ? `under ${lengthLabel(goal.min)}` : `over ${lengthLabel(goal.max)}`}`
-  return ` · <span class="map-runs${fit === 'within' ? '' : ` is-${fit}`}" data-runs="${episode.seconds}" title="${escape(said)}">${lengthLabel(episode.seconds)}${reason}</span>`
+  return ` · <span class="map-runs${fit === 'within' ? '' : ` is-${fit}`}" data-runs="${episode.seconds}" title="${escape(runsTitle(episode.seconds, goal))}">${runsText(episode.seconds, goal)}</span>`
 }
 
 /** The lane's header: the episode, its state, and the way into making it;

@@ -176,6 +176,10 @@ it('cuts a take across a scene’s spoken frames and times the episode', () => {
     ['f03-frame-3', 'full'],
     ['f04-frame-4', 'full']
   ])
+  // A scene the creator only speaks records the voice alone.
+  const spoken = takeMoments(value.plan!.scenes[0])
+  expect(spoken.length).toBeGreaterThan(0)
+  expect(spoken.every((moment) => moment.camera === 'none')).toBe(true)
   const clock = episodeClock(value)
   expect(clock.map((scene) => [scene.start, scene.end])).toEqual([
     [0, 10],

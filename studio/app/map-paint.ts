@@ -7,7 +7,13 @@ import type { Snapshot } from '../shared/api'
 import { unusedPages } from '../shared/content-map'
 import type { MapCanvas } from './map-canvas'
 import type { Box } from './map-layout'
-import { LH, mapPages, newPages, type MapPage } from './map-layout'
+import {
+  LH,
+  mapPages,
+  newPages,
+  type MapMode,
+  type MapPage
+} from './map-layout'
 import {
   colorOf,
   copyCard,
@@ -88,6 +94,18 @@ const lastSlideEvent = (snapshot: Snapshot) =>
  * when it failed, its reason and the way to try again (review 6: it went
  * back to "Group by topic" unsaid).
  */
+/** A failed regroup says why where it is seen: in the group of cards with
+ * no topic when there is one, else under the Cards heading (review 6). */
+export const failedUnderHeading = (
+  snapshot: Snapshot,
+  groups: Array<{ key: string }>,
+  mode: MapMode
+) =>
+  snapshot.project.grouping?.state === 'failed' &&
+  mode === 'topic' &&
+  snapshot.status === 'ready' &&
+  !groups.some((group) => group.key === 't:')
+
 export const groupAction = (snapshot: Snapshot) => {
   const grouping = snapshot.project.grouping
   if (grouping?.state === 'failed')
@@ -124,11 +142,12 @@ export const paintWorld = (map: MapCanvas) => {
   })
   if (picked && view)
     map.world!.style.setProperty('--sel', colorOf(view, picked.notebook))
+  const failedHere = failedUnderHeading(snapshot, layout.groups, map.mode)
   items.push({
     key: 'B:map',
     cls: 'map-block',
     box: layout.map,
-    html: `<div class="map-block-head"><h2>Cards</h2><p>${summary(snapshot, all, view ? { used, unused: unused?.size ?? 0, series: Boolean(view.series) } : null)}</p></div>`
+    html: `<div class="map-block-head"><h2>Cards</h2>${failedHere ? `<p class="map-block-alert">${groupAction(snapshot)}</p>` : `<p>${summary(snapshot, all, view ? { used, unused: unused?.size ?? 0, series: Boolean(view.series) } : null)}</p>`}</div>`
   })
   // Before the story is planned there is nothing to show but what happens.
   if (!all.length)
@@ -380,8 +399,13 @@ const sync = (map: MapCanvas, items: Item[]) => {
 
 // Wires bend as Flora's do: out of a node's right side and into the next
 // one's left; from one episode down into the next.
-const across = (x1: number, y1: number, x2: number, y2: number) => {
-  const mid = (x1 + x2) / 2
+const across = (
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  mid = (x1 + x2) / 2
+) => {
   const r = Math.min(12, Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 2)
   const dx = x2 >= x1 ? 1 : -1,
     dy = y2 >= y1 ? 1 : -1
@@ -443,10 +467,20 @@ const drawWires = (map: MapCanvas) => {
     if (color) colors.add(color)
     const on = lit(map, flow.from, flow.to)
     const id = color ? `map-arrow-${color.slice(1)}` : 'map-arrow'
+    // A direction from outside the series into it turns in the gutter
+    // before the series, never across its head (review 7).
+    const series = layout.series
+    const gutter =
+      flow.kind === 'direction' &&
+      series &&
+      flow.x1 < series.x &&
+      flow.x2 > series.x
+        ? series.x - 20
+        : undefined
     const d =
       flow.kind === 'chain'
         ? down(flow.x1, flow.y1, flow.x2, flow.y2)
-        : across(flow.x1, flow.y1, flow.x2, flow.y2)
+        : across(flow.x1, flow.y1, flow.x2, flow.y2, gutter)
     const arrow = flow.kind === 'use' ? '' : ` marker-end="url(#${id})"`
     paths.push(
       `<path class="map-flow is-${flow.kind}${on ? ' is-lit' : ''}${color ? '' : ' is-neutral'}"${color ? ` stroke="${color}"` : ''}${arrow} d="${d}"/>`
@@ -473,7 +507,6 @@ const drawWires = (map: MapCanvas) => {
       )
     }
   }
-  if (map.connecting) paths.push(map.connecting)
   const marker = (id: string, fill: string) =>
     `<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0,0 L10,5 L0,10 z"${fill ? ` fill="${fill}"` : ''}/></marker>`
   const defs = `<defs>${marker('map-arrow', '')}${[...colors].map((color) => marker(`map-arrow-${color.slice(1)}`, color)).join('')}</defs>`
@@ -486,16 +519,18 @@ const drawWires = (map: MapCanvas) => {
     ...layout.segues,
     ...Object.values(layout.directions),
     ...layout.gaps,
-    ...Object.values(layout.lanes).map((lane) => ({
-      x: lane.x,
-      y: lane.y,
-      w: lane.w - 2,
-      h: LH
-    }))
+    // Heads inset a little, so an arrow into one keeps its tip.
+    ...[
+      ...Object.values(layout.lanes).map((lane) => ({ ...lane, h: LH })),
+      ...(layout.head ? [layout.head] : [])
+    ].map((box) => ({ x: box.x + 3, y: box.y, w: box.w - 5, h: box.h }))
   ]
   const mask = `<defs><mask id="map-content-mask" maskUnits="userSpaceOnUse" x="-100000" y="-100000" width="200000" height="200000"><rect x="-100000" y="-100000" width="200000" height="200000" fill="white"/>${boxes.map((box) => `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="8" fill="black"/>`).join('')}</mask></defs>`
+  // The line being dragged stays above everything.
   svg.innerHTML =
-    defs + mask + `<g mask="url(#map-content-mask)">${paths.join('')}</g>`
+    defs +
+    mask +
+    `<g mask="url(#map-content-mask)">${paths.join('')}</g>${map.connecting || ''}`
 }
 
 /** Redraws only the wires, as a connection is dragged. */

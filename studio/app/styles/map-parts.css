@@ -29,6 +29,16 @@
   font-size: 12px;
   font-weight: 600;
 }
+.map-block-head .map-block-alert {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin-top: 0;
+}
+.map-block-alert .map-group-act {
+  padding: 0 9px;
+  line-height: 18px;
+}
 .map-group-error {
   min-width: 0;
   overflow: hidden;

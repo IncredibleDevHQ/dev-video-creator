@@ -14,6 +14,7 @@ import { replacePlayerView } from './player-view'
 import { button, escape } from './ui'
 import { seriesApi } from './series-controller'
 import { seriesSection } from './series-view'
+import { notebookState } from './notebook-state'
 import { installNotebookEditor, saveBeforeLeaving } from './notebook-editor'
 import { confirmAction } from './confirm-action'
 
@@ -60,21 +61,6 @@ export const createFitSource =
     const hint = field.form?.querySelector('#source-hint')
     if (hint) hint.textContent = app.sourceHint(field.value)
   }
-
-const notebookState = (item: NotebookSummary) =>
-  item.status === 'reading'
-    ? 'Reading the source'
-    : item.status === 'draft'
-      ? 'Ready to create wireframes'
-      : item.status === 'failed'
-        ? 'Needs another try'
-        : item.status === 'building'
-          ? 'Wireframes in progress'
-          : item.videoReady
-            ? 'Video ready'
-            : item.hasVideo
-              ? 'Video in progress'
-              : 'Wireframes ready'
 
 /** One tile: the first slide as its picture, then the title and where it came from. */
 const notebookTile = (
@@ -129,9 +115,13 @@ ${
     ? brandStory()
     : `<section class="saved-notebooks" aria-labelledby="recent-heading">
 <div class="saved-notebooks-heading"><h2 id="recent-heading">Your notebooks</h2><span><button type="button" class="quiet how-it-works" data-action="new-series">Start a series</button><button type="button" class="quiet how-it-works" data-action="how-it-works">How it works</button></span></div>
-<div class="notebook-tiles">
+${
+  recent.length
+    ? `<div class="notebook-tiles">
 ${recent.map((item) => notebookTile(app, item)).join('')}
-</div>${
+</div>`
+    : '<p class="saved-notebooks-empty">All your notebooks are in your series.</p>'
+}${
         loose.length > recent.length
           ? `<button type="button" class="quiet show-all" data-action="all-recent">Show all ${loose.length}</button>`
           : ''

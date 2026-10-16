@@ -173,6 +173,28 @@ export const validatePlacement = (raw: unknown, rules: Rules) => {
         )
     }
   })
+  // New cards that each follow the other can't be placed: said once, now,
+  // while the agent can still change them (review 7).
+  const circled = new Set<string>()
+  for (const move of moves) {
+    const seen = new Set([move.page])
+    let next: Move | undefined = move
+    while (next?.into && next.after && !circled.has(move.page)) {
+      const into: string = next.into
+      const after: string = next.after
+      if (seen.has(after)) {
+        seen.forEach((page) => circled.add(page))
+        problems.push(
+          `${[...seen].join(', ')}: these new cards follow each other in a circle; put one after a card already in the episode`
+        )
+        break
+      }
+      seen.add(after)
+      next = moves.find(
+        (other): boolean => other.page === after && other.into === into
+      )
+    }
+  }
   for (const page of rules.fresh)
     if (placed.get(page) !== 1) problems.push(`Place ${page} exactly once`)
   for (const item of start)
@@ -402,7 +424,7 @@ const place = async (
         )
       })
   })
-  await applyPlacement(seriesId, mapId, plan, fresh)
+  await applyPlacement(seriesId, mapId, plan, fresh, existing)
 }
 
 /** Puts the placement into the episodes and records it for Undo. */
@@ -410,7 +432,8 @@ export const applyPlacement = async (
   seriesId: string,
   mapId: string,
   plan: Placement,
-  fresh: Array<{ id: string; title: string }>
+  fresh: Array<{ id: string; title: string }>,
+  existing: Array<{ notebook: string; made: boolean }> = []
 ) => {
   const map = (await loadProject(mapId))!
   const title = (page: string) =>
@@ -437,8 +460,13 @@ export const applyPlacement = async (
       throw new Refusal('The placement contains a circular card order')
     sorted.push(...pending.splice(at, 1))
   }
-  // Check every destination before changing any of them.
-  for (const id of new Set(sorted.map((move) => move.into!))) {
+  // Check every destination, and every episode the run renumbers, before
+  // changing any of them: one whose video started meanwhile stops it.
+  const open = existing.filter((entry) => !entry.made)
+  for (const id of new Set([
+    ...sorted.map((move) => move.into!),
+    ...open.map((entry) => entry.notebook)
+  ])) {
     if (isMade(await loadProject(id)))
       throw new Refusal('An episode’s video started; plan again')
   }
@@ -586,6 +614,11 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
   const run = series?.organized?.find((item) => item.id === id)
   if (!series || !run) throw new Refusal('That organising run is gone')
   if (run.undone) return series
+  // A plan or a placement running over the same episodes goes first.
+  if (isPlanning(seriesId) || series.planning?.state === 'planning')
+    throw new Refusal('Wait for the plan to finish, then undo')
+  if (series.organizing?.state === 'organizing')
+    throw new Refusal('Wait until the new cards are organised, then undo')
   for (const move of run.moves) {
     if (!move.copy || !move.episode || run.started.includes(move.episode))
       continue
@@ -606,6 +639,11 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
         .map((move) => move.copy)
     )
     if (!snapshot || isMade(snapshot)) continue
+    // One the creator already took out of the series is theirs: left alone.
+    const member = (await loadSeries(seriesId))?.episodes.some(
+      (item) => item.notebookId === notebook
+    )
+    if (!member) continue
     if (
       !snapshot.project.episode?.named &&
       snapshot.project.slides.every(
@@ -618,12 +656,7 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
     )
       await discardEpisode(seriesId, notebook)
     // One the creator worked on leaves the series and stays theirs.
-    else if (
-      (await loadSeries(seriesId))?.episodes.some(
-        (item) => item.notebookId === notebook
-      )
-    )
-      await removeEpisode(seriesId, { episode: notebook })
+    else await removeEpisode(seriesId, { episode: notebook })
   }
   const after = await changeSeries(seriesId, (current) => {
     const pages = run.moves.map((move) => move.page)

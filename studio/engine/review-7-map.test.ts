@@ -742,14 +742,14 @@ describe('lines and blocks (UX-8, UX-9, UX-12)', () => {
     expect(svg.querySelectorAll('path.map-flow')).toHaveLength(
       svg.querySelectorAll(`${masked} path.map-flow`).length
     )
-    // Under cards, copies, segues, directions, gaps and each episode's head.
     const covered =
       Object.keys(layout.cards).length +
       Object.keys(layout.copies).length +
       layout.segues.length +
       Object.keys(layout.directions).length +
       layout.gaps.length +
-      Object.keys(layout.lanes).length
+      Object.keys(layout.lanes).length +
+      Number(Boolean(layout.head))
     expect(
       svg.querySelectorAll('mask#map-content-mask rect[fill="black"]')
     ).toHaveLength(covered)

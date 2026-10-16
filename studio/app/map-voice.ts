@@ -136,6 +136,8 @@ export class VoiceCall {
   start() {
     if (this.on) return
     if (this.needsKey) {
+      // Nothing waits for a call that can't start (review 7).
+      this.waiting = []
       this.showSetup()
       return
     }

@@ -60,6 +60,13 @@
 .map-page.is-notes-open .map-zoom {
   left: 16px;
 }
+/* The queue steps left of the open panel, never under it. */
+.map-queue {
+  transition: right 0.24s var(--ease-out);
+}
+.map-page.is-notes-open .map-queue {
+  right: 324px;
+}
 
 /* The header's tools: Notes, View, the next step, More. */
 .map-pill-tools .map-notes-toggle {
@@ -223,7 +230,8 @@
     animation: none;
   }
   .map-toolpill,
-  .map-zoom {
+  .map-zoom,
+  .map-queue {
     transition: none;
   }
 }

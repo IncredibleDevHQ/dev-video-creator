@@ -4,6 +4,7 @@ import type { Snapshot, NotebookSummary } from '../shared/api'
 import { narrativeById } from '../shared/narratives'
 import type { Series, SeriesEpisode, SeriesSummary } from '../shared/series'
 import { nextPart } from '../shared/series'
+import { notebookState } from './notebook-state'
 import { escape } from './ui'
 
 export type SeriesPageData = {
@@ -12,20 +13,6 @@ export type SeriesPageData = {
     SeriesEpisode & { title: string; status: string; narrative: string | null }
   >
 }
-
-/** Where one of a series' notebooks stands, in a few words. */
-const notebookState = (item?: NotebookSummary) =>
-  !item
-    ? 'Unavailable'
-    : item.videoReady
-      ? 'Video ready'
-      : item.hasVideo
-        ? 'Video in progress'
-        : item.status === 'ready'
-          ? 'Wireframes ready'
-          : item.status === 'failed'
-            ? 'Needs attention'
-            : item.status
 
 /** One of a series' notebooks: its content map, or an episode. */
 const seriesEntry = (
@@ -38,7 +25,7 @@ const seriesEntry = (
   const opens = map
     ? `data-action="open-map-of" data-map="${escape(id)}"`
     : `data-notebook="${escape(id)}"`
-  return `<li><button type="button" ${opens}><b>${escape(label)}</b><span>${escape(item?.title || label)}</span><small>${escape(notebookState(item))}</small></button></li>`
+  return `<li><button type="button" ${opens}><b>${escape(label)}</b><span>${escape(item?.title || label)}</span><small>${escape(item ? notebookState(item) : 'Unavailable')}</small></button></li>`
 }
 
 /** A series with its source and episodes together, and how far it has come. */

@@ -289,6 +289,11 @@
 .tile-state.is-failed {
   color: #b4572d;
 }
+.saved-notebooks-empty {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
 .saved-notebooks > .show-all {
   width: auto;
   margin: 16px -12px 0;

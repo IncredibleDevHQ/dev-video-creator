@@ -5,6 +5,7 @@
 // that shows less fine print the further it is zoomed out.
 import { themeControl } from './appearance'
 import type { MapCanvas } from './map-canvas'
+import { dialogOpen } from './ui'
 import { hideMenu, place, showHelp, showMenu, type MenuItem } from './map-bar'
 
 const NOTES_KEY = 'incredible-studio-map-notes'
@@ -218,7 +219,7 @@ export const installChrome = (map: MapCanvas) => {
     canvas?.classList.toggle('is-farthest', next === 'farthest')
   })
   globalThis.addEventListener?.('keydown', (event) => {
-    if (!map.isOpen || event.defaultPrevented) return
+    if (!map.isOpen || event.defaultPrevented || dialogOpen()) return
     const e = event as KeyboardEvent
     const typing = (e.target as Element)?.closest?.(
       'input, textarea, select, [contenteditable]'
@@ -227,6 +228,12 @@ export const installChrome = (map: MapCanvas) => {
       const menu = map.slot('menu')
       if (menu && !menu.hidden) {
         hideMenu(map)
+        e.preventDefault()
+        return
+      }
+      // A note being written keeps its panel: Esc leaves the field first.
+      if (typing) {
+        ;(typing as HTMLElement).blur?.()
         e.preventDefault()
         return
       }

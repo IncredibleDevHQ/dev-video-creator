@@ -117,6 +117,22 @@ describe('the quiet chrome around the map', () => {
     ).toContain('disabled')
   })
 
+  it('says why a regroup failed when every card already has a topic', async () => {
+    const { failedUnderHeading } = await import('../app/map-paint')
+    const failed = snapshot({
+      grouping: { state: 'failed', error: 'The agent ran out of time' }
+    })
+    // No group of cards without a topic to say it in: the Cards heading does.
+    expect(failedUnderHeading(failed, [{ key: 't:rates' }], 'topic')).toBe(true)
+    expect(failedUnderHeading(failed, [{ key: 't:' }], 'topic')).toBe(false)
+    expect(failedUnderHeading(failed, [], 'order')).toBe(false)
+    expect(failedUnderHeading(snapshot(), [], 'topic')).toBe(false)
+    // The View button's tooltip gives the reason too.
+    expect(mapTools(failed, view(true), 'topic', 'all')).toContain(
+      'title="Grouping failed: The agent ran out of time"'
+    )
+  })
+
   it('leaves room for two lines of a card’s title above it', async () => {
     const { mapLayout } = await import('../app/map-layout')
     const slides = ['a', 'b', 'c'].map((id) => ({
