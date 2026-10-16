@@ -25,9 +25,11 @@ export const openPopover = (
   const place = () => {
     const box = anchor.getBoundingClientRect()
     const width = panel.offsetWidth
-    // Right-aligned under the control, kept inside the window.
+    // Right-aligned under the control, kept inside the window on both
+    // sides, so a control near an edge never opens it off screen (review 7).
     let left = box.right - width
-    if (left < 12) left = Math.min(box.left, window.innerWidth - width - 12)
+    if (left < 12) left = box.left
+    left = Math.min(left, window.innerWidth - width - 12)
     panel.style.left = `${Math.round(Math.max(12, left))}px`
     // Under the control, or over it when the window ends first.
     const below = box.bottom + 8 + panel.offsetHeight <= window.innerHeight - 12

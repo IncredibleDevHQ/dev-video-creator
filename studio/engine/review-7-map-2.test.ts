@@ -487,6 +487,36 @@ describe('questions, directions and organising on the map (review 7)', () => {
     expect(toast.hidden).toBe(true)
   })
 
+  it('selects a gap at any zoom, its three choices in the bar (Jev series run)', async () => {
+    const shown = view()
+    shown.series!.gaps = [
+      {
+        id: 'do',
+        missing: 'What a Durable Object is',
+        episode: 'e2',
+        why: 'The orchestrator is one',
+        ask: 'What is it?',
+        state: 'open'
+      }
+    ]
+    const { map, root } = await openMap(shown)
+    const node = root.querySelector('[data-k="g:do"]')!
+    fire(node, 'pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    fire(node, 'pointerup', { button: 0, clientX: 10, clientY: 10 })
+    expect(map.sel).toEqual({ t: 'gap', id: 'do' })
+    expect(root.querySelector('[data-k="g:do"]')?.className).toContain(
+      'is-selected'
+    )
+    const bar = map.slot('bar')!
+    expect(bar.textContent).toContain('What a Durable Object is')
+    expect(
+      [...bar.querySelectorAll('button')].map((b) => b.dataset.map)
+    ).toEqual(['gap-note:do', 'gap-explain:do', 'gap-ignore:do'])
+    click(bar.querySelector('[data-map="gap-note:do"]'))
+    await settle()
+    expect(map.noteAsk).toEqual({ text: '', gap: 'do' })
+  })
+
   it('keeps an Undo showing when organising news comes, then says the news', async () => {
     const { map } = await openMap()
     vi.useFakeTimers()

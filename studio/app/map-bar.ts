@@ -28,6 +28,11 @@ const content = (map: MapCanvas) => {
     const value = view?.series?.[key] || ''
     return `<form class="map-ask" data-map-form="brief"><label>${key === 'outcome' ? 'By the end, viewers can' : 'The series is for'}<input name="value" maxlength="${key === 'outcome' ? 300 : 200}" value="${escape(value)}" placeholder="${key === 'outcome' ? 'Run their own video pipeline on Cloudflare' : 'Developers who ship on Workers'}" autocomplete="off"></label><button type="submit" class="primary">Save</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
   }
+  if (sel?.t === 'gap' && view?.series) {
+    const gap = view.series.gaps.find((g) => g.id === sel.id)
+    if (!gap) return ''
+    return `<div class="map-info"><b>Missing</b> · ${escape(gap.missing)}<small>${escape(gap.ask)}</small></div>${act(`gap-note:${gap.id}`, 'Add a note', '', true)}${act(`gap-explain:${gap.id}`, 'Explain here')}${act(`gap-ignore:${gap.id}`, 'Ignore')}`
+  }
   if (sel?.t === 'direction' && view?.series) {
     const direction = view.series.directions.find((d) => d.id === sel.id)
     if (!direction) return ''

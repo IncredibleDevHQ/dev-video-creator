@@ -71,6 +71,8 @@ const selectionOf = (key: string): MapSel => {
   // A direction still being written isn't one yet: it can't be selected.
   if (key === 'd:__draft__') return null
   if (key.startsWith('d:')) return { t: 'direction', id: key.slice(2) }
+  // A gap selects like any block, its choices in the bar at every zoom.
+  if (key.startsWith('g:')) return { t: 'gap', id: key.slice(2) }
   if (key.startsWith('m:')) return { t: 'page', id: key.slice(2) }
   if (key.startsWith('c:')) return { t: 'copy', id: key.slice(2) }
   if (/^(L|Z|s|e):/.test(key)) return { t: 'lane', id: key.slice(2) }
@@ -318,9 +320,12 @@ export const installMapInput = (map: MapCanvas) => {
     if ((key === 'S:socials' || key.startsWith('D:')) && map.layout.socials)
       return map.fit(pad(map.layout.socials))
     const sel = selectionOf(key)
-    // A direction is brought close, as a block is (review 7).
+    // A direction is brought close, as a block is (review 7); a gap too.
     if (sel?.t === 'direction' && map.layout.directions[sel.id])
       return map.fit(pad(map.layout.directions[sel.id]))
+    const gap =
+      sel?.t === 'gap' && map.layout.gaps.find((box) => box.id === sel.id)
+    if (gap) return map.fit(pad(gap))
     const lane =
       sel?.t === 'lane'
         ? sel.id

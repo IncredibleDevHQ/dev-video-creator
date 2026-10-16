@@ -37,6 +37,7 @@ export type MapSel =
   | { t: 'copy'; id: string }
   | { t: 'lane'; id: string }
   | { t: 'direction'; id: string }
+  | { t: 'gap'; id: string }
   | { t: 'series' }
   | null
 export type MapClip =

@@ -7,7 +7,7 @@ import type { MapView } from '../shared/content-map'
 import { DEFAULT_LENGTH, windowLabel } from '../shared/length'
 import type { Direction, SeriesGap } from '../shared/series'
 import type { LengthGoal } from '../shared/storyboard'
-import { HEAD, HEAD0 } from './map-layout'
+import { HEAD, HEAD0, mapPages } from './map-layout'
 import { escape } from './ui'
 
 export const LINE_COLORS = ['#e0a33a', '#4f8fe0', '#c56bd6', '#3fb08f']
@@ -122,6 +122,17 @@ export const gapCard = (gap: SeriesGap) => {
 /** What the agent is doing now, for the Queue. */
 export const queueItems = (snapshot: Snapshot, view: MapView | null) => {
   const items: string[] = []
+  // The map's own cards while the story draws them: the Queue said idle
+  // with three cards drawing (Jev series run).
+  if (snapshot.status === 'building' || snapshot.status === 'reading') {
+    const pages = mapPages(snapshot)
+    const drawn = pages.filter((page) => page.state === 'drawn').length
+    items.push(
+      pages.length
+        ? `Drawing the map’s cards · ${drawn} of ${pages.length}`
+        : 'Planning the map’s cards'
+    )
+  }
   const sorting = (snapshot.project.notes || []).filter(
     (note) => note.state === 'sorting'
   ).length

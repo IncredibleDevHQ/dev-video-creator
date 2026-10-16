@@ -93,6 +93,10 @@ const selectedWords = (map: MapCanvas, aliases: Aliases) => {
       : ''
   }
   if (sel.t === 'direction') return `the direction ${aliases.of('d', sel.id)}`
+  if (sel.t === 'gap') {
+    const gap = map.view?.series?.gaps.find((g) => g.id === sel.id)
+    return gap ? `the gap “${gap.missing}”` : ''
+  }
   const ep = map.episodeOf(sel.id)
   const copy = ep?.copies.find((c) => c.id === sel.id)
   return ep && copy

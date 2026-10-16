@@ -9,10 +9,16 @@ import {
   mapLayout,
   mapPages,
   newPages,
-  QW
+  QW,
+  type Box
 } from '../app/map-layout'
 import { episodeChoices, moreChoices } from '../app/map-bar'
-import { directionCard, gapCard, seriesHead } from '../app/map-nodes'
+import {
+  directionCard,
+  gapCard,
+  queueItems,
+  seriesHead
+} from '../app/map-nodes'
 import { outsideLine } from '../app/map-length'
 import type { MapCanvas, MapSel } from '../app/map-canvas'
 import {
@@ -425,6 +431,19 @@ describe('the map while it forms', () => {
   })
 })
 
+describe('the Queue', () => {
+  it('counts the map’s own cards while the story draws them', () => {
+    const drawing = {
+      ...map([slide('a'), { ...slide('b'), svg: null }]),
+      status: 'building'
+    } as Snapshot
+    expect(queueItems(drawing, null)).toEqual([
+      'Drawing the map’s cards · 1 of 2'
+    ])
+    expect(queueItems({ ...drawing, status: 'ready' }, null)).toEqual([])
+  })
+})
+
 describe('the series as a connected canvas', () => {
   const snapshot = map([slide('a'), slide('b'), slide('c')])
   const view: MapView = {
@@ -559,14 +578,13 @@ describe('the series as a connected canvas', () => {
     expect(card.y2).toBe(toCard.cards.a.y + toCard.cards.a.h / 2)
     expect(card.turn).toBeGreaterThan(edge)
   })
-  it('takes each direction’s line round the frames, never through one, wherever its note sits (review 7)', () => {
+  it('takes each direction’s line round every block, never through one, wherever its note sits (review 7)', () => {
     const base = mapLayout(snapshot, view, 'order')
     const cards = base.map
-    const frames = [cards, base.series!]
-    const below = Math.max(...frames.map((f) => f.y + f.h)) + 30
+    const below = Math.max(...[cards, base.series!].map((f) => f.y + f.h)) + 30
+    type To = { episode?: string; pages?: string[] }
     const placed = (
-      spot: { x: number; y: number },
-      to?: { episode?: string; pages?: string[] }
+      notes: Array<{ spot?: { x: number; y: number }; to?: To }>
     ) => {
       const layout = mapLayout(
         snapshot,
@@ -574,20 +592,26 @@ describe('the series as a connected canvas', () => {
           ...view,
           series: {
             ...view.series!,
-            directions: [{ id: 'n', text: 'x', at: 'now', spot, to }]
+            directions: notes.map((note, i) => ({
+              id: `n${i}`,
+              text: 'x',
+              at: 'now',
+              ...note
+            }))
           }
         },
         'order'
       )
-      return { layout, flow: layout.flows.find((f) => f.from === 'd:n')! }
+      const last = `d:n${notes.length - 1}`
+      return { layout, flow: layout.flows.find((f) => f.from === last)! }
     }
-    // How far a line runs inside a frame, along all its straight runs.
-    const inside = (points: Array<[number, number]>) =>
+    // How far a line runs inside a block, along all its straight runs.
+    const inside = (points: Array<[number, number]>, blocks: Box[]) =>
       points.slice(1).reduce((sum, [x2, y2], i) => {
         const [x1, y1] = points[i]
         return (
           sum +
-          frames.reduce((run, f) => {
+          blocks.reduce((run, f) => {
             const across =
               y1 === y2 && y1 > f.y && y1 < f.y + f.h
                 ? Math.min(Math.max(x1, x2), f.x + f.w) -
@@ -600,24 +624,50 @@ describe('the series as a connected canvas', () => {
           }, 0)
         )
       }, 0)
+    const left = { x: cards.x - 300, y: cards.y + 20 }
+    const edge = { x: cards.x + cards.w - 60, y: below }
+    const past = { x: base.socials!.x + base.socials!.w + 200, y: 200 }
     const cases = [
       // Left of the Cards, level with them, for the series or an episode.
-      placed({ x: cards.x - 300, y: cards.y + 20 }),
-      placed({ x: cards.x - 300, y: cards.y + 20 }, { episode: 'e2' }),
-      // Over the Cards' right edge, under every frame.
-      placed({ x: cards.x + cards.w - 60, y: below }),
-      placed({ x: cards.x + cards.w - 60, y: below }, { episode: 'e1' }),
-      // Past the series, for a card.
-      placed({ x: 4000, y: base.series!.y + 40 }, { pages: ['b'] })
+      placed([{ spot: left }]),
+      placed([{ spot: left, to: { episode: 'e2' } }]),
+      // Over the Cards' right edge, under every block.
+      placed([{ spot: edge }]),
+      placed([{ spot: edge, to: { episode: 'e1' } }]),
+      // Past the Socials box, for a card or the first episode.
+      placed([{ spot: past, to: { pages: ['b'] } }]),
+      placed([{ spot: past, to: { episode: 'e1' } }]),
+      // A row of notes above the series, for the series, a card, an episode.
+      placed([{}, { to: { pages: ['a'] } }, { to: { episode: 'e2' } }]),
+      // Notes stacked one over another, each for a card or an episode.
+      placed([
+        { spot: left, to: { pages: ['a'] } },
+        { spot: { x: left.x, y: left.y + 200 }, to: { episode: 'e2' } },
+        { spot: { x: left.x, y: left.y + 400 }, to: { pages: ['c'] } }
+      ]),
+      placed([
+        { spot: past, to: { pages: ['b'] } },
+        { spot: { x: past.x, y: past.y + 200 }, to: { episode: 'e1' } }
+      ])
     ]
-    for (const { layout, flow } of cases) {
-      expect(flow.points).toBeDefined()
-      expect(inside(flow.points!)).toBe(0)
-      // It still ends at its target's frame, level with the target.
-      const frame = flow.to.startsWith('m:') ? layout.map : layout.series!
-      expect([frame.x, frame.x + frame.w]).toContain(flow.x2)
-      if (flow.to === 'm:b')
-        expect(flow.y2).toBe(layout.cards.b.y + layout.cards.b.h / 2)
+    for (const { layout } of cases) {
+      const notes = Object.values(layout.directions).map((box) => ({
+        x: box.x,
+        y: box.y - 24,
+        w: box.w,
+        h: box.h + 24
+      }))
+      const blocks = [layout.map, layout.series!, layout.socials!, ...notes]
+      for (const flow of layout.flows.filter((f) => f.kind === 'direction')) {
+        // Never through a block, a note's label or its own note.
+        expect(flow.points).toBeDefined()
+        expect(inside(flow.points!, blocks)).toBe(0)
+        // It still ends at its target's frame, level with the target.
+        const frame = flow.to.startsWith('m:') ? layout.map : layout.series!
+        expect([frame.x, frame.x + frame.w]).toContain(flow.x2)
+        const card = layout.cards[flow.to.slice(2)]
+        if (flow.to.startsWith('m:')) expect(flow.y2).toBe(card.y + card.h / 2)
+      }
     }
   })
   it('shows the outline: the suggested outcome, the lines, the gaps, each episode’s win', () => {

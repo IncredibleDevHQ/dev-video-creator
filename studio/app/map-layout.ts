@@ -3,7 +3,7 @@
 // with one lane per episode, the Socials box beside the series with what each
 // made episode was cut into, and the workflow's lines between them. Pure, so
 // the canvas can move things by diffing two layouts.
-import { routeDirection, type Point } from './map-route'
+import { noteBlock, routeDirection, type Point } from './map-route'
 import type { Snapshot } from '../shared/api'
 import { topicGroups, type MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
@@ -430,52 +430,6 @@ export const mapLayout = (
       y2: b.y
     })
   })
-  // Each direction into what it guides: an episode, its cards, or the series.
-  for (const direction of series.directions) {
-    const box = layout.directions[direction.id]
-    if (!box) continue
-    const targets: Array<{ key: string; box: Box; y: number }> = []
-    const lane = direction.to?.episode
-      ? layout.lanes[direction.to.episode]
-      : undefined
-    if (lane)
-      targets.push({
-        key: `L:${direction.to!.episode}`,
-        box: lane,
-        y: lane.y + 18
-      })
-    for (const page of direction.to?.pages || []) {
-      const card = layout.cards[page]
-      if (card)
-        targets.push({ key: `m:${page}`, box: card, y: card.y + card.h / 2 })
-    }
-    if (!targets.length && layout.head)
-      targets.push({ key: 'B:series', box: layout.head, y: sy + headH / 2 })
-    for (const target of targets) {
-      // Every line ends at a frame, its arrow pointing in: a card at the
-      // Cards frame, an episode or the series at the series' frame, by the
-      // way that crosses no frame (review 7).
-      const frame = target.key.startsWith('m:') ? layout.map : layout.series
-      const { points, turn } = routeDirection(box, frame, target.y, [
-        layout.map,
-        layout.series
-      ])
-      const [x1, y1] = points[0]
-      const [x2, y2] = points[points.length - 1]
-      layout.flows.push({
-        key: `d:${direction.id}:${target.key}`,
-        kind: 'direction',
-        from: `d:${direction.id}`,
-        to: target.key,
-        x1,
-        y1,
-        x2,
-        y2,
-        turn: points.length === 4 && points[1][1] === y1 ? points[1][0] : turn,
-        points
-      })
-    }
-  }
   // What a made episode was cut into: the Socials box, beside the series,
   // each episode's place level with its lane and a wire into it.
   const ox = sx + layout.series.w + SOGAP
@@ -512,6 +466,57 @@ export const mapLayout = (
     y: sy,
     w: SOW,
     h: Math.max(bottom - sy + SP - 14, 180)
+  }
+  // Each direction into what it guides: an episode, its cards, or the series,
+  // wired last so its line goes round every block, the Socials box too.
+  for (const direction of series.directions) {
+    const box = layout.directions[direction.id]
+    if (!box) continue
+    const targets: Array<{ key: string; box: Box; y: number }> = []
+    const lane = direction.to?.episode
+      ? layout.lanes[direction.to.episode]
+      : undefined
+    if (lane)
+      targets.push({
+        key: `L:${direction.to!.episode}`,
+        box: lane,
+        y: lane.y + 18
+      })
+    for (const page of direction.to?.pages || []) {
+      const card = layout.cards[page]
+      if (card)
+        targets.push({ key: `m:${page}`, box: card, y: card.y + card.h / 2 })
+    }
+    if (!targets.length && layout.head)
+      targets.push({ key: 'B:series', box: layout.head, y: sy + headH / 2 })
+    for (const target of targets) {
+      // Every line ends at a frame, its arrow pointing in: a card at the
+      // Cards frame, an episode or the series at the series' frame, by the
+      // way that crosses no block (review 7).
+      const frame = target.key.startsWith('m:') ? layout.map : layout.series
+      const { points, turn } = routeDirection(box, frame, target.y, [
+        layout.map,
+        layout.series,
+        layout.socials,
+        ...Object.entries(layout.directions)
+          .filter(([id]) => id !== direction.id)
+          .map(([, other]) => noteBlock(other))
+      ])
+      const [x1, y1] = points[0]
+      const [x2, y2] = points[points.length - 1]
+      layout.flows.push({
+        key: `d:${direction.id}:${target.key}`,
+        kind: 'direction',
+        from: `d:${direction.id}`,
+        to: target.key,
+        x1,
+        y1,
+        x2,
+        y2,
+        turn: points.length === 4 && points[1][1] === y1 ? points[1][0] : turn,
+        points
+      })
+    }
   }
   return layout
 }

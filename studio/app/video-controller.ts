@@ -21,6 +21,7 @@ import { followTranscript } from './transcript-follow'
 import { button, escape } from './ui'
 import { makeVideoDialog } from './video-screen'
 import { syncSceneChoice } from './scene-link'
+import { syncMakeDialog } from './make-dialog-sync'
 import { videoSettingsPreview } from './video-settings-preview'
 import { parseVoice } from './voice-choice'
 import { restoreMakeChoices } from './template-picker'
@@ -321,8 +322,15 @@ export const submitVideo = async (
     const max = Number(values.get('length-max'))
     if (storyboard && !(min > 0 && max > min))
       throw new Error('Give the length as a range, the shorter end first')
+    // A storyboard's range is the one length asked for: the template's own
+    // chips were hidden, so its direction says the same range.
+    const direction =
+      storyboard && next.direction
+        ? { ...next.direction, length: [min, max] as [number, number] }
+        : next.direction
     app.snapshot = await api.makeVideo(app.snapshot.project.id, {
       ...next,
+      ...(direction ? { direction } : {}),
       ...(scenes ? { scenes } : {}),
       ...(storyboard
         ? {
@@ -422,6 +430,7 @@ ${button('Try again', 'video-settings', true)}`
       'On-camera changes re-plan scenes using the video setting. Matching recordings are kept.'
     form.prepend(message)
     form.insertAdjacentHTML('afterend', button('App settings', 'settings'))
+    syncMakeDialog(app.dialog)
   }
   if (action === 'make-video' || action === 'make-video-one') {
     if (app.snapshot.project.video) {
@@ -454,6 +463,7 @@ ${button('Try again', 'video-settings', true)}`
       // Back from the gallery, the scenes, camera and voice chosen before.
       restoreMakeChoices(app.dialog)
       syncSceneChoice(app.dialog)
+      syncMakeDialog(app.dialog)
       wireLengthRanges(app.dialog)
       // The first chosen scene and the chosen voice are in sight, each
       // within its own list (review 6: the scene was below four rows).

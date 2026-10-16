@@ -46,7 +46,9 @@ const selectedKey = (map: MapCanvas) => {
           ? `L:${sel.id}`
           : sel.t === 'direction'
             ? `d:${sel.id}`
-            : 'B:series'
+            : sel.t === 'gap'
+              ? `g:${sel.id}`
+              : 'B:series'
 }
 
 /** The map block's line: what it holds, or how far the drawing is. */
@@ -225,7 +227,7 @@ export const paintWorld = (map: MapCanvas) => {
       if (!found) continue
       items.push({
         key: `g:${gap.id}`,
-        cls: 'map-gap',
+        cls: `map-gap${chosen === `g:${gap.id}` ? ' is-selected' : ''}`,
         box: gap,
         html: gapCard(found),
         title: found.ask
@@ -538,6 +540,8 @@ const drawWires = (map: MapCanvas) => {
     ...layout.segues,
     ...Object.values(layout.directions),
     ...layout.gaps,
+    // What each made episode was cut into, in the Socials box.
+    ...layout.derived,
     // Whole episodes and the series' head, inset a little so an arrow at
     // one keeps its tip: no line crosses what they hold (review 7).
     ...[
