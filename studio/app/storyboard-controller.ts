@@ -4,6 +4,7 @@
 // with the studio's recorder or upload one, try again. While the episode
 // plays, the rail and the strip follow it.
 import type { Snapshot } from '../shared/api'
+import type { Project } from '../shared/model'
 import type { AppContext } from './app-context'
 import {
   SCENE_CHANGE_SECONDS,
@@ -12,7 +13,11 @@ import {
 } from '../shared/storyboard'
 import { api } from './api'
 import { requestJson } from './http'
-import { episodeClock, takeMoments } from './storyboard-view'
+import {
+  episodeClock,
+  takeMoments,
+  type StoryboardView
+} from './storyboard-view'
 import { button, escape } from './ui'
 
 const uploadTake = (projectId: string, pageId: string, blob: Blob) =>
@@ -27,6 +32,20 @@ const uploadTake = (projectId: string, pageId: string, blob: Blob) =>
 
 const storyboardOf = (app: AppContext) =>
   app.snapshot?.project.video?.storyboard
+
+/** The storyboard scene of the video scene the address names, so a reload
+ * opens where the creator was (the Jev series run: it opened scene 1). */
+export const storyboardViewAt = (
+  project: Project,
+  selected: number
+): StoryboardView | null => {
+  const page = project.video?.scenes[selected]?.slideId
+  const scene =
+    project.video?.storyboard?.plan?.scenes.findIndex(
+      (entry) => entry.pageId === page
+    ) ?? -1
+  return scene >= 0 ? { projectId: project.id, scene, frame: null } : null
+}
 
 /** The scene and frame on show, for this notebook. */
 const viewOf = (app: AppContext) =>
@@ -145,6 +164,12 @@ export const clickStoryboard = async (
     if (action === 'sb-scene') {
       const scene = Number(target.dataset.index)
       app.sbView = { projectId: id, scene, frame: null }
+      // The address follows the scene on show.
+      const page = storyboard.plan?.scenes[scene]?.pageId
+      const at =
+        snapshot.project.video?.scenes.findIndex((s) => s.slideId === page) ??
+        -1
+      if (at >= 0) app.selected = at
       if (clock[scene]) seek(app, clock[scene].start)
     } else {
       const number = Number(target.dataset.number)

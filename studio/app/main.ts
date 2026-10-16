@@ -50,6 +50,7 @@ import {
 } from './video-controller'
 import { createRender } from './workspace-controller'
 import { workspacePosition } from './workspace-position'
+import { storyboardViewAt } from './storyboard-controller'
 import { syncPublishForm } from './release-controller'
 import { keptMakeChoices } from './template-picker'
 import { clickVideo } from './video-controller'
@@ -224,12 +225,15 @@ app.render = createRender(app)
 app.sendChat = createSendChat(app)
 app.attach = (value: Snapshot) => {
   app.liveConnected = true
-  if (app.stage === 'video')
-    ({
+  if (app.stage === 'video') {
+    ;({
       selected: app.selected,
       momentIndex: app.momentIndex,
       second: app.second
     } = workspacePosition(value.project, new URL(location.href)))
+    // A storyboard video opens on the scene its address names.
+    app.sbView = storyboardViewAt(value.project, app.selected)
+  }
   app.opening.reset()
   app.snapshot = value
   const notebookUrl = new URL(location.href)
