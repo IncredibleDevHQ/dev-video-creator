@@ -67,6 +67,24 @@
 .map-page.is-notes-open .map-queue {
   right: 324px;
 }
+/* The toast and the bar centre in the canvas left of the open panel, so the
+   panel never covers them or Undo. */
+.map-dock {
+  transition: left 0.24s var(--ease-out);
+}
+.map-page.is-notes-open .map-dock {
+  left: calc(50% - 162px);
+  max-width: calc(100% - 780px);
+}
+/* Too narrow for that: they rise above the zoom pill and the Queue. */
+@media (max-width: 1240px) {
+  .map-page.is-notes-open .map-dock {
+    max-width: calc(100% - 348px);
+  }
+  .map-page.is-notes-open .map-dock:has(> .map-bar:not([hidden])) {
+    bottom: 62px;
+  }
+}
 
 /* The header's tools: Notes, View, the next step, More. */
 .map-pill-tools .map-notes-toggle {
@@ -231,7 +249,8 @@
   }
   .map-toolpill,
   .map-zoom,
-  .map-queue {
+  .map-queue,
+  .map-dock {
     transition: none;
   }
 }

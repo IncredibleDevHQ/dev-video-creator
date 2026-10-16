@@ -42,85 +42,108 @@ const meets = (one: Box, other: Box) =>
   Math.min(one.right, other.right) > Math.max(one.left, other.left) &&
   Math.min(one.bottom, other.bottom) > Math.max(one.top, other.top)
 
-it('keeps the toast, the selection bar, the zoom pill and the Queue apart at every width', async () => {
+it('keeps the toast, the selection bar, the zoom pill, the Queue and the notes apart at every width', async () => {
   const file = join(dir, 'map.html')
   await writeFile(
     file,
     `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${style}"></head><body>${mapPage('The Model That Doesn’t Talk')}</body></html>`
   )
   const tab = await browser.newPage()
-  for (const [kind, bar] of Object.entries(BARS))
-    for (const width of [1440, 1237, 1100, 981, 980, 900, 768]) {
-      await tab.setViewport({ width, height: 800 })
-      await tab.goto(`file://${file}`, { waitUntil: 'load' })
-      const at = await tab.evaluate(
-        (parts) => {
-          const slot = (name: string) =>
-            document.querySelector<HTMLElement>(`[data-map-slot="${name}"]`)!
-          const box = (node: Element) => {
-            const r = node.getBoundingClientRect()
-            return {
-              left: r.left,
-              top: r.top,
-              right: r.right,
-              bottom: r.bottom
+  // The settled layout: the panel and the dock move without their slide.
+  await tab.emulateMediaFeatures([
+    { name: 'prefers-reduced-motion', value: 'reduce' }
+  ])
+  for (const notes of [false, true])
+    for (const [kind, bar] of Object.entries(BARS))
+      for (const width of [1440, 1237, 1100, 981, 980, 900, 768]) {
+        await tab.setViewport({ width, height: 800 })
+        await tab.goto(`file://${file}`, { waitUntil: 'load' })
+        const at = await tab.evaluate(
+          (parts) => {
+            const slot = (name: string) =>
+              document.querySelector<HTMLElement>(`[data-map-slot="${name}"]`)!
+            const box = (node: Element) => {
+              const r = node.getBoundingClientRect()
+              return {
+                left: r.left,
+                top: r.top,
+                right: r.right,
+                bottom: r.bottom
+              }
             }
-          }
-          const hit = (x: number, y: number) => document.elementFromPoint(x, y)
-          slot('toast').innerHTML = parts.toast
-          slot('toast').hidden = false
-          slot('queue').innerHTML = parts.queue
-          if (parts.bar) {
-            slot('bar').innerHTML = parts.bar
-            slot('bar').hidden = false
-          }
-          const toast = box(slot('toast'))
-          const bar = box(slot('bar'))
-          const action = box(slot('toast').querySelector('button')!)
-          const between = hit(
-            (toast.left + toast.right) / 2,
-            (toast.bottom + bar.top) / 2
-          )
-          return {
-            toast,
-            bar,
-            stage: box(document.querySelector('.map-stage')!),
-            zoom: box(document.querySelector('.map-zoom')!),
-            queue: box(slot('queue').firstElementChild!),
-            onTop: slot('toast').contains(
-              hit(
-                (action.left + action.right) / 2,
-                (action.top + action.bottom) / 2
-              )
-            ),
-            through: ![
-              slot('toast'),
-              slot('bar'),
-              document.querySelector('.map-dock')
-            ].some((node) => node?.contains(between))
-          }
-        },
-        { toast: TOAST, bar, queue: QUEUE }
-      )
-      const where = `${kind} bar at ${width} px`
-      expect.soft(at.onTop, `${where}: the toast’s button is on top`).toBe(true)
-      expect.soft(meets(at.toast, at.zoom), `${where}: toast, zoom`).toBe(false)
-      expect
-        .soft(meets(at.toast, at.queue), `${where}: toast, Queue`)
-        .toBe(false)
-      if (!bar) {
+            const hit = (x: number, y: number) =>
+              document.elementFromPoint(x, y)
+            if (parts.notes)
+              document
+                .querySelector('.map-page')!
+                .classList.add('is-notes-open')
+            slot('toast').innerHTML = parts.toast
+            slot('toast').hidden = false
+            slot('queue').innerHTML = parts.queue
+            if (parts.bar) {
+              slot('bar').innerHTML = parts.bar
+              slot('bar').hidden = false
+            }
+            const toast = box(slot('toast'))
+            const bar = box(slot('bar'))
+            const action = box(slot('toast').querySelector('button')!)
+            const between = hit(
+              (toast.left + toast.right) / 2,
+              (toast.bottom + bar.top) / 2
+            )
+            return {
+              toast,
+              bar,
+              stage: box(document.querySelector('.map-stage')!),
+              zoom: box(document.querySelector('.map-zoom')!),
+              queue: box(slot('queue').firstElementChild!),
+              notes: box(document.querySelector('.map-rail')!),
+              onTop: slot('toast').contains(
+                hit(
+                  (action.left + action.right) / 2,
+                  (action.top + action.bottom) / 2
+                )
+              ),
+              through: ![
+                slot('toast'),
+                slot('bar'),
+                document.querySelector('.map-dock')
+              ].some((node) => node?.contains(between))
+            }
+          },
+          { toast: TOAST, bar, queue: QUEUE, notes }
+        )
+        const where = `${kind} bar at ${width} px${notes ? ', notes open' : ''}`
+        if (notes)
+          expect
+            .soft(meets(at.toast, at.notes), `${where}: toast, notes`)
+            .toBe(false)
         expect
-          .soft(
-            Math.round(at.stage.bottom - at.toast.bottom),
-            `${where}: place`
-          )
-          .toBe(74)
-        continue
+          .soft(at.onTop, `${where}: the toast’s button is on top`)
+          .toBe(true)
+        expect
+          .soft(meets(at.toast, at.zoom), `${where}: toast, zoom`)
+          .toBe(false)
+        expect
+          .soft(meets(at.toast, at.queue), `${where}: toast, Queue`)
+          .toBe(false)
+        if (!bar) {
+          expect
+            .soft(
+              Math.round(at.stage.bottom - at.toast.bottom),
+              `${where}: place`
+            )
+            .toBe(74)
+          continue
+        }
+        expect.soft(meets(at.toast, at.bar), `${where}: toast, bar`).toBe(false)
+        expect.soft(meets(at.bar, at.zoom), `${where}: bar, zoom`).toBe(false)
+        expect.soft(meets(at.bar, at.queue), `${where}: bar, Queue`).toBe(false)
+        if (notes)
+          expect
+            .soft(meets(at.bar, at.notes), `${where}: bar, notes`)
+            .toBe(false)
+        // Between the two, a click still reaches the canvas.
+        expect.soft(at.through, `${where}: between them`).toBe(true)
       }
-      expect.soft(meets(at.toast, at.bar), `${where}: toast, bar`).toBe(false)
-      expect.soft(meets(at.bar, at.zoom), `${where}: bar, zoom`).toBe(false)
-      expect.soft(meets(at.bar, at.queue), `${where}: bar, Queue`).toBe(false)
-      // Between the two, a click still reaches the canvas.
-      expect.soft(at.through, `${where}: between them`).toBe(true)
-    }
-}, 60_000)
+}, 120_000)
