@@ -17,6 +17,8 @@
   --accent: #21783d;
   --rail: #fafaf9;
   --selected: #f0f7f2;
+  /* One motion curve for the interface, as Open Slide keeps one. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 * {
   box-sizing: border-box;

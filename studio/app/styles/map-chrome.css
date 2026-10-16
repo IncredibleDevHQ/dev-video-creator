@@ -24,7 +24,7 @@
   box-shadow: var(--map-shadow);
   backdrop-filter: blur(14px);
   overflow: hidden;
-  animation: map-panel-in 0.18s ease-out;
+  animation: map-panel-in 0.24s var(--ease-out);
 }
 @keyframes map-panel-in {
   from {
@@ -53,7 +53,7 @@
 }
 .map-toolpill,
 .map-zoom {
-  transition: left 0.18s ease;
+  transition: left 0.24s var(--ease-out);
 }
 .map-page.is-notes-open .map-toolpill,
 .map-page.is-notes-open .map-zoom {
@@ -180,7 +180,7 @@
 .map-gap-acts,
 .map-node-label,
 .map-card-title {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s var(--ease-out);
 }
 .map-canvas.is-far .map-bridge,
 .map-canvas.is-far .map-card-meta,

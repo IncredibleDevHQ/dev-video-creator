@@ -20,6 +20,20 @@
 .tooltip[hidden] {
   display: none;
 }
+/* A press gives a little under the finger: buttons, never what is placed
+   by a transform (cards, pins, cursors). */
+:is(
+    .primary,
+    .quiet,
+    .icon-button,
+    .map-toolpill button,
+    .map-zoom button
+  ):active:not(:disabled) {
+  transform: translateY(1px);
+}
+:is(.primary, .quiet, .icon-button, .map-toolpill button, .map-zoom button) {
+  transition: transform 0.1s var(--ease-out);
+}
 .tooltip kbd {
   flex: none;
   padding: 1px 6px;
