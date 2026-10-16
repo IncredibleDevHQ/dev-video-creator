@@ -227,14 +227,6 @@ it('keeps a new episode holding an edit that can’t go home when a stopped plan
   const x = await add(series.id, [ids[3]])
   await segues.settledAllSegues()
   await edit(a)
-  // The new episode's lines aren't written while the plan runs, as a real
-  // agent takes longer than a plan: its writer stops.
-  const write = replies['Write Segues']
-  replies['Write Segues'] = (input) => {
-    if (packetOf(input, 'EPISODE.json').episode.title === 'New')
-      throw new Error('Not now')
-    return write(input)
-  }
   replies['Plan Series'] = () => {
     // A is set first and its edit leaves for the new episode; then A's
     // video starts, and X's, which stops the plan after the new one.
@@ -260,6 +252,34 @@ it('keeps a new episode holding an edit that can’t go home when a stopped plan
   expect(fresh).toHaveLength(1)
   expect(await pagesIn(fresh[0])).toEqual([ids[1]])
   expect((await editsIn(members)).map((hit) => hit.notebook)).toEqual(fresh)
+  await segues.settledAllSegues()
+})
+
+it('sends an edit carried into a new episode home when a stopped plan discards that episode', async () => {
+  const ids = await drawnMap('m-new-back')
+  const { series, a } = await editedA('m-new-back', ids)
+  const x = await add(series.id, [ids[3]])
+  await segues.settledAllSegues()
+  await edit(a)
+  replies['Plan Series'] = () => {
+    // A is set first and its edit leaves for the new episode; X's video
+    // starts, which stops the plan; A is still open.
+    between.next = () => startStoryboard(x)
+    return outline(
+      [
+        { episode: a, title: 'Opening', pages: [ids[0]] },
+        { title: 'New', pages: [ids[1], ids[4]] },
+        { episode: x, title: 'Later', pages: [ids[3]] }
+      ],
+      [ids[2], ids[5], ids[6]]
+    )
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect((await loadSeries(series.id))!.planning?.state).toBe('failed')
+  expect(await membersOf(series.id)).toEqual([a, x])
+  expect(await pagesIn(a)).toEqual([ids[0], ids[1]])
+  expect((await editsIn([a])).map((hit) => hit.notebook)).toEqual([a])
   await segues.settledAllSegues()
 })
 

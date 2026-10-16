@@ -507,9 +507,7 @@ export const applyOutline = async (
         true
       )
       created.push(made.notebook.project.id)
-      // Noted as the others are: a copy carried into it goes home from it.
-      await setPagesNoted(
-        before,
+      await setEpisodePages(
         made.notebook.project.id,
         context.map,
         episode.pages,
@@ -520,12 +518,18 @@ export const applyOutline = async (
     }
   } catch (error) {
     const away = await putBack(before, movedFrom)
-    // A new episode goes, unless it holds an edit that can't go home: it
-    // stays with that alone, so the creator's work is never lost.
+    // A new episode goes, unless it holds an edit that couldn't go home: it
+    // stays with that alone, so the creator's work is never lost (review 7).
     for (const notebook of created) {
-      const slides = (await loadProject(notebook))?.project.slides || []
-      if (slides.some((slide) => away.has(slide.id))) continue
-      await discardEpisode(seriesId, notebook).catch(() => {})
+      let kept = false
+      await changeProject(notebook, (current) => {
+        const edits = current.project.slides.filter((s) => away.has(s.id))
+        kept = edits.length > 0
+        if (!kept || isMade(current)) return
+        current.project.slides = edits
+        reconcileVideo(current.project, current, new Set())
+      }).catch(() => {})
+      if (!kept) await discardEpisode(seriesId, notebook).catch(() => {})
     }
     // The neighbours of a discarded episode say their lines again.
     if (created.length)
