@@ -88,16 +88,29 @@ export const mapPage = (title: string) => `<div class="map-page">
 </div>
 </div>`
 
-/** A map that no longer exists: one line, and the way back, to the notebook
- * it was opened from or home (review 7: its link stayed on Loading…). */
-export const mapGone = (back = '') => `<header>
+/** A map that can't open: one line, what to do, and the way back to the
+ * notebook it was opened from or home (review 7: its link stayed on
+ * Loading…). */
+const mapStop = (title: string, back: string, more = '') => `<header>
 <a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a>
 </header>
-<main class="notebook-opening"><section role="status" aria-live="polite"><h1>This map is gone</h1>${
+<main class="notebook-opening"><section role="status" aria-live="polite"><h1>${title}</h1>${more}${
   back
-    ? `<a class="primary opening-home" href="/?notebook=${encodeURIComponent(back)}">Back to the notebook</a>`
-    : '<a class="primary opening-home" href="/">Back to your notebooks</a>'
+    ? `<a class="${more ? '' : 'primary '}opening-home" href="/?notebook=${encodeURIComponent(back)}">Back to the notebook</a>`
+    : `<a class="${more ? '' : 'primary '}opening-home" href="/">Back to your notebooks</a>`
 }</section></main>`
+
+/** A map that no longer exists. */
+export const mapGone = (back = '') => mapStop('This map is gone', back)
+
+/** A map that couldn't be read just now, the studio offline perhaps: why,
+ * and a way to try again. */
+export const mapFailed = (id: string, back = '', why = '') =>
+  mapStop(
+    'The map didn’t open',
+    back,
+    `${why ? `<p>${escape(why)}</p>` : ''}<a class="primary opening-retry" href="/?map=${encodeURIComponent(id)}">Try again</a>`
+  )
 
 /** The notebook's stages; the map is a view of the Wireframe stage. */
 export const mapStages = (snapshot: Snapshot) =>

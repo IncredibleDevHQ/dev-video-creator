@@ -305,11 +305,6 @@
 .video-stage.presenter-layout-full-screen > .rehearsal-animation {
   visibility: hidden;
 }
-.presenter-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
 
 /* Camera presence stays visible even when a moment title is truncated. */
 .moment-timeline .moment .moment-title {

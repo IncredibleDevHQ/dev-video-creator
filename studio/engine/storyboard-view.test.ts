@@ -1,6 +1,10 @@
 import { expect, it, vi } from 'vitest'
 import type { Snapshot } from '../shared/api'
-import type { FrameSummary, Storyboard } from '../shared/storyboard'
+import {
+  frameId,
+  type FrameSummary,
+  type Storyboard
+} from '../shared/storyboard'
 import { projectViews } from '../shared/state'
 import { Recording } from '../app/recording'
 vi.mock('../app/api', () => ({ api: {} }))
@@ -186,6 +190,18 @@ it('cuts a take across a scene’s spoken frames and times the episode', () => {
     [10, 18]
   ])
   expect(clock[1].frames[1]).toEqual({ number: 4, start: 15, end: 18 })
+  // A camera scene with nothing to say is taken whole, for its picture; a
+  // spoken scene with nothing to say has nothing to record.
+  const silent = (
+    scene: NonNullable<Storyboard['plan']>['scenes'][number]
+  ) => ({
+    ...scene,
+    frames: scene.frames.map((frame) => ({ ...frame, voiceover: '' }))
+  })
+  expect(takeMoments(silent(value.plan!.scenes[1])).map((m) => m.id)).toEqual(
+    value.plan!.scenes[1].frames.map((frame) => frameId(frame))
+  )
+  expect(takeMoments(silent(value.plan!.scenes[0]))).toEqual([])
 })
 
 it('says under a wireframe where its storyboard scene stands', () => {

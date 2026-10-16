@@ -243,6 +243,29 @@ describe('the map’s Add menu and a map that is gone (independent audit)', () =
     expect(hooks.error).not.toHaveBeenCalled()
   })
 
+  it('says why a map didn’t open, with Try again, when the studio can’t be reached', async () => {
+    const { map, root, hooks } = await openMap()
+    vi.mocked(api.load).mockRejectedValueOnce(
+      new Error(
+        'Studio is unavailable. Check that it is running, then try again.'
+      )
+    )
+    await map.open('offline', 'e1')
+    expect(root.querySelector('h1')?.textContent).toBe('The map didn’t open')
+    expect(root.querySelector('p')?.textContent).toContain(
+      'Studio is unavailable'
+    )
+    expect(root.querySelector('a.opening-retry')?.getAttribute('href')).toBe(
+      '/?map=offline'
+    )
+    expect(root.querySelector('a.opening-home')?.getAttribute('href')).toBe(
+      '/?notebook=e1'
+    )
+    expect(root.textContent).not.toContain('Loading…')
+    // Said once, on the page.
+    expect(hooks.error).not.toHaveBeenCalled()
+  })
+
   it('offers the way back to the episode a gone map was opened from', async () => {
     const { root } = await openMap('deleted', 'e1')
     const back = root.querySelector('a.opening-home')!

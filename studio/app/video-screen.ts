@@ -128,7 +128,10 @@ export const videoHeader = (snapshot: Snapshot) => {
   if (video.storyboard)
     return storyboardHeader(snapshot, video.storyboard, release)
   const view = snapshot.views?.video
-  return `${video.produced ? release : ''}${button(videoDisplay(snapshot).actionLabel, 'produce-video', true, !view?.enabled)}`
+  const display = videoDisplay(snapshot)
+  // Scenes being made again: the last cut is no longer the video, so it is
+  // not offered for release (as a storyboard's isn't).
+  return `${video.produced && !display.active ? release : ''}${button(display.actionLabel, 'produce-video', true, !view?.enabled)}`
 }
 export const videoScreen = (
   snapshot: Snapshot,

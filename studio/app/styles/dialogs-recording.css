@@ -157,11 +157,6 @@ dialog > button {
   padding: 4px 0;
 }
 
-.presenter-preview img {
-  height: 100%;
-  width: 100%;
-  object-fit: cover;
-}
 .presenter-preview small {
   position: absolute;
   bottom: 8px;

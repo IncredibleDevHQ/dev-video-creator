@@ -70,6 +70,27 @@ it('uses the engine display contract for header and scene labels', () => {
   expect(stageStatus(input, 'video')).toContain('Ready to prepare')
   expect(render(input)).toContain('Needs attention')
 })
+it('offers no release of the last cut while scenes are made again', () => {
+  const input = fixture()
+  input.project.video!.produced = {
+    objectKey: 'old.mp4',
+    duration: 30
+  } as never
+  input.views = projectViews(input.project)
+  input.views.video.display = {
+    label: 'Making scene 1',
+    active: true,
+    actionLabel: 'Finish the video'
+  }
+  expect(videoHeader(input)).not.toContain('data-action="release-dialog"')
+  // Made again: it can be released.
+  input.views.video.display = {
+    label: 'Ready',
+    active: false,
+    actionLabel: 'Export MP4'
+  }
+  expect(videoHeader(input)).toContain('data-action="release-dialog"')
+})
 it('does not present an old completion event as queued work progress', () => {
   const html = render(fixture())
   expect(html).toContain('Waiting for the next available slot')

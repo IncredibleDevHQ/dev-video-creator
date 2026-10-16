@@ -21,7 +21,14 @@ import {
   type MapMode
 } from './map-layout'
 import { paintWorld } from './map-paint'
-import { mapGone, mapNotes, mapPage, mapStages, mapTools } from './map-view'
+import {
+  mapFailed,
+  mapGone,
+  mapNotes,
+  mapPage,
+  mapStages,
+  mapTools
+} from './map-view'
 import { replacePlayerView } from './player-view'
 import { MapComments } from './map-comments'
 import {
@@ -185,14 +192,16 @@ export class MapCanvas {
       }, 3000)
     } catch (reason) {
       // A map deleted since its link was made says so, with the way back.
-      const gone = reason instanceof Error && /not found/i.test(reason.message)
-      if (gone && this.isOpen && this.mapId === id)
-        return void replacePlayerView(
-          this.root,
-          mapGone(from === id ? '' : from),
-          null
-        )
-      this.hooks.error(reason)
+      // Any other failure says why on the page, with Try again, never
+      // Loading… (the studio offline, for one).
+      const why = reason instanceof Error ? reason.message : ''
+      if (!this.isOpen || this.mapId !== id) return
+      const back = from === id ? '' : from
+      replacePlayerView(
+        this.root,
+        /not found/i.test(why) ? mapGone(back) : mapFailed(id, back, why),
+        null
+      )
     }
   }
   async refresh() {

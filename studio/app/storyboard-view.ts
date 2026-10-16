@@ -153,21 +153,25 @@ const building = (storyboard: Storyboard) =>
 /** A scene's frames as the moments a take is recorded across: on camera
  * for a camera scene, the voice alone for one the creator only speaks
  * (review 7: the camera came on with nothing to show). */
-export const takeMoments = (scene: SceneSummary): Moment[] =>
-  scene.frames
-    .filter((frame) => frame.voiceover.trim())
-    .map(
-      (frame) =>
-        ({
-          id: frameId(frame),
-          recordingKey: `${scene.pageId}:${frame.number}`,
-          title: frame.title,
-          camera: scene.build === 'camera' ? 'full' : 'none',
-          layout: 'beside-slide',
-          start: 0,
-          end: frame.duration
-        }) as unknown as Moment
-    )
+export const takeMoments = (scene: SceneSummary): Moment[] => {
+  const voiced = scene.frames.filter((frame) => frame.voiceover.trim())
+  // A camera scene with nothing to say is still taken, whole, for its
+  // picture: the engine asks for its take, and Record refused it.
+  const frames =
+    voiced.length || scene.build !== 'camera' ? voiced : scene.frames
+  return frames.map(
+    (frame) =>
+      ({
+        id: frameId(frame),
+        recordingKey: `${scene.pageId}:${frame.number}`,
+        title: frame.title,
+        camera: scene.build === 'camera' ? 'full' : 'none',
+        layout: 'beside-slide',
+        start: 0,
+        end: frame.duration
+      }) as unknown as Moment
+  )
+}
 
 const working = (label: string) =>
   `<span class="sb-rail-state is-working"><span class="activity-orbit" aria-hidden="true"></span>${label}</span>`
