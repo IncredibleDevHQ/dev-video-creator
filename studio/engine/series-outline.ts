@@ -51,6 +51,8 @@ export type OutlinePlan = {
     state: 'followed' | 'partly' | 'not'
     why: string
   }>
+  /** The last plan's open gaps this plan no longer needs, and why. */
+  resolved: Array<{ id: string; why: string }>
   flags: Array<{ episode: number; kind: ViewerFlag['kind']; line: string }>
 }
 
@@ -64,6 +66,11 @@ export type OutlineRules = {
   /** Whether the creator gave the outcome and the audience. */
   given: { outcome: boolean; audience: boolean }
   length?: LengthGoal
+  /** The last plan's gaps and what the creator did with each. */
+  lastGaps?: Array<{
+    id: string
+    state: 'open' | 'explained' | 'ignored' | 'closed'
+  }>
 }
 
 const STATES = ['followed', 'partly', 'not'] as const
@@ -118,6 +125,23 @@ export const validateOutline = (raw: unknown, rules: OutlineRules) => {
       )
   })
   if (gapIds.size !== gaps.length) problems.push('Give each gap its own id')
+  const resolved = list(value.resolved)
+    .map((item) => {
+      const entry = (item ?? {}) as Record<string, unknown>
+      return { id: slug(entry.id), why: words(entry.why, 200) }
+    })
+    .filter((item) => item.id)
+  for (const gap of rules.lastGaps || []) {
+    // An open gap is kept (same id) or said to be no longer needed; one the
+    // creator set aside does not come back.
+    const settled = resolved.find((item) => item.id === gap.id)
+    if (gap.state === 'open' && !gapIds.has(gap.id) && !settled?.why)
+      problems.push(
+        `The last plan's gap ${gap.id} is not in this plan: keep it with the same id, or say in resolved why the series no longer needs it`
+      )
+    if (gap.state === 'ignored' && gapIds.has(gap.id))
+      problems.push(`The creator set gap ${gap.id} aside: leave it out of gaps`)
+  }
   const episodes: OutlineEpisode[] = list(value.episodes).map((item) => {
     const entry = (item ?? {}) as Record<string, unknown>
     return {
@@ -309,6 +333,14 @@ export const validateOutline = (raw: unknown, rules: OutlineRules) => {
       overlaps,
       left: left.filter((item) => drawn.has(item.page)),
       answers,
+      resolved: resolved.filter(
+        (item) =>
+          item.why &&
+          !gapIds.has(item.id) &&
+          (rules.lastGaps || []).some(
+            (gap) => gap.id === item.id && gap.state === 'open'
+          )
+      ),
       flags
     } satisfies OutlinePlan
   }

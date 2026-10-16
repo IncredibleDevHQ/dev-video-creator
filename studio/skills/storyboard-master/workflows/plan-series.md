@@ -18,7 +18,9 @@ Every episode later becomes one storyboard (Plan Episode).
      is strict;
    - `episodes`: the episodes that exist, each with its id (`episode`), its
      cards, and `made` (true once its video has started);
-   - `last`: the last outline, when there was one.
+   - `last`: the last outline, when there was one: its through-lines, each
+     episode's win and teachings, and its `gaps`, each with what the creator
+     did with it (`state`: open, explained or ignored).
 2. `packet/PAGES.json`: every drawn card, in the map's order. Each has its id,
    title, idea, `evidence` (lines from the source), `opens` (how its script
    begins), topic and `seconds` (about how long it runs when spoken).
@@ -72,6 +74,15 @@ Every episode later becomes one storyboard (Plan Episode).
    - `ask`: the question that would fill it, put to the creator.
 
    Never invent material to cover a gap. Up to eight gaps.
+
+   When `last.gaps` is there, keep each gap's `id` while it still holds.
+   - A gap the creator `ignored` stays out of `gaps`.
+   - One they `explained` is covered by a line in its episode; name it again
+     only if it is still needed, with the same id.
+   - For each `open` gap you no longer list, say why in `resolved`: the card
+     that covers it now, or why the series no longer needs it. Keep a gap
+     while the audience would still need it; a card that names a thing is not
+     a card that explains it.
 7. **Directions.** Follow them wherever you can: their episodes, their order,
    their names, their emphasis. When two disagree, follow the more specific
    one (an episode's over the whole series'). Answer every one: `followed`,
@@ -123,6 +134,7 @@ Write `plan/series.json`:
   ],
   "overlaps": [{ "pages": ["card-id-4", "card-id-5"], "note": "Both explain the WebSocket preview" }],
   "left": [{ "page": "card-id-6", "why": "A product announcement, outside this series' story" }],
+  "resolved": [{ "id": "deploy-steps", "why": "The new card “Deploy it to your account” covers it" }],
   "directions": [{ "id": "direction-id", "state": "followed", "why": "The security story now closes the series" }],
   "flags": [{ "episode": 2, "kind": "overloaded", "line": "Three new primitives in one episode" }]
 }
@@ -133,5 +145,6 @@ directory. The studio checks it and puts it into the episodes:
 - every made episode at its place, with its cards;
 - every card once, or left with why;
 - each need from an earlier episode or a gap;
+- every gap of the last plan kept, or resolved with why;
 - every direction answered;
 - the length.

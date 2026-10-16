@@ -20,6 +20,8 @@ export type NoteResult = {
   title: string
   /** What the note said about it, in a line. */
   line: string
+  /** The series gap a new page answers, for organising to close. */
+  fills?: string
 }
 
 /** Where a copied page came from: the map, its page, and that page then. */

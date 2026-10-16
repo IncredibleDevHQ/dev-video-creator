@@ -8,8 +8,8 @@ import type { Slide } from '../shared/model'
 import type { Series, SeriesGap } from '../shared/series'
 import { addEvent } from './activity'
 import { addMapEpisode } from './map-episodes'
-import { copyOf, syncEvidence } from './map-copy'
-import { planScenes, scheduleSegues } from './map-segues'
+import { copyOf, pageHash, syncEvidence } from './map-copy'
+import { composeNarration, planScenes, scheduleSegues } from './map-segues'
 import { changeProject, loadProject } from './projects'
 import { reconcileVideo } from './scene-model'
 import { Refusal } from './refusal'
@@ -33,11 +33,36 @@ export const pagesOf = (snapshot: Snapshot) =>
     .map((slide) => slide.copyOf?.slide || '')
     .filter(Boolean)
 
+/** A copy as it came from the map: nothing in it edited in the episode. */
+const untouched = (copy: Slide) =>
+  pageHash({ ...copy, narration: copy.base || '' }) === copy.copyOf?.hash
+
+/** The map's card as it is now, for a copy that is behind it and was never
+ * edited nor kept on purpose: same id, the lines written around it kept. */
+const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
+  const now = pageHash(original)
+  if (
+    now === copy.copyOf?.hash ||
+    now === copy.copyOf?.kept ||
+    !untouched(copy)
+  )
+    return null
+  const fresh: Slide = {
+    ...copyOf(mapId, original),
+    id: copy.id,
+    ...(copy.bridge ? { bridge: copy.bridge } : {}),
+    ...(copy.outro ? { outro: copy.outro } : {})
+  }
+  fresh.narration = composeNarration(fresh)
+  return fresh
+}
+
 /**
  * Gives an open episode exactly these cards of the map, in this order. A card
- * it holds keeps its copy (and the lines written around it); a card new to it
- * is copied in; its own pages and copies of cards the map no longer shows
- * stay at the end. False when nothing changed.
+ * it holds keeps its copy (and the lines written around it), brought up to
+ * the map's card when it fell behind and was not edited or kept; a card new
+ * to it is copied in; its own pages and copies of cards the map no longer
+ * shows stay at the end. False when nothing changed.
  */
 export const setEpisodePages = async (
   notebook: string,
@@ -60,15 +85,25 @@ export const setEpisodePages = async (
     const extras = slides.filter(
       (slide) => !slide.copyOf?.slide || !cards.has(slide.copyOf.slide)
     )
+    // The plan read the map's cards as they are now: an open episode holds
+    // them as they are, unless the creator edited or kept a copy.
+    let updated = 0
     const next = [
       ...pages
         .filter((page) => cards.has(page))
-        .map(
-          (page) => held.get(page) || copyOf(map.project.id, cards.get(page)!)
-        ),
+        .map((page) => {
+          const was = held.get(page)
+          if (!was) return copyOf(map.project.id, cards.get(page)!)
+          const fresh = caughtUp(map.project.id, was, cards.get(page)!)
+          if (fresh) updated += 1
+          return fresh || was
+        }),
       ...extras
     ]
-    if (next.map((slide) => slide.id).join() === slides.map((s) => s.id).join())
+    if (
+      !updated &&
+      next.map((slide) => slide.id).join() === slides.map((s) => s.id).join()
+    )
       return
     changed = true
     current.project.slides = next
@@ -76,7 +111,7 @@ export const setEpisodePages = async (
     addEvent(
       current,
       'slide',
-      `Planned with ${next.length} card${next.length === 1 ? '' : 's'} from the map`
+      `Planned with ${next.length} card${next.length === 1 ? '' : 's'} from the map${updated ? `; ${updated} brought up to date with it` : ''}`
     )
   })
   if (!changed) return false
@@ -137,12 +172,14 @@ const settleCuts = async (mapId: string, order: string[]) => {
   })
 }
 
-/** Gaps the creator explained or ignored stay so when the plan names them
- * again; a closed gap stays closed. */
+/** Gaps the creator explained or ignored stay so, named again or not; a
+ * closed gap stays closed; an open one the plan no longer needs closes with
+ * the plan's reason. */
 const mergeGaps = (
   before: SeriesGap[] = [],
   planned: OutlinePlan['gaps'],
-  order: string[]
+  order: string[],
+  resolved: OutlinePlan['resolved'] = []
 ): SeriesGap[] => {
   const same = (gap: SeriesGap, id: string, missing: string) =>
     gap.id === id || gap.missing.toLowerCase() === missing.toLowerCase()
@@ -162,12 +199,14 @@ const mergeGaps = (
           : 'open'
     }
   })
-  const closed = before.filter(
-    (gap) =>
-      gap.state === 'closed' &&
-      !fresh.some((item) => same(item, gap.id, gap.missing))
-  )
-  return [...fresh, ...closed]
+  const kept = before
+    .filter((gap) => !fresh.some((item) => same(item, gap.id, gap.missing)))
+    .flatMap((gap): SeriesGap[] => {
+      if (gap.state !== 'open') return [gap]
+      const why = resolved.find((item) => item.id === gap.id)?.why
+      return why ? [{ ...gap, state: 'closed', resolved: why }] : []
+    })
+  return [...fresh, ...kept]
 }
 
 /** Puts the outline into the series and its episodes. */
@@ -245,7 +284,7 @@ export const applyOutline = async (
     }
     current.suggested = [...suggested]
     current.lines = plan.lines
-    current.gaps = mergeGaps(current.gaps, plan.gaps, order)
+    current.gaps = mergeGaps(current.gaps, plan.gaps, order, plan.resolved)
     current.flags = plan.flags
       .filter((flag) => order[flag.episode - 1])
       .map((flag) => ({
@@ -274,6 +313,22 @@ export const applyOutline = async (
     }
     delete current.planning
   })
+  // A gap the plan no longer needs is said, not just gone.
+  const dropped = plan.resolved
+    .map((item) => ({
+      ...item,
+      missing: context.series.gaps?.find((gap) => gap.id === item.id)?.missing
+    }))
+    .filter((item) => item.missing)
+  if (dropped.length)
+    await changeProject(context.map.project.id, (current) => {
+      for (const item of dropped)
+        addEvent(
+          current,
+          'slide',
+          `The series no longer misses “${item.missing}”: ${item.why}`
+        )
+    })
   for (const notebook of order) scheduleSegues(notebook)
   return order
 }

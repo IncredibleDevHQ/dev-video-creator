@@ -49,6 +49,8 @@ export type SeriesGap = {
   state: 'open' | 'explained' | 'ignored' | 'closed'
   /** The card that closed it. */
   closedBy?: string
+  /** Why a later plan no longer needed it, when no card closed it. */
+  resolved?: string
 }
 
 /** The creator's guidance for the plan, as a note on the canvas: about the
@@ -88,6 +90,8 @@ export type OrganizeRun = {
   }>
   /** Episodes this run started, taken out again by Undo. */
   started: string[]
+  /** Directions this run answered again, with their answer before. */
+  answered?: Array<{ id: string; before?: Direction['answer'] }>
   undone?: boolean
 }
 

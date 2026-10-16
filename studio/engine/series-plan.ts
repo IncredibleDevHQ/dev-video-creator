@@ -139,6 +139,19 @@ const runPlan = async (seriesId: string) => {
   const pages = cardsOf(map)
   const existing = await existingOf(series)
   const directions = await directionLines(series, map, existing)
+  const number = new Map(existing.map((item) => [item.notebook, item.number]))
+  // The last plan's gaps, each with what the creator did with it, so a gap
+  // keeps its id, an ignored one stays away, and a dropped one says why.
+  const lastGaps = (series.gaps || [])
+    .filter((gap) => gap.state !== 'closed')
+    .map((gap) => ({
+      id: gap.id,
+      missing: gap.missing,
+      state: gap.state,
+      ...(gap.episode && number.get(gap.episode)
+        ? { episode: number.get(gap.episode) }
+        : {})
+    }))
   const suggested = new Set(series.suggested || [])
   const given = {
     outcome: Boolean(series.outcome && !suggested.has('outcome')),
@@ -165,6 +178,7 @@ const runPlan = async (seriesId: string) => {
       ? {
           ...(series.outcome ? { outcome: series.outcome } : {}),
           lines: series.lines,
+          gaps: lastGaps,
           episodes: series.episodes
             .filter((item) => item.outline)
             .map((item) => ({
@@ -204,7 +218,8 @@ const runPlan = async (seriesId: string) => {
         existing,
         directions: directions.map((item) => item.id),
         given,
-        length: series.length
+        length: series.length,
+        lastGaps
       })
   })
   await applyOutline(seriesId, plan, { map, series, existing })

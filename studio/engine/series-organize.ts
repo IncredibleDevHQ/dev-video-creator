@@ -55,13 +55,20 @@ export type Started = {
   /** The episode it comes after (its notebook); null opens the series. */
   after: string | null
 }
-export type Placement = { moves: Move[]; start: Started[] }
+export type Answer = {
+  id: string
+  state: 'followed' | 'partly' | 'not'
+  why: string
+}
+export type Placement = { moves: Move[]; start: Started[]; answers: Answer[] }
 
 type Rules = {
   fresh: string[]
   episodes: Array<{ notebook: string; made: boolean; pages: string[] }>
   gaps: string[]
   lines: string[]
+  /** The creator's direction ids, which a placement may answer again. */
+  directions?: string[]
 }
 
 /** Every new card placed once: into an open episode after a card it holds,
@@ -165,11 +172,27 @@ export const validatePlacement = (raw: unknown, rules: Rules) => {
   for (const item of start)
     if (!moves.some((move) => move.start === item.key))
       problems.push(`New episode ${item.key} has no card`)
+  // A direction the moves change is answered again; others keep theirs.
+  const answers: Answer[] = list(value.answers)
+    .map((item) => {
+      const entry = (item ?? {}) as Record<string, unknown>
+      return {
+        id: String(entry.id || ''),
+        state: String(entry.state || '') as Answer['state'],
+        why: words(entry.why, 200)
+      }
+    })
+    .filter(
+      (answer) =>
+        (rules.directions || []).includes(answer.id) &&
+        ['followed', 'partly', 'not'].includes(answer.state) &&
+        answer.why
+    )
   return {
     ok: problems.length === 0,
     problems,
     warnings: [] as string[],
-    value: { moves, start }
+    value: { moves, start, answers }
   }
 }
 
@@ -179,7 +202,8 @@ export const settledOrganize = async (seriesId: string) => {
   while (organizing.has(seriesId)) await organizing.get(seriesId)
 }
 
-/** The drawn cards no episode holds, not left out and not held back. */
+/** The drawn cards no episode holds, not left out and not held back; a
+ * card whose note answered an open gap says which. */
 const freshOf = async (series: Series, mapId: string) => {
   const map = await loadProject(mapId)
   if (!map) return []
@@ -188,7 +212,19 @@ const freshOf = async (series: Series, mapId: string) => {
     const notebook = await loadProject(item.notebookId)
     for (const page of notebook ? pagesOf(notebook) : []) used.add(page)
   }
-  return cardsOf(map).filter((card) => !used.has(card.id))
+  const open = new Set(
+    (series.gaps || []).filter((g) => g.state === 'open').map((g) => g.id)
+  )
+  const fills = new Map<string, string>()
+  for (const note of map.project.notes || [])
+    for (const result of note.results || [])
+      if (result.fills && open.has(result.fills))
+        fills.set(result.slideId, result.fills)
+  return cardsOf(map)
+    .filter((card) => !used.has(card.id))
+    .map((card) =>
+      fills.has(card.id) ? { ...card, fills: fills.get(card.id)! } : card
+    )
 }
 
 /** Places the map's new cards into its series, when it organises itself. */
@@ -233,7 +269,14 @@ const place = async (
   const series = (await loadSeries(seriesId))!
   const map = (await loadProject(mapId))!
   const existing = await existingOf(series)
-  const directions = await directionLines(series, map, existing)
+  const directions = (await directionLines(series, map, existing)).map(
+    (line) => {
+      const answer = series.directions?.find((d) => d.id === line.id)?.answer
+      return answer
+        ? { ...line, answer: { state: answer.state, why: answer.why } }
+        : line
+    }
+  )
   const open = (series.gaps || []).filter((gap) => gap.state === 'open')
   const number = (notebook?: string) =>
     existing.find((item) => item.notebook === notebook)?.number
@@ -295,7 +338,8 @@ const place = async (
         fresh: fresh.map((card) => card.id),
         episodes: existing,
         gaps: open.map((gap) => gap.id),
-        lines: (series.lines || []).map((line) => line.id)
+        lines: (series.lines || []).map((line) => line.id),
+        directions: directions.map((line) => line.id)
       })
   })
   await applyPlacement(seriesId, mapId, plan, fresh)
@@ -405,6 +449,19 @@ export const applyPlacement = async (
       if (move.left && !(current.left || []).includes(move.page))
         current.left = [...(current.left || []), move.page]
     }
+    const at = new Date().toISOString()
+    for (const answer of plan.answers || []) {
+      const direction = current.directions?.find((d) => d.id === answer.id)
+      if (!direction) continue
+      run.answered = [
+        ...(run.answered || []),
+        {
+          id: direction.id,
+          ...(direction.answer ? { before: direction.answer } : {})
+        }
+      ]
+      direction.answer = { state: answer.state, why: answer.why, at }
+    }
     current.organized = [...(current.organized || []), run].slice(-5)
     delete current.organizing
   })
@@ -459,6 +516,13 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
       (page) => !run.moves.some((m) => m.kind === 'left' && m.page === page)
     )
     current.held = [...new Set([...(current.held || []), ...pages])]
+    // The answers the run gave go back to what they were.
+    for (const item of run.answered || []) {
+      const direction = current.directions?.find((d) => d.id === item.id)
+      if (!direction) continue
+      if (item.before) direction.answer = item.before
+      else delete direction.answer
+    }
     const saved = current.organized?.find((item) => item.id === id)
     if (saved) saved.undone = true
   })

@@ -122,6 +122,30 @@ The storyboard brief gets the series outcome and audience, the through-lines,
 and the episode's win, teaches and needs. "Previously" is worked out from the
 episode before it in the current order, not frozen at creation.
 
+## Tuned after the live tests (16 October)
+
+Six live runs on throwaway stores showed the plans sound and five places
+where the series lost track of itself:
+
+- **Gaps had no memory.** A re-plan re-derived them, so an open gap could
+  vanish without a word, and one the creator explained or ignored could come
+  back reworded. The planner now reads the last plan's gaps with what the
+  creator did with each, keeps their ids, never raises an ignored one, and
+  names in `resolved` why an open one is no longer needed. That gap closes
+  with its reason, and the map's activity says so.
+- **A note that answered a gap was folded into a card.** Sort Note preferred
+  adding to a page and could not see the gaps. It now reads them; a note
+  that answers one becomes its own card marked `fills`, and organising
+  closes that gap where it is needed.
+- **Organising left directions' answers stale.** Place Pages now sees each
+  direction's last answer and answers again the ones its moves change; Undo
+  puts the old answers back.
+- **Turning organising on did nothing for waiting cards.** It now places
+  them at once.
+- **Open episodes kept stale copies.** The plan reads the map's cards as they
+  are; an open episode now holds them as they are too. A copy the creator
+  edited in the episode, or chose to keep, stays as it was.
+
 ## Not in this pass
 
 Semantic zoom, multiplayer cursors, a canvas chat with the planner, moving a

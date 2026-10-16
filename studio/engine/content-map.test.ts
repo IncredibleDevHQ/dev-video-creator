@@ -153,6 +153,32 @@ it('checks the sorting against the pages the map has', () => {
     after: 'a',
     topic: 'Money'
   })
+  // A new page may answer an open gap of the series; only a new page can.
+  const filled = notes.validateSort(
+    { items: [{ kind: 'new', line: 'x', title: 'Access', fills: 'access' }] },
+    pages,
+    [],
+    ['access']
+  )
+  expect(filled.value.items[0]).toMatchObject({ fills: 'access' })
+  expect(
+    notes.validateSort(
+      { items: [{ kind: 'new', line: 'x', title: 'T', fills: 'nope' }] },
+      pages,
+      [],
+      ['access']
+    ).problems
+  ).toContain('nope is not an open gap of the series')
+  expect(
+    notes
+      .validateSort(
+        { items: [{ kind: 'adds', line: 'x', page: 'a', fills: 'access' }] },
+        pages,
+        [],
+        ['access']
+      )
+      .problems.join(' ')
+  ).toMatch(/Only a new page fills a gap/)
 })
 
 it('piles a note into the map: a new page, a change to a page, one covered', async () => {

@@ -617,7 +617,8 @@ export const mapView = async (mapId: string): Promise<MapView> => {
           gaps: series.gaps || [],
           flags: series.flags || [],
           left: series.left || [],
-          held: series.held || []
+          // A held card placed by hand since is no longer waiting.
+          held: (series.held || []).filter((page) => !usage[page]?.length)
         }
       : null,
     episodes,

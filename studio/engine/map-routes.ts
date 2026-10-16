@@ -99,7 +99,14 @@ const seriesAction = async (
   if (action === 'episode-remove') return removeEpisode(id, body)
   if (action === 'directions') return saveDirection(id, body)
   if (action === 'direction-remove') return removeDirection(id, body)
-  if (action === 'brief') return updateBrief(id, body)
+  if (action === 'brief') {
+    const before = await loadSeries(id)
+    const saved = await updateBrief(id, body)
+    // Turned on, organising places the cards that were waiting, now.
+    if (body.organize === true && before?.organize === false && saved.map)
+      void organizeNewPages(saved.map).catch(() => {})
+    return saved
+  }
   if (action === 'gap') return setGap(id, body)
   if (action === 'organize-undo') return undoOrganize(id, body)
   if (action === 'organize') {

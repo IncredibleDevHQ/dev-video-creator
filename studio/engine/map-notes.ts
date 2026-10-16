@@ -37,13 +37,16 @@ export type SortedIdea = {
   idea?: string
   after?: string | null
   topic?: string
+  /** The series gap a new page answers. */
+  fills?: string
 }
 
 /** The agent's sorting, checked against the pages the map has now. */
 export const validateSort = (
   raw: unknown,
   pages: string[],
-  topics: string[] = []
+  topics: string[] = [],
+  gaps: string[] = []
 ) => {
   const value = (raw ?? {}) as { items?: unknown }
   const problems: string[] = []
@@ -68,16 +71,24 @@ export const validateSort = (
       if (after && !pages.includes(after))
         problems.push(`${after} is not a page of the map`)
       const topic = words(item.topic, 60)
+      const fills = item.fills == null ? '' : String(item.fills)
+      if (fills && !gaps.includes(fills))
+        problems.push(`${fills} is not an open gap of the series`)
       items.push({
         kind: 'new',
         line,
         title,
         idea: words(item.idea, 400),
         after,
-        ...(topic && topics.includes(topic) ? { topic } : {})
+        ...(topic && topics.includes(topic) ? { topic } : {}),
+        ...(fills && gaps.includes(fills) ? { fills } : {})
       })
       continue
     }
+    if (item.fills != null)
+      problems.push(
+        'Only a new page fills a gap: make an idea that answers a gap a new page'
+      )
     const page = String(item.page ?? '')
     if (!pages.includes(page)) {
       problems.push(
@@ -179,9 +190,17 @@ const sortNote = async (id: string, noteId: string) => {
     if (!snapshot || !note) return
     const pages = pagesOf(snapshot)
     const topics = snapshot.project.topics || []
+    // The series' open gaps: a note that answers one becomes its own page,
+    // so organising can put it where the gap is.
+    const series = snapshot.project.mapSeries
+      ? await loadSeries(snapshot.project.mapSeries)
+      : null
+    const gaps = (series?.gaps || [])
+      .filter((gap) => gap.state === 'open')
+      .map((gap) => ({ id: gap.id, missing: gap.missing, ask: gap.ask }))
     const sorted = await runValidatedJsonStage({
       projectId: id,
-      inputKey: fingerprintOf({ note: note.text, pages, topics }),
+      inputKey: fingerprintOf({ note: note.text, pages, topics, gaps }),
       checkpoint: 'map-note',
       operation: 'revise-story',
       stage: 'story',
@@ -192,7 +211,8 @@ const sortNote = async (id: string, noteId: string) => {
       packet: {
         'packet/NOTE.md': note.text,
         'packet/PAGES.json': JSON.stringify(pages, null, 1),
-        'packet/TOPICS.json': JSON.stringify(topics)
+        'packet/TOPICS.json': JSON.stringify(topics),
+        'packet/GAPS.json': JSON.stringify(gaps, null, 1)
       },
       selection: snapshot.project.harness ?? (await detectedHarness()),
       origin: origin(),
@@ -200,7 +220,8 @@ const sortNote = async (id: string, noteId: string) => {
         validateSort(
           raw,
           pages.map((page) => page.id),
-          topics
+          topics,
+          gaps.map((gap) => gap.id)
         )
     })
     await placeNote(id, noteId, sorted.items)
@@ -273,7 +294,8 @@ const place = (id: string, noteId: string, items: SortedIdea[]) =>
           kind: 'new',
           slideId: slide.id,
           title: slide.title,
-          line: item.line
+          line: item.line,
+          ...(item.fills ? { fills: item.fills } : {})
         })
         continue
       }

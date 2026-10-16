@@ -318,6 +318,201 @@ it('outlines the series from every card, keeping the made episode and following 
   expect(edited.suggested).toEqual(['audience'])
 })
 
+it('keeps the last plan’s gaps: an open one stays or says why it went, an ignored one stays away', async () => {
+  const pages = ['a', 'b'].map((id) => ({ id, seconds: 30 }))
+  const rules = {
+    pages,
+    existing: [],
+    directions: [],
+    given: { outcome: true, audience: true },
+    lastGaps: [
+      { id: 'protocols', state: 'open' as const },
+      { id: 'access', state: 'open' as const },
+      { id: 'pricing', state: 'ignored' as const }
+    ]
+  }
+  const plan = (extra: Record<string, unknown>) => ({
+    lines: [{ id: 'why', name: 'Why', line: 'It fills a gap' }],
+    episodes: [
+      {
+        title: 'T',
+        about: 'A',
+        win: 'W',
+        teaches: ['t'],
+        carries: 'C',
+        needs: [],
+        lines: ['why'],
+        pages: ['a', 'b']
+      }
+    ],
+    ...extra
+  })
+  const gap = (id: string) => ({
+    id,
+    missing: id,
+    episode: 1,
+    why: 'Needed',
+    ask: 'What is it?'
+  })
+  const dropped = validateOutline(plan({ gaps: [gap('protocols')] }), rules)
+  expect(dropped.problems.join(' | ')).toMatch(
+    /last plan's gap access is not in this plan/
+  )
+  const kept = validateOutline(
+    plan({
+      gaps: [gap('protocols')],
+      resolved: [{ id: 'access', why: 'The new card explains Access' }]
+    }),
+    rules
+  )
+  expect(kept.problems).toEqual([])
+  expect(kept.value.resolved).toEqual([
+    { id: 'access', why: 'The new card explains Access' }
+  ])
+  const raised = validateOutline(
+    plan({
+      gaps: [gap('protocols'), gap('access'), gap('pricing')]
+    }),
+    rules
+  )
+  expect(raised.problems.join(' | ')).toMatch(/set gap pricing aside/)
+
+  // Applied: the resolved gap closes with its reason, and the map says so.
+  const map = await drawnMap('m-gaps')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-gaps', {})
+  const first =
+    (gaps: unknown[], resolved: unknown[] = [], episode = '') =>
+    () => ({
+      outcome: 'Run a pipeline',
+      audience: 'Workers developers',
+      lines: [{ id: 'why', name: 'Why', line: 'It fills a gap' }],
+      episodes: [
+        {
+          ...(episode ? { episode } : {}),
+          title: 'All of it',
+          about: 'A',
+          win: 'W',
+          teaches: ['t'],
+          needs: [],
+          carries: 'C',
+          lines: ['why'],
+          pages: ids
+        }
+      ],
+      gaps,
+      resolved,
+      directions: [],
+      flags: []
+    })
+  replies['Plan Series'] = first([gap('protocols'), gap('access')])
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  await directions.setGap(series.id, { id: 'protocols', state: 'explained' })
+  let seen: Record<string, unknown> = {}
+  replies['Plan Series'] = (input) => {
+    seen = packetOf(input, 'SERIES.json')
+    // The episode the first plan made is kept, by its id.
+    const made = (seen.episodes as Array<{ episode: string }>)[0].episode
+    return first(
+      [],
+      [{ id: 'access', why: 'A card covers Access now' }],
+      made
+    )()
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect((seen.last as { gaps: unknown[] }).gaps).toEqual([
+    { id: 'protocols', missing: 'protocols', state: 'explained', episode: 1 },
+    { id: 'access', missing: 'access', state: 'open', episode: 1 }
+  ])
+  const after = (await loadSeries(series.id))!
+  expect(after.gaps).toMatchObject([
+    { id: 'protocols', state: 'explained' },
+    { id: 'access', state: 'closed', resolved: 'A card covers Access now' }
+  ])
+  const events = (await loadProject('m-gaps'))!.events.map((e) => e.message)
+  expect(events).toContain(
+    'The series no longer misses “access”: A card covers Access now'
+  )
+})
+
+it('brings an open episode’s untouched copies up to the map’s cards when it plans, never an edited one', async () => {
+  const map = await drawnMap('m-fresh')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-fresh', {})
+  const one = await episodes.addMapEpisode(series.id, {
+    title: 'Both',
+    slides: [ids[0], ids[1]]
+  })
+  const e1 = one.notebook.project.id
+  await segues.settledAllSegues()
+  // The creator edits the second copy in the episode; then a note revises
+  // both cards on the map.
+  const before = (await loadProject(e1))!.project.slides
+  await changeProject(e1, (current) => {
+    current.project.slides[1].svg = '<svg><text>Mine</text></svg>'
+  })
+  await changeProject('m-fresh', (current) => {
+    for (const slide of current.project.slides.slice(0, 2))
+      slide.narration = `${slide.narration} Now with Dana's story.`
+  })
+  replies['Plan Series'] = (input) => {
+    const made = (
+      packetOf(input, 'SERIES.json').episodes as Array<{ episode: string }>
+    )[0].episode
+    return {
+      outcome: 'Run a pipeline',
+      audience: 'Workers developers',
+      lines: [{ id: 'why', name: 'Why', line: 'It fills a gap' }],
+      episodes: [
+        {
+          episode: made,
+          title: 'Both',
+          about: 'A',
+          win: 'W',
+          teaches: ['t'],
+          needs: [],
+          carries: 'C',
+          lines: ['why'],
+          pages: [ids[0], ids[1]]
+        },
+        {
+          title: 'The rest',
+          about: 'B',
+          win: 'W2',
+          teaches: ['t2'],
+          needs: [{ what: 't', from: 1 }],
+          carries: 'C2',
+          lines: ['why'],
+          pages: ids.slice(2)
+        }
+      ],
+      gaps: [],
+      directions: [],
+      flags: []
+    }
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  const after = (await loadProject(e1))!.project.slides
+  // Same copies, by id; the untouched one says the map's new words.
+  expect(after.map((slide) => slide.id)).toEqual(
+    before.map((slide) => slide.id)
+  )
+  expect(after[0].base).toContain("Now with Dana's story.")
+  expect(after[0].narration).toContain("Now with Dana's story.")
+  expect(after[0].copyOf?.hash).not.toBe(before[0].copyOf?.hash)
+  // The edited one stays as the creator left it, still marked as behind.
+  expect(after[1].svg).toBe('<svg><text>Mine</text></svg>')
+  expect(after[1].base).not.toContain('Dana')
+  const view = await episodes.mapView('m-fresh')
+  expect(view.episodes[0].copies.map((copy) => copy.stale)).toEqual([
+    false,
+    true
+  ])
+})
+
 it('organises new cards into the series, and Undo takes them out again', async () => {
   const map = await drawnMap('m2')
   const ids = map.project.slides.map((s) => s.id)
@@ -349,12 +544,38 @@ it('organises new cards into the series, and Undo takes them out again', async (
         state: 'open'
       }
     ]
+    current.directions = [
+      {
+        id: 'open-cfg',
+        text: 'Open episode 2 on the config',
+        at: '',
+        answer: { state: 'partly', why: 'No card shows it', at: '' }
+      }
+    ]
   })
   await changeProject('m2', (current) => {
     current.project.slides.push(
       card('m2-7', 'The config'),
       card('m2-8', 'Pricing')
     )
+    // The config card came from a note that answers the gap.
+    current.project.notes = [
+      {
+        id: 'n1',
+        at: '',
+        text: 'The config',
+        state: 'sorted',
+        results: [
+          {
+            kind: 'new',
+            slideId: 'm2-7',
+            title: 'The config',
+            line: 'l',
+            fills: 'cfg'
+          }
+        ]
+      }
+    ]
   })
   replies['Place Pages'] = (input) => {
     const eps = packetOf(input, 'EPISODES.json')
@@ -362,7 +583,16 @@ it('organises new cards into the series, and Undo takes them out again', async (
     expect(
       packetOf(input, 'NEW.json').map((c: { id: string }) => c.id)
     ).toEqual(['m2-7', 'm2-8'])
+    expect(packetOf(input, 'NEW.json')[0].fills).toBe('cfg')
+    expect(packetOf(input, 'SERIES.json').directions[0].answer).toEqual({
+      state: 'partly',
+      why: 'No card shows it'
+    })
     return {
+      answers: [
+        { id: 'open-cfg', state: 'followed', why: 'The config now opens it' },
+        { id: 'not-a-direction', state: 'followed', why: 'Dropped' }
+      ],
       moves: [
         {
           page: 'm2-7',
@@ -397,6 +627,10 @@ it('organises new cards into the series, and Undo takes them out again', async (
   expect(await pagesIn(started)).toEqual(['m2-8'])
   expect(after.episodes[2].outline?.win).toBe('Estimate the cost')
   expect(after.gaps![0]).toMatchObject({ state: 'closed', closedBy: 'm2-7' })
+  expect(after.directions![0].answer).toMatchObject({
+    state: 'followed',
+    why: 'The config now opens it'
+  })
   const run = after.organized!.at(-1)!
   expect(run.moves.map((m) => [m.page, m.kind])).toEqual([
     ['m2-7', 'closes'],
@@ -409,6 +643,8 @@ it('organises new cards into the series, and Undo takes them out again', async (
   expect(await readRow('projects', started)).toBeNull()
   expect(undone.held).toEqual(['m2-7', 'm2-8'])
   expect(undone.gaps![0].state).toBe('open')
+  // The answer the run gave goes back to the plan's.
+  expect(undone.directions![0].answer).toMatchObject({ state: 'partly' })
   // Held back, they wait: organising again places nothing.
   replies['Place Pages'] = () => {
     throw new Error('should not run')

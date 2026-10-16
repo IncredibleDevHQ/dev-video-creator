@@ -129,8 +129,13 @@ merge small ideas that belong together. For each idea decide:
 
 `line` says, in the note's own words or closely, what the note says about it.
 Prefer `adds` to `new` when a page is clearly about the same thing; never
-rewrite a page here. Write `story/note.json` as
-`{ "items": [{ "kind": "new", "line": "…", "title": "…", "idea": "…", "after": "<page id or null>", "topic": "…" }, { "kind": "adds", "line": "…", "page": "<page id>" }, { "kind": "covered", "line": "…", "page": "<page id>" }] }`.
+rewrite a page here.
+
+`packet/GAPS.json` lists what the map's series is missing (`id`, `missing`,
+`ask`), when it has a series. An idea that answers one of those gaps is
+`new`, with `fills` set to the gap's id, even when a page is close to it: the
+gap asked for its own card, and the series puts it where the gap is. Write `story/note.json` as
+`{ "items": [{ "kind": "new", "line": "…", "title": "…", "idea": "…", "after": "<page id or null>", "topic": "…", "fills": "<gap id, only when it answers one>" }, { "kind": "adds", "line": "…", "page": "<page id>" }, { "kind": "covered", "line": "…", "page": "<page id>" }] }`.
 Call story_submit_note with this run directory; fix refusals within six
 submissions, then stop after acceptance.
 
