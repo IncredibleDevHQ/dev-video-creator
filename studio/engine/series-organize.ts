@@ -472,11 +472,17 @@ export const applyPlacement = async (
     ...sorted.map((move) => move.into!),
     ...open.map((entry) => entry.notebook)
   ])) {
+    // One taken out of the series meanwhile is the creator's: it stops the
+    // run only when it is filled, and the run leaves it alone otherwise.
+    if (!members.has(id)) {
+      if (sorted.some((move) => move.into === id))
+        throw new Refusal(
+          'An episode left the series meanwhile; organise again'
+        )
+      continue
+    }
     if (isMade(await loadProject(id)))
       throw new Refusal('An episode’s video started; plan again')
-    // One it fills, taken out of the series meanwhile, is the creator's.
-    if (!members.has(id) && sorted.some((move) => move.into === id))
-      throw new Refusal('An episode left the series meanwhile; organise again')
   }
   for (const move of sorted) {
     const notebook = move.into!
@@ -545,7 +551,13 @@ export const applyPlacement = async (
       .filter((id) => !run.started.includes(id))
     for (const item of plan.start) {
       const id = startedAt.get(item.key)!
-      const after = item.after ? order.indexOf(item.after) + 1 : 0
+      // After the episode it follows; when that one left the series
+      // meanwhile, after the last episode still in it, never first.
+      const after = !item.after
+        ? 0
+        : order.includes(item.after)
+          ? order.indexOf(item.after) + 1
+          : order.length
       order.splice(after, 0, id)
     }
     await setSeriesOrder(seriesId, order)
@@ -642,9 +654,13 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
     throw new Refusal('Wait for the plan to finish, then undo')
   if (series.organizing?.state === 'organizing')
     throw new Refusal('Wait until the new cards are organised, then undo')
+  const members = new Set(series.episodes.map((item) => item.notebookId))
   for (const move of run.moves) {
     if (!move.copy || !move.episode || run.started.includes(move.episode))
       continue
+    // One the creator took out of the series since is theirs: left alone,
+    // and the rest is undone (review 7: Undo failed on it, every time).
+    if (!members.has(move.episode)) continue
     const snapshot = await loadProject(move.episode)
     if (!snapshot || isMade(snapshot)) continue
     if (

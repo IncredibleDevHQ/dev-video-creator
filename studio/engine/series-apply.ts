@@ -297,63 +297,88 @@ export const setPagesNoted = async (
 
 /** All or nothing: what a stopped run changed goes back as it was, unless
  * the creator changed it since (review 7). A copy the run moved, by its id
- * and the episode it came from, ends in one episode: where it went, if that
- * one can't go back, else home; held in two, the one away gets its own id. */
+ * and the episode it came from, ends in one episode: home, when home holds
+ * it or can take it back, else where it went. It goes home first and only
+ * then leaves where it went, so it is always in one of them; held in two,
+ * the one away gets its own id. Returns the moved copies that stay away. */
 export const putBack = async (
   before: PutBack,
   moved: Map<string, string> = new Map()
 ) => {
-  const now = new Map<string, Slide[]>()
+  const now = new Map<string, Snapshot | null>()
   for (const notebook of before.keys())
-    now.set(notebook, await slidesOf(notebook))
-  const changed = new Set(
-    [...before]
-      .filter(([notebook, { written }]) => {
-        return JSON.stringify(now.get(notebook)) !== written
-      })
-      .map(([notebook]) => notebook)
+    now.set(notebook, await loadProject(notebook))
+  const slidesNow = (notebook: string) =>
+    now.get(notebook)?.project.slides || []
+  // One the creator changed since, or whose video started, keeps what it
+  // holds: a copy moved into it stays there.
+  const keeps = [...before.keys()].filter(
+    (notebook) =>
+      JSON.stringify(slidesNow(notebook)) !== before.get(notebook)!.written ||
+      isMade(now.get(notebook) ?? null)
   )
-  const away = new Set(
-    [...changed].flatMap((notebook) =>
-      (now.get(notebook) || []).map((slide) => slide.id)
-    )
+  const stays = new Set(
+    keeps.flatMap((notebook) => slidesNow(notebook).map((slide) => slide.id))
   )
-  // A copy whose home became made can't go back: it stays where it went.
-  const homeless = new Set<string>()
-  for (const [id, source] of moved)
-    if (isMade(await loadProject(source))) homeless.add(id)
-  for (const [notebook, { slides, written }] of before) {
-    if (changed.has(notebook)) continue
-    await changeProject(notebook, (current) => {
-      const unchanged = JSON.stringify(current.project.slides) === written
-      if (isMade(current) || !unchanged) return
-      const staying = current.project.slides.filter(
-        (slide) =>
-          homeless.has(slide.id) && !slides.some((s) => s.id === slide.id)
-      )
-      current.project.slides = [
-        ...slides.filter(
-          (slide) => !(moved.has(slide.id) && away.has(slide.id))
-        ),
-        ...staying
-      ]
+  // What putBack wrote, and where each moved copy waits: a copy leaves only
+  // an episode still as putBack left it.
+  const left = new Map<string, string>()
+  const went = new Map<string, string[]>()
+  const change = (
+    notebook: string,
+    as: string,
+    next: (slides: Slide[]) => Slide[]
+  ) =>
+    changeProject(notebook, (current) => {
+      if (isMade(current) || JSON.stringify(current.project.slides) !== as)
+        return
+      current.project.slides = next(current.project.slides)
       reconcileVideo(current.project, current, new Set())
+      left.set(notebook, JSON.stringify(current.project.slides))
     }).catch(() => {})
+  for (const [notebook, { slides, written }] of before) {
+    if (keeps.includes(notebook)) continue
+    // A copy moved in stays until it is home again.
+    await change(notebook, written, (current) => {
+      const waiting = current.filter(
+        (s) => moved.has(s.id) && !slides.some((was) => was.id === s.id)
+      )
+      for (const { id } of waiting)
+        went.set(id, [...(went.get(id) || []), notebook])
+      return [
+        ...slides.filter((s) => !(moved.has(s.id) && stays.has(s.id))),
+        ...waiting
+      ]
+    })
   }
+  const away = new Set<string>()
   for (const [id, source] of moved) {
+    // Home first, in one write: it holds the copy, or takes it back while
+    // its video hasn't started and no episode that keeps it has it.
+    const original = before.get(source)?.slides.find((s) => s.id === id)
+    let home = false
+    await changeProject(source, (current) => {
+      home = current.project.slides.some((slide) => slide.id === id)
+      if (home || !original || stays.has(id) || isMade(current)) return
+      current.project.slides = [...current.project.slides, original]
+      reconcileVideo(current.project, current, new Set())
+      home = true
+      if (left.has(source))
+        left.set(source, JSON.stringify(current.project.slides))
+    }).catch(() => {})
+    if (!home) away.add(id)
+    // Then out of where it went.
+    for (const notebook of home ? went.get(id) || [] : [])
+      if (notebook !== source && left.has(notebook))
+        await change(notebook, left.get(notebook)!, (current) =>
+          current.filter((slide) => slide.id !== id)
+        )
     const holders: string[] = []
     for (const notebook of new Set([source, ...before.keys()]))
       if ((await slidesOf(notebook)).some((slide) => slide.id === id))
         holders.push(notebook)
-    const original = before.get(source)?.slides.find((s) => s.id === id)
-    if (!holders.length && original)
-      await changeProject(source, (current) => {
-        if (isMade(current)) return
-        current.project.slides = [...current.project.slides, original]
-        reconcileVideo(current.project, current, new Set())
-      }).catch(() => {})
-    // Held twice: a made episode keeps the id (it can't change); the others
-    // get their own.
+    // Held twice still: a made episode keeps the id (it can't change); the
+    // others get their own.
     const keeper =
       (
         await Promise.all(
@@ -371,6 +396,7 @@ export const putBack = async (
         reconcileVideo(current.project, current, new Set())
       }).catch(() => {})
   }
+  return away
 }
 
 /** An episode a run started and nobody touched: out of the series, and
@@ -481,7 +507,9 @@ export const applyOutline = async (
         true
       )
       created.push(made.notebook.project.id)
-      await setEpisodePages(
+      // Noted as the others are: a copy carried into it goes home from it.
+      await setPagesNoted(
+        before,
         made.notebook.project.id,
         context.map,
         episode.pages,
@@ -491,9 +519,14 @@ export const applyOutline = async (
       order.push(made.notebook.project.id)
     }
   } catch (error) {
-    await putBack(before, movedFrom)
-    for (const notebook of created)
+    const away = await putBack(before, movedFrom)
+    // A new episode goes, unless it holds an edit that can't go home: it
+    // stays with that alone, so the creator's work is never lost.
+    for (const notebook of created) {
+      const slides = (await loadProject(notebook))?.project.slides || []
+      if (slides.some((slide) => away.has(slide.id))) continue
       await discardEpisode(seriesId, notebook).catch(() => {})
+    }
     // The neighbours of a discarded episode say their lines again.
     if (created.length)
       for (const item of (await loadSeries(seriesId))?.episodes || [])
