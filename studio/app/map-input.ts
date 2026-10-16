@@ -349,6 +349,8 @@ export const installMapInput = (map: MapCanvas) => {
       const menu = map.slot('menu')
       if (menu && !menu.hidden) return
       if (map.root.querySelector('.map-page.is-notes-open')) return
+      // A comment, its recording or the comment tool closes first (review 7).
+      if (map.comments.escapable) return
       e.preventDefault()
       map.naming = null
       map.changing = null

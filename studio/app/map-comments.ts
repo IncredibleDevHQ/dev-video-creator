@@ -174,6 +174,17 @@ export class MapComments {
   private pressing = false
   private recordingToken = 0
   private openingMic = false
+  /** Whether Esc has something here to close: a recording, a thread, a
+   * composer or the comment tool (the map leaves Esc to it then). */
+  get escapable() {
+    return Boolean(
+      this.recording ||
+      this.openingMic ||
+      this.composer ||
+      this.thread ||
+      this.tool
+    )
+  }
   private sending: Place[] = []
   private ticker = 0
   private audio: HTMLAudioElement | null = null
@@ -744,14 +755,7 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
     globalThis.addEventListener?.('keydown', (event) => {
       if (!this.map.isOpen || event.defaultPrevented || dialogOpen()) return
       const e = event as KeyboardEvent
-      if (
-        e.key === 'Escape' &&
-        (this.recording ||
-          this.openingMic ||
-          this.composer ||
-          this.thread ||
-          this.tool)
-      ) {
+      if (e.key === 'Escape' && this.escapable) {
         e.preventDefault()
         e.stopImmediatePropagation()
         if (this.recording || this.openingMic) this.cancelRecording()

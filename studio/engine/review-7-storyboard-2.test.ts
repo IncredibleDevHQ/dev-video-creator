@@ -67,10 +67,10 @@ vi.mock('./voice', async (original) => ({
   probeSeconds: async () => 4
 }))
 
-const { writeRow } = await import('./persistence')
+const { storeAsset, writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
 const { planSummary, writeInternal } = await import('./storyboard/state')
-const { missingTakes, settledStoryboard, storyboardDir } =
+const { missingTakes, scheduleStoryboard, settledStoryboard, storyboardDir } =
   await import('./storyboard/pipeline')
 const { saveStoryboardTake, setStoryboardBuild, showTakeSlots } =
   await import('./storyboard/actions')
@@ -191,6 +191,17 @@ const seed = async (
   if (options.internal) await writeInternal(dir, options.internal)
   return dir
 }
+
+const keyOf = async (id: string, body: string) =>
+  (
+    await storeAsset({
+      body: Buffer.from(body),
+      contentType: 'video/webm',
+      kind: 'storyboard-take',
+      extension: '.webm',
+      projectId: id
+    })
+  ).objectKey
 
 const stored = async (id: string) =>
   (await loadProject(id))!.project.video!.storyboard!
@@ -319,4 +330,55 @@ it('keeps the change the creator asked for when a build changes after a failed p
   const asked = planned.mock.calls.map(([input]) => input.note)
   expect(asked[0]).toContain('Merge scenes 1 and 2')
   expect(asked[0]).toContain('Page p1')
+})
+
+it('carries on at start-up when the voice stopped being the creator’s while it waited for takes', async () => {
+  // Waiting for scene 1's take, saved by the earlier code; then the voice
+  // became an AI voice, so no scene waits for a take any more.
+  const take = { objectKey: await keyOf('no-wait', 'camera'), duration: 4 }
+  await seed('no-wait', {
+    storyboard: {
+      stage: 'voice',
+      status: 'waiting',
+      waitingFor: 'takes',
+      approved: true,
+      plan: planSummary(made({ voiced: [] }), { p2: take }, true)
+    },
+    internal: made({ voiced: [] })
+  })
+  expect((await stored('no-wait')).plan!.scenes[0].take).toBeNull()
+  await showTakeSlots((await loadProject('no-wait'))!)
+  await settledStoryboard('no-wait')
+  const value = await stored('no-wait')
+  // Not stuck: it went on and made the video.
+  expect([value.stage, value.status, value.waitingFor]).toEqual([
+    'done',
+    'done',
+    undefined
+  ])
+})
+
+it('voices a first take that came in while the frames were built before the episode is put together', async () => {
+  // Voiced with the AI voice, then the creator chose to record: both
+  // scenes' takes come in while the frames are being built.
+  await seed('mid-build', {
+    record: true,
+    storyboard: {
+      stage: 'frames',
+      status: 'working',
+      waitingFor: undefined,
+      approved: true,
+      plan: planSummary(made(), {}, true)
+    },
+    internal: made()
+  })
+  await saveStoryboardTake('mid-build', 'p1', Buffer.from('one'), 'video/webm')
+  await saveStoryboardTake('mid-build', 'p2', Buffer.from('two'), 'video/webm')
+  expect((await stored('mid-build')).redo).toEqual(['p1', 'p2'])
+  scheduleStoryboard('mid-build')
+  await settledStoryboard('mid-build')
+  const value = await stored('mid-build')
+  expect([value.status, value.redo ?? []]).toEqual(['done', []])
+  // Both takes were voiced before the video was made.
+  expect(heard.at(-1)).toEqual({ p1: 'one', p2: 'two' })
 })

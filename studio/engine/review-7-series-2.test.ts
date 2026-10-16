@@ -16,16 +16,19 @@ vi.mock('./creative/stage', () => ({ runValidatedJsonStage: stage }))
 // A hook on the evidence sync that follows each episode a plan changes: the
 // moment between one episode and the next.
 const { between } = vi.hoisted(() => ({
-  between: { next: null as null | (() => Promise<unknown>) }
+  between: { next: null as null | (() => Promise<unknown>), skip: 0 }
 }))
 vi.mock('./map-copy', async (original) => {
   const real = await original<typeof import('./map-copy')>()
   return {
     ...real,
     syncEvidence: async (...args: Parameters<typeof real.syncEvidence>) => {
-      const hook = between.next
-      between.next = null
-      await hook?.()
+      if (between.skip > 0) between.skip -= 1
+      else {
+        const hook = between.next
+        between.next = null
+        await hook?.()
+      }
       return real.syncEvidence(...args)
     }
   }
@@ -198,6 +201,8 @@ const gate = () => {
 }
 
 beforeEach(() => {
+  between.next = null
+  between.skip = 0
   for (const key of Object.keys(replies)) delete replies[key]
   replies['Write Segues'] = (input) => {
     const brief = packetOf(input, 'EPISODE.json')
@@ -399,4 +404,130 @@ it('keeps the creator’s edited copy of a card a plan places nowhere', async ()
   )
   expect(kept?.svg).toBe('<svg><text>Redrawn</text></svg>')
   await segues.settledAllSegues()
+})
+
+it('keeps an edit the creator made while a stopped plan was being applied', async () => {
+  const map = await drawnMap('m-rb-edit')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-rb-edit', {})
+  const one = await add(series.id, '', ids.slice(0, 2))
+  const two = await add(series.id, '', ids.slice(2, 4))
+  await segues.settledAllSegues()
+  replies['Plan Series'] = () => {
+    // While the plan fills a new episode after episode 1, the creator
+    // redraws a card of episode 1; then episode 2's storyboard starts.
+    between.skip = 1
+    between.next = async () => {
+      await changeProject(one, (current) => {
+        current.project.slides[0].svg = '<svg><text>Mine</text></svg>'
+      })
+      await startStoryboard(two)
+    }
+    return outline([
+      { episode: one, title: 'Opening', pages: [ids[0], ids[4]] },
+      { title: 'In between', pages: [ids[5]] },
+      { episode: two, title: 'Then', pages: [ids[2], ids[3], ids[1]] }
+    ])
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect((await loadSeries(series.id))!.planning?.state).toBe('failed')
+  // Not put back over the creator's edit.
+  expect((await loadProject(one))!.project.slides[0].svg).toBe(
+    '<svg><text>Mine</text></svg>'
+  )
+  await segues.settledAllSegues()
+})
+
+it('puts the episodes an organising run filled back when another one’s video starts meanwhile', async () => {
+  const map = await drawnMap('m-org-rb')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-org-rb', {})
+  const one = await add(series.id, '', ids.slice(0, 2))
+  const two = await add(series.id, '', ids.slice(2, 4))
+  await segues.settledAllSegues()
+  replies['Place Pages'] = () => {
+    // Episode 1 gets its card first; then episode 2's storyboard starts.
+    between.next = () => startStoryboard(two)
+    return {
+      moves: [
+        { page: ids[4], into: one, after: ids[1], why: 'It builds on it' },
+        { page: ids[5], into: two, after: ids[3], why: 'It closes it' }
+      ],
+      start: []
+    }
+  }
+  await organize.organizeNewPages('m-org-rb')
+  await organize.settledOrganize(series.id)
+  expect((await loadSeries(series.id))!.organizing).toMatchObject({
+    state: 'failed',
+    error: 'An episode’s video started; plan again'
+  })
+  expect(await pagesIn(one)).toEqual(ids.slice(0, 2))
+  await segues.settledAllSegues()
+})
+
+it('keeps each edited copy when the episode a plan keeps the card in has its own, or the card is in a made episode', async () => {
+  const map = await drawnMap('m-two-edits')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-two-edits', {})
+  const one = await add(series.id, '', [ids[0], ids[1]])
+  const two = await add(series.id, '', [ids[1], ids[2]])
+  const three = await add(series.id, '', [ids[3], ids[4]])
+  const made = await add(series.id, '', [ids[3]])
+  await segues.settledAllSegues()
+  // Card 2 is redrawn in episodes 1 and 2; card 4 in episode 3, and it is
+  // also in an episode whose video is made.
+  const redraw = (notebook: string, at: number, words: string) =>
+    changeProject(notebook, (current) => {
+      current.project.slides[at].svg = `<svg><text>${words}</text></svg>`
+    })
+  await redraw(one, 1, 'Edit in one')
+  await redraw(two, 0, 'Edit in two')
+  await redraw(three, 0, 'Edit in three')
+  await makeVideo(made)
+  replies['Plan Series'] = () =>
+    outline([
+      { episode: one, title: 'Opening', pages: [ids[0]] },
+      { episode: two, title: 'Then', pages: [ids[1], ids[2]] },
+      { episode: three, title: 'After', pages: [ids[4], ids[5]] },
+      { episode: made, title: 'Made', pages: [ids[3]] }
+    ])
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  const svgs = async (notebook: string) =>
+    (await loadProject(notebook))!.project.slides.map((slide) => slide.svg)
+  // Episode 2 keeps its own edit; episode 1's stays in episode 1.
+  expect(await svgs(two)).toContain('<svg><text>Edit in two</text></svg>')
+  expect(await svgs(one)).toContain('<svg><text>Edit in one</text></svg>')
+  // The card is the made episode's now; episode 3's edit of it stays.
+  expect(await svgs(three)).toContain('<svg><text>Edit in three</text></svg>')
+  await segues.settledAllSegues()
+})
+
+it('takes a started episode the creator trimmed out of the series on Undo, rather than deleting it', async () => {
+  const map = await drawnMap('m-trim')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-trim', {})
+  const first = await add(series.id, '', ids.slice(0, 3))
+  await segues.settledAllSegues()
+  replies['Place Pages'] = () => ({
+    moves: ids
+      .slice(3)
+      .map((page) => ({ page, start: 'k', why: 'A part of its own' })),
+    start: [started('k', 'Three more', first)]
+  })
+  await organize.organizeNewPages('m-trim')
+  await organize.settledOrganize(series.id)
+  await segues.settledAllSegues()
+  const run = (await loadSeries(series.id))!.organized!.at(-1)!
+  const [trimmed] = run.started
+  // The creator takes one of its cards out: not exactly the run's any more.
+  await changeProject(trimmed, (current) => {
+    current.project.slides = current.project.slides.slice(1)
+  })
+  const undone = await organize.undoOrganize(series.id, { run: run.id })
+  await segues.settledAllSegues()
+  expect(await readRow('projects', trimmed)).not.toBeNull()
+  expect(undone.episodes.map((e) => e.notebookId)).toEqual([first])
 })

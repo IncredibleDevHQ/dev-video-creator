@@ -65,10 +65,17 @@ export const openLength = (map: MapCanvas, anchor: HTMLElement) => {
     const next = pending
     pending = null
     return next
-      ? map.run(
-          () => mapApi.brief(series.id, { length: next }),
-          `Each episode now runs ${windowLabel(next)}${next.strict ? ', and must fit' : ''}`
-        )
+      ? map
+          .run(
+            () => mapApi.brief(series.id, { length: next }),
+            `Each episode now runs ${windowLabel(next)}${next.strict ? ', and must fit' : ''}`
+          )
+          .then((saved) => {
+            // Not saved: the lanes say the window that stands (review 7).
+            if (!saved)
+              markRuns(map.root, map.view?.series?.length || DEFAULT_LENGTH)
+            return saved
+          })
       : Promise.resolve(true)
   }
   wireLengthRanges(panel, (next, done) => {

@@ -22,7 +22,7 @@ import { storeAsset } from '../persistence'
 import { changeProject, loadProject } from '../projects'
 import { Refusal } from '../refusal'
 import { probeSeconds } from '../voice'
-import { scheduleStoryboard, storyboardDir } from './pipeline'
+import { missingTakes, scheduleStoryboard, storyboardDir } from './pipeline'
 import { readInternal, writeInternal, writeProjectFiles } from './state'
 import { summaryNow, update } from './run'
 import { takeRefusal } from './takes'
@@ -396,7 +396,17 @@ export const showTakeSlots = async (snapshot: Snapshot) => {
     storyboardDir(snapshot.project.id, storyboard)
   )
   if (!internal.plan) return
+  let resume = false
   await update(snapshot.project.id, (current, ledger) => {
     current.plan = summaryNow(internal, current, ledger)
+    // Nothing left to wait for (the voice is no longer the creator's): it
+    // carries on, never waits on a take it can't ask for (review 7).
+    const recordVoice = ledger.project.video?.settings.voice.kind === 'record'
+    if (missingTakes(current, recordVoice).length) return
+    current.stage = 'voice'
+    current.status = 'working'
+    delete current.waitingFor
+    resume = true
   })
+  if (resume) scheduleStoryboard(snapshot.project.id)
 }

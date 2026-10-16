@@ -514,8 +514,9 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
     )
   await update(snapshot.project.id, (current, ledger) => {
     const next = afterFrames(current.plan?.scenes || [], internal.voiced || [])
-    if (next === 'voice') {
-      // A take that came in while these frames were built is voiced next.
+    // A take that came in while these frames were built is voiced next: a
+    // new one, or one for a scene voiced before it (review 7).
+    if (next === 'voice' || current.redo?.length) {
       current.stage = 'voice'
       return
     }
@@ -595,6 +596,11 @@ const assembleStage = async ({ snapshot, dir, internal }: StageInput) => {
     : null
   await update(snapshot.project.id, (current, ledger) => {
     if (stored) current.contactSheetKey = stored.objectKey
+    // A take that came in meanwhile is voiced before anything is rendered.
+    if (current.redo?.length) {
+      current.stage = 'voice'
+      return
+    }
     current.stage = 'render'
     addEvent(ledger, 'video', 'Assembled and checked: rendering', {
       activity: 'complete'
@@ -628,6 +634,11 @@ const renderStage = async ({ snapshot, dir, internal }: StageInput) => {
     : null
   const goal = internal.length
   await update(snapshot.project.id, (current, ledger) => {
+    // A take that came in while rendering: this cut is already old.
+    if (current.redo?.length) {
+      current.stage = 'voice'
+      return
+    }
     current.produced = { objectKey: stored.objectKey, duration }
     if (posterStored) current.posterKey = posterStored.objectKey
     current.stage = 'done'

@@ -42,6 +42,8 @@
 .map-group-error {
   min-width: 0;
   overflow: hidden;
+  /* One line, cut short: the whole reason is in its tooltip. */
+  white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--danger, #b91c1c);
   font-weight: 600;

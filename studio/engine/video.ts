@@ -38,7 +38,7 @@ import { availableHarness } from './notebook-intake'
 import { planCreativeScene } from './creative/scene'
 import { transitionScene } from './autopilot'
 import { Refusal, asRefusal } from './refusal'
-import { newStoryboard } from './storyboard/actions'
+import { newStoryboard, showTakeSlots } from './storyboard/actions'
 import { scheduleStoryboard } from './storyboard/pipeline'
 import type { LengthGoal } from '../shared/storyboard'
 const running = new Map<string, Promise<void>>()
@@ -791,6 +791,8 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
     addEvent(current, 'video', 'Video settings updated')
   })
   schedulePlanning(id)
+  // A storyboard waiting for takes asks again which it needs (review 7).
+  await showTakeSlots(snapshot).catch(() => undefined)
   return snapshot
 }
 

@@ -154,6 +154,11 @@ export const createProject = async (
   return snapshot
 }
 const building = new Map<string, Promise<void>>()
+// The work a build hands on, per notebook, and one shared import of it: two
+// builds ending at once never meet a half-loaded module.
+const following = new Map<string, Promise<void>>()
+let slideChanges: Promise<typeof import('./slide-changes')> | null = null
+const changesModule = () => (slideChanges ??= import('./slide-changes'))
 export const scheduleSlides = (id: string) => {
   if (building.has(id)) return
   const work = buildSlides(id)
@@ -177,9 +182,15 @@ export const scheduleSlides = (id: string) => {
     .finally(() => {
       building.delete(id)
       // Changes queued while drawing run once the deck is ready.
-      void import('./slide-changes').then(({ scheduleChanges }) =>
+      const next = changesModule().then(({ scheduleChanges }) =>
         scheduleChanges(id)
       )
+      following.set(id, next)
+      void next
+        .catch(() => {})
+        .finally(() => {
+          if (following.get(id) === next) following.delete(id)
+        })
     })
   building.set(id, work)
   void work.catch(() => {})
@@ -189,7 +200,8 @@ export const scheduleSlides = (id: string) => {
  * meanwhile have run (tests and checks: nothing outlives them). */
 export const settledBuild = async (id: string) => {
   while (building.has(id)) await building.get(id)!.catch(() => {})
-  const { settledChanges } = await import('./slide-changes')
+  await following.get(id)?.catch(() => {})
+  const { settledChanges } = await changesModule()
   await settledChanges(id)
 }
 /**

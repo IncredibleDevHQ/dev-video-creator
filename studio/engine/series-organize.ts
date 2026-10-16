@@ -4,7 +4,16 @@
 // as a new episode after the last made one, against a gap they fill, or left
 // out with a reason. Made episodes never change. Each run is recorded, so
 // Undo takes out what it added; the cards it took back wait, unplaced.
-import { discardEpisode, untouched } from './series-apply'
+import {
+  discardEpisode,
+  isMade,
+  pagesOf,
+  putBack,
+  setPagesNoted,
+  setSeriesOrder,
+  untouched,
+  type PutBack
+} from './series-apply'
 import { randomUUID } from 'node:crypto'
 import { fitOf, withSegues } from '../shared/length'
 import type { OrganizeRun, Series } from '../shared/series'
@@ -19,12 +28,6 @@ import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { changeSeries, loadSeries } from './series'
-import {
-  isMade,
-  pagesOf,
-  setEpisodePages,
-  setSeriesOrder
-} from './series-apply'
 import { directionLines, cardsOf, existingOf, isPlanning } from './series-plan'
 
 const origin = () =>
@@ -479,10 +482,17 @@ export const applyPlacement = async (
     const at = move.after ? order.indexOf(move.after) + 1 : 0
     order.splice(move.after && at === 0 ? order.length : at, 0, move.page)
   }
-  for (const [notebook, order] of into) {
-    await setEpisodePages(notebook, map, order)
-    await scheduleAround(notebook)
+  // All or nothing, as a plan is: an episode whose video starts meanwhile
+  // stops the run, and the ones it filled go back as they were (review 7).
+  const filled: PutBack = new Map()
+  try {
+    for (const [notebook, order] of into)
+      await setPagesNoted(filled, notebook, map, order)
+  } catch (error) {
+    await putBack(filled)
+    throw error
   }
+  for (const notebook of into.keys()) await scheduleAround(notebook)
   // New episodes, each put after the episode it follows, carrying what the
   // placement said it picks up and hands on, as a planned one does.
   const startedAt = new Map<string, string>()
@@ -643,8 +653,10 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
       (item) => item.notebookId === notebook
     )
     if (!member) continue
+    // Exactly the run's copies: all of them, none trimmed, none added.
     if (
       !snapshot.project.episode?.named &&
+      snapshot.project.slides.length === copies.size &&
       snapshot.project.slides.every(
         (slide) =>
           copies.has(slide.id) &&

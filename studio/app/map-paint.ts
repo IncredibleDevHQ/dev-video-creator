@@ -89,11 +89,6 @@ const lastSlideEvent = (snapshot: Snapshot) =>
   [...snapshot.events].reverse().find((event) => event.kind === 'slide')
     ?.message || ''
 
-/**
- * What the cards not grouped yet offer: grouping them, its progress, or,
- * when it failed, its reason and the way to try again (review 6: it went
- * back to "Group by topic" unsaid).
- */
 /** A failed regroup says why where it is seen: in the group of cards with
  * no topic when there is one, else under the Cards heading (review 6). */
 export const failedUnderHeading = (
@@ -106,6 +101,11 @@ export const failedUnderHeading = (
   snapshot.status === 'ready' &&
   !groups.some((group) => group.key === 't:')
 
+/**
+ * What the cards not grouped yet offer: grouping them, its progress, or,
+ * when it failed, its reason and the way to try again (review 6: it went
+ * back to "Group by topic" unsaid).
+ */
 export const groupAction = (snapshot: Snapshot) => {
   const grouping = snapshot.project.grouping
   if (grouping?.state === 'failed')
