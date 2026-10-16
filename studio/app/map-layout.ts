@@ -21,49 +21,60 @@ export type MapLayout = {
   groups: MapGroup[]
   cards: Record<string, Box>
   series: Box | null
+  /** The series' head: its outcome, audience, through-lines and gaps. */
+  head: Box | null
   lanes: Record<string, Box & { rowY: number }>
   copies: Record<string, Box & { episode: string; index: number }>
   segues: Array<Box & { key: string; episode: string; end: boolean }>
   bridges: Array<Box & { key: string; copy: string }>
   connectors: Array<Box & { key: string }>
   empties: Record<string, Box>
+  /** Each open gap, as a dashed card where its episode needs it. */
+  gaps: Array<Box & { id: string; episode: string }>
+  /** The creator's directions, where they sit. */
+  directions: Record<string, Box>
   /** The Socials box, outside the series; null without a series. */
   socials: Box | null
   /** Each made episode's place in the Socials box, level with its lane. */
   derived: Array<Box & { episode: string }>
-  /** The workflow's lines: the pages into the series, and each made
-   * episode into its place among the socials. */
+  /** The workflow's wires: each card into the episodes that use it, each
+   * episode into the next, each made episode into its socials, each
+   * direction into what it guides. */
   flows: Flow[]
 }
 export type Flow = {
   key: string
+  kind: 'use' | 'chain' | 'out' | 'direction'
   x1: number
   y1: number
   x2: number
   y2: number
   episode?: string
-  /** A flow into an episode runs down this x, left of the series. */
-  trunk?: number
+  /** The keys of the nodes it joins, for lighting what is selected. */
+  from: string
+  to: string
 }
 
 export const MX = 40,
   MY = 40,
   MP = 20,
   CW = 220,
-  CH = 192,
+  CH = 124,
   CG = 18,
-  COLS = 3
+  COLS = 2
+/** A card's label sits above it, as a node's does in Flora. */
+export const CL = 26
 export const MH = 64,
   GH = 30
 export const MW = MP * 2 + COLS * CW + (COLS - 1) * CG
-/** A bigger map gets more columns: with the series under it, the whole
+/** A bigger map gets more columns: with the series beside it, the whole
  * stays near the canvas's shape. */
 export const columnsFor = (pages: number) =>
-  pages <= 9 ? COLS : pages <= 16 ? 4 : pages <= 24 ? 6 : pages <= 40 ? 8 : 10
+  pages <= 8 ? COLS : pages <= 18 ? 3 : pages <= 32 ? 4 : 5
 const widthFor = (cols: number) => MP * 2 + cols * CW + (cols - 1) * CG
 export const SH = 58,
   SP = 16,
-  LH = 44,
+  LH = 58,
   QW = 184,
   QH = 176,
   QG = 40,
@@ -71,8 +82,15 @@ export const SH = 58,
 /** A line into a page wraps to two lines under the connector before it. */
 export const BH = 34
 export const LPAD = 14,
-  LGAP = 14,
+  LGAP = 34,
   LANEH = LH + QH + BH + 22
+/** The series' head, with an outline and without; the room the wires from
+ * the cards cross to reach the series; a direction note's size. */
+export const HEAD = 132,
+  HEAD0 = 96,
+  WIRE = 200,
+  DW = 240,
+  DH = 112
 /** The Socials box's width, and the room its lines cross to reach it. */
 export const SOW = 330,
   SOGAP = 150
@@ -185,16 +203,20 @@ export const mapLayout = (
     groups: [],
     cards: {},
     series: null,
+    head: null,
     lanes: {},
     copies: {},
     segues: [],
     bridges: [],
     connectors: [],
     empties: {},
+    gaps: [],
+    directions: {},
     socials: null,
     derived: [],
     flows: []
   }
+  // The cards on the left, each with its label above it.
   const cols = columnsFor(mapPages(snapshot).length)
   const mw = widthFor(cols)
   layout.map.w = mw
@@ -207,28 +229,64 @@ export const mapLayout = (
     group.slides.forEach((id, index) => {
       layout.cards[id] = {
         x: MX + MP + (index % cols) * (CW + CG),
-        y: y + Math.floor(index / cols) * (CH + CG),
+        y: y + CL + Math.floor(index / cols) * (CH + CL + CG),
         w: CW,
         h: CH
       }
     })
-    y += Math.ceil(group.slides.length / cols) * (CH + CG) + 8
+    y += Math.ceil(group.slides.length / cols) * (CH + CL + CG) + 8
   }
   layout.map.h = Math.max(y - MY + MP - 8, 220)
-  if (!view?.series) return layout
-  // The series sits under the map: pages are dragged down into its lanes.
-  const sx = MX
-  const sy = MY + layout.map.h + 80
-  let ly = sy + SH
+  const series = view?.series
+  if (!view || !series) return layout
+  // The series to the right of the cards; directions without a place sit
+  // in a row above it.
+  const sx = MX + mw + WIRE
+  const loose = series.directions.filter((d) => !d.spot)
+  const sy = MY + (loose.length ? DH + 48 : 0)
+  loose.forEach((direction, index) => {
+    layout.directions[direction.id] = {
+      x: sx + index * (DW + 24),
+      y: MY,
+      w: DW,
+      h: DH
+    }
+  })
+  for (const direction of series.directions)
+    if (direction.spot)
+      layout.directions[direction.id] = {
+        x: direction.spot.x,
+        y: direction.spot.y,
+        w: DW,
+        h: DH
+      }
+  const outlined = Boolean(series.outcome || series.lines.length)
+  const headH = outlined ? HEAD : HEAD0
+  let ly = sy + headH
   let widest = 640
+  const open = series.gaps.filter((gap) => gap.state === 'open')
   for (const episode of view.episodes) {
     const n = episode.copies.length
+    const gaps = open.filter((gap) => gap.episode === episode.notebook)
     const lx = sx + SP
-    const x0 = lx + LPAD
+    // A gap the episode needs comes first: it is missing before it starts.
+    const x0 = lx + LPAD + gaps.length * (QW + QG)
     const rowY = ly + LH
-    const w = n
-      ? LPAD * 2 + SW * 2 + QG * (n + 1) + QW * n
-      : LPAD * 2 + QW * 3 + QG * 2
+    gaps.forEach((gap, index) =>
+      layout.gaps.push({
+        id: gap.id,
+        episode: episode.notebook,
+        x: lx + LPAD + index * (QW + QG),
+        y: rowY,
+        w: QW,
+        h: QH
+      })
+    )
+    const w =
+      (n
+        ? LPAD * 2 + SW * 2 + QG * (n + 1) + QW * n
+        : LPAD * 2 + QW * 3 + QG * 2) +
+      gaps.length * (QW + QG)
     layout.lanes[episode.notebook] = { x: lx, y: ly, w, h: LANEH, rowY }
     widest = Math.max(widest, w)
     if (!n)
@@ -301,46 +359,111 @@ export const mapLayout = (
     w: SP * 2 + widest,
     h: Math.max(ly - sy + SP - LGAP, 180)
   }
-  // From the pages into each episode: down a trunk left of the series, then
-  // into the lane, crossing no card (review 6).
-  const trunk = sx - 28
+  layout.head = { x: sx, y: sy, w: SP * 2 + widest, h: headH }
+  // Each card into the episodes that hold a copy of it.
   for (const episode of view.episodes) {
     const lane = layout.lanes[episode.notebook]
+    const seen = new Set<string>()
+    for (const copy of episode.copies) {
+      const page = copy.copyOf?.slide
+      const card = page ? layout.cards[page] : undefined
+      if (!page || !card || seen.has(page)) continue
+      seen.add(page)
+      layout.flows.push({
+        key: `u:${page}:${episode.notebook}`,
+        kind: 'use',
+        episode: episode.notebook,
+        from: `m:${page}`,
+        to: `L:${episode.notebook}`,
+        x1: card.x + card.w,
+        y1: card.y + card.h / 2,
+        x2: lane.x,
+        y2: lane.y + LH / 2
+      })
+    }
+  }
+  // Each episode into the next: the order a viewer meets them.
+  view.episodes.forEach((episode, index) => {
+    const next = view.episodes[index + 1]
+    if (!next) return
+    const a = layout.lanes[episode.notebook]
+    const b = layout.lanes[next.notebook]
     layout.flows.push({
-      key: `f:in:${episode.notebook}`,
+      key: `n:${episode.notebook}`,
+      kind: 'chain',
       episode: episode.notebook,
-      trunk,
-      x1: MX,
-      y1: MY + layout.map.h - 28,
-      x2: lane.x,
-      y2: lane.y + 22
+      from: `L:${episode.notebook}`,
+      to: `L:${next.notebook}`,
+      x1: a.x + 30,
+      y1: a.y + a.h,
+      x2: b.x + 30,
+      y2: b.y
     })
+  })
+  // Each direction into what it guides: an episode, its cards, or the series.
+  for (const direction of series.directions) {
+    const box = layout.directions[direction.id]
+    if (!box) continue
+    const targets: Array<{ key: string; box: Box; y: number }> = []
+    const lane = direction.to?.episode
+      ? layout.lanes[direction.to.episode]
+      : undefined
+    if (lane)
+      targets.push({
+        key: `L:${direction.to!.episode}`,
+        box: lane,
+        y: lane.y + 18
+      })
+    for (const page of direction.to?.pages || []) {
+      const card = layout.cards[page]
+      if (card)
+        targets.push({ key: `m:${page}`, box: card, y: card.y + card.h / 2 })
+    }
+    if (!targets.length && layout.head)
+      targets.push({ key: 'B:series', box: layout.head, y: sy + headH / 2 })
+    for (const target of targets) {
+      // Into its target's left side; a note placed past it comes in from
+      // the right, never across it.
+      const past = box.x > target.box.x + target.box.w
+      layout.flows.push({
+        key: `d:${direction.id}:${target.key}`,
+        kind: 'direction',
+        from: `d:${direction.id}`,
+        to: target.key,
+        x1: past ? box.x : box.x + box.w,
+        y1: box.y + box.h / 2,
+        x2: past ? target.box.x + target.box.w : target.box.x,
+        y2: target.y
+      })
+    }
   }
   // What a made episode was cut into: the Socials box, beside the series,
-  // each episode's place level with its lane and a line into it.
+  // each episode's place level with its lane and a wire into it.
   const ox = sx + layout.series.w + SOGAP
   let bottom = sy + SH
   for (const episode of view.episodes) {
     if (!episode.video?.joined && !episode.teasers.length && !episode.posts)
       continue
     const lane = layout.lanes[episode.notebook]
-    // Its teasers (or a row to cut one), then its posts.
     const rows = Math.max(1, episode.teasers.length) + 1
-    const y = Math.max(bottom, lane.y)
+    const top = Math.max(bottom, lane.y)
     const place = {
       episode: episode.notebook,
       x: ox + SP,
-      y,
+      y: top,
       w: SOW - SP * 2,
       h: 44 + rows * 32
     }
     layout.derived.push(place)
-    bottom = y + place.h + 14
+    bottom = top + place.h + 14
     layout.flows.push({
-      key: `f:${episode.notebook}`,
+      key: `o:${episode.notebook}`,
+      kind: 'out',
       episode: episode.notebook,
+      from: `L:${episode.notebook}`,
+      to: `D:${episode.notebook}`,
       x1: lane.x + lane.w,
-      y1: lane.y + 22,
+      y1: lane.y + LH / 2,
       x2: place.x,
       y2: place.y + 22
     })
@@ -361,7 +484,8 @@ export const extent = (layout: MapLayout, focus?: Box) => {
     : [
         layout.map,
         ...(layout.series ? [layout.series] : []),
-        ...(layout.socials ? [layout.socials] : [])
+        ...(layout.socials ? [layout.socials] : []),
+        ...Object.values(layout.directions)
       ]
   const x0 = Math.min(...boxes.map((b) => b.x)) - 30
   const y0 = Math.min(...boxes.map((b) => b.y)) - 30

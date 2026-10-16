@@ -8,6 +8,7 @@ import { themeControl } from './appearance'
 import { escape } from './ui'
 import { videoOpens } from '../shared/state'
 import incredibleLogo from './assets/incredible-logo.svg'
+import { lineColor, ports } from './map-nodes'
 import {
   noteDay,
   type MapFilter,
@@ -39,13 +40,14 @@ const plural = (n: number, one: string, many = `${one}s`) =>
 // every other screen does (review 6).
 export const mapPage = (title: string) => `<div class="map-page">
 <header class="map-header">
+<div class="map-pill map-pill-project">
 <a class="brand map-brand" href="/" aria-label="Incredible Studio: all notebooks" title="All notebooks"><img src="${incredibleLogo}" alt=""></a>
 <div class="map-title"><strong>Content map</strong><span data-map-slot="title">${escape(title)}</span></div>
 <nav class="map-stages" aria-label="Stages" data-map-slot="stages"></nav>
+</div>
 <button type="button" class="quiet map-back" data-map="close" title="Back to the wireframes">← Wireframe</button>
 <button type="button" class="quiet map-notes-toggle" data-map="notes" aria-expanded="false">Notes</button>
-<div class="map-tools" data-map-slot="tools"></div>
-${themeControl()}
+<div class="map-pill map-pill-tools"><div class="map-tools" data-map-slot="tools"></div>${themeControl()}</div>
 </header>
 <div class="map-body">
 <aside class="map-rail" aria-label="Notes"><div class="map-rail-head"><strong>Notes</strong></div>
@@ -54,6 +56,8 @@ ${themeControl()}
 </aside>
 <section class="map-stage">
 <div class="map-canvas" data-map-canvas><div class="map-world" data-map-world><svg class="map-wires" data-map-wires></svg></div></div>
+<nav class="map-toolpill" aria-label="Canvas tools"><button type="button" class="map-tool-add" data-map="add" title="Add a direction, a note or an episode · or double-click the canvas" aria-label="Add">+</button><button type="button" data-map="fit" title="Fit everything" aria-label="Fit everything">⤢</button><button type="button" data-map="help" title="Shortcuts" aria-label="Shortcuts">?</button></nav>
+<div class="map-queue" data-map-slot="queue"></div>
 <div class="map-zoom"><button type="button" data-map="zoom-out" aria-label="Zoom out">−</button><span data-map-slot="zoom">100%</span><button type="button" data-map="zoom-in" aria-label="Zoom in">+</button><button type="button" data-map="fit" title="Fit everything · double-click a block to zoom to it">Fit</button><button type="button" data-map="help" aria-label="Shortcuts" title="Shortcuts">?</button></div>
 <div class="map-toast" data-map-slot="toast" hidden></div>
 <div class="map-bar" data-map-slot="bar" hidden></div>
@@ -111,11 +115,7 @@ ${
           ? '<button type="button" class="quiet" data-map="group">Group again</button>'
           : ''
 }
-${
-  view?.series?.planning?.state === 'planning'
-    ? '<button type="button" class="quiet" disabled>Planning the episodes…</button>'
-    : `${view?.series?.planning?.state === 'failed' ? `<span class="map-tool-error" title="${escape(view.series.planning.error || '')}">Planning failed</span>` : ''}<button type="button" class="quiet" data-map="plan-series">${view?.series?.planning?.state === 'failed' ? 'Plan again' : 'Plan episodes'}</button>`
-}${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
+${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
 }
 
 const kindLabel = {
@@ -183,7 +183,7 @@ export const mapCard = (
   if (page.state === 'planned' || page.state === 'drawing') {
     const change = snapshot.changes?.find((item) => item.slideId === slide.id)
     const drawing = page.state === 'drawing' || Boolean(change)
-    return `${thumb(null, drawing ? 'drawing…' : 'planned', drawing)}<div class="map-card-title">${escape(slide.title || 'A new page')}</div><div class="map-card-meta">page ${number}</div>`
+    return `<div class="map-node-label"><b>${escape(slide.title || 'A new card')}</b><span>card ${number}</span></div>${thumb(null, drawing ? 'drawing…' : 'planned', drawing)}`
   }
   const change = snapshot.changes?.find((item) => item.slideId === slide.id)
   const users = view?.usage[slide.id] || []
@@ -227,7 +227,7 @@ export const mapCard = (
   const place = places.length
     ? `<span class="map-src" title="Its place in the episode">#${places.join(', #')}</span>`
     : ''
-  return `${thumb(slide.svg, change ? 'drawing…' : slide.idea || 'Blank page', Boolean(change))}<div class="map-card-title">${escape(slide.title || 'Untitled page')}</div><div class="map-card-meta">page ${number}${said ? ` · ${said}` : ''}${place}${use}</div>`
+  return `<div class="map-node-label"><b>${escape(slide.title || 'Untitled card')}</b><span>${number}${said ? ` · ${said}` : ''}${place}${use}</span></div>${thumb(slide.svg, change ? 'drawing…' : slide.idea || 'Blank card', Boolean(change))}${ports(true, slide.svg ? 'card' : null)}`
 }
 
 /** How a page or copy stands, for its card's border. */
@@ -302,8 +302,25 @@ export const laneHead = (view: MapView, episode: MapEpisode) => {
           ? '<span class="map-state is-busy">writing segues…</span>'
           : video && !video.joined && video.scenes
             ? `<span class="map-state is-busy">making ${video.made} of ${video.scenes}</span>`
-            : `<span class="map-state">${plural(episode.copies.length, 'page')}</span>${video?.joined ? '<span class="map-state is-made">· made</span>' : ''}`
-  return `<div class="map-lane-head"><i class="map-dot" style="--ep:${colorOf(view, episode.notebook)}"></i><b>Ep ${episode.number}</b><span class="map-lane-title">${escape(episode.title)}</span>${state}<span class="map-lane-acts"><button type="button" class="quiet" data-map="open:${episode.notebook}">${video ? 'Open' : 'Make video'}</button></span></div>`
+            : `<span class="map-state">${plural(episode.copies.length, 'card')}</span>${video?.joined ? '<span class="map-state is-made">· made</span>' : ''}`
+  const outline = episode.outline
+  const builds = (outline?.needs || [])
+    .map((need) =>
+      need.from
+        ? view.episodes.find((e) => e.notebook === need.from)?.number
+        : undefined
+    )
+    .filter((n): n is number => Boolean(n))
+  const lines = (outline?.lines || [])
+    .map(
+      (id) =>
+        `<i class="map-line-dot" style="--line:${lineColor(view, id)}" title="${escape(view.series?.lines.find((l) => l.id === id)?.name || '')}"></i>`
+    )
+    .join('')
+  const win = outline
+    ? `<div class="map-lane-win">${lines}<span><b>Win</b> ${escape(outline.win)}</span>${builds.length ? `<span class="map-builds">builds on ${[...new Set(builds)].map((n) => `Ep ${n}`).join(', ')}</span>` : ''}${episode.made ? '<span class="map-lock" title="Its video has started: plans keep it as it is">made · kept</span>' : ''}</div>`
+    : ''
+  return `<div class="map-lane-head"><i class="map-dot" style="--ep:${colorOf(view, episode.notebook)}"></i><b>Ep ${episode.number}</b><span class="map-lane-title">${escape(episode.title)}</span>${state}<span class="map-lane-acts"><button type="button" class="quiet" data-map="open:${episode.notebook}">${video ? 'Open' : 'Make video'}</button></span></div>${win}${ports(true, 'episode')}`
 }
 
 const CHANNELS: Record<string, string> = {
@@ -353,5 +370,5 @@ export const derivedBlock = (view: MapView, episode: MapEpisode) => {
       : made
         ? `<li><span>${failed ? `Posts could not be drafted${episode.drafting?.error ? `: ${escape(episode.drafting.error)}` : ''}` : 'Posts · X, LinkedIn, YouTube'}</span><button type="button" data-map="posts:${episode.notebook}">${failed ? 'Draft again' : 'Draft'}</button></li>`
         : ''
-  return `<div class="map-lane-head"><i class="map-dot" style="--ep:${colorOf(view, episode.notebook)}"></i><b>Ep ${episode.number}</b><span class="map-lane-title">${escape(episode.title)}</span></div><ul class="map-derived">${teasers.join('')}${posts}</ul>`
+  return `<div class="map-lane-head"><i class="map-dot" style="--ep:${colorOf(view, episode.notebook)}"></i><b>Ep ${episode.number}</b><span class="map-lane-title">${escape(episode.title)}</span></div><ul class="map-derived">${teasers.join('')}${posts}</ul>${ports(true, null)}`
 }

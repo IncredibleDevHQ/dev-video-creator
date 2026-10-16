@@ -10,6 +10,8 @@ import { confirmAction } from './confirm-action'
 import { mapApi } from './map-api'
 import { renderBar, hideMenu } from './map-bar'
 import { installMapInput, type DragState } from './map-input'
+import { installFlowInput, tellOrganized } from './map-flow-input'
+import { queueItems, queuePill } from './map-nodes'
 import {
   extent,
   mapLayout,
@@ -26,6 +28,7 @@ export type MapSel =
   | { t: 'page'; id: string }
   | { t: 'copy'; id: string }
   | { t: 'lane'; id: string }
+  | { t: 'direction'; id: string }
   | { t: 'series' }
   | null
 export type MapClip =
@@ -67,6 +70,18 @@ export class MapCanvas {
   openNotes = new Set<string>()
   /** The episode whose last removed page Undo brings back. */
   undo: { episode: string } | null = null
+  /** The direction note being written. */
+  editingDirection: string | null = null
+  /** A connection being dragged from a node's handle: its wire's path. */
+  connecting = ''
+  /** The Queue is open. */
+  queueOpen = false
+  /** The organising run already told; a new one says what moved. */
+  toldRun = ''
+  /** The bar asks for a note (from the Add menu, or to fill a gap). */
+  noteAsk: { text: string; gap?: string } | null = null
+  /** The bar asks for the series' outcome or audience. */
+  briefing: 'outcome' | 'audience' | null = null
   private adding = false
   private fitted = false
   private fittedPages = 0
@@ -78,6 +93,7 @@ export class MapCanvas {
     readonly hooks: Hooks
   ) {
     installMapInput(this)
+    installFlowInput(this)
   }
   slot(name: string) {
     return this.root.querySelector<HTMLElement>(`[data-map-slot="${name}"]`)
@@ -186,6 +202,11 @@ export class MapCanvas {
     this.layout = mapLayout(this.snapshot, this.view, this.mode)
     paintWorld(this)
     renderBar(this)
+    this.fill(
+      'queue',
+      queuePill(queueItems(this.snapshot, this.view), this.queueOpen)
+    )
+    tellOrganized(this)
     // Fit once the map has its pages: at first, and when the story plans them.
     const pages = this.layout ? Object.keys(this.layout.cards).length : 0
     if ((!this.fitted || (this.fittedPages === 0 && pages > 0)) && this.view) {
@@ -475,9 +496,9 @@ export class MapCanvas {
       await mapApi.planSeries(series.id, {
         ideas: String(data.get('ideas') || '').trim(),
         length: { min, max, strict: data.get('strict') === 'on' },
-        autoplan: data.get('autoplan') === 'on'
+        organize: data.get('organize') === 'on'
       })
-    }, 'Planning the episodes: they appear here as they are made')
+    }, 'Planning the series: it reads every card, then the episodes take shape')
     this.fitted = false
   }
   async startSeries() {

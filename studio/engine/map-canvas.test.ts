@@ -12,6 +12,7 @@ import {
   QW
 } from '../app/map-layout'
 import { episodeChoices, moreChoices } from '../app/map-bar'
+import { directionCard, gapCard, seriesHead } from '../app/map-nodes'
 import type { MapCanvas, MapSel } from '../app/map-canvas'
 import {
   copyCard,
@@ -271,20 +272,28 @@ describe('the map’s markup', () => {
       },
       'order'
     )
-    expect(layout.series!.y).toBeGreaterThan(layout.map.y + layout.map.h)
+    // Left to right, as Flora's canvas reads: cards, the series, socials.
+    expect(layout.series!.x).toBeGreaterThan(layout.map.x + layout.map.w)
     expect(layout.socials!.x).toBeGreaterThan(
       layout.series!.x + layout.series!.w
     )
     // Only the made episode has a place, level with its lane.
     expect(layout.derived.map((place) => place.episode)).toEqual(['e1'])
     expect(layout.derived[0].y).toBe(layout.lanes.e1.y)
-    // Into each episode down a trunk, and the made one into the socials.
-    expect(layout.flows.map((flow) => flow.key)).toEqual([
-      'f:in:e1',
-      'f:in:e2',
-      'f:e1'
-    ])
-    expect(layout.flows[0].trunk).toBeLessThan(layout.series!.x)
+    // Each card into the episodes that use it, each episode into the next,
+    // and the made one into the socials.
+    expect(layout.flows.map((flow) => [flow.kind, flow.from, flow.to])).toEqual(
+      [
+        ['use', 'm:a', 'L:e1'],
+        ['use', 'm:b', 'L:e1'],
+        ['use', 'm:b', 'L:e2'],
+        ['chain', 'L:e1', 'L:e2'],
+        ['out', 'L:e1', 'D:e1']
+      ]
+    )
+    const use = layout.flows[0]
+    expect(use.x1).toBe(layout.cards.a.x + layout.cards.a.w)
+    expect(use.x2).toBe(layout.lanes.e1.x)
   })
   it('lets a made episode’s teaser be watched and its posts read', () => {
     const cut = derivedBlock(view, {
@@ -408,5 +417,100 @@ describe('the map while it forms', () => {
     expect(mapPages({ ...snapshot, status: 'ready' }).map((p) => p.id)).toEqual(
       ['p1', 'p2']
     )
+  })
+})
+
+describe('the series as a connected canvas', () => {
+  const snapshot = map([slide('a'), slide('b'), slide('c')])
+  const view: MapView = {
+    notebook: 'map',
+    title: 'Streamline',
+    series: {
+      ...seriesView(),
+      outcome: 'Run a pipeline on Cloudflare',
+      audience: 'Workers developers',
+      suggested: ['outcome'],
+      lines: [{ id: 'life', name: 'The long session', line: 'It outlives' }],
+      gaps: [
+        {
+          id: 'do',
+          missing: 'What a Durable Object is',
+          episode: 'e2',
+          why: 'The orchestrator is one',
+          ask: 'What is it?',
+          state: 'open'
+        }
+      ],
+      directions: [
+        { id: 'd1', text: 'Lead with the problem', at: 'now' },
+        {
+          id: 'd2',
+          text: 'Keep it short',
+          at: 'now',
+          to: { episode: 'e2' },
+          spot: { x: 2000, y: 600 },
+          answer: { state: 'partly', why: 'Three cards', at: 'now' }
+        }
+      ]
+    },
+    episodes: [
+      {
+        ...episode('e1', 1, [copy('x', 'a')]),
+        outline: {
+          win: 'See the gap',
+          teaches: ['gap'],
+          needs: [],
+          lines: ['life']
+        },
+        carries: 'Opens; hands on what a pipeline is'
+      },
+      {
+        ...episode('e2', 2, [copy('y', 'b'), copy('z', 'c')]),
+        outline: {
+          win: 'Name the parts',
+          teaches: ['parts'],
+          needs: [{ what: 'the gap', from: 'e1' }],
+          lines: ['life']
+        }
+      }
+    ],
+    usage: { a: ['e1'], b: ['e2'], c: ['e2'] }
+  }
+  it('places directions and gaps, and wires each into what it guides', () => {
+    const layout = mapLayout(snapshot, view, 'order')
+    // A direction without a place sits above the series; a placed one stays.
+    expect(layout.directions.d1.y).toBeLessThan(layout.series!.y)
+    expect(layout.directions.d2).toMatchObject({ x: 2000, y: 600 })
+    // The gap comes first in the episode that needs it.
+    expect(layout.gaps).toMatchObject([{ id: 'do', episode: 'e2' }])
+    expect(layout.gaps[0].x).toBeLessThan(layout.copies.y.x)
+    const wires = layout.flows.filter((flow) => flow.kind === 'direction')
+    expect(wires.map((flow) => [flow.from, flow.to])).toEqual([
+      ['d:d1', 'B:series'],
+      ['d:d2', 'L:e2']
+    ])
+    // Placed past its episode, a note comes in from the right side.
+    expect(wires[1].x1).toBe(2000)
+    expect(wires[1].x2).toBe(layout.lanes.e2.x + layout.lanes.e2.w)
+  })
+  it('shows the outline: the suggested outcome, the lines, the gaps, each episode’s win', () => {
+    const head = seriesHead(view)
+    expect(head).toContain('Run a pipeline on Cloudflare')
+    expect(head).toContain('<em>suggested</em>')
+    expect(head).toContain('The long session')
+    expect(head).toContain('1 gap')
+    expect(laneHead(view, view.episodes[1])).toMatch(
+      /Win<\/b> Name the parts.*builds on Ep 1/
+    )
+    const note = directionCard(
+      view,
+      snapshot,
+      view.series!.directions[1],
+      false
+    )
+    expect(note).toContain('for Ep 2')
+    expect(note).toContain('Partly followed: Three cards')
+    expect(note).toContain('data-port="direction"')
+    expect(gapCard(view.series!.gaps[0])).toContain('data-map="gap-note:do"')
   })
 })

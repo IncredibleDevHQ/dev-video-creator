@@ -18,6 +18,7 @@ import {
   segueCard,
   socialsHead
 } from './map-view'
+import { directionCard, gapCard, seriesHead } from './map-nodes'
 import { escape } from './ui'
 
 type Item = {
@@ -43,7 +44,9 @@ const selectedKey = (map: MapCanvas) => {
         ? `c:${sel.id}`
         : sel.t === 'lane'
           ? `L:${sel.id}`
-          : 'B:series'
+          : sel.t === 'direction'
+            ? `d:${sel.id}`
+            : 'B:series'
 }
 
 /** The map block's line: what it holds, or how far the drawing is. */
@@ -59,9 +62,9 @@ const summary = (
     const drawn = pages.filter(
       (page) => page.state === 'drawn' || page.state === 'draft'
     ).length
-    return `Drawing ${pages.length} pages · ${drawn} drawn`
+    return `Drawing ${pages.length} cards · ${drawn} drawn`
   }
-  const count = `${pages.length} page${pages.length === 1 ? '' : 's'}`
+  const count = `${pages.length} card${pages.length === 1 ? '' : 's'}`
   return use?.series
     ? `${count} · ${use.used} used · <em>${use.unused} unused</em>`
     : count
@@ -112,7 +115,7 @@ export const paintWorld = (map: MapCanvas) => {
     key: 'B:map',
     cls: 'map-block',
     box: layout.map,
-    html: `<div class="map-block-head"><h2>Pages</h2><p>${summary(snapshot, all, view ? { used, unused: unused?.size ?? 0, series: Boolean(view.series) } : null)}</p></div>`
+    html: `<div class="map-block-head"><h2>Cards</h2><p>${summary(snapshot, all, view ? { used, unused: unused?.size ?? 0, series: Boolean(view.series) } : null)}</p></div>`
   })
   // Before the story is planned there is nothing to show but what happens.
   if (!all.length)
@@ -171,13 +174,38 @@ export const paintWorld = (map: MapCanvas) => {
   })
   if (view?.series && layout.series) {
     const copies = view.episodes.reduce((n, e) => n + e.copies.length, 0)
+    void copies
     items.push({
       key: 'B:series',
-      cls: 'map-block map-series',
+      cls: `map-block map-series${chosen === 'B:series' ? ' is-selected' : ''}`,
       box: layout.series,
-      html: `<div class="map-block-head"><h2>Series · ${escape(view.series.title)}</h2><p>${view.episodes.length ? `${view.episodes.length} episode${view.episodes.length === 1 ? '' : 's'} · ${copies} page${copies === 1 ? '' : 's'} from the map` : 'No episodes yet'}</p>${view.episodes.length ? '' : '<button type="button" class="primary map-series-add" data-map="new-episode">+ Episode</button>'}</div>`,
+      html: `${seriesHead(view)}${view.episodes.length ? '' : '<button type="button" class="primary map-series-add" data-map="new-episode">+ Episode</button>'}`,
       label: `Series: ${view.series.title}`
     })
+    for (const direction of view.series.directions) {
+      const box = layout.directions[direction.id]
+      if (!box) continue
+      const editing = map.editingDirection === direction.id
+      items.push({
+        key: `d:${direction.id}`,
+        cls: `map-direction${chosen === `d:${direction.id}` ? ' is-selected' : ''}${editing ? ' is-editing' : ''}${direction.answer ? ` is-${direction.answer.state}` : ''}`,
+        box: editing ? { ...box, h: box.h + 40 } : box,
+        html: directionCard(view, snapshot, direction, editing),
+        data: { direction: direction.id },
+        label: `Direction: ${direction.text}`
+      })
+    }
+    for (const gap of layout.gaps) {
+      const found = view.series.gaps.find((item) => item.id === gap.id)
+      if (!found) continue
+      items.push({
+        key: `g:${gap.id}`,
+        cls: 'map-gap',
+        box: gap,
+        html: gapCard(found),
+        title: found.ask
+      })
+    }
     const pageNo = new Map(pages.map((slide, index) => [slide.id, index + 1]))
     const pageSvg = new Map(pages.map((slide) => [slide.id, slide.svg]))
     view.episodes.forEach((episode, at) => {
@@ -338,14 +366,30 @@ const sync = (map: MapCanvas, items: Item[]) => {
     }
 }
 
-// Down from a page to a copy below it, or across from a lane to the socials.
+// Wires bend as Flora's do: out of a node's right side and into the next
+// one's left; from one episode down into the next.
+const across = (x1: number, y1: number, x2: number, y2: number) => {
+  const h = Math.max(40, Math.abs(x2 - x1) * 0.5) * (x2 < x1 ? -1 : 1)
+  return `M${x1},${y1} C${x1 + h},${y1} ${x2 - h},${y2} ${x2},${y2}`
+}
 const down = (x1: number, y1: number, x2: number, y2: number) => {
-  const v = Math.max(50, (y2 - y1) * 0.5)
+  const v = Math.max(16, (y2 - y1) * 0.5)
   return `M${x1},${y1} C${x1},${y1 + v} ${x2},${y2 - v} ${x2},${y2}`
 }
-const across = (x1: number, y1: number, x2: number, y2: number) => {
-  const h = Math.max(40, (x2 - x1) * 0.5)
-  return `M${x1},${y1} C${x1 + h},${y1} ${x2 - h},${y2} ${x2},${y2}`
+
+/** Whether a wire belongs to what is selected: it starts or ends there, or
+ * at the episode a selected copy is in. */
+const lit = (map: MapCanvas, from: string, to: string) => {
+  const key = selectedKey(map)
+  if (!key) return false
+  if (from === key || to === key) return true
+  const sel = map.sel
+  if (sel?.t !== 'copy') return false
+  const episode = map.episodeOf(sel.id)
+  const page = episode?.copies.find((c) => c.id === sel.id)?.copyOf?.slide
+  return Boolean(
+    episode && page && from === `m:${page}` && to === `L:${episode.notebook}`
+  )
 }
 
 const drawWires = (map: MapCanvas) => {
@@ -354,14 +398,12 @@ const drawWires = (map: MapCanvas) => {
   if (!svg || !layout) return
   const paths: string[] = []
   const colors = new Set<string>()
-  // The copy selected: its map page's wires, its own drawn solid.
+  // A copy selected: its card's wire to it, drawn solid.
   const source =
     sel?.t === 'copy'
       ? map.episodeOf(sel.id)?.copies.find((c) => c.id === sel.id)?.copyOf
           ?.slide
       : undefined
-  // Lines to cards only for what is selected: a page, a copy or an episode
-  // (review 6: drawn for every copy, they crossed the map).
   for (const episode of view?.episodes || [])
     for (const copy of episode.copies) {
       const page = copy.copyOf?.slide
@@ -375,27 +417,54 @@ const drawWires = (map: MapCanvas) => {
       if (!on) continue
       const sibling = sel?.t === 'copy' && copy.id !== sel.id
       paths.push(
-        `<path class="map-wire is-on${sibling ? ' is-sibling' : ''}" stroke="${colorOf(view, episode.notebook)}" d="${down(a.x + a.w / 2, a.y + a.h, b.x + b.w / 2, b.y)}"/>`
+        `<path class="map-wire is-on${sibling ? ' is-sibling' : ''}" stroke="${colorOf(view, episode.notebook)}" d="${across(a.x + a.w, a.y + a.h / 2, b.x, b.y + b.h / 2)}"/>`
       )
     }
-  // The workflow's own lines, always, with an arrow where each one lands.
   for (const flow of layout.flows) {
-    const color = flow.episode && view ? colorOf(view, flow.episode) : ''
+    const color =
+      flow.kind !== 'direction' && flow.episode && view
+        ? colorOf(view, flow.episode)
+        : ''
     if (color) colors.add(color)
+    const on = lit(map, flow.from, flow.to)
     const id = color ? `map-arrow-${color.slice(1)}` : 'map-arrow'
+    const d =
+      flow.kind === 'chain'
+        ? down(flow.x1, flow.y1, flow.x2, flow.y2)
+        : across(flow.x1, flow.y1, flow.x2, flow.y2)
+    const arrow = flow.kind === 'use' ? '' : ` marker-end="url(#${id})"`
     paths.push(
-      `<path class="map-flow${color ? '' : ' is-neutral'}"${color ? ` stroke="${color}"` : ''} marker-end="url(#${id})" d="${
-        flow.trunk
-          ? `M${flow.x1},${flow.y1} H${flow.trunk} V${flow.y2} H${flow.x2}`
-          : flow.episode
-            ? across(flow.x1, flow.y1, flow.x2, flow.y2)
-            : down(flow.x1, flow.y1, flow.x2, flow.y2)
-      }"/>`
+      `<path class="map-flow is-${flow.kind}${on ? ' is-lit' : ''}${color ? '' : ' is-neutral'}"${color ? ` stroke="${color}"` : ''}${arrow} d="${d}"/>`
     )
+    if (flow.kind !== 'chain' || !view) continue
+    // The hand-off from one episode to the next, beside its wire.
+    const episode = view.episodes.find((e) => e.notebook === flow.episode)
+    const carries = episode?.carries
+    if (carries)
+      paths.push(
+        `<text class="map-carries${on ? ' is-lit' : ''}" x="${flow.x1 + 14}" y="${(flow.y1 + flow.y2) / 2 + 4}">${escape(carries.length > 96 ? `${carries.slice(0, 95)}…` : carries)}</text>`
+      )
   }
+  // A selected episode shows what it builds on from further back.
+  if (sel?.t === 'lane' && view) {
+    const episode = view.episodes.find((e) => e.notebook === sel.id)
+    const lane = layout.lanes[sel.id]
+    for (const need of episode?.outline?.needs || []) {
+      const from = need.from ? layout.lanes[need.from] : undefined
+      if (!from || !lane) continue
+      const x = (layout.series?.x ?? from.x) + 4
+      paths.push(
+        `<path class="map-need" d="M${from.x},${from.y + 30} C${x},${from.y + 30} ${x},${lane.y + 30} ${lane.x},${lane.y + 30}"/>`
+      )
+    }
+  }
+  if (map.connecting) paths.push(map.connecting)
   const marker = (id: string, fill: string) =>
     `<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0,0 L10,5 L0,10 z"${fill ? ` fill="${fill}"` : ''}/></marker>`
   const defs = `<defs>${marker('map-arrow', '')}${[...colors].map((color) => marker(`map-arrow-${color.slice(1)}`, color)).join('')}</defs>`
   svg.classList.toggle('has-focus', Boolean(sel && sel.t !== 'series'))
   svg.innerHTML = defs + paths.join('')
 }
+
+/** Redraws only the wires, as a connection is dragged. */
+export const repaintWires = (map: MapCanvas) => drawWires(map)

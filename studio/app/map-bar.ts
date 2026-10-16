@@ -16,6 +16,33 @@ const SEP = '<i class="map-sep"></i>'
 const content = (map: MapCanvas) => {
   const { snapshot, view, sel, clip } = map
   if (!snapshot) return ''
+  if (map.noteAsk) {
+    const gap = map.noteAsk.gap
+      ? view?.series?.gaps.find((g) => g.id === map.noteAsk!.gap)
+      : undefined
+    return `<form class="map-ask" data-map-form="flow-note"><label>${gap ? `Fill the gap · ${escape(gap.ask)}` : 'A note for the map: it becomes cards'}<textarea name="note" rows="2" maxlength="20000" placeholder="${gap ? 'Say it in your words, or paste a link' : 'An idea, a link, a half-thought…'}"></textarea></label><button type="submit" class="primary">Add</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
+  }
+  if (map.briefing) {
+    const key = map.briefing
+    const value = view?.series?.[key] || ''
+    return `<form class="map-ask" data-map-form="brief"><label>${key === 'outcome' ? 'By the end, viewers can' : 'The series is for'}<input name="value" maxlength="${key === 'outcome' ? 300 : 200}" value="${escape(value)}" placeholder="${key === 'outcome' ? 'Run their own video pipeline on Cloudflare' : 'Developers who ship on Workers'}" autocomplete="off"></label><button type="submit" class="primary">Save</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
+  }
+  if (sel?.t === 'direction' && view?.series) {
+    const direction = view.series.directions.find((d) => d.id === sel.id)
+    if (!direction) return ''
+    const answer = direction.answer
+    const text =
+      direction.text.length > 70
+        ? `${direction.text.slice(0, 69)}…`
+        : direction.text
+    const said = answer
+      ? `${answer.state === 'followed' ? 'Followed' : answer.state === 'partly' ? 'Partly followed' : 'Not followed'}: ${answer.why}`
+      : 'The next plan answers it'
+    const unwire = direction.to
+      ? act(`direction-unwire:${direction.id}`, 'Guide the whole series')
+      : ''
+    return `<div class="map-info"><b>Direction</b> · ${escape(text)}<small>${escape(said)}</small></div>${act(`direction-edit:${direction.id}`, 'Edit')}${unwire}${act(`direction-delete:${direction.id}`, 'Remove')}`
+  }
   if (map.naming) {
     const chosen = map.naming.slides.length
     // With pages chosen it only needs a title; else the agent picks pages.
@@ -32,10 +59,10 @@ const content = (map: MapCanvas) => {
       `<input name="${name}" type="number" min="10" max="5400" step="5" value="${value}">`
     return [
       '<form class="map-ask map-plan" data-map-form="plan">',
-      `<label>Plan the episodes<input name="ideas" maxlength="4000" value="${escape(series?.ideas || '')}" placeholder="Your ideas for episodes, or leave it to the agent" autocomplete="off"></label>`,
+      `<label>Plan the series<input name="ideas" maxlength="600" value="${escape(series?.directions.find((d) => d.id === 'ideas')?.text || '')}" placeholder="A direction for the whole series, or leave it to the plan" autocomplete="off"></label>`,
       `<label class="map-plan-length">Each${range('min', length.min)}to${range('max', length.max)}s</label>`,
       check('strict', 'Must fit', length.strict),
-      check('autoplan', 'Keep planning', series?.autoplan !== false),
+      check('organize', 'Organise new cards', series?.organize !== false),
       '<button type="submit" class="primary">Plan</button>',
       '<button type="button" class="quiet" data-map="cancel">Cancel</button></form>'
     ].join('')

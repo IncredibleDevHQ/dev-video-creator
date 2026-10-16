@@ -1,0 +1,158 @@
+// The content map's planning nodes, as markup: the series' head (what a
+// viewer can do by the end, who it is for, the lines that run through it,
+// its gaps), the creator's direction notes, a gap's dashed card where an
+// episode needs it, and the Queue of what the agent is doing. Pure strings.
+import type { Snapshot } from '../shared/api'
+import type { MapView } from '../shared/content-map'
+import type { Direction, SeriesGap } from '../shared/series'
+import { HEAD, HEAD0 } from './map-layout'
+import { escape } from './ui'
+
+export const LINE_COLORS = ['#e0a33a', '#4f8fe0', '#c56bd6', '#3fb08f']
+export const lineColor = (view: MapView, id: string) =>
+  LINE_COLORS[
+    Math.max(
+      0,
+      (view.series?.lines || []).findIndex((line) => line.id === id)
+    ) % LINE_COLORS.length
+  ]
+
+/** A node's ports: wired in on the left, out from the right (a handle). */
+export const ports = (input: boolean, output: string | null) =>
+  `${input ? '<span class="map-port is-in" aria-hidden="true"></span>' : ''}${
+    output
+      ? `<span class="map-port is-out" data-port="${escape(output)}" title="Drag to connect" aria-hidden="true">+</span>`
+      : ''
+  }`
+
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${n} ${n === 1 ? one : many}`
+
+/** The series' head: its name, the outcome and audience (the planner's are
+ * marked suggested until the creator edits them), the through-lines, the
+ * gaps, and the way to plan it again. */
+export const seriesHead = (view: MapView) => {
+  const series = view.series!
+  const suggested = new Set(series.suggested || [])
+  const copies = view.episodes.reduce((n, e) => n + e.copies.length, 0)
+  const planning = series.planning?.state === 'planning'
+  const open = series.gaps.filter((gap) => gap.state === 'open')
+  const field = (key: 'outcome' | 'audience', label: string) => {
+    const value = series[key]
+    return `<button type="button" class="map-brief${value ? '' : ' is-empty'}" data-map="brief:${key}" title="${value ? 'Edit' : 'Add'} ${label.toLowerCase()}"><b>${label}</b><span>${escape(value || (key === 'outcome' ? 'What can a viewer do by the end?' : 'Who is it for?'))}</span>${value && suggested.has(key) ? '<em>suggested</em>' : ''}</button>`
+  }
+  const lines = series.lines.length
+    ? `<div class="map-lines">${series.lines
+        .map(
+          (line) =>
+            `<span class="map-line" style="--line:${lineColor(view, line.id)}" title="${escape(line.line)}"><i></i>${escape(line.name)}</span>`
+        )
+        .join('')}</div>`
+    : ''
+  const status = planning
+    ? '<span class="map-state is-busy">planning the series…</span>'
+    : series.planning?.state === 'failed'
+      ? `<span class="map-state is-failed" title="${escape(series.planning.error || '')}">planning failed</span>`
+      : `<span class="map-state">${view.episodes.length ? `${plural(view.episodes.length, 'episode')} · ${plural(copies, 'card')}` : 'No episodes yet'}${open.length ? ` · <b class="map-gap-count">${plural(open.length, 'gap')}</b>` : ''}</span>`
+  const outlined = Boolean(series.outcome || series.lines.length)
+  return `<div class="map-series-head" style="height:${outlined ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${
+    planning
+      ? ''
+      : `<button type="button" class="${outlined ? 'quiet' : 'primary'}" data-map="plan-series">${outlined ? 'Plan again' : 'Plan the series'}</button>`
+  }<label class="map-organize" title="New cards place themselves into the episodes"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label></span></div>${
+    outlined
+      ? `<div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}</div>${lines}`
+      : '<p class="map-series-hint">Plan the series: it reads every card, finds the lines through them, orders episodes so each builds on the last, and names what the cards don’t cover.</p>'
+  }</div>`
+}
+
+const ANSWERS = {
+  followed: 'Followed',
+  partly: 'Partly followed',
+  not: 'Not followed'
+} as const
+
+/** A direction note: the creator's words for the plan, what it is wired
+ * to, and how the last plan took it. */
+export const directionCard = (
+  view: MapView,
+  snapshot: Snapshot,
+  direction: Direction,
+  editing: boolean
+) => {
+  const episode = direction.to?.episode
+    ? view.episodes.find((e) => e.notebook === direction.to!.episode)
+    : undefined
+  const pages = (direction.to?.pages || [])
+    .map((id) => snapshot.project.slides.findIndex((s) => s.id === id) + 1)
+    .filter(Boolean)
+  const about = episode
+    ? `Ep ${episode.number}`
+    : pages.length
+      ? `card${pages.length === 1 ? '' : 's'} ${pages.join(', ')}`
+      : 'the series'
+  const answer = direction.answer
+  const body = editing
+    ? `<form class="map-direction-form" data-map-form="direction" data-direction="${escape(direction.id)}"><textarea name="text" rows="3" maxlength="600" placeholder="An idea for the episodes: what to lead with, what to pair, what to cut…">${escape(direction.text)}</textarea><div><button type="submit" class="primary">Save</button><button type="button" class="quiet" data-map="cancel">Cancel</button></div></form>`
+    : `<p>${escape(direction.text)}</p>`
+  return `<div class="map-node-label"><b>Direction</b><span>for ${escape(about)}</span></div>${body}${
+    answer && !editing
+      ? `<span class="map-answer is-${answer.state}" title="${escape(answer.why)}">${ANSWERS[answer.state]}${answer.state === 'followed' ? '' : `: ${escape(answer.why)}`}</span>`
+      : !editing
+        ? '<span class="map-answer">Taken up by the next plan</span>'
+        : ''
+  }${editing ? '' : ports(false, 'direction')}`
+}
+
+/** A gap: what the episode needs that no card covers, the question that
+ * would fill it, and what to do about it. */
+export const gapCard = (gap: SeriesGap) => {
+  const act = (name: string, cls: string, label: string, title: string) =>
+    `<button type="button" class="${cls}" data-map="${name}:${escape(gap.id)}" title="${escape(title)}">${label}</button>`
+  return `<div class="map-node-label"><b>Missing</b></div><strong>${escape(gap.missing)}</strong><p>${escape(gap.why)}</p><div class="map-gap-acts">${act('gap-note', 'primary', 'Add a note', gap.ask)}${act('gap-explain', 'quiet', 'Explain here', 'The episode explains it in a line')}${act('gap-ignore', 'quiet', 'Ignore', 'It doesn’t matter for this series')}</div>`
+}
+
+/** What the agent is doing now, for the Queue. */
+export const queueItems = (snapshot: Snapshot, view: MapView | null) => {
+  const items: string[] = []
+  const sorting = (snapshot.project.notes || []).filter(
+    (note) => note.state === 'sorting'
+  ).length
+  if (sorting) items.push(`Sorting ${plural(sorting, 'note')} into cards`)
+  const changing = (snapshot.changes || []).length
+  if (changing) items.push(`Drawing ${plural(changing, 'card')}`)
+  if (snapshot.project.grouping?.state === 'grouping')
+    items.push('Grouping cards by topic')
+  const series = view?.series
+  if (series?.planning?.state === 'planning') items.push('Planning the series')
+  if (series?.organizing?.state === 'organizing')
+    items.push('Organising new cards into episodes')
+  for (const episode of view?.episodes || []) {
+    if (episode.picking?.state === 'picking')
+      items.push(`Choosing cards for Ep ${episode.number}`)
+    if (episode.segues === 'writing')
+      items.push(`Writing Ep ${episode.number}’s segues`)
+    if (episode.video && !episode.video.joined && episode.video.scenes)
+      items.push(`Making Ep ${episode.number}’s video`)
+    if (episode.drafting?.state === 'drafting')
+      items.push(`Drafting Ep ${episode.number}’s posts`)
+  }
+  return items
+}
+
+/** The Queue pill: how much is under way; open, what each one is. */
+export const queuePill = (items: string[], open: boolean) =>
+  `<button type="button" class="map-queue-pill${items.length ? ' is-busy' : ''}" data-map="queue" aria-expanded="${open}"><i></i>Queue<span>${items.length ? `${items.length} active` : 'idle'}</span></button>${
+    open && items.length
+      ? `<ul class="map-queue-list">${items.map((item) => `<li>${escape(item)}</li>`).join('')}</ul>`
+      : ''
+  }`
+
+/** The Add menu, as Flora's: what can be made here, with a key for each. */
+export const addMenu = (options: Array<[string, string, string, string]>) =>
+  `<div class="map-add-k">Add</div>${options
+    .map(
+      ([action, label, hint, key]) =>
+        `<button type="button" data-map="${escape(action)}"><i>${escape(key)}</i><span><b>${escape(label)}</b><small>${escape(hint)}</small></span><kbd>${escape(key)}</kbd></button>`
+    )
+    .join('')}<div class="map-add-foot">↑↓ Choose · ↵ Add · Esc</div>`

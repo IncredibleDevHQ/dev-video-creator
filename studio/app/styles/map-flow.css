@@ -1,0 +1,725 @@
+/* The content map as a connected canvas, modelled on Flora's: a dotted
+   ground, quiet frames with a chip label, nodes with their label above,
+   thin wires out of a node's right side into the next one's left, ports and
+   a + handle on hover, floating pills for the tools, the Queue and zoom,
+   and an Add menu with a key for each choice. Both appearances. */
+.map-page {
+  --map-canvas: #f3f3f1;
+  --map-dot: rgba(25, 33, 29, 0.11);
+  --map-frame: rgba(255, 255, 255, 0.62);
+  --map-frame-line: rgba(25, 33, 29, 0.09);
+  --map-node: #fff;
+  --map-node-line: rgba(25, 33, 29, 0.12);
+  --map-label: #6d7570;
+  --map-wire: rgba(25, 33, 29, 0.24);
+  --map-pill: rgba(255, 255, 255, 0.94);
+  --map-pill-line: rgba(25, 33, 29, 0.1);
+  --map-note: #fffaf0;
+  --map-note-line: #ecdcb5;
+  --map-gap: #b5751a;
+  --map-shadow: 0 6px 24px rgba(20, 24, 22, 0.1);
+  background: var(--map-canvas);
+}
+:root[data-theme='dark'] .map-page {
+  --map-canvas: #0d0e0e;
+  --map-dot: rgba(255, 255, 255, 0.075);
+  --map-frame: rgba(255, 255, 255, 0.025);
+  --map-frame-line: rgba(255, 255, 255, 0.075);
+  --map-node: #171919;
+  --map-node-line: rgba(255, 255, 255, 0.1);
+  --map-label: #99a29d;
+  --map-wire: rgba(255, 255, 255, 0.24);
+  --map-pill: rgba(24, 26, 26, 0.92);
+  --map-pill-line: rgba(255, 255, 255, 0.09);
+  --map-note: #1f1d16;
+  --map-note-line: #4a4228;
+  --map-gap: #e2a447;
+  --map-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* The page: pills over the canvas's own ground. */
+.map-header {
+  background: var(--map-canvas);
+  border-bottom: 0;
+  padding: 10px 14px 6px;
+  min-height: 0;
+}
+.map-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px 5px 10px;
+  border: 1px solid var(--map-pill-line);
+  border-radius: 14px;
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+}
+.map-pill-project {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 640px;
+}
+.map-pill-tools {
+  margin-left: auto;
+  flex: none;
+}
+.map-header .map-brand img {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+.map-stages button {
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.map-canvas {
+  background-color: var(--map-canvas);
+  background-image: radial-gradient(var(--map-dot) 1.1px, transparent 1.3px);
+  background-size: 22px 22px;
+}
+.map-rail {
+  background: var(--map-pill);
+  border-right: 1px solid var(--map-pill-line);
+}
+
+/* Frames: quiet groups, their name on a chip above. */
+.map-block {
+  background: var(--map-frame);
+  border: 1px solid var(--map-frame-line);
+  border-radius: 18px;
+  box-shadow: none;
+  overflow: visible;
+}
+.map-block > .map-block-head h2 {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.map-block.is-drop,
+.map-lane.is-drop,
+.map-card.is-drop {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Nodes: the label above, the drawing fills the card. */
+.map-card {
+  border-radius: 12px;
+  border: 1px solid var(--map-node-line);
+  background: var(--map-node);
+}
+.map-card:not(.map-copy) {
+  overflow: visible;
+  padding: 0;
+}
+.map-card:not(.map-copy) > .map-thumb {
+  height: 100%;
+  border-radius: 11px;
+  overflow: hidden;
+}
+.map-node-label {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: calc(100% + 6px);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--map-label);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.map-node-label b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  color: inherit;
+}
+.map-card .map-node-label b {
+  color: var(--map-label);
+}
+.map-card.is-selected .map-node-label b,
+.map-card:hover .map-node-label b {
+  color: var(--accent);
+}
+.map-node-label span {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.map-copy {
+  border-radius: 12px;
+}
+
+/* Ports: in on the left, out on the right with a + handle. */
+.map-port {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 50%;
+  border: 1.5px solid var(--map-label);
+  background: var(--map-canvas);
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 3;
+}
+.map-port.is-in {
+  left: -7px;
+}
+.map-port.is-out {
+  right: -11px;
+  width: 22px;
+  height: 22px;
+  margin-top: -11px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--map-canvas);
+  background: var(--map-label);
+  border: 0;
+  cursor: crosshair;
+}
+.map-el:hover > .map-port,
+.map-el.is-selected > .map-port,
+.map-canvas.is-linking .map-port.is-in {
+  opacity: 1;
+}
+.map-port.is-out:hover {
+  background: var(--accent);
+  transform: scale(1.12);
+}
+.map-lane > .map-port {
+  top: 29px;
+}
+.map-series > .map-series-head > .map-port.is-in {
+  top: 50%;
+}
+.map-canvas.is-linking {
+  cursor: crosshair;
+}
+
+/* Wires: thin and quiet at rest, strong for what is selected. */
+.map-flow {
+  fill: none;
+  stroke: var(--map-wire);
+  stroke-width: calc(1.3px / var(--k, 1));
+  opacity: 1;
+}
+.map-flow.is-use:not(.is-lit) {
+  stroke: var(--map-wire);
+}
+.map-flow.is-chain,
+.map-flow.is-out {
+  stroke-opacity: 0.55;
+}
+.map-flow.is-chain {
+  stroke-width: calc(2px / var(--k, 1));
+}
+.map-flow.is-direction {
+  stroke: var(--accent);
+  stroke-dasharray: 5 5;
+  stroke-opacity: 0.7;
+}
+.map-flow.is-lit {
+  stroke-width: calc(2.2px / var(--k, 1));
+  stroke-opacity: 1;
+}
+.map-wires.has-focus .map-flow:not(.is-lit) {
+  opacity: 0.32;
+}
+.map-flow.is-linking {
+  stroke: var(--accent);
+  stroke-width: calc(2px / var(--k, 1));
+  stroke-dasharray: 6 5;
+  animation: map-dash 0.6s linear infinite;
+}
+@keyframes map-dash {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-flow.is-linking {
+    animation: none;
+  }
+}
+.map-carries {
+  font-size: 11px;
+  fill: var(--map-label);
+  opacity: 0.75;
+}
+.map-carries.is-lit {
+  opacity: 1;
+  fill: currentColor;
+}
+.map-need {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: calc(1.6px / var(--k, 1));
+  stroke-dasharray: 3 4;
+}
+
+/* The series' head: name, outcome, audience, through-lines, gaps. */
+.map-series-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 18px 10px;
+}
+.map-series-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.map-series-title h2 {
+  margin: 0;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.map-series-acts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.map-series-acts button {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+.map-organize {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--map-label);
+  white-space: nowrap;
+}
+.map-gap-count {
+  color: var(--map-gap);
+  font-weight: 600;
+}
+.map-series-hint {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 13px;
+  color: var(--map-label);
+}
+.map-brief-row {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+.map-brief {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  max-width: 62%;
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--map-frame-line);
+  background: var(--map-node);
+  font-size: 13px;
+  text-align: left;
+}
+.map-brief + .map-brief {
+  max-width: 38%;
+}
+.map-brief b {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--map-label);
+}
+.map-brief span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-brief.is-empty span {
+  color: var(--map-label);
+  font-style: italic;
+}
+.map-brief em {
+  flex: none;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--map-gap);
+}
+.map-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.map-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--map-frame-line);
+  font-size: 12px;
+}
+.map-line i,
+.map-line-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+  flex: none;
+}
+
+/* An episode's lane: its head, its win, what it builds on. */
+.map-lane {
+  border-radius: 16px;
+  border: 1px solid var(--map-frame-line);
+  background: var(--map-frame);
+}
+.map-lane-win {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  font-size: 12px;
+  color: var(--map-label);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.map-lane-win b {
+  font-weight: 600;
+  color: var(--accent);
+  margin-right: 3px;
+}
+.map-lane-win > span:first-of-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.map-builds,
+.map-lock {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--map-frame-line);
+  font-size: 11px;
+}
+.map-lock {
+  margin-left: auto;
+}
+
+/* A direction: the creator's note for the plan. */
+.map-direction {
+  padding: 12px 14px 34px;
+  border-radius: 12px;
+  border: 1px solid var(--map-note-line);
+  background: var(--map-note);
+  box-shadow: var(--map-shadow);
+  cursor: grab;
+}
+.map-direction.is-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.map-direction p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.map-direction .map-node-label b {
+  color: var(--map-gap);
+}
+.map-answer {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 10px;
+  font-size: 11px;
+  color: var(--map-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.map-answer::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--map-label);
+}
+.map-answer.is-followed {
+  color: var(--accent);
+}
+.map-answer.is-followed::before {
+  background: var(--accent);
+}
+.map-answer.is-partly::before {
+  background: var(--map-gap);
+}
+.map-answer.is-not {
+  color: #c4554f;
+}
+.map-answer.is-not::before {
+  background: #c4554f;
+}
+.map-direction.is-editing {
+  cursor: default;
+  padding-bottom: 12px;
+}
+.map-direction-form textarea {
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--map-note-line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: var(--map-node);
+  color: inherit;
+  font-size: 13px;
+}
+.map-direction-form div {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.map-direction-form button {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* A gap: dashed, where the episode needs what no card covers. */
+.map-gap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1.5px dashed var(--map-gap);
+  background: transparent;
+}
+.map-gap .map-node-label b {
+  color: var(--map-gap);
+}
+.map-gap strong {
+  font-size: 13px;
+  line-height: 1.3;
+}
+.map-gap p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--map-label);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.map-gap-acts {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.map-gap-acts button {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+/* The tool pill, the Queue and zoom float over the canvas. */
+.map-toolpill {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+}
+.map-toolpill button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 15px;
+  display: grid;
+  place-items: center;
+}
+.map-toolpill .map-tool-add {
+  background: #19211d;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 500;
+}
+:root[data-theme='dark'] .map-toolpill .map-tool-add {
+  background: #f2f4f3;
+  color: #111;
+}
+.map-queue {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 60;
+}
+.map-queue-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+  font-size: 13px;
+  font-weight: 600;
+}
+.map-queue-pill span {
+  font-weight: 400;
+  color: var(--map-label);
+}
+.map-queue-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--map-label);
+}
+.map-queue-pill.is-busy i {
+  background: var(--accent);
+  animation: map-pulse 1.4s ease-in-out infinite;
+}
+@keyframes map-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+.map-queue-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  min-width: 260px;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+  font-size: 13px;
+}
+.map-queue-list li {
+  padding: 6px 8px;
+}
+.map-zoom {
+  top: auto;
+  right: auto;
+  left: 14px;
+  bottom: 14px;
+  border-color: var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+}
+.map-bar,
+.map-toast {
+  background: var(--map-pill);
+  border-color: var(--map-pill-line);
+  box-shadow: var(--map-shadow);
+}
+
+/* The Add menu: what can be made here, a key for each. */
+.map-menu.map-add {
+  width: 300px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--map-shadow);
+}
+.map-add-k {
+  padding: 4px 8px 6px;
+  font-size: 12px;
+  color: var(--map-label);
+}
+.map-add > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  text-align: left;
+}
+.map-add > button > i {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--map-pill-line);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 13px;
+}
+.map-add > button span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.map-add > button small {
+  color: var(--map-label);
+  font-size: 12px;
+}
+.map-add > button kbd {
+  margin-left: auto;
+  font: inherit;
+  font-size: 12px;
+  color: var(--map-label);
+}
+.map-add-foot {
+  margin-top: 6px;
+  padding: 6px 8px 2px;
+  border-top: 1px solid var(--map-pill-line);
+  font-size: 11px;
+  color: var(--map-label);
+}
+.map-series-title .map-state {
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--map-label);
+}
+.map-add > button small,
+.map-add > button b {
+  white-space: normal;
+}

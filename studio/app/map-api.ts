@@ -26,11 +26,37 @@ export const mapApi = {
   planSeries: (
     series: string,
     body: {
-      ideas: string
-      length: { min: number; max: number; strict: boolean }
-      autoplan: boolean
+      ideas?: string
+      length?: { min: number; max: number; strict: boolean }
+      organize?: boolean
     }
   ) => request<Series>(`/series/${series}/plan`, 'POST', body),
+  /** A direction for the plan: new, reworded, wired or moved. */
+  direction: (
+    series: string,
+    body: {
+      id?: string
+      text?: string
+      to?: { episode?: string; pages?: string[] } | null
+      spot?: { x: number; y: number }
+    }
+  ) => request<Series>(`/series/${series}/directions`, 'POST', body),
+  removeDirection: (series: string, id: string) =>
+    request<Series>(`/series/${series}/direction-remove`, 'POST', { id }),
+  brief: (
+    series: string,
+    body: { outcome?: string; audience?: string; organize?: boolean }
+  ) => request<Series>(`/series/${series}/brief`, 'POST', body),
+  gap: (series: string, id: string, state: 'explained' | 'ignored' | 'open') =>
+    request<Series>(`/series/${series}/gap`, 'POST', { id, state }),
+  undoOrganize: (series: string, run: string) =>
+    request<Series>(`/series/${series}/organize-undo`, 'POST', { run }),
+  /** Puts an episode right after another (null: first). */
+  placeAfter: (series: string, episode: string, after: string | null) =>
+    request<Series>(`/series/${series}/episode-order`, 'POST', {
+      episode,
+      after
+    }),
   addEpisode: (
     series: string,
     body: { title?: string; about?: string; slides: string[]; only?: boolean }

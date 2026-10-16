@@ -14,6 +14,12 @@ import {
 import type { MapCanvas, MapSel } from './map-canvas'
 import { mapApi } from './map-api'
 import { dropSpot, QH } from './map-layout'
+import {
+  flowAction,
+  flowDoubleClick,
+  flowSubmit,
+  startFlowPointer
+} from './map-flow-input'
 
 export type DragState = {
   key: string
@@ -93,7 +99,9 @@ export const installMapInput = (map: MapCanvas) => {
     void submit(map, form)
   })
   root.addEventListener('keydown', (event) => {
-    const form = (event.target as Element).closest?.('[data-map-form="note"]')
+    const form = (event.target as Element).closest?.(
+      '[data-map-form="note"], [data-map-form="direction"], [data-map-form="flow-note"]'
+    )
     if (form && event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault()
       ;(form as HTMLFormElement).requestSubmit()
@@ -164,6 +172,8 @@ export const installMapInput = (map: MapCanvas) => {
     const target = event.target as Element
     const canvas = target.closest<HTMLElement>('[data-map-canvas]')
     if (!canvas || target.closest('button, a')) return
+    if (startFlowPointer(map, event)) return
+    if (target.closest('textarea, input, form')) return
     event.preventDefault()
     ;(document.activeElement as HTMLElement | null)?.blur?.()
     hideMenu(map)
@@ -266,6 +276,7 @@ export const installMapInput = (map: MapCanvas) => {
   )
   root.addEventListener('dblclick', (event) => {
     if (!map.isOpen || !map.layout) return
+    if (flowDoubleClick(map, event)) return
     // Pointer capture sends the event to the canvas: find what is under it.
     const under = document.elementFromPoint(event.clientX, event.clientY)
     if (!under?.closest('[data-map-canvas]') || under.closest('button, a'))
@@ -428,6 +439,7 @@ const endDrag = (map: MapCanvas, drag: DragState, event: PointerEvent) => {
 }
 
 const submit = async (map: MapCanvas, form: HTMLFormElement) => {
+  if (await flowSubmit(map, form)) return
   const kind = form.dataset.mapForm
   const data = new FormData(form)
   if (kind === 'note') {
@@ -476,6 +488,7 @@ const dispatch = async (
   const menu = map.slot('menu')
   const reopened = menu && !menu.hidden && menu.dataset.for === action
   if (name !== 'cancel' && name !== 'copy-post') hideMenu(map)
+  if (await flowAction(map, name, arg)) return
   switch (name) {
     case 'close':
       return map.close()
