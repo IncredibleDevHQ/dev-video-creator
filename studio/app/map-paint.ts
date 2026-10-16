@@ -456,8 +456,19 @@ const drawWires = (map: MapCanvas) => {
         source === page
       if (!on) continue
       const sibling = sel?.t === 'copy' && copy.id !== sel.id
+      // From the Cards frame level with the card, down the gutter, into the
+      // episode's frame level with the copy: never across a card or an
+      // episode (review 7).
+      const lane = layout.lanes[episode.notebook]
+      const d = across(
+        layout.map.x + layout.map.w,
+        a.y + a.h / 2,
+        lane ? lane.x : b.x,
+        b.y + b.h / 2,
+        layout.series ? layout.series.x - 40 : undefined
+      )
       paths.push(
-        `<path class="map-wire is-on${sibling ? ' is-sibling' : ''}" stroke="${colorOf(view, episode.notebook)}" d="${across(a.x + a.w, a.y + a.h / 2, b.x, b.y + b.h / 2)}"/>`
+        `<path class="map-wire is-on${sibling ? ' is-sibling' : ''}" stroke="${colorOf(view, episode.notebook)}" d="${d}"/>`
       )
     }
   for (const flow of layout.flows) {

@@ -406,3 +406,104 @@ it('stops a plan when an episode left the series while it was written', async ()
   expect(await pagesIn(one)).toEqual(ids.slice(0, 2))
   await segues.settledAllSegues()
 })
+
+it('keeps both edits when the creator edits the receiving episode’s copy while a plan moves another edit in', async () => {
+  const map = await drawnMap('m-two-edits-race')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-two-edits-race', {})
+  const a = await add(series.id, '', [ids[0], ids[1]])
+  const b = await add(series.id, '', [ids[1], ids[2]])
+  await segues.settledAllSegues()
+  await changeProject(a, (current) => {
+    current.project.slides[1].svg = '<svg><text>Edit in A</text></svg>'
+  })
+  replies['Plan Series'] = () => {
+    // While A is set, the creator redraws B's own copy of the same card.
+    between.next = () =>
+      changeProject(b, (current) => {
+        current.project.slides[0].svg = '<svg><text>Edit in B</text></svg>'
+      })
+    return outline([
+      { episode: a, title: 'Opening', pages: [ids[0]] },
+      { episode: b, title: 'Then', pages: [ids[1], ids[2]] },
+      { title: 'The rest', pages: ids.slice(3) }
+    ])
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect(await copiesOf(b, ids[1])).toEqual([
+    '<svg><text>Edit in B</text></svg>',
+    '<svg><text>Edit in A</text></svg>'
+  ])
+  await segues.settledAllSegues()
+})
+
+it('gives a moved copy its own id when a stopped plan leaves it in two episodes', async () => {
+  const map = await drawnMap('m-two-ids')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-two-ids', {})
+  const a = await add(series.id, '', [ids[0], ids[1]])
+  const b = await add(series.id, '', [ids[2]])
+  const x = await add(series.id, '', [ids[3]])
+  await segues.settledAllSegues()
+  await changeProject(a, (current) => {
+    current.project.slides[1].svg = '<svg><text>Edit in A</text></svg>'
+  })
+  replies['Plan Series'] = () => {
+    // B takes A's edit first; while a new episode is filled, the creator
+    // retitles B and X's storyboard starts, before the plan reaches A.
+    between.skip = 1
+    between.next = async () => {
+      await changeProject(b, (current) => {
+        current.project.slides[0].title = 'Renamed in B'
+      })
+      await startStoryboard(x)
+    }
+    return outline([
+      { episode: b, title: 'Then', pages: [ids[2], ids[1]] },
+      { title: 'New', pages: [ids[4], ids[5]] },
+      { episode: x, title: 'Later', pages: [ids[3]] },
+      { episode: a, title: 'Opening', pages: [ids[0]] }
+    ])
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect((await loadSeries(series.id))!.planning?.state).toBe('failed')
+  const ofA = (await loadProject(a))!.project.slides
+  const ofB = (await loadProject(b))!.project.slides
+  // Nothing lost, and no id in both.
+  expect(await copiesOf(a, ids[1])).toEqual([
+    '<svg><text>Edit in A</text></svg>'
+  ])
+  const both = [...ofA, ...ofB].map((slide) => slide.id)
+  expect(new Set(both).size).toBe(both.length)
+  await segues.settledAllSegues()
+})
+
+it('stops organising when an episode it fills left the series meanwhile', async () => {
+  const map = await drawnMap('m-org-left')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-org-left', {})
+  const one = await add(series.id, '', ids.slice(0, 2))
+  const two = await add(series.id, '', ids.slice(2, 4))
+  await segues.settledAllSegues()
+  replies['Place Pages'] = async () => {
+    await episodes.removeEpisode(series.id, { episode: two })
+    return {
+      moves: [
+        { page: ids[4], into: one, after: ids[1], why: 'It builds on it' },
+        { page: ids[5], into: two, after: ids[3], why: 'It closes it' }
+      ],
+      start: []
+    }
+  }
+  await organize.organizeNewPages('m-org-left')
+  await organize.settledOrganize(series.id)
+  expect((await loadSeries(series.id))!.organizing).toMatchObject({
+    state: 'failed',
+    error: 'An episode left the series meanwhile; organise again'
+  })
+  expect(await pagesIn(two)).toEqual(ids.slice(2, 4))
+  expect(await pagesIn(one)).toEqual(ids.slice(0, 2))
+  await segues.settledAllSegues()
+})

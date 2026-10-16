@@ -202,6 +202,9 @@ export class MapCanvas {
     this.comments.reset()
     this.draftDirection = null
     this.editingDirection = null
+    // A question half asked belongs to this map, not the next (review 7).
+    this.noteAsk = null
+    this.briefing = null
     if (this.poll) clearInterval(this.poll)
     this.poll = null
     this.unsubscribe?.()

@@ -465,12 +465,18 @@ export const applyPlacement = async (
   // Check every destination, and every episode the run renumbers, before
   // changing any of them: one whose video started meanwhile stops it.
   const open = existing.filter((entry) => !entry.made)
+  const members = new Set(
+    ((await loadSeries(seriesId))?.episodes || []).map((e) => e.notebookId)
+  )
   for (const id of new Set([
     ...sorted.map((move) => move.into!),
     ...open.map((entry) => entry.notebook)
   ])) {
     if (isMade(await loadProject(id)))
       throw new Refusal('An episode’s video started; plan again')
+    // One taken out of the series meanwhile is the creator's (review 7).
+    if (!members.has(id))
+      throw new Refusal('An episode left the series meanwhile; organise again')
   }
   for (const move of sorted) {
     const notebook = move.into!

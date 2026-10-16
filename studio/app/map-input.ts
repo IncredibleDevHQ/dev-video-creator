@@ -295,7 +295,11 @@ export const installMapInput = (map: MapCanvas) => {
     if (flowDoubleClick(map, event)) return
     // Pointer capture sends the event to the canvas: find what is under it.
     const under = document.elementFromPoint(event.clientX, event.clientY)
-    if (!under?.closest('[data-map-canvas]') || under.closest('button, a'))
+    // A double-click in a field picks a word, never zooms (review 7).
+    if (
+      !under?.closest('[data-map-canvas]') ||
+      under.closest('button, a, input, textarea, select, [contenteditable]')
+    )
       return
     const key = under.closest<HTMLElement>('.map-el')?.dataset.k || ''
     const pad = (b: { x: number; y: number; w: number; h: number }) => ({
@@ -360,8 +364,15 @@ export const installMapInput = (map: MapCanvas) => {
         map.queueOpen = false
         return map.paint()
       }
-      if (map.naming || map.changing || map.renaming || map.askingPlan)
-        return void dispatch(map, 'cancel')
+      const asking =
+        map.naming ||
+        map.changing ||
+        map.renaming ||
+        map.askingPlan ||
+        map.noteAsk ||
+        map.briefing ||
+        map.editingDirection
+      if (asking) return void dispatch(map, 'cancel')
       map.select(null)
     }
   })

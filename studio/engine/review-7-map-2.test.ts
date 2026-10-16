@@ -393,3 +393,51 @@ describe('the map’s set-up popover and the note form (review 7)', () => {
     ).toBe('An idea worth a card')
   })
 })
+
+describe('lines and questions on the map (UX-8, UX-13)', () => {
+  it('draws a selected card’s lines from the Cards frame, down the gutter, into each episode’s frame', async () => {
+    const { map, root } = await openMap()
+    map.select({ t: 'page', id: 'b' })
+    const layout = map.layout!
+    const wires = [...root.querySelectorAll('path.map-wire.is-on')]
+    expect(wires).toHaveLength(2)
+    const turn = layout.series!.x - 40
+    for (const wire of wires) {
+      const d = wire.getAttribute('d')!
+      expect(d.startsWith(`M${layout.map.x + layout.map.w},`)).toBe(true)
+      expect(Number(/Q([-\d.]+),/.exec(d)?.[1])).toBe(turn)
+      const end = Number(/H([-\d.]+)$/.exec(d)?.[1])
+      expect(Object.values(layout.lanes).some((lane) => lane.x === end)).toBe(
+        true
+      )
+    }
+  })
+
+  it('closes the note question with Esc before what is selected', async () => {
+    const { map, document } = await openMap()
+    map.select({ t: 'lane', id: 'e1' })
+    map.noteAsk = { text: '' }
+    map.paint()
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect([map.noteAsk, map.sel?.t]).toEqual([null, 'lane'])
+  })
+
+  it('keeps a refused note on its own map, never the next one opened', async () => {
+    const { map, root } = await openMap()
+    let refuse = (_: Error) => {}
+    vi.mocked(mapApi.note).mockImplementationOnce(
+      () => new Promise((_, reject) => (refuse = reject))
+    )
+    map.noteAsk = { text: '' }
+    map.paint()
+    const form = root.querySelector<HTMLFormElement>(
+      '[data-map-form="flow-note"]'
+    )!
+    form.querySelector('textarea')!.textContent = 'For the first map'
+    fire(form, 'submit')
+    map.mapId = 'another-map'
+    refuse(new Error('Refused'))
+    await settle()
+    expect(map.noteAsk).toBeNull()
+  })
+})

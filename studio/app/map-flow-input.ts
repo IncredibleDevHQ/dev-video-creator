@@ -581,12 +581,16 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
       map.paint()
       return true
     }
-    // A refused note comes back in its form, its words kept (review 7).
+    // A refused note comes back in its form, its words kept, on its own map
+    // only (review 7).
+    const mapId = map.mapId
     try {
-      await mapApi.note(map.mapId, text, gap)
+      await mapApi.note(mapId, text, gap)
     } catch (reason) {
-      map.noteAsk = { text, gap }
-      map.paint()
+      if (map.isOpen && map.mapId === mapId) {
+        map.noteAsk = { text, gap }
+        map.paint()
+      }
       map.hooks.error(reason)
       return true
     }

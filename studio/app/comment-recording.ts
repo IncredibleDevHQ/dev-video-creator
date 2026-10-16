@@ -17,7 +17,13 @@ export class CommentRecording {
     recorder.ondataavailable = (event) => {
       if (event.data.size) this.chunks.push(event.data)
     }
-    recorder.start(250)
+    // A recorder that can't start closes the audio it opened (review 7).
+    try {
+      recorder.start(250)
+    } catch (error) {
+      void this.context.close()
+      throw error
+    }
   }
   static async start() {
     const stream = await navigator.mediaDevices.getUserMedia({
