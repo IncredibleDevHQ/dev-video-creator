@@ -210,7 +210,7 @@ export const keepGreys = (frame: string, preset: string) => {
 }
 
 // The studio's own Inter, one variable file for every weight.
-const INTER = fileURLToPath(
+export const INTER = fileURLToPath(
   new URL('../../app/assets/inter.woff2', import.meta.url)
 )
 const INTER_WEIGHTS = [400, 500, 600, 700, 800]
