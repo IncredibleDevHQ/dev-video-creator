@@ -175,7 +175,11 @@ export type MenuItem = {
   sep?: boolean
 }
 /** Opens above the anchor when there is room, else below; inside the stage. */
-const place = (menu: HTMLElement, anchor: HTMLElement, stage: Element) => {
+export const place = (
+  menu: HTMLElement,
+  anchor: HTMLElement,
+  stage: Element
+) => {
   const box = stage.getBoundingClientRect()
   const at = anchor.getBoundingClientRect()
   const above = at.top - box.top - menu.offsetHeight - 8

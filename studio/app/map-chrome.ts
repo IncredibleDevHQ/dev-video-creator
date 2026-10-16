@@ -5,7 +5,7 @@
 // that shows less fine print the further it is zoomed out.
 import { themeControl } from './appearance'
 import type { MapCanvas } from './map-canvas'
-import { hideMenu, showHelp, showMenu, type MenuItem } from './map-bar'
+import { hideMenu, place, showHelp, showMenu, type MenuItem } from './map-bar'
 
 const NOTES_KEY = 'incredible-studio-map-notes'
 const VIEW_KEY = 'incredible-studio-map-view:'
@@ -88,9 +88,12 @@ export const viewChoices = (map: MapCanvas): MenuItem[] => {
 const showMore = (map: MapCanvas, anchor: HTMLElement) => {
   showMenu(map, anchor, [])
   const menu = map.slot('menu')
-  if (!menu) return
+  const stage = map.root.querySelector('.map-stage')
+  if (!menu || !stage) return
   menu.classList.add('is-more')
   menu.innerHTML = `<div class="map-more-row"><span>Appearance</span>${themeControl()}</div><hr><button type="button" data-map="shortcuts"><span>Shortcuts</span><small>?</small></button><button type="button" data-map="bare"><span>Hide the interface</span><small>⌘\\</small></button>`
+  // Placed once it holds its rows, so it stays inside the canvas.
+  place(menu, anchor, stage)
 }
 
 /** Opens or closes the notes panel, and remembers it. */
