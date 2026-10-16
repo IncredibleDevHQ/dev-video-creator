@@ -16,6 +16,7 @@ import {
   type PlanFrame,
   type PlanScene
 } from '../../shared/storyboard'
+import { fitOf } from '../../shared/length'
 
 export type PlanPage = {
   id: string
@@ -74,6 +75,10 @@ export const scriptDifference = (expected: string, spoken: string) => {
 
 /** A frame's spoken length: about 2.6 words a second. */
 export const spokenSeconds = (line: string) => wordsOf(line).length / 2.6
+
+/** A card's running time: its script spoken, and a breath. */
+export const cardSeconds = (script: string) =>
+  Math.round(spokenSeconds(script) + 1)
 
 /** Verbatim, unless the scripts alone run past a strict length. */
 export const voModeFor = (pages: PlanPage[], length?: LengthGoal) =>
@@ -262,13 +267,15 @@ export const checkEpisodePlan = (raw: unknown, rules: PlanRules) => {
       'Give the episode a body: at least one product_intro or feature_showcase frame'
     )
   const goal = rules.length
-  if (goal && total) {
-    const seconds = Math.round(total)
-    if (total > goal.max * 1.05 || total < goal.min * 0.9) {
-      const line = `The frames run about ${seconds} s; the episode asks for ${goal.min}–${goal.max} s`
-      if (goal.strict) problems.push(`${line}. Cut or merge frames to fit.`)
-      else warnings.push(line)
-    }
+  const fit = goal && total ? fitOf(total, goal) : 'within'
+  if (goal && fit !== 'within') {
+    const line = `The frames run about ${Math.round(total)} s; the episode asks for ${goal.min}–${goal.max} s`
+    const fix =
+      fit === 'long'
+        ? 'Cut or merge frames to fit.'
+        : 'Let frames breathe, or add a held frame with its seconds, to reach it.'
+    if (goal.strict) problems.push(`${line}. ${fix}`)
+    else warnings.push(line)
   }
   const plan: EpisodePlan = {
     message,

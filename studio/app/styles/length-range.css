@@ -1,0 +1,191 @@
+/* The length window: one track, two ends, the explainer's sweet spot faint
+   under it. Thumb centres travel 8px in from each end, so the fill, the
+   sweet spot and the scale are placed on the same inset line. */
+.length-range {
+  --thumb: 16px;
+  display: grid;
+  gap: 6px;
+  min-width: 280px;
+}
+.length-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.length-head b {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.length-head > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.length-range .length-head .length-strict {
+  margin: 0 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.length-range .length-head .length-strict input {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+  padding: 0;
+}
+.length-track {
+  position: relative;
+  height: 24px;
+}
+.length-track::before,
+.length-sweet,
+.length-fill {
+  position: absolute;
+  top: 10px;
+  height: 4px;
+  border-radius: 2px;
+}
+.length-track::before {
+  content: '';
+  left: calc(var(--thumb) / 2);
+  right: calc(var(--thumb) / 2);
+  background: var(--line);
+}
+.length-sweet {
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--sweet-from));
+  width: calc((100% - var(--thumb)) * (var(--sweet-to) - var(--sweet-from)));
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.length-fill {
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--from));
+  width: calc((100% - var(--thumb)) * (var(--to) - var(--from)));
+  background: var(--accent);
+  transition: none;
+}
+.length-range .length-track input[type='range'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
+  pointer-events: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.length-track input[type='range']::-webkit-slider-runnable-track {
+  height: 24px;
+  background: none;
+}
+.length-track input[type='range']::-moz-range-track {
+  background: none;
+}
+.length-track input[type='range']::-webkit-slider-thumb {
+  pointer-events: auto;
+  -webkit-appearance: none;
+  width: var(--thumb);
+  height: var(--thumb);
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  cursor: grab;
+}
+.length-track input[type='range']::-moz-range-thumb {
+  pointer-events: auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  cursor: grab;
+}
+.length-track input[type='range']:active::-webkit-slider-thumb {
+  cursor: grabbing;
+}
+.length-track input[type='range']:focus-visible {
+  outline: none;
+}
+.length-track input[type='range']:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.length-track input[type='range']:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.length-scale {
+  position: relative;
+  height: 14px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.length-scale span {
+  position: absolute;
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--at));
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.length-scale span:first-child {
+  transform: none;
+  left: 0;
+}
+.length-scale span:last-child {
+  transform: none;
+  left: auto;
+  right: 0;
+}
+.length-say {
+  margin: 2px 0 0;
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* In a popover: a little room, and the way to plan again when episodes
+   no longer fit. */
+.popover.length-popover {
+  width: min(380px, calc(100vw - 24px));
+  padding: 14px 16px;
+  display: grid;
+  gap: 12px;
+}
+.length-popover .length-fit {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.length-popover .length-fit b {
+  color: var(--map-gap, #a05a00);
+  font-weight: 600;
+}
+.length-popover .length-acts {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* On the map: the series' chip, and each lane's running time, marked
+   when it falls outside the window. */
+.map-length {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.map-runs {
+  font-variant-numeric: tabular-nums;
+}
+.map-runs.is-long,
+.map-runs.is-short {
+  color: var(--map-gap);
+  font-weight: 600;
+}

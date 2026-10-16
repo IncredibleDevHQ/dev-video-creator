@@ -4,7 +4,9 @@
 // episode needs it, and the Queue of what the agent is doing. Pure strings.
 import type { Snapshot } from '../shared/api'
 import type { MapView } from '../shared/content-map'
+import { DEFAULT_LENGTH, windowLabel } from '../shared/length'
 import type { Direction, SeriesGap } from '../shared/series'
+import type { LengthGoal } from '../shared/storyboard'
 import { HEAD, HEAD0 } from './map-layout'
 import { escape } from './ui'
 
@@ -27,6 +29,10 @@ export const ports = (input: boolean, output: string | null) =>
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${n} ${n === 1 ? one : many}`
+
+/** How long each episode runs, as a chip that opens the slider. */
+export const lengthChip = (length: LengthGoal = DEFAULT_LENGTH) =>
+  `<button type="button" class="quiet map-length" data-map="length" data-popover="series-length" title="How long each episode runs">${windowLabel(length)} each${length.strict ? ' · must fit' : ''}</button>`
 
 /** The series' head: its name, the outcome and audience (the planner's are
  * marked suggested until the creator edits them), the through-lines, the
@@ -56,7 +62,7 @@ export const seriesHead = (view: MapView) => {
       : `<span class="map-state">${view.episodes.length ? `${plural(view.episodes.length, 'episode')} · ${plural(copies, 'card')}` : 'No episodes yet'}${open.length ? ` · <b class="map-gap-count">${plural(open.length, 'gap')}</b>` : ''}</span>`
   // A plan has been made once it named the lines through the series.
   const planned = series.lines.length > 0
-  return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${
+  return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${lengthChip(series.length)}${
     planning
       ? ''
       : `<button type="button" class="${planned ? 'quiet' : 'primary'}" data-map="plan-series">${planned ? 'Plan again' : 'Plan the series'}</button>`

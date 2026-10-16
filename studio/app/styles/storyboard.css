@@ -248,12 +248,8 @@
 .dialog-body .length-choice legend {
   width: 100%;
 }
-.dialog-body .length-choice label {
-  margin: 4px 0;
-}
-.dialog-body .length-choice input[type='number'] {
-  width: 72px;
-  padding: 4px 6px;
+.dialog-body .length-choice .length-range {
+  flex: 1 1 100%;
 }
 /* Stills: each frame posed at its key moment before anything is made. The
    rail shows a scene's first still, the strip each frame's own, small; a

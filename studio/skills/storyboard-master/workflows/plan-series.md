@@ -14,8 +14,11 @@ Every episode later becomes one storyboard (Plan Episode).
    - `directions`: the creator's own ideas for the series, each with an `id`,
      its `text`, and what it is `about` (the whole series, one episode, or
      some cards);
-   - `length`: how long each episode runs, a range in seconds, and whether it
-     is strict;
+   - `length`: how long each episode runs, a range in seconds, whether it is
+     strict, how long all the cards run together (`seconds`), what an episode
+     speaks besides its cards (`segue`: seconds for the line into each card,
+     and for its closing line), and about how many episodes that makes at
+     this length (`episodes`);
    - `episodes`: the episodes that exist, each with its id (`episode`), its
      `title`, its cards, `made` (true once its video has started) and `named`
      (true when the creator named it);
@@ -91,9 +94,13 @@ Every episode later becomes one storyboard (Plan Episode).
    their names, their emphasis. When two disagree, follow the more specific
    one (an episode's over the whole series'). Answer every one: `followed`,
    `partly` or `not`, with `why` in a line.
-8. **The length.** Sum each episode's `seconds`. It must land inside the range
-   when the length is strict, and near it when not. Split or merge episodes
-   to get there.
+8. **The length.** The creator chose how long each episode runs; it decides
+   how many episodes there are. Start from about `length.episodes` episodes.
+   An episode runs its cards' `seconds`, plus `segue.card` for each card and
+   `segue.close` once: that must land inside the range when the length is
+   strict, and near it when not. Split or merge episodes to get
+   there. When one card alone runs past the longest, flag that episode
+   `overloaded` and say the card needs cutting.
 9. **Check it as the viewer.** Read the outline as someone in the audience.
    Where would you be confused, bored (`slow`), `overloaded`, or lost because
    something is assumed (`assumes`)? Fix what you can in the plan. Flag what

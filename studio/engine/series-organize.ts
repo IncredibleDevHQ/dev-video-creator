@@ -5,7 +5,9 @@
 // out with a reason. Made episodes never change. Each run is recorded, so
 // Undo takes out what it added; the cards it took back wait, unplaced.
 import { randomUUID } from 'node:crypto'
+import { fitOf, withSegues } from '../shared/length'
 import type { OrganizeRun, Series } from '../shared/series'
+import type { LengthGoal } from '../shared/storyboard'
 import { organizes } from '../shared/series'
 import { addEvent } from './activity'
 import { runValidatedJsonStage } from './creative/stage'
@@ -69,6 +71,9 @@ type Rules = {
   lines: string[]
   /** The creator's direction ids, which a placement may answer again. */
   directions?: string[]
+  /** How long each episode may run, and each card's running time. */
+  length?: LengthGoal
+  seconds?: Record<string, number>
 }
 
 /** Every new card placed once: into an open episode after a card it holds,
@@ -172,6 +177,35 @@ export const validatePlacement = (raw: unknown, rules: Rules) => {
   for (const item of start)
     if (!moves.some((move) => move.start === item.key))
       problems.push(`New episode ${item.key} has no card`)
+  // An episode the new cards push past the longest: say so, or refuse it
+  // when the length is strict.
+  const warnings: string[] = []
+  const goal = rules.length
+  if (goal && rules.seconds) {
+    const runs = (pages: string[]) =>
+      withSegues(pages.map((page) => rules.seconds![page] || 0))
+    const filled = [
+      ...rules.episodes.map((target, index) => ({
+        name: `Episode ${index + 1}`,
+        pages: [
+          ...target.pages,
+          ...moves.filter((m) => m.into === target.notebook).map((m) => m.page)
+        ],
+        grew: moves.some((m) => m.into === target.notebook)
+      })),
+      ...start.map((item) => ({
+        name: `New episode ${item.key}`,
+        pages: moves.filter((m) => m.start === item.key).map((m) => m.page),
+        grew: true
+      }))
+    ]
+    for (const { name, pages, grew } of filled) {
+      const total = runs(pages)
+      if (!grew || pages.length < 2 || fitOf(total, goal) !== 'long') continue
+      const line = `${name} would run about ${Math.round(total)} s, past the longest ${goal.max} s: start a new episode for some of the cards`
+      ;(goal.strict ? problems : warnings).push(line)
+    }
+  }
   // A direction the moves change is answered again; others keep theirs.
   const answers: Answer[] = list(value.answers)
     .map((item) => {
@@ -191,7 +225,7 @@ export const validatePlacement = (raw: unknown, rules: Rules) => {
   return {
     ok: problems.length === 0,
     problems,
-    warnings: [] as string[],
+    warnings,
     value: { moves, start, answers }
   }
 }
@@ -339,7 +373,11 @@ const place = async (
         episodes: existing,
         gaps: open.map((gap) => gap.id),
         lines: (series.lines || []).map((line) => line.id),
-        directions: directions.map((line) => line.id)
+        directions: directions.map((line) => line.id),
+        ...(series.length ? { length: series.length } : {}),
+        seconds: Object.fromEntries(
+          [...cards.values()].map((card) => [card.id, card.seconds])
+        )
       })
   })
   await applyPlacement(seriesId, mapId, plan, fresh)

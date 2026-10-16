@@ -517,19 +517,11 @@ export class MapCanvas {
   async planEpisodes(data: FormData) {
     this.askingPlan = false
     this.paint()
-    const min = Number(data.get('min'))
-    const max = Number(data.get('max'))
-    if (!(min > 0 && max > min)) {
-      this.hooks.error(
-        new Error('Give the length as a range, the shorter end first')
-      )
-      return
-    }
+    // The length is the series' own, set with its slider.
     await this.run(async () => {
       const series = this.view?.series || (await mapApi.startSeries(this.mapId))
       await mapApi.planSeries(series.id, {
         ideas: String(data.get('ideas') || '').trim(),
-        length: { min, max, strict: data.get('strict') === 'on' },
         organize: data.get('organize') === 'on'
       })
     }, 'Planning the series: it reads every card, then the episodes take shape')

@@ -9,6 +9,7 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Snapshot } from '../../shared/api'
+import { fitOf, lengthLabel, windowLabel } from '../../shared/length'
 import type { BuildType, Storyboard } from '../../shared/storyboard'
 import { addEvent } from '../activity'
 import { readAsset, storeAsset } from '../persistence'
@@ -350,6 +351,23 @@ const voiceStage = async ({
       `Voiced and timed: ${ready.length} ${ready.length === 1 ? 'scene' : 'scenes'}`,
       { activity: 'complete' }
     )
+    // Voiced in full, its real length against the window, said before a
+    // frame is built: the voice wins over the plan's estimate.
+    const goal = internal.length
+    const voiced = current.pages.every((page) =>
+      internal.voiced!.includes(page)
+    )
+    const total = (current.plan?.scenes || []).reduce(
+      (sum, scene) =>
+        sum + scene.frames.reduce((run, frame) => run + frame.duration, 0),
+      0
+    )
+    if (goal && voiced && total && fitOf(total, goal) !== 'within')
+      addEvent(
+        ledger,
+        'video',
+        `Voiced, it runs ${lengthLabel(total)}; the episode asks for ${windowLabel(goal)}`
+      )
   })
 }
 

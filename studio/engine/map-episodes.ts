@@ -25,6 +25,8 @@ import {
 import { copyOf, pageHash, syncEvidence } from './map-copy'
 import { schedulePick } from './map-picking'
 import { directionsOf } from './series-directions'
+import { SEGUE } from '../shared/length'
+import { cardSeconds } from './storyboard/plan-check'
 export { copyOf, pageHash, syncEvidence } from './map-copy'
 
 const words = (value: unknown, limit: number) =>
@@ -129,7 +131,8 @@ const addOne = async (seriesId: string, raw: unknown) => {
       episode: {
         series: seriesId,
         number,
-        ...(previously ? { previously } : {})
+        ...(previously ? { previously } : {}),
+        ...(series.length ? { length: series.length } : {})
       },
       slides: copies,
       video: null,
@@ -488,6 +491,29 @@ const usersOf = async (map: string, page: string) => {
 }
 
 /** Everything the map's canvas shows: its series, episodes and usage. */
+/** About how long an episode runs: its pages spoken, with the segues it
+ * has, and an allowance for the ones not yet written. */
+const runsOf = (slides: Slide[]) =>
+  slides.reduce(
+    (sum, slide) =>
+      sum +
+      cardSeconds(slide.narration || '') +
+      (slide.bridge ? 0 : SEGUE.card),
+    slides.some((slide) => slide.outro) || !slides.length ? 0 : SEGUE.close
+  )
+
+/** The map's drawn cards: how many, and how long they run, spoken. */
+const drawnRuns = (slides: Slide[]) => {
+  const drawn = slides.filter((slide) => slide.svg && !slide.aside)
+  return {
+    cards: drawn.length,
+    seconds: drawn.reduce(
+      (sum, slide) => sum + cardSeconds(slide.narration || ''),
+      0
+    )
+  }
+}
+
 export const mapView = async (mapId: string): Promise<MapView> => {
   const map = await readRow<Snapshot>('projects', mapId)
   if (!map) throw new Refusal('Notebook not found')
@@ -550,6 +576,7 @@ export const mapView = async (mapId: string): Promise<MapView> => {
           }
         : {}),
       copies,
+      seconds: runsOf(ep.project.slides),
       video: video
         ? {
             scenes: video.scenes.filter((s) => s.phase !== 'idle').length,
@@ -595,6 +622,7 @@ export const mapView = async (mapId: string): Promise<MapView> => {
             : {}),
           ...(series.ideas ? { ideas: series.ideas } : {}),
           ...(series.length ? { length: series.length } : {}),
+          ...drawnRuns(map.project.slides),
           organize: organizes(series),
           ...(series.organizing
             ? {

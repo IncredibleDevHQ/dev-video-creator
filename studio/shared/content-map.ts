@@ -67,6 +67,8 @@ export type MapEpisode = {
   /** Choosing its pages from what the creator said it is about. */
   picking?: { state: 'picking' | 'failed'; about: string }
   copies: MapCopy[]
+  /** About how long it runs, spoken: its pages' scripts. */
+  seconds?: number
   video: { scenes: number; made: number; joined: boolean } | null
   teasers: Array<{
     id: string
@@ -93,6 +95,9 @@ export type MapView = {
     planning?: { state: 'planning' | 'failed'; error?: string }
     ideas?: string
     length?: import('./storyboard').LengthGoal
+    /** How many drawn cards the map has, and how long they run, spoken. */
+    cards?: number
+    seconds?: number
     autoplan?: boolean
     /** New cards organise themselves into the episodes. */
     organize: boolean

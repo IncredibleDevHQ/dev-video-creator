@@ -756,12 +756,10 @@ export const updateVideoSettings = async (id: string, settings: unknown) => {
         delete scene.beats
         delete scene.shot
       }
-    video.settings = {
-      ...valid,
-      ...(!valid.harness && video.settings.harness
-        ? { harness: video.settings.harness }
-        : {})
-    }
+    // What the dialog doesn't ask stays: the agent, how the video is made,
+    // how long it runs.
+    const { harness, production, length } = video.settings
+    video.settings = { harness, production, length, ...valid }
     reconcileVideo(current.project, current)
     const shots = retold ? orchestrate(current.project) : null
     if (shots)

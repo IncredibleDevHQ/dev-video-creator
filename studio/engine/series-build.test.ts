@@ -26,7 +26,7 @@ const { planSeries, settledSeriesPlan } = await import('./series-plan')
 const { validateOutline } = await import('./series-outline')
 const organize = await import('./series-organize')
 const directions = await import('./series-directions')
-const { placeEpisodeAfter } = await import('./series-apply')
+const { applySeriesLength, placeEpisodeAfter } = await import('./series-apply')
 afterAll(async () => {
   await segues.settledAllSegues()
   await rm(root, { recursive: true, force: true })
@@ -746,6 +746,117 @@ it('refuses a placement into a made episode, before the last made one, or twice'
   expect(problems).toMatch(/nope is not an open gap/)
   expect(problems).toMatch(/must come after episode 2/)
   expect(problems).toMatch(/Place n1 exactly once/)
+})
+
+it('sets one window for the series: open episodes and new ones take it, made ones keep theirs, and the planner sees what it makes', async () => {
+  const map = await drawnMap('m-len')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-len', {})
+  const add = async (slides: string[]) =>
+    (await episodes.addMapEpisode(series.id, { slides })).notebook.project.id
+  const made = await add([ids[0]])
+  const open = await add([ids[1], ids[2]])
+  await makeVideo(made)
+  const goal = { min: 60, max: 90, strict: true }
+  await directions.updateBrief(series.id, { length: goal })
+  await applySeriesLength(series.id)
+  const lengthOf = async (id: string) =>
+    (await loadProject(id))!.project.episode?.length
+  expect((await loadSeries(series.id))!.length).toEqual(goal)
+  expect(await lengthOf(open)).toEqual(goal)
+  expect(await lengthOf(made)).toBeUndefined()
+  // An episode made by hand runs as long as its series asks.
+  expect(await lengthOf(await add([ids[3]]))).toEqual(goal)
+  // The map says how long each episode and all the cards run.
+  const view = await episodes.mapView('m-len')
+  const runs = view.episodes.map((episode) => episode.seconds)
+  expect(
+    runs.every((seconds) => typeof seconds === 'number' && seconds > 0)
+  ).toBe(true)
+  expect(view.series?.seconds).toBeGreaterThan(runs[1]!)
+  // The planner reads the window with the cards' running time and about
+  // how many episodes that makes.
+  let length: Record<string, unknown> = {}
+  replies['Plan Series'] = (input) => {
+    length = packetOf(input, 'SERIES.json').length
+    throw new Error('Read it, then stop')
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect(length).toMatchObject({ ...goal, seconds: view.series?.seconds })
+  expect(length.episodes).toBeGreaterThanOrEqual(1)
+  await expect(
+    directions.updateBrief(series.id, { length: { min: 90, max: 60 } })
+  ).rejects.toThrow(/the shorter end first/)
+})
+
+it('holds episodes to the window, segues counted: split a long one, warn of one card past it, refuse to grow one past it when strict', () => {
+  const seconds: Record<string, number> = { a: 40, b: 40, c: 20, d: 60 }
+  const pages = Object.entries(seconds).map(([id, s]) => ({ id, seconds: s }))
+  const outline = (groups: string[][]) => ({
+    outcome: 'Run a pipeline',
+    lines: [{ id: 'why', name: 'Why', line: 'It fills a gap' }],
+    episodes: groups.map((group, index) => ({
+      title: `T${index}`,
+      about: 'A',
+      win: 'W',
+      teaches: [`t${index}`],
+      carries: 'C',
+      lines: ['why'],
+      needs: [],
+      pages: group
+    })),
+    gaps: [],
+    directions: []
+  })
+  const rules = (strict: boolean, given = pages) => ({
+    pages: given,
+    existing: [],
+    directions: [],
+    given: { outcome: true, audience: true },
+    length: { min: 60, max: 90, strict }
+  })
+  // 100 s of cards, 6 s into each of three, 9 s to close: 127 s.
+  const long = validateOutline(outline([['a', 'b', 'c'], ['d']]), rules(true))
+  expect(long.problems.join(' ')).toMatch(
+    /Episode 1 runs about 127 s.*split it/
+  )
+  const flexible = validateOutline(
+    outline([['a'], ['b'], ['c'], ['d']]),
+    rules(false)
+  )
+  expect(flexible.problems).toEqual([])
+  expect(flexible.warnings.join(' ')).toMatch(
+    /Episode 3 runs about 35 s.*merge it/
+  )
+  const alone = validateOutline(
+    outline([['a'], ['b']]),
+    rules(false, [
+      { id: 'a', seconds: 120 },
+      { id: 'b', seconds: 50 }
+    ])
+  )
+  expect(alone.warnings.join(' ')).toMatch(
+    /Episode 1 runs about 135 s.*its one card runs long; flag it overloaded/
+  )
+  // Organising: new cards that push an episode past the longest.
+  const placement = (strict: boolean) =>
+    organize.validatePlacement(
+      { moves: [{ page: 'n1', into: 'e1', after: 'a', why: 'It fits' }] },
+      {
+        fresh: ['n1'],
+        episodes: [{ notebook: 'e1', made: false, pages: ['a'] }],
+        gaps: [],
+        lines: [],
+        length: { min: 60, max: 90, strict },
+        seconds: { a: 70, n1: 40 }
+      }
+    )
+  expect(placement(false).ok).toBe(true)
+  expect(placement(false).warnings.join(' ')).toMatch(
+    /Episode 1 would run about 131 s, past the longest 90 s/
+  )
+  expect(placement(true).problems.join(' ')).toMatch(/past the longest 90 s/)
 })
 
 it('keeps the creator’s directions: wired, reworded, answered again, removed', async () => {

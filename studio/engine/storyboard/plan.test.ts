@@ -118,6 +118,36 @@ it('holds the pages, the builds, the transitions and the length', () => {
   expect(report.problems.join(' ')).toMatch(/not on camera/)
   expect(report.problems.join(' ')).toMatch(/Frame 1 enters with a cut/)
   expect(report.problems.join(' ')).toMatch(/episode asks for 30–60 s/)
+  // Too short says how to reach the length, not how to cut to it.
+  expect(report.problems.join(' ')).toMatch(
+    /Let frames breathe, or add a held frame with its seconds, to reach it/
+  )
+})
+
+it('briefs the pace and meets the length from the scripts: paced, held, or cut to a word budget', () => {
+  const brief = (voMode: 'verbatim' | 'restructure', spoken?: number) =>
+    episodeBrief({
+      title: 'Streams',
+      length: { min: 60, max: 90, strict: voMode === 'restructure' },
+      camera: false,
+      voMode,
+      spoken
+    })
+  expect(brief('verbatim', 70)).toMatch(
+    /Pace, as narration.md and story-design.md say: about 2.5 words a second/
+  )
+  expect(brief('verbatim', 70)).toMatch(
+    /Spoken, the scripts run about 70 s: pace the frames to land inside the length/
+  )
+  expect(brief('verbatim', 30)).toMatch(
+    /run about 30 s, short of 60 s: keep every word, and reach the length with room/
+  )
+  expect(brief('verbatim', 130)).toMatch(
+    /past the 90 s aimed for: pace them tightly, with no held frames/
+  )
+  expect(brief('restructure', 200)).toMatch(
+    /Cut them to about 150–225 words in all/
+  )
 })
 
 it('keeps the build the creator chose', () => {

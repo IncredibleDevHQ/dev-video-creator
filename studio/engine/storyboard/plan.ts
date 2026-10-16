@@ -17,7 +17,13 @@ import {
   type CreativeSelection
 } from '../creative/stage'
 import { fingerprintOf } from '../planning/fingerprint'
-import { checkEpisodePlan, voModeFor, type PlanPage } from './plan-check'
+import { fitOf, wordBudget } from '../../shared/length'
+import {
+  checkEpisodePlan,
+  spokenSeconds,
+  voModeFor,
+  type PlanPage
+} from './plan-check'
 import { renderScript, renderStoryboard } from './plan-files'
 import { upstreamPath } from './hyperframes'
 
@@ -28,6 +34,7 @@ export const PLAN_SKILL_FILES = [
   'hyperframes/PROVENANCE.md',
   'hyperframes/skills/faceless-explainer/references/story-design.md',
   'hyperframes/skills/hyperframes-creative/references/story-spine.md',
+  'hyperframes/skills/hyperframes-creative/references/narration.md',
   'hyperframes/skills/hyperframes/references/storyboard-format.md',
   'hyperframes/skills/hyperframes/references/script-format.md',
   'hyperframes/skills/hyperframes-animation/blueprints-index.md'
@@ -92,12 +99,35 @@ export type SeriesContext = {
   explain?: string[]
 }
 
+/** How the pages' scripts meet the length: spoken as they are, paced to
+ * land inside it, or cut to its word budget. */
+const scriptLine = (
+  voMode: 'verbatim' | 'restructure',
+  length: LengthGoal,
+  spoken?: number
+) => {
+  const [few, many] = wordBudget(length)
+  if (voMode === 'restructure')
+    return `Script: the pages' scripts run longer than the strict length allows. Cut them to about ${few}–${many} words in all, keeping the creator's own words wherever you keep a line.`
+  const said = "Script: each page's script is spoken word for word."
+  if (!spoken) return said
+  const runs = `${said} Spoken, the scripts run about ${seconds(spoken)}`
+  const fit = fitOf(spoken, length)
+  return fit === 'short'
+    ? `${runs}, short of ${seconds(length.min)}: keep every word, and reach the length with room: frames that breathe, a held frame where the message lands, a silent beat between scenes, each given its seconds.`
+    : fit === 'long'
+      ? `${runs}, past the ${seconds(length.max)} aimed for: pace them tightly, with no held frames.`
+      : `${runs}: pace the frames to land inside the length.`
+}
+
 /** BRIEF.md: the episode, its length, its series, what may be shown. */
 export const episodeBrief = (input: {
   title: string
   length: LengthGoal
   camera: boolean
   voMode: 'verbatim' | 'restructure'
+  /** How long the pages' scripts run, spoken. */
+  spoken?: number
   series?: SeriesContext
   note?: string
   builds?: Record<string, BuildType>
@@ -119,12 +149,11 @@ export const episodeBrief = (input: {
     '## Intent',
     '',
     `One episode, told as one storyboard. Length: ${seconds(length.min)} to ${seconds(length.max)}, ${length.strict ? 'strict: the plan must fit' : 'flexible: a target, not a limit'}.`,
+    'Pace, as narration.md and story-design.md say: about 2.5 words a second, the script a little shorter than the video; a 3–5 s hook; one or two sentences a frame (6–20 words); a held frame where the message lands.',
     input.camera
       ? 'The creator may appear on camera: a camera scene waits for their take.'
       : 'The creator stays off camera: no camera scenes.',
-    input.voMode === 'verbatim'
-      ? "Script: each page's script is spoken word for word."
-      : "Script: the pages' scripts run longer than the strict length allows. Cut them to fit, keeping the creator's own words wherever you keep a line.",
+    scriptLine(input.voMode, length, input.spoken),
     ''
   ]
   if (series)
@@ -226,6 +255,7 @@ export const planEpisode = async (input: {
     length,
     camera,
     voMode,
+    spoken: spokenSeconds(pages.map((page) => page.script).join(' ')),
     series: input.series,
     note: input.note,
     builds: input.builds,

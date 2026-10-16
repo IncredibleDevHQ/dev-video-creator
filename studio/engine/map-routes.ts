@@ -16,7 +16,7 @@ import { addNote, retryNote } from './map-notes'
 import { changeComment } from './map-comments'
 import { retryPick } from './map-picking'
 import { planSeries } from './series-plan'
-import { placeEpisodeAfter } from './series-apply'
+import { applySeriesLength, placeEpisodeAfter } from './series-apply'
 import {
   removeDirection,
   saveDirection,
@@ -102,6 +102,7 @@ const seriesAction = async (
   if (action === 'brief') {
     const before = await loadSeries(id)
     const saved = await updateBrief(id, body)
+    if (body.length !== undefined) await applySeriesLength(id)
     // Turned on, organising places the cards that were waiting, now.
     if (body.organize === true && before?.organize === false && saved.map)
       void organizeNewPages(saved.map).catch(() => {})

@@ -7,6 +7,7 @@ import type { Snapshot } from '../shared/api'
 import type { Direction, Series, SeriesGap } from '../shared/series'
 import { Refusal } from './refusal'
 import { changeSeries } from './series'
+import { validLength } from './video'
 
 const words = (value: unknown, limit: number) =>
   String(value ?? '')
@@ -128,6 +129,11 @@ export const updateBrief = (seriesId: string, raw: unknown) => {
     if (value.organize !== undefined) {
       series.organize = value.organize === true
       delete series.autoplan
+    }
+    if (value.length !== undefined) {
+      const length = validLength(value.length)
+      if (length) series.length = length
+      else delete series.length
     }
     if (value.title !== undefined) {
       const title = words(value.title, 120)

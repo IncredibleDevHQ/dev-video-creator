@@ -4,6 +4,7 @@
 // gap it names), the gaps the cards don't cover, an answer to each of the
 // creator's directions, and a viewer's check. A made episode keeps its place
 // and its pages; open ones are the agent's to arrange.
+import { fitOf, withSegues } from '../shared/length'
 import type { LengthGoal } from '../shared/storyboard'
 import type { ViewerFlag } from '../shared/series'
 
@@ -241,16 +242,22 @@ export const validateOutline = (raw: unknown, rules: OutlineRules) => {
       seen.set(page, index)
     }
     const goal = rules.length
-    const total = episode.pages.reduce(
-      (sum, page) => sum + (seconds.get(page) || 0),
-      0
+    // Spoken with its segues: the line into each card, and its close.
+    const total = withSegues(
+      episode.pages.map((page) => seconds.get(page) || 0)
     )
     if (goal && total) {
       const line = `${label} runs about ${Math.round(total)} s; each episode asks for ${goal.min}–${goal.max} s`
-      if (total > goal.max * 1.05 && episode.pages.length > 1)
+      const fit = fitOf(total, goal)
+      if (fit === 'long' && episode.pages.length > 1)
         (goal.strict ? problems : warnings).push(`${line}: split it`)
-      else if (total < goal.min * 0.6)
-        (goal.strict ? problems : warnings).push(`${line}: merge it`)
+      else if (fit === 'long')
+        warnings.push(`${line}: its one card runs long; flag it overloaded`)
+      // Short is a warning; strict refuses only an episode far too thin.
+      else if (fit === 'short')
+        (goal.strict && total < goal.min * 0.6 ? problems : warnings).push(
+          `${line}: merge it`
+        )
     }
   })
   for (const item of rules.existing)

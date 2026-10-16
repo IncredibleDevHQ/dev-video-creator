@@ -13,6 +13,7 @@ import {
 } from './map-bar'
 import type { MapCanvas, MapSel } from './map-canvas'
 import { mapApi } from './map-api'
+import { openLength } from './map-length'
 import { dropSpot, QH } from './map-layout'
 import {
   flowAction,
@@ -490,6 +491,7 @@ const dispatch = async (
   const reopened = menu && !menu.hidden && menu.dataset.for === action
   if (name !== 'cancel' && name !== 'copy-post') hideMenu(map)
   if (chromeAction(map, name, target, Boolean(reopened))) return
+  if (name === 'length') return target ? openLength(map, target) : undefined
   if (await flowAction(map, name, arg)) return
   switch (name) {
     case 'close':

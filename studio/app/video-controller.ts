@@ -24,6 +24,7 @@ import { syncSceneChoice } from './scene-link'
 import { videoSettingsPreview } from './video-settings-preview'
 import { parseVoice } from './voice-choice'
 import { restoreMakeChoices } from './template-picker'
+import { wireLengthRanges } from './length-range'
 
 export const createSyncLayeredPlayback = (app: AppContext) =>
   layeredPlayback(app.root, (time, playing) => {
@@ -453,6 +454,7 @@ ${button('Try again', 'video-settings', true)}`
       // Back from the gallery, the scenes, camera and voice chosen before.
       restoreMakeChoices(app.dialog)
       syncSceneChoice(app.dialog)
+      wireLengthRanges(app.dialog)
       // The first chosen scene and the chosen voice are in sight, each
       // within its own list (review 6: the scene was below four rows).
       for (const [list, chosen] of [

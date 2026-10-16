@@ -345,6 +345,22 @@ export const applyOutline = async (
   return order
 }
 
+/** The series' window on every episode whose video hasn't started: each
+ * plans its storyboard to it. A made one keeps the length it was made to. */
+export const applySeriesLength = async (seriesId: string) => {
+  const series = await loadSeries(seriesId)
+  if (!series) return
+  for (const item of series.episodes) {
+    if (isMade(await loadProject(item.notebookId))) continue
+    await changeProject(item.notebookId, (current) => {
+      const ref = current.project.episode
+      if (!ref) return
+      if (series.length) ref.length = series.length
+      else delete ref.length
+    })
+  }
+}
+
 /** Puts an episode right after another (null: first), as wiring one
  * episode into another does on the canvas. */
 export const placeEpisodeAfter = async (seriesId: string, raw: unknown) => {

@@ -29,7 +29,9 @@ export const openPopover = (
     let left = box.right - width
     if (left < 12) left = Math.min(box.left, window.innerWidth - width - 12)
     panel.style.left = `${Math.round(Math.max(12, left))}px`
-    panel.style.top = `${Math.round(box.bottom + 8)}px`
+    // Under the control, or over it when the window ends first.
+    const below = box.bottom + 8 + panel.offsetHeight <= window.innerHeight - 12
+    panel.style.top = `${Math.round(below ? box.bottom + 8 : Math.max(12, box.top - 8 - panel.offsetHeight))}px`
   }
   place()
   const outside = (event: MouseEvent) => {

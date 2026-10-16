@@ -3,6 +3,12 @@
 // copy, a segue, what a made episode was cut into. Pure strings.
 import type { Snapshot } from '../shared/api'
 import type { MapCopy, MapEpisode, MapView } from '../shared/content-map'
+import {
+  DEFAULT_LENGTH,
+  fitOf,
+  lengthLabel,
+  windowLabel
+} from '../shared/length'
 import type { Slide } from '../shared/model'
 import { escape } from './ui'
 import { videoOpens } from '../shared/state'
@@ -284,6 +290,18 @@ export const segueCard = (episode: MapEpisode, end: boolean, last: boolean) => {
   return `<div class="map-segue-k">${label}</div><div class="map-segue-s">${writing ? 'writing…' : escape(text || (episode.segues === 'failed' ? 'Could not write it' : '—'))}</div>`
 }
 
+/** About how long the episode runs, against the series' window. */
+const runs = (view: MapView, episode: MapEpisode) => {
+  if (!episode.seconds) return ''
+  const goal = view.series?.length || DEFAULT_LENGTH
+  const fit = fitOf(episode.seconds, goal)
+  const said =
+    fit === 'within'
+      ? `About ${lengthLabel(episode.seconds)} spoken, inside ${windowLabel(goal)}`
+      : `About ${lengthLabel(episode.seconds)} spoken; each episode asks for ${windowLabel(goal)}`
+  return ` · <span class="map-runs${fit === 'within' ? '' : ` is-${fit}`}" data-runs="${episode.seconds}" title="${escape(said)}">${lengthLabel(episode.seconds)}</span>`
+}
+
 /** The lane's header: the episode, its state, and the way into making it;
  * what it is cut into once made is in the Socials box. */
 export const laneHead = (view: MapView, episode: MapEpisode) => {
@@ -297,7 +315,7 @@ export const laneHead = (view: MapView, episode: MapEpisode) => {
           ? '<span class="map-state is-busy">writing segues…</span>'
           : video && !video.joined && video.scenes
             ? `<span class="map-state is-busy">making ${video.made} of ${video.scenes}</span>`
-            : `<span class="map-state">${plural(episode.copies.length, 'card')}</span>${video?.joined ? '<span class="map-state is-made">· made</span>' : ''}`
+            : `<span class="map-state">${plural(episode.copies.length, 'card')}${runs(view, episode)}</span>${video?.joined ? '<span class="map-state is-made">· made</span>' : ''}`
   const outline = episode.outline
   const builds = (outline?.needs || [])
     .map((need) =>

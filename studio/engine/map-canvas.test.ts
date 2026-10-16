@@ -13,6 +13,7 @@ import {
 } from '../app/map-layout'
 import { episodeChoices, moreChoices } from '../app/map-bar'
 import { directionCard, gapCard, seriesHead } from '../app/map-nodes'
+import { outsideLine } from '../app/map-length'
 import type { MapCanvas, MapSel } from '../app/map-canvas'
 import {
   copyCard,
@@ -527,5 +528,31 @@ describe('the series as a connected canvas', () => {
     expect(note).toContain('Partly followed: Three cards')
     expect(note).toContain('data-port="direction"')
     expect(gapCard(view.series!.gaps[0])).toContain('data-map="gap-note:do"')
+  })
+  it('says how long each episode runs against the series’ window, and opens the slider from the series', () => {
+    expect(seriesHead(view)).toContain(
+      'data-map="length" data-popover="series-length" title="How long each episode runs">45–120 s each</button>'
+    )
+    const timed: MapView = {
+      ...view,
+      series: { ...view.series!, length: { min: 60, max: 90, strict: true } },
+      episodes: [
+        { ...view.episodes[0], seconds: 75 },
+        { ...view.episodes[1], seconds: 140 }
+      ]
+    }
+    expect(seriesHead(timed)).toContain('60–90 s each · must fit')
+    expect(laneHead(timed, timed.episodes[0])).toContain(
+      '<span class="map-runs" data-runs="75" title="About 75 s spoken, inside 60–90 s">75 s</span>'
+    )
+    expect(laneHead(timed, timed.episodes[1])).toContain(
+      'class="map-runs is-long" data-runs="140"'
+    )
+    expect(outsideLine(timed, timed.series!.length!)).toBe(
+      '<b>Ep 2</b> runs outside it.'
+    )
+    expect(outsideLine(timed, { min: 60, max: 150, strict: false })).toBe(
+      'Every episode runs inside it.'
+    )
   })
 })

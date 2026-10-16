@@ -181,6 +181,23 @@ it('keeps an older plan when the agent’s list names its model anew', async () 
   )
 })
 
+it('keeps how the video is made and how long it runs when its settings are saved', async () => {
+  await seed('length', false)
+  const { changeProject } = await import('./projects')
+  await changeProject('length', (current) => {
+    current.project.video!.settings.production = 'storyboard'
+    current.project.video!.settings.length = { min: 60, max: 90, strict: true }
+  })
+  // The settings dialog asks neither.
+  await updateVideoSettings('length', {
+    presence: 'off',
+    voice: { kind: 'record' }
+  })
+  const saved = (await loadProject('length'))!.project.video!.settings
+  expect(saved.production).toBe('storyboard')
+  expect(saved.length).toEqual({ min: 60, max: 90, strict: true })
+})
+
 it('waits for the scenes being made before a new look or name', async () => {
   const id = 'making'
   await seed(id, false)

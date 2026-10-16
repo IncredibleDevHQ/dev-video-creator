@@ -6,6 +6,7 @@
 // Made episodes keep their place and cards; open ones are rearranged. New
 // cards drawn later are placed by Place Pages (series-organize.ts).
 import type { Snapshot } from '../shared/api'
+import { DEFAULT_LENGTH, SEGUE, episodesFor } from '../shared/length'
 import type { Direction, Series } from '../shared/series'
 import { runValidatedJsonStage } from './creative/stage'
 import { detectedHarness } from './notebook-intake'
@@ -17,7 +18,7 @@ import { applyOutline, isMade, pagesOf } from './series-apply'
 import { directionsOf, scopeOf } from './series-directions'
 import { validateOutline, type OutlinePlan } from './series-outline'
 import { pageScript } from './storyboard/plan'
-import { spokenSeconds } from './storyboard/plan-check'
+import { cardSeconds } from './storyboard/plan-check'
 import { validLength } from './video'
 
 const origin = () =>
@@ -50,6 +51,7 @@ export const planSeries = async (seriesId: string, raw: unknown) => {
       delete current.ideas
     }
     if (length) current.length = length
+    else if (!current.length) current.length = { ...DEFAULT_LENGTH }
     if (value.organize !== undefined || value.autoplan !== undefined) {
       current.organize = (value.organize ?? value.autoplan) === true
       delete current.autoplan
@@ -93,7 +95,7 @@ export const cardsOf = (map: Snapshot) =>
         : {}),
       opens: words(pageScript(slide), 300),
       ...(slide.topic ? { topic: slide.topic } : {}),
-      seconds: Math.round(spokenSeconds(pageScript(slide)) + 1)
+      seconds: cardSeconds(pageScript(slide))
     }))
 
 /** The episodes that exist, in order, with whether each is made. */
@@ -139,6 +141,7 @@ const runPlan = async (seriesId: string) => {
   const map = await loadProject(series.map!)
   if (!map) throw new Error('The map was not found')
   const pages = cardsOf(map)
+  const total = pages.reduce((sum, page) => sum + page.seconds, 0)
   const existing = await existingOf(series)
   const directions = await directionLines(series, map, existing)
   const number = new Map(existing.map((item) => [item.notebook, item.number]))
@@ -164,7 +167,16 @@ const runPlan = async (seriesId: string) => {
     about: series.about,
     outcome: given.outcome ? series.outcome : null,
     audience: given.audience ? series.audience : null,
-    length: series.length || null,
+    // The window, with how long all the cards run and about how many
+    // episodes that makes at this length.
+    length: series.length
+      ? {
+          ...series.length,
+          seconds: total,
+          segue: SEGUE,
+          episodes: episodesFor(total, pages.length, series.length)
+        }
+      : null,
     directions,
     episodes: existing.map(
       ({ notebook, number, title, made, named, pages: used }) => ({

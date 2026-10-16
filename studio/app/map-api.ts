@@ -46,7 +46,12 @@ export const mapApi = {
     request<Series>(`/series/${series}/direction-remove`, 'POST', { id }),
   brief: (
     series: string,
-    body: { outcome?: string; audience?: string; organize?: boolean }
+    body: {
+      outcome?: string
+      audience?: string
+      organize?: boolean
+      length?: { min: number; max: number; strict: boolean }
+    }
   ) => request<Series>(`/series/${series}/brief`, 'POST', body),
   gap: (series: string, id: string, state: 'explained' | 'ignored' | 'open') =>
     request<Series>(`/series/${series}/gap`, 'POST', { id, state }),

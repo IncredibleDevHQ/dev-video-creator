@@ -8,6 +8,7 @@
 // the prompter, then the take to review.
 import type { Snapshot } from '../shared/api'
 import type { Moment } from '../shared/model'
+import { fitOf } from '../shared/length'
 import { presenterLayoutStyle } from '../shared/presenter-layout'
 import {
   BUILD_LABELS,
@@ -77,16 +78,24 @@ export const episodeClock = (storyboard: Storyboard) => {
   }))
 }
 
-// The plan's length against what was asked: "43 s · aim 25 s–1:00".
+// The length against what was asked: "43 s · aim 25 s–1:00", the plan's
+// estimate until the voice times it, then the made video's own.
 const lengthLine = (storyboard: Storyboard) => {
-  const total = (storyboard.plan?.scenes || []).reduce(
-    (sum, scene) => sum + sceneSeconds(scene),
-    0
-  )
-  const asked = storyboard.length
-    ? `${storyboard.length.strict ? 'must fit' : 'aim'} ${seconds(storyboard.length.min)}–${seconds(storyboard.length.max)}`
+  const total =
+    storyboard.produced?.duration ||
+    (storyboard.plan?.scenes || []).reduce(
+      (sum, scene) => sum + sceneSeconds(scene),
+      0
+    )
+  const goal = storyboard.length
+  const asked = goal
+    ? `${goal.strict ? 'must fit' : 'aim'} ${seconds(goal.min)}–${seconds(goal.max)}`
     : ''
-  return [total ? seconds(total) : '', asked].filter(Boolean).join(' · ')
+  const fit = goal && total ? fitOf(total, goal) : 'within'
+  const runs = total
+    ? `${seconds(total)}${fit === 'long' ? ', too long' : fit === 'short' ? ', too short' : ''}`
+    : ''
+  return [runs, asked].filter(Boolean).join(' · ')
 }
 
 const structureLabel = (structure: string) =>
