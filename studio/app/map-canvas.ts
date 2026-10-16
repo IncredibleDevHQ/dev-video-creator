@@ -76,8 +76,9 @@ export class MapCanvas {
   connecting = ''
   /** The Queue is open. */
   queueOpen = false
-  /** The organising run already told; a new one says what moved. */
-  toldRun = ''
+  /** The organising run already told (null until the map's view loads); a
+   * new one says what moved. */
+  toldRun: string | null = null
   /** The bar asks for a note (from the Add menu, or to fill a gap). */
   noteAsk: { text: string; gap?: string } | null = null
   /** The bar asks for the series' outcome or audience. */
@@ -115,6 +116,7 @@ export class MapCanvas {
     this.view = null
     this.sel = null
     this.clip = null
+    this.toldRun = null
     this.fitted = false
     this.fittedPages = 0
     this.els.clear()

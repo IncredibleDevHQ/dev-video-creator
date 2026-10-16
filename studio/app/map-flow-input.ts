@@ -561,21 +561,22 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
   return false
 }
 
-/** Says what the latest organising run moved, once, with Undo. */
+/** Says what the latest organising run moved, once, with Undo. A run there
+ * when the map opened was told then. */
 export const tellOrganized = (map: MapCanvas) => {
-  const run = map.view?.series?.organized
-  if (!run) return
-  if (!map.toldRun) {
-    // What was organised before the map opened was told then.
-    map.toldRun = run.id
+  if (!map.view) return
+  const run = map.view.series?.organized
+  if (map.toldRun === null) {
+    map.toldRun = run?.id || ''
     return
   }
-  if (map.toldRun === run.id) return
+  if (!run || run.id === map.toldRun) return
   map.toldRun = run.id
   const placed = run.moves.filter((move) => move.kind !== 'left').length
   const left = run.moves.length - placed
+  const gap = run.moves.some((move) => move.kind === 'closes')
   map.toast(
-    `Organised ${placed} new card${placed === 1 ? '' : 's'} into the series${left ? `; ${left} left out` : ''}`,
+    `Organised ${placed} new card${placed === 1 ? '' : 's'} into the series${gap ? ', filling a gap' : ''}${left ? `; ${left} left out` : ''}`,
     { label: 'Undo', map: `undo-organize:${run.id}` }
   )
 }
