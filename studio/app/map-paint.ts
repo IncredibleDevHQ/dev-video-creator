@@ -7,7 +7,13 @@ import type { Snapshot } from '../shared/api'
 import { unusedPages } from '../shared/content-map'
 import type { MapCanvas } from './map-canvas'
 import type { Box } from './map-layout'
-import { mapPages, newPages, type MapMode, type MapPage } from './map-layout'
+import {
+  drawnCount,
+  mapPages,
+  newPages,
+  type MapMode,
+  type MapPage
+} from './map-layout'
 import {
   colorOf,
   copyCard,
@@ -60,11 +66,7 @@ const summary = (
   if (snapshot.status === 'building' || snapshot.status === 'reading') {
     // The forming card says the phase; the block's line says nothing yet.
     if (!pages.length) return ''
-    // A first draft being checked is drawn, as far as the map shows.
-    const drawn = pages.filter(
-      (page) => page.state === 'drawn' || page.state === 'draft'
-    ).length
-    return `Drawing ${pages.length} cards · ${drawn} drawn`
+    return `Drawing ${pages.length} cards · ${drawnCount(pages)} drawn`
   }
   const count = `${pages.length} card${pages.length === 1 ? '' : 's'}`
   return use?.series
@@ -540,13 +542,13 @@ const drawWires = (map: MapCanvas) => {
     ...layout.segues,
     ...Object.values(layout.directions),
     ...layout.gaps,
-    // What each made episode was cut into, in the Socials box.
-    ...layout.derived,
-    // Whole episodes and the series' head, inset a little so an arrow at
-    // one keeps its tip: no line crosses what they hold (review 7).
+    // Whole episodes, the series' head and what each made episode was cut
+    // into (the Socials box), inset a little so an arrow at one keeps its
+    // tip: no line crosses what they hold (review 7).
     ...[
       ...Object.values(layout.lanes),
-      ...(layout.head ? [layout.head] : [])
+      ...(layout.head ? [layout.head] : []),
+      ...layout.derived
     ].map((box) => ({ x: box.x + 3, y: box.y + 3, w: box.w - 6, h: box.h - 6 }))
   ]
   const mask = `<defs><mask id="map-content-mask" maskUnits="userSpaceOnUse" x="-100000" y="-100000" width="200000" height="200000"><rect x="-100000" y="-100000" width="200000" height="200000" fill="white"/>${boxes.map((box) => `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="8" fill="black"/>`).join('')}</mask></defs>`

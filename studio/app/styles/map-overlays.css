@@ -26,32 +26,54 @@
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+/* The toast and the selection bar share one dock, so the toast always sits
+   above the bar however tall the bar grows (a note's form is 160 px), with
+   its Undo in reach (review 6 MAP-1). */
+.map-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  /* Between the zoom pill and the Queue, never over either. */
+  max-width: calc(100% - 412px);
+  pointer-events: none;
+}
+.map-dock > * {
+  pointer-events: auto;
+}
+/* A toast alone keeps its place above the zoom pill and the Queue. */
+.map-dock:has(> .map-bar[hidden]) {
+  bottom: 74px;
+}
+/* Too narrow for that: the bar rises above them instead. */
+@media (max-width: 980px) {
+  .map-dock {
+    bottom: 62px;
+    max-width: calc(100% - 24px);
+  }
+}
 .map-toast {
   display: flex;
   align-items: center;
   gap: 10px;
-  position: absolute;
-  bottom: 74px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 60;
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--panel);
   font-size: 13px;
-  max-width: 70%;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 .map-bar {
-  position: absolute;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
-  z-index: 60;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -60,15 +82,7 @@
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
-  /* Between the zoom pill and the Queue, never over either. */
-  max-width: calc(100% - 412px);
-}
-/* Too narrow for that: it rises above them instead. */
-@media (max-width: 980px) {
-  .map-bar {
-    bottom: 62px;
-    max-width: calc(100% - 24px);
-  }
+  max-width: 100%;
 }
 .map-bar button {
   padding: 5px 10px;

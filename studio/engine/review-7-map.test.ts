@@ -761,6 +761,33 @@ describe('lines and blocks (UX-8, UX-9, UX-12)', () => {
     expect(lit).toEqual([true, false, false])
   })
 
+  it('keeps the tip of an arrow into a Socials entry, inset as an episode is', async () => {
+    const shown = view()
+    shown.episodes[0] = {
+      ...shown.episodes[0],
+      posts: { x: 'A post', linkedin: 'A post', youtube: 'A post' }
+    }
+    const { map, root } = await openMap(shown)
+    const place = map.layout!.derived[0]
+    expect(place.episode).toBe('e1')
+    const masked = [
+      ...root.querySelectorAll(
+        '[data-map-wires] mask#map-content-mask rect[fill="black"]'
+      )
+    ].map((rect) =>
+      ['x', 'y', 'width', 'height'].map((name) =>
+        Number(rect.getAttribute(name))
+      )
+    )
+    expect(masked).toContainEqual([
+      place.x + 3,
+      place.y + 3,
+      place.w - 6,
+      place.h - 6
+    ])
+    expect(masked).not.toContainEqual([place.x, place.y, place.w, place.h])
+  })
+
   it('moves the camera to a block focused from the keyboard, never to one clicked (UX-9)', async () => {
     const { map } = await openMap()
     const block = map.els.get('B:series')!

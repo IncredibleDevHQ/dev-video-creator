@@ -118,6 +118,12 @@ export type MapPage = {
  * planned page is already there by its title, and fills in as it is drawn:
  * the map forms on the canvas, as in the Wireframe stage's rail.
  */
+/** How many of the map's cards are drawn: a first draft being checked counts,
+ * as far as the map shows (the Cards line and the Queue say the same). */
+export const drawnCount = (pages: MapPage[]) =>
+  pages.filter((page) => page.state === 'drawn' || page.state === 'draft')
+    .length
+
 export const mapPages = (snapshot: Snapshot): MapPage[] => {
   const slides = snapshot.project.slides
   const drawn = (slide: Slide): MapPage => ({

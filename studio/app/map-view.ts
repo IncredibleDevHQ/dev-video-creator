@@ -80,8 +80,7 @@ export const mapPage = (title: string) => `<div class="map-page">
 </nav>
 <div class="map-queue" data-map-slot="queue"></div>
 <div class="map-zoom"><button type="button" data-map="zoom-out" aria-label="Zoom out">−</button><span data-map-slot="zoom">100%</span><button type="button" data-map="zoom-in" aria-label="Zoom in">+</button><button type="button" data-map="fit" title="Fit everything · double-click a block to zoom to it">Fit</button><button type="button" data-map="help" aria-label="Shortcuts" title="Shortcuts">?</button></div>
-<div class="map-toast" data-map-slot="toast" hidden></div>
-<div class="map-bar" data-map-slot="bar" hidden></div>
+<div class="map-dock"><div class="map-toast" data-map-slot="toast" hidden></div><div class="map-bar" data-map-slot="bar" hidden></div></div>
 <div class="map-menu" data-map-slot="menu" hidden></div>
 <div class="map-dragtip" data-map-slot="dragtip" hidden></div>
 </section>

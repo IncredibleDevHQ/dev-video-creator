@@ -3,6 +3,7 @@ import type { Snapshot } from '../shared/api'
 import type { MapEpisode, MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
 import {
+  drawnCount,
   dropSpot,
   extent,
   mapGroups,
@@ -441,6 +442,19 @@ describe('the Queue', () => {
       'Drawing the map’s cards · 1 of 2'
     ])
     expect(queueItems({ ...drawing, status: 'ready' }, null)).toEqual([])
+    // A first draft being checked counts as drawn, as the Cards line says.
+    const checking = {
+      ...map([
+        slide('a'),
+        { ...slide('b'), draft: true },
+        { ...slide('c'), svg: null }
+      ]),
+      status: 'building'
+    } as Snapshot
+    expect(queueItems(checking, null)).toEqual([
+      'Drawing the map’s cards · 2 of 3'
+    ])
+    expect(drawnCount(mapPages(checking))).toBe(2)
   })
 })
 

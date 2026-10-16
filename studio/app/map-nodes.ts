@@ -7,7 +7,7 @@ import type { MapView } from '../shared/content-map'
 import { DEFAULT_LENGTH, windowLabel } from '../shared/length'
 import type { Direction, SeriesGap } from '../shared/series'
 import type { LengthGoal } from '../shared/storyboard'
-import { HEAD, HEAD0, mapPages } from './map-layout'
+import { HEAD, HEAD0, drawnCount, mapPages } from './map-layout'
 import { escape } from './ui'
 
 export const LINE_COLORS = ['#e0a33a', '#4f8fe0', '#c56bd6', '#3fb08f']
@@ -130,10 +130,9 @@ export const queueItems = (snapshot: Snapshot, view: MapView | null) => {
   // with three cards drawing (Jev series run).
   if (snapshot.status === 'building' || snapshot.status === 'reading') {
     const pages = mapPages(snapshot)
-    const drawn = pages.filter((page) => page.state === 'drawn').length
     items.push(
       pages.length
-        ? `Drawing the map’s cards · ${drawn} of ${pages.length}`
+        ? `Drawing the map’s cards · ${drawnCount(pages)} of ${pages.length}`
         : 'Planning the map’s cards'
     )
   }
