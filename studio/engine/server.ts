@@ -111,7 +111,10 @@ const send = (response: ServerResponse, status: number, value: unknown) => {
 /**
  * A request's body, up to `limit` bytes. Past it the request is refused and
  * its connection closed, so the rest of the upload is never read as the next
- * request (review 6: the next request on that connection failed).
+ * request (review 6: the next request on that connection failed). The rest
+ * is read and dropped first, up to as much again (8 MB at most): a socket
+ * closed with the upload unread is reset, and the reset can reach the sender
+ * before the refusal does.
  */
 const readBody = async (
   request: IncomingMessage,
@@ -120,14 +123,16 @@ const readBody = async (
   refusal: string
 ) => {
   const chunks: Uint8Array[] = []
+  const most = limit + Math.min(limit, 8_000_000)
   let size = 0
   for await (const chunk of request) {
     size += chunk.length
-    if (size > limit) {
-      response.setHeader('Connection', 'close')
-      throw new Refusal(refusal)
-    }
-    chunks.push(new Uint8Array(chunk))
+    if (size > most) break
+    if (size <= limit) chunks.push(new Uint8Array(chunk))
+  }
+  if (size > limit) {
+    response.setHeader('Connection', 'close')
+    throw new Refusal(refusal)
   }
   return Buffer.concat(chunks)
 }

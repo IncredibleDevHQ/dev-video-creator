@@ -211,6 +211,28 @@ it('passes a refusal’s words through, and answers 500 for its own failures', a
   expect((await failed.json()).error).not.toContain('disk')
   quiet.mockRestore()
 })
+it('reads the rest of a body too large before refusing it, so no reset beats the refusal', async () => {
+  const { connect } = await import('node:net')
+  const body = `{"notes":"${'a'.repeat(2_100_000)}"}`
+  const socket = connect(address.port, '127.0.0.1')
+  await new Promise((resolve) => socket.once('connect', resolve))
+  let received = ''
+  socket.on('data', (chunk) => (received += chunk))
+  socket.write(
+    `POST /api/projects/deck/retry HTTP/1.1\r\nHost: 127.0.0.1:${address.port}\r\nContent-Type: application/json\r\nContent-Length: ${Buffer.byteLength(body)}\r\n\r\n`
+  )
+  // Past the limit, with the rest still to come: no answer yet.
+  socket.write(body.slice(0, 2_050_000))
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  expect(received).toBe('')
+  // Once it is all sent, the refusal, and the connection closes cleanly.
+  socket.write(body.slice(2_050_000))
+  await new Promise((resolve) => socket.once('end', resolve))
+  expect(received).toMatch(/^HTTP\/1\.1 400/)
+  expect(received.toLowerCase()).toContain('connection: close')
+  socket.destroy()
+})
+
 it('closes the connection when it refuses a body too large, and answers the next', async () => {
   const { request } = await import('node:http')
   // Answered with the reason, and the connection closed: the rest of the
