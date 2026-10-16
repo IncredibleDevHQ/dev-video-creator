@@ -536,6 +536,28 @@ describe('the series as a connected canvas', () => {
     expect(wire.x2).toBe(above.series!.x)
     expect(wire.turn).toBeLessThan(above.series!.x)
     expect(wire.turn).toBeLessThan(box.x)
+    // A whole-series direction ends at the series' frame, pointing in; one
+    // to a card at the Cards frame, level with the card, from the gutter.
+    const whole = layout.flows.find((flow) => flow.from === 'd:d1')!
+    expect([layout.series!.x, layout.series!.x + layout.series!.w]).toContain(
+      whole.x2
+    )
+    const toCard = mapLayout(
+      snapshot,
+      {
+        ...view,
+        series: {
+          ...view.series!,
+          directions: [{ id: 'd5', text: 'x', at: 'now', to: { pages: ['a'] } }]
+        }
+      },
+      'order'
+    )
+    const card = toCard.flows.find((flow) => flow.from === 'd:d5')!
+    const edge = toCard.map.x + toCard.map.w
+    expect(card.x2).toBe(edge)
+    expect(card.y2).toBe(toCard.cards.a.y + toCard.cards.a.h / 2)
+    expect(card.turn).toBeGreaterThan(edge)
   })
   it('shows the outline: the suggested outcome, the lines, the gaps, each episode’s win', () => {
     const head = seriesHead(view)

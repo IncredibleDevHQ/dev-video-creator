@@ -647,6 +647,7 @@ export const mapView = async (mapId: string): Promise<MapView> => {
             ? {
                 organizing: {
                   state: series.organizing.state,
+                  at: series.organizing.at,
                   ...(series.organizing.error
                     ? { error: series.organizing.error }
                     : {})

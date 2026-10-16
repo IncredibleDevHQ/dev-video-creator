@@ -387,12 +387,19 @@ export const flowAction = async (map: MapCanvas, name: string, arg: string) => {
   const series = map.view?.series
   switch (name) {
     case 'cancel': {
-      const editing = map.editingDirection
-      if (editing === '__draft__') map.draftDirection = null
-      if (!editing && !map.briefing && !map.noteAsk) return false
-      map.editingDirection = null
+      // The bar's own question; a direction being written has its own
+      // Cancel, so one never closes the other (review 7).
+      if (!map.briefing && !map.noteAsk) return false
       map.briefing = null
       map.noteAsk = null
+      map.paint()
+      return true
+    }
+    case 'direction-cancel': {
+      const editing = map.editingDirection
+      if (!editing) return true
+      if (editing === '__draft__') map.draftDirection = null
+      map.editingDirection = null
       // A new note left as it was made is not kept.
       const draft = series?.directions.find((d) => d.id === editing)
       if (series && editing !== '__draft__' && draft?.text === 'New direction')
@@ -529,6 +536,13 @@ export const flowAction = async (map: MapCanvas, name: string, arg: string) => {
       map.queueOpen = !map.queueOpen
       map.paint()
       return true
+    case 'organize-again':
+      if (series)
+        await map.run(
+          () => mapApi.organize(series.id),
+          'Organising the new cards into the series'
+        )
+      return true
   }
   return false
 }
@@ -609,6 +623,17 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
  * when the map opened was told then. */
 export const tellOrganized = (map: MapCanvas) => {
   if (!map.view) return
+  // Organising that stopped says why, once, with the way to try again
+  // (review 7: nothing on the map said so).
+  const stop = map.view.series?.organizing
+  const when = stop?.at || stop?.error || ''
+  if (stop?.state === 'failed' && when !== map.toldStop) {
+    map.toldStop = when
+    map.toast(`Organising stopped: ${stop.error || 'try again'}`, {
+      label: 'Organise again',
+      map: 'organize-again'
+    })
+  }
   const run = map.view.series?.organized
   if (map.toldRun === null) {
     map.toldRun = run?.id || ''

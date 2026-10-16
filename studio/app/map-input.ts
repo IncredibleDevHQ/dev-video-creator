@@ -302,6 +302,8 @@ export const installMapInput = (map: MapCanvas) => {
     )
       return
     const key = under.closest<HTMLElement>('.map-el')?.dataset.k || ''
+    // A direction being written stays put: double-clicking it never zooms.
+    if (key === 'd:__draft__') return
     const pad = (b: { x: number; y: number; w: number; h: number }) => ({
       x: b.x - 20,
       y: b.y - 20,
@@ -364,15 +366,16 @@ export const installMapInput = (map: MapCanvas) => {
         map.queueOpen = false
         return map.paint()
       }
+      // A question in the bar, then a direction being written: one each.
       const asking =
         map.naming ||
         map.changing ||
         map.renaming ||
         map.askingPlan ||
         map.noteAsk ||
-        map.briefing ||
-        map.editingDirection
+        map.briefing
       if (asking) return void dispatch(map, 'cancel')
+      if (map.editingDirection) return void dispatch(map, 'direction-cancel')
       map.select(null)
     }
   })

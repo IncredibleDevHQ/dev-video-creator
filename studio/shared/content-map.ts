@@ -102,7 +102,7 @@ export type MapView = {
     autoplan?: boolean
     /** New cards organise themselves into the episodes. */
     organize: boolean
-    organizing?: { state: 'organizing' | 'failed'; error?: string }
+    organizing?: { state: 'organizing' | 'failed'; error?: string; at?: string }
     /** The last organising run, while it can be undone. */
     organized?: import('./series').OrganizeRun
     /** The series' through-line, from its last plan. */

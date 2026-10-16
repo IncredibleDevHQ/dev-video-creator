@@ -474,8 +474,8 @@ export const applyPlacement = async (
   ])) {
     if (isMade(await loadProject(id)))
       throw new Refusal('An episode’s video started; plan again')
-    // One taken out of the series meanwhile is the creator's (review 7).
-    if (!members.has(id))
+    // One it fills, taken out of the series meanwhile, is the creator's.
+    if (!members.has(id) && sorted.some((move) => move.into === id))
       throw new Refusal('An episode left the series meanwhile; organise again')
   }
   for (const move of sorted) {

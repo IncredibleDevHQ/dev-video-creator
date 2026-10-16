@@ -507,3 +507,62 @@ it('stops organising when an episode it fills left the series meanwhile', async 
   expect(await pagesIn(one)).toEqual(ids.slice(0, 2))
   await segues.settledAllSegues()
 })
+
+it('leaves a moved edit where it went when a stopped plan cannot send it home, its home made meanwhile', async () => {
+  const map = await drawnMap('m-homeless')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-homeless', {})
+  const a = await add(series.id, '', [ids[0], ids[1]])
+  const b = await add(series.id, '', [ids[2]])
+  const x = await add(series.id, '', [ids[3]])
+  await segues.settledAllSegues()
+  await changeProject(a, (current) => {
+    current.project.slides[1].svg = '<svg><text>Edit in A</text></svg>'
+  })
+  replies['Plan Series'] = () => {
+    // The edit goes from A to B; while a new episode is filled, A's video
+    // starts, then X's, which stops the plan.
+    between.skip = 2
+    between.next = async () => {
+      await startStoryboard(a)
+      await startStoryboard(x)
+    }
+    return outline([
+      { episode: a, title: 'Opening', pages: [ids[0]] },
+      { episode: b, title: 'Then', pages: [ids[2], ids[1]] },
+      { title: 'New', pages: [ids[4], ids[5]] },
+      { episode: x, title: 'Later', pages: [ids[3]] }
+    ])
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect((await loadSeries(series.id))!.planning?.state).toBe('failed')
+  expect(await copiesOf(b, ids[1])).toEqual([
+    '<svg><text>Edit in A</text></svg>'
+  ])
+  await segues.settledAllSegues()
+})
+
+it('organises into the episodes it fills even when another left the series meanwhile', async () => {
+  const map = await drawnMap('m-org-other')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-org-other', {})
+  const one = await add(series.id, '', ids.slice(0, 2))
+  const two = await add(series.id, '', ids.slice(2, 4))
+  await segues.settledAllSegues()
+  replies['Place Pages'] = async () => {
+    await episodes.removeEpisode(series.id, { episode: two })
+    return {
+      moves: [
+        { page: ids[4], into: one, after: ids[1], why: 'It builds on it' },
+        { page: ids[5], left: true, why: 'Not yet' }
+      ],
+      start: []
+    }
+  }
+  await organize.organizeNewPages('m-org-other')
+  await organize.settledOrganize(series.id)
+  expect((await loadSeries(series.id))!.organizing).toBeUndefined()
+  expect(await pagesIn(one)).toEqual([ids[0], ids[1], ids[4]])
+  await segues.settledAllSegues()
+})

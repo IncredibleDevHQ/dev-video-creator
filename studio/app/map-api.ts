@@ -57,6 +57,9 @@ export const mapApi = {
     request<Series>(`/series/${series}/gap`, 'POST', { id, state }),
   undoOrganize: (series: string, run: string) =>
     request<Series>(`/series/${series}/organize-undo`, 'POST', { run }),
+  /** Organises the cards not placed yet, again. */
+  organize: (series: string) =>
+    request<Series>(`/series/${series}/organize`, 'POST', {}),
   /** Puts an episode right after another (null: first). */
   placeAfter: (series: string, episode: string, after: string | null) =>
     request<Series>(`/series/${series}/episode-order`, 'POST', {

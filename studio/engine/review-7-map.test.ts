@@ -683,7 +683,7 @@ describe('a new direction (CV-11)', () => {
     const { map, root } = await openMap()
     const form = await draft(root)
     expect(form.querySelector('textarea')?.value).toBe('')
-    click(form.querySelector('[data-map="cancel"]'))
+    click(form.querySelector('[data-map="direction-cancel"]'))
     await settle()
     expect(map.els.has('d:__draft__')).toBe(false)
     fire(await draft(root), 'submit')

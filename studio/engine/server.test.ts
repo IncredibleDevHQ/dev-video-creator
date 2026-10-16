@@ -235,7 +235,11 @@ it('closes the connection when it refuses a body too large, and answers the next
           )
         }
       )
-      sent.on('error', reject)
+      // The server closes while the upload still goes, as it should: the
+      // write may then fail (EPIPE, ECONNRESET), and its answer still counts.
+      sent.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code !== 'EPIPE' && error.code !== 'ECONNRESET') reject(error)
+      })
       sent.end(`{"notes":"${'a'.repeat(2_100_000)}"}`)
     }
   )

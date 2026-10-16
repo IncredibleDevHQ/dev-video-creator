@@ -318,14 +318,25 @@ export const putBack = async (
       (now.get(notebook) || []).map((slide) => slide.id)
     )
   )
+  // A copy whose home became made can't go back: it stays where it went.
+  const homeless = new Set<string>()
+  for (const [id, source] of moved)
+    if (isMade(await loadProject(source))) homeless.add(id)
   for (const [notebook, { slides, written }] of before) {
     if (changed.has(notebook)) continue
     await changeProject(notebook, (current) => {
       const unchanged = JSON.stringify(current.project.slides) === written
       if (isMade(current) || !unchanged) return
-      current.project.slides = slides.filter(
-        (slide) => !(moved.has(slide.id) && away.has(slide.id))
+      const staying = current.project.slides.filter(
+        (slide) =>
+          homeless.has(slide.id) && !slides.some((s) => s.id === slide.id)
       )
+      current.project.slides = [
+        ...slides.filter(
+          (slide) => !(moved.has(slide.id) && away.has(slide.id))
+        ),
+        ...staying
+      ]
       reconcileVideo(current.project, current, new Set())
     }).catch(() => {})
   }
@@ -341,7 +352,18 @@ export const putBack = async (
         current.project.slides = [...current.project.slides, original]
         reconcileVideo(current.project, current, new Set())
       }).catch(() => {})
-    for (const notebook of holders.slice(1))
+    // Held twice: a made episode keeps the id (it can't change); the others
+    // get their own.
+    const keeper =
+      (
+        await Promise.all(
+          holders.map(async (notebook) => ({
+            notebook,
+            made: isMade(await loadProject(notebook))
+          }))
+        )
+      ).find((holder) => holder.made)?.notebook || holders[0]
+    for (const notebook of holders.filter((h) => h !== keeper))
       await changeProject(notebook, (current) => {
         const slide = current.project.slides.find((s) => s.id === id)
         if (!slide || isMade(current)) return

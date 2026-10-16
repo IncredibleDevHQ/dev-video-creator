@@ -90,6 +90,8 @@ export class MapCanvas {
   /** The organising run already told (null until the map's view loads); a
    * new one says what moved. */
   toldRun: string | null = null
+  /** The organising stop last said, by when it stopped. */
+  toldStop = ''
   /** The bar asks for a note (from the Add menu, or to fill a gap). */
   noteAsk: { text: string; gap?: string } | null = null
   /** The bar asks for the series' outcome or audience. */
@@ -205,6 +207,10 @@ export class MapCanvas {
     // A question half asked belongs to this map, not the next (review 7).
     this.noteAsk = null
     this.briefing = null
+    this.naming = null
+    this.changing = null
+    this.renaming = null
+    this.askingPlan = false
     if (this.poll) clearInterval(this.poll)
     this.poll = null
     this.unsubscribe?.()

@@ -449,44 +449,30 @@ export const mapLayout = (
     if (!targets.length && layout.head)
       targets.push({ key: 'B:series', box: layout.head, y: sy + headH / 2 })
     for (const target of targets) {
-      // An episode is entered at the series' frame, from the gutter on the
-      // side nearer the direction, so the line never crosses the series
-      // (review 7). It leaves the box on the side facing that gutter, and
-      // turns beyond the box.
-      if (target.key.startsWith('L:')) {
-        const sw = layout.series.w
-        const left = box.x + box.w / 2 < sx + sw / 2
-        const gutter = left ? sx - 20 : sx + sw + 20
-        const clear = left ? box.x + box.w <= gutter : box.x >= gutter
-        layout.flows.push({
-          key: `d:${direction.id}:${target.key}`,
-          kind: 'direction',
-          from: `d:${direction.id}`,
-          to: target.key,
-          x1: left === clear ? box.x + box.w : box.x,
-          y1: box.y + box.h / 2,
-          x2: left ? sx : sx + sw,
-          y2: target.y,
-          turn: clear
-            ? gutter
-            : left
-              ? Math.min(gutter, box.x - 20)
-              : Math.max(gutter, box.x + box.w + 20)
-        })
-        continue
-      }
-      // Into its target's left side; a note placed past it comes in from
-      // the right, never across it.
-      const past = box.x > target.box.x + target.box.w
+      // Every line ends at a frame, its arrow pointing in: a card at the
+      // Cards frame, an episode or the series at the series' frame. It
+      // leaves the box on the side facing the nearer gutter and turns there,
+      // beyond the box, so it never crosses a block (review 7).
+      const frame = target.key.startsWith('m:')
+        ? { x: layout.map.x, w: layout.map.w }
+        : { x: sx, w: layout.series.w }
+      const left = box.x + box.w / 2 < frame.x + frame.w / 2
+      const gutter = left ? frame.x - 20 : frame.x + frame.w + 20
+      const clear = left ? box.x + box.w <= gutter : box.x >= gutter
       layout.flows.push({
         key: `d:${direction.id}:${target.key}`,
         kind: 'direction',
         from: `d:${direction.id}`,
         to: target.key,
-        x1: past ? box.x : box.x + box.w,
+        x1: left === clear ? box.x + box.w : box.x,
         y1: box.y + box.h / 2,
-        x2: past ? target.box.x + target.box.w : target.box.x,
-        y2: target.y
+        x2: left ? frame.x : frame.x + frame.w,
+        y2: target.y,
+        turn: clear
+          ? gutter
+          : left
+            ? Math.min(gutter, box.x - 20)
+            : Math.max(gutter, box.x + box.w + 20)
       })
     }
   }

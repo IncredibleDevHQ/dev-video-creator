@@ -14,7 +14,8 @@ vi.mock('../app/map-api', () => ({
     removeDirection: vi.fn(async () => ({})),
     startSeries: vi.fn(async () => ({ id: 's' })),
     planSeries: vi.fn(async () => ({})),
-    comments: vi.fn(async () => ({ comments: [] }))
+    comments: vi.fn(async () => ({ comments: [] })),
+    organize: vi.fn(async () => ({}))
   }
 }))
 const { parseHTML } = await import('linkedom')
@@ -439,5 +440,50 @@ describe('lines and questions on the map (UX-8, UX-13)', () => {
     refuse(new Error('Refused'))
     await settle()
     expect(map.noteAsk).toBeNull()
+  })
+})
+
+describe('questions, directions and organising on the map (review 7)', () => {
+  it('closes a question in the bar with Esc, or its Cancel, and leaves a direction being written open', async () => {
+    const { map, root, document } = await openMap()
+    map.editingDirection = 'd1'
+    map.noteAsk = { text: '' }
+    map.paint()
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect([map.noteAsk, map.editingDirection]).toEqual([null, 'd1'])
+    map.renaming = { kind: 'series', title: 'Streamline' } as never
+    map.paint()
+    click(root.querySelector('[data-map-form="rename"] [data-map="cancel"]'))
+    await settle()
+    expect([map.renaming, map.editingDirection]).toEqual([null, 'd1'])
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect(map.editingDirection).toBeNull()
+  })
+
+  it('leaves no half-asked question for the next map', async () => {
+    const { map } = await openMap()
+    map.renaming = { kind: 'series', title: 'Streamline' } as never
+    map.askingPlan = true
+    await map.open('map')
+    expect([map.renaming, map.askingPlan]).toEqual([null, false])
+  })
+
+  it('says when organising stopped, once, with the way to organise again', async () => {
+    const shown = view()
+    shown.series!.organizing = {
+      state: 'failed',
+      error: 'An episode left the series meanwhile; organise again',
+      at: 'then'
+    }
+    const { map } = await openMap(shown)
+    const toast = map.slot('toast')!
+    expect(toast.textContent).toContain('Organising stopped: An episode left')
+    click(toast.querySelector('[data-map="organize-again"]'))
+    await settle()
+    expect(mapApi.organize).toHaveBeenCalledWith('s')
+    // Said once: a repaint doesn't say it again.
+    toast.hidden = true
+    map.paint()
+    expect(toast.hidden).toBe(true)
   })
 })
