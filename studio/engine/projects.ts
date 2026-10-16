@@ -184,6 +184,14 @@ export const scheduleSlides = (id: string) => {
   building.set(id, work)
   void work.catch(() => {})
 }
+
+/** Resolves when the notebook's wireframes are made and the changes queued
+ * meanwhile have run (tests and checks: nothing outlives them). */
+export const settledBuild = async (id: string) => {
+  while (building.has(id)) await building.get(id)!.catch(() => {})
+  const { settledChanges } = await import('./slide-changes')
+  await settledChanges(id)
+}
 /**
  * Where drawing stopped, in the creator's words: who stopped, after how
  * many wireframes, and what Try again does (review 5).

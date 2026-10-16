@@ -4,7 +4,7 @@
 // as a new episode after the last made one, against a gap they fill, or left
 // out with a reason. Made episodes never change. Each run is recorded, so
 // Undo takes out what it added; the cards it took back wait, unplaced.
-import { untouched } from './series-apply'
+import { discardEpisode, untouched } from './series-apply'
 import { randomUUID } from 'node:crypto'
 import { fitOf, withSegues } from '../shared/length'
 import type { OrganizeRun, Series } from '../shared/series'
@@ -13,9 +13,8 @@ import { organizes } from '../shared/series'
 import { addEvent } from './activity'
 import { runValidatedJsonStage } from './creative/stage'
 import { addMapEpisode, changeCopies, removeEpisode } from './map-episodes'
-import { scheduleAround, settledSegues } from './map-segues'
+import { scheduleAround } from './map-segues'
 import { detectedHarness } from './notebook-intake'
-import { deleteRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
@@ -689,16 +688,4 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
   )
   for (const episode of after.episodes) await scheduleAround(episode.notebookId)
   return after
-}
-
-/** An episode an organising run started and nobody touched: out of the
- * series, and gone. */
-const discardEpisode = async (seriesId: string, notebook: string) => {
-  await changeSeries(seriesId, (series) => {
-    series.episodes = series.episodes.filter((e) => e.notebookId !== notebook)
-  })
-  // Its segues may be being written: a late write would bring it back.
-  await settledSegues(notebook)
-  for (const kind of ['projects', 'outlines', 'sources', 'source-briefs'])
-    await deleteRow(kind, notebook).catch(() => {})
 }

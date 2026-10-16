@@ -92,7 +92,13 @@ const browserFor = (read: unknown, hang = false) => {
   const navigating = new Promise<void>((resolve) => (reached = resolve))
   const on: Record<string, (value: unknown) => void> = {}
   const idle = async () => {}
+  const blocked: unknown[] = []
   const page = {
+    setBypassServiceWorker: idle,
+    createCDPSession: async () => ({
+      send: async (method: string, value?: unknown) =>
+        method === 'Network.setBlockedURLs' && blocked.push(value)
+    }),
     setRequestInterception: idle,
     setUserAgent: idle,
     setViewport: idle,
@@ -109,7 +115,7 @@ const browserFor = (read: unknown, hang = false) => {
     close: vi.fn(async () => shut())
   }
   launch.mockResolvedValue(browser)
-  return { browser, on, navigating }
+  return { browser, on, navigating, blocked }
 }
 
 const paper = NEUTRAL_LOOK.palette
@@ -419,6 +425,8 @@ describe('SR-12: brand downloads stay on the public internet, bounded', () => {
       asks.map((ask) => ask[key].mock.calls.length)
     expect(calls('abort')).toEqual([1, 1, 0, 0])
     expect(calls('continue')).toEqual([0, 0, 1, 1])
+    // What interception can't see is shut: WebSockets never open.
+    expect(site.blocked).toEqual([{ urls: ['ws://*', 'wss://*'] }])
     await vi.advanceTimersByTimeAsync(44_000)
     expect(site.browser.close).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(1_000)

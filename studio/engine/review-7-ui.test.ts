@@ -622,6 +622,29 @@ describe('Settings opened from the map (UX-7)', () => {
   })
 })
 
+describe('Studio AI without a key (CV-9)', () => {
+  it('keeps nothing said while there is no key, so nothing goes later unasked', async () => {
+    const { VoiceCall } = await import('../app/map-voice')
+    const { document } = parseHTML(
+      '<div class="map-page"><div class="map-stage"><button data-voice="talk"></button><div data-map-slot="menu" hidden></div></div></div>'
+    )
+    const root = document.querySelector('.map-page')!
+    const map = {
+      root,
+      isOpen: true,
+      slot: (name: string) => root.querySelector(`[data-map-slot="${name}"]`)
+    }
+    const voice = new VoiceCall(map as never)
+    const inside = voice as unknown as { needsKey: boolean; waiting: string[] }
+    inside.needsKey = true
+    voice.say('About my comment on Ep 1: tighten it')
+    expect(inside.waiting).toEqual([])
+    expect(root.querySelector('[data-map-slot="menu"]')?.textContent).toContain(
+      'Studio AI needs an OpenAI key'
+    )
+  })
+})
+
 describe('the tooltip (CV-10)', () => {
   it('hides when its control is redrawn under the pointer, or the pointer moves on', async () => {
     vi.useFakeTimers()

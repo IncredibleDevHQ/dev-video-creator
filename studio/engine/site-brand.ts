@@ -439,6 +439,14 @@ const readBrand = async (
   try {
     signal.throwIfAborted()
     const page = await browser.newPage()
+    // What interception can't see stays out: a service worker's own fetches
+    // and WebSockets, which a brand read never needs (review 7).
+    await page.setBypassServiceWorker(true)
+    const session = await page.createCDPSession()
+    await session.send('Network.enable')
+    await session.send('Network.setBlockedURLs', {
+      urls: ['ws://*', 'wss://*']
+    })
     await page.setRequestInterception(true)
     page.on('request', (request) => {
       if (/^(data|blob):/.test(request.url())) {

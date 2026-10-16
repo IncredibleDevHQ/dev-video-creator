@@ -13,6 +13,23 @@ const { stage, replies } = vi.hoisted(() => ({
   replies: {} as Record<string, (input: Record<string, unknown>) => unknown>
 }))
 vi.mock('./creative/stage', () => ({ runValidatedJsonStage: stage }))
+// A hook on the evidence sync that follows each episode a plan changes: the
+// moment between one episode and the next.
+const { between } = vi.hoisted(() => ({
+  between: { next: null as null | (() => Promise<unknown>) }
+}))
+vi.mock('./map-copy', async (original) => {
+  const real = await original<typeof import('./map-copy')>()
+  return {
+    ...real,
+    syncEvidence: async (...args: Parameters<typeof real.syncEvidence>) => {
+      const hook = between.next
+      between.next = null
+      await hook?.()
+      return real.syncEvidence(...args)
+    }
+  }
+})
 vi.mock('./slide-changes', async (original) => ({
   ...(await original<typeof import('./slide-changes')>()),
   scheduleChanges: vi.fn()
@@ -325,5 +342,61 @@ it('refuses an organising Undo while new cards are being placed', async () => {
   await expect(
     organize.undoOrganize(series.id, { run: run.id })
   ).rejects.toThrow('Wait until the new cards are organised, then undo')
+  await segues.settledAllSegues()
+})
+
+it('puts every episode back when one’s video starts while a plan is applied', async () => {
+  const map = await drawnMap('m-rollback')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-rollback', {})
+  const one = await add(series.id, '', ids.slice(0, 2))
+  const two = await add(series.id, '', ids.slice(2, 4))
+  await segues.settledAllSegues()
+  replies['Plan Series'] = () => {
+    // Once episode 1 has its new cards, episode 2's storyboard starts.
+    between.next = () => startStoryboard(two)
+    return outline([
+      { episode: one, title: 'Opening', pages: [ids[0], ids[4]] },
+      { episode: two, title: 'Then', pages: [ids[2], ids[3], ids[1]] },
+      { title: 'The rest', pages: [ids[5]] }
+    ])
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  const after = (await loadSeries(series.id))!
+  expect(after.planning).toMatchObject({
+    state: 'failed',
+    error: 'An episode’s video started; plan again'
+  })
+  // Episode 1 as it was, and no episode the plan began.
+  expect(await pagesIn(one)).toEqual(ids.slice(0, 2))
+  expect(await pagesIn(two)).toEqual(ids.slice(2, 4))
+  expect(after.episodes.map((e) => e.notebookId)).toEqual([one, two])
+  await segues.settledAllSegues()
+})
+
+it('keeps the creator’s edited copy of a card a plan places nowhere', async () => {
+  const map = await drawnMap('m-left')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-left', {})
+  const one = await add(series.id, '', ids.slice(0, 2))
+  await segues.settledAllSegues()
+  await changeProject(one, (current) => {
+    current.project.slides[1].svg = '<svg><text>Redrawn</text></svg>'
+  })
+  replies['Plan Series'] = () =>
+    outline(
+      [
+        { episode: one, title: 'Opening', pages: [ids[0]] },
+        { title: 'The rest', pages: ids.slice(2) }
+      ],
+      { left: [{ page: ids[1], why: 'Off the subject' }] }
+    )
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  const kept = (await loadProject(one))!.project.slides.find(
+    (slide) => slide.copyOf?.slide === ids[1]
+  )
+  expect(kept?.svg).toBe('<svg><text>Redrawn</text></svg>')
   await segues.settledAllSegues()
 })

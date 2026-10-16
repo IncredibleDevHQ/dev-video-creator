@@ -16,9 +16,14 @@ vi.mock('./creative/pages', () => ({ prepareCreativePages: pages }))
 vi.mock('./model-gateway', () => ({ modelFetch: direct }))
 const root = await mkdtemp(join(tmpdir(), 'minimal-pipeline-order-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
-const { createProject, loadProject } = await import('./projects')
-const { writeRow } = await import('./persistence')
-afterAll(() => rm(root, { recursive: true, force: true }))
+const { createProject, loadProject, settledBuild } = await import('./projects')
+const { listRows, writeRow } = await import('./persistence')
+afterAll(async () => {
+  // The work after a build (the changes queued meanwhile) ends first: a late
+  // one used to run after the file was gone.
+  for (const id of await listRows('projects')) await settledBuild(id)
+  await rm(root, { recursive: true, force: true })
+})
 it('awaits the source brief, gives it to the story and page skills, and publishes only their artwork', async () => {
   const order: string[] = [],
     accepted = { entities: [], units: [], coverage: [] },

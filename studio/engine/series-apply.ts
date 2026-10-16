@@ -9,7 +9,13 @@ import type { Series, SeriesGap } from '../shared/series'
 import { addEvent } from './activity'
 import { addMapEpisode } from './map-episodes'
 import { copyOf, pageHash, syncEvidence } from './map-copy'
-import { composeNarration, planScenes, scheduleSegues } from './map-segues'
+import {
+  composeNarration,
+  planScenes,
+  scheduleSegues,
+  settledSegues
+} from './map-segues'
+import { deleteRow } from './persistence'
 import { changeProject, loadProject } from './projects'
 import { reconcileVideo } from './scene-model'
 import { Refusal } from './refusal'
@@ -68,7 +74,8 @@ export const setEpisodePages = async (
   notebook: string,
   map: Snapshot,
   pages: string[],
-  carried: Map<string, Slide> = new Map()
+  carried: Map<string, Slide> = new Map(),
+  placed?: Set<string>
 ) => {
   const cards = new Map(
     map.project.slides
@@ -88,6 +95,19 @@ export const setEpisodePages = async (
     const extras = slides.filter(
       (slide) => !slide.copyOf?.slide || !cards.has(slide.copyOf.slide)
     )
+    // A copy the creator edited or kept, of a card the plan places nowhere,
+    // stays where it is: a plan never throws their work away (review 7).
+    const worked = placed
+      ? slides.filter((slide) => {
+          const page = slide.copyOf?.slide
+          return (
+            page &&
+            cards.has(page) &&
+            !placed.has(page) &&
+            (!untouched(slide) || slide.copyOf?.kept)
+          )
+        })
+      : []
     // The plan read the map's cards as they are now: an open episode holds
     // them as they are, unless the creator edited or kept a copy.
     let updated = 0
@@ -114,6 +134,7 @@ export const setEpisodePages = async (
           if (fresh) updated += 1
           return fresh || was
         }),
+      ...worked,
       ...extras
     ]
     if (
@@ -231,6 +252,18 @@ const mergeGaps = (
   return [...fresh, ...kept]
 }
 
+/** An episode a run started and nobody touched: out of the series, and
+ * gone. */
+export const discardEpisode = async (seriesId: string, notebook: string) => {
+  await changeSeries(seriesId, (series) => {
+    series.episodes = series.episodes.filter((e) => e.notebookId !== notebook)
+  })
+  // Its segues may be being written: a late write would bring it back.
+  await settledSegues(notebook)
+  for (const kind of ['projects', 'outlines', 'sources', 'source-briefs'])
+    await deleteRow(kind, notebook).catch(() => {})
+}
+
 /** Puts the outline into the series and its episodes. */
 export const applyOutline = async (
   seriesId: string,
@@ -253,34 +286,57 @@ export const applyOutline = async (
       }
   }
   const order: string[] = []
-  for (const episode of plan.episodes) {
-    if (episode.episode) {
-      const was = context.existing.find((e) => e.notebook === episode.episode)
-      if (was && !was.made)
-        await setEpisodePages(
-          episode.episode,
-          context.map,
-          episode.pages,
-          carried
-        )
-      order.push(episode.episode)
-      continue
+  const placed = new Set(plan.episodes.flatMap((episode) => episode.pages))
+  // All or nothing: an episode whose video starts meanwhile stops the plan,
+  // and what it changed so far goes back as it was (review 7).
+  const before = new Map<string, Slide[]>()
+  const created: string[] = []
+  try {
+    for (const episode of plan.episodes) {
+      if (episode.episode) {
+        const was = context.existing.find((e) => e.notebook === episode.episode)
+        if (was && !was.made) {
+          const latest = await loadProject(episode.episode)
+          if (latest) before.set(episode.episode, latest.project.slides)
+          await setEpisodePages(
+            episode.episode,
+            context.map,
+            episode.pages,
+            carried,
+            placed
+          )
+        }
+        order.push(episode.episode)
+        continue
+      }
+      const made = await addMapEpisode(
+        seriesId,
+        {
+          title: episode.title,
+          slides: []
+        },
+        true
+      )
+      created.push(made.notebook.project.id)
+      await setEpisodePages(
+        made.notebook.project.id,
+        context.map,
+        episode.pages,
+        carried,
+        placed
+      )
+      order.push(made.notebook.project.id)
     }
-    const made = await addMapEpisode(
-      seriesId,
-      {
-        title: episode.title,
-        slides: []
-      },
-      true
-    )
-    await setEpisodePages(
-      made.notebook.project.id,
-      context.map,
-      episode.pages,
-      carried
-    )
-    order.push(made.notebook.project.id)
+  } catch (error) {
+    for (const [notebook, slides] of before)
+      await changeProject(notebook, (current) => {
+        if (isMade(current)) return
+        current.project.slides = slides
+        reconcileVideo(current.project, current, new Set())
+      }).catch(() => {})
+    for (const notebook of created)
+      await discardEpisode(seriesId, notebook).catch(() => {})
+    throw error
   }
   await setSeriesOrder(seriesId, order)
   await settleCuts(context.map.project.id, order)
