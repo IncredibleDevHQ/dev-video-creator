@@ -237,11 +237,21 @@ export const applyOutline = async (
   await setSeriesOrder(seriesId, order)
   await settleCuts(context.map.project.id, order)
   const lineName = new Map(plan.lines.map((line) => [line.id, line.name]))
+  const madeOnes = new Set(
+    context.existing.filter((e) => e.made).map((e) => e.notebook)
+  )
   for (const [index, notebook] of order.entries()) {
     const episode = plan.episodes[index]
     await changeProject(notebook, (current) => {
       const ref = current.project.episode
       if (!ref) return
+      // An open episode is called what the plan made it, unless the creator
+      // named it; a made one keeps the name its video has.
+      const renamed =
+        !madeOnes.has(notebook) &&
+        !ref.named &&
+        current.project.title !== episode.title
+      if (renamed) current.project.title = episode.title
       ref.part = { title: episode.title, carries: episode.carries }
       ref.threads = episode.lines
         .map((id) => lineName.get(id) || '')
@@ -250,7 +260,9 @@ export const applyOutline = async (
       addEvent(
         current,
         'slide',
-        `Planned as episode ${index + 1}: ${episode.win}`
+        renamed
+          ? `Planned as episode ${index + 1}, “${episode.title}”: ${episode.win}`
+          : `Planned as episode ${index + 1}: ${episode.win}`
       )
     })
   }

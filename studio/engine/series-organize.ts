@@ -377,8 +377,13 @@ export const applyPlacement = async (
     await setEpisodePages(notebook, map, order)
     await scheduleAround(notebook)
   }
-  // New episodes, each put after the episode it follows.
+  // New episodes, each put after the episode it follows, carrying what the
+  // placement said it picks up and hands on, as a planned one does.
   const startedAt = new Map<string, string>()
+  const before = plan.start.length ? await loadSeries(seriesId) : null
+  const lineName = new Map(
+    (before?.lines || []).map((line) => [line.id, line.name])
+  )
   for (const item of plan.start) {
     const pages = plan.moves
       .filter((m) => m.start === item.key)
@@ -386,6 +391,15 @@ export const applyPlacement = async (
     const made = await addMapEpisode(seriesId, {
       title: item.title,
       slides: pages
+    })
+    await changeProject(made.notebook.project.id, (current) => {
+      const ref = current.project.episode
+      if (!ref) return
+      ref.part = { title: item.title, carries: item.carries }
+      ref.threads = item.lines
+        .map((id) => lineName.get(id) || '')
+        .filter(Boolean)
+      if (before?.length) ref.length = before.length
     })
     startedAt.set(item.key, made.notebook.project.id)
     run.started.push(made.notebook.project.id)

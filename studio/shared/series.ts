@@ -155,6 +155,8 @@ export type EpisodeRef = {
   previously?: string
   threads?: string[]
   part?: SeriesPart
+  /** The creator named it: plans keep its name. */
+  named?: boolean
   /** What the last episode's numbers suggest for this one. */
   lessons?: string[]
   /** The length the series asks of each episode. */

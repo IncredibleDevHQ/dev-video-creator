@@ -380,6 +380,7 @@ export const retitleEpisode = async (id: string, raw: unknown) => {
   await episodeOf(id)
   const changed = await changeProject(id, (current) => {
     current.project.title = title
+    if (current.project.episode) current.project.episode.named = true
   })
   await scheduleAround(id)
   return changed

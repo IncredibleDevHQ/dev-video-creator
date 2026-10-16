@@ -513,6 +513,63 @@ it('brings an open episode’s untouched copies up to the map’s cards when it 
   ])
 })
 
+it('calls an open episode what the plan made it, unless the creator named it; a made one keeps its name', async () => {
+  const map = await drawnMap('m-names')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-names', {})
+  const add = async (title: string, slides: string[]) =>
+    (await episodes.addMapEpisode(series.id, { title, slides })).notebook
+      .project.id
+  const made = await add('Made', [ids[0], ids[1]])
+  const open = await add('Old name', [ids[2], ids[3]])
+  const mine = await add('Was there', [ids[4], ids[5]])
+  await makeVideo(made)
+  await episodes.retitleEpisode(mine, { title: 'My own name' })
+  await segues.settledAllSegues()
+  const episode = (
+    id: string,
+    title: string,
+    pages: string[],
+    teaches: string
+  ) => ({
+    episode: id,
+    title,
+    about: title,
+    win: `Win of ${title}`,
+    teaches: [teaches],
+    needs: [],
+    carries: 'Picks up the last; hands on the next.',
+    lines: ['why'],
+    pages
+  })
+  replies['Plan Series'] = () => ({
+    outcome: 'Run a pipeline',
+    audience: 'Workers developers',
+    lines: [{ id: 'why', name: 'Why', line: 'It fills a gap' }],
+    episodes: [
+      episode(made, 'A new name for the made one', [ids[0], ids[1]], 'a'),
+      episode(open, 'What the plan made it', [ids[2], ids[3]], 'b'),
+      episode(mine, 'What the plan would call it', [ids[4], ids[5]], 'c')
+    ],
+    gaps: [],
+    directions: [],
+    flags: []
+  })
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  const titled = async (id: string) => (await loadProject(id))!
+  expect((await titled(made)).project.title).toBe('Made')
+  expect((await titled(open)).project.title).toBe('What the plan made it')
+  expect((await titled(open)).events.map((event) => event.message)).toContain(
+    'Planned as episode 2, “What the plan made it”: Win of What the plan made it'
+  )
+  expect((await titled(mine)).project.title).toBe('My own name')
+  // Each keeps the plan's part, which is what "next time" reads.
+  expect((await titled(mine)).project.episode?.part?.title).toBe(
+    'What the plan would call it'
+  )
+})
+
 it('organises new cards into the series, and Undo takes them out again', async () => {
   const map = await drawnMap('m2')
   const ids = map.project.slides.map((s) => s.id)
@@ -626,6 +683,10 @@ it('organises new cards into the series, and Undo takes them out again', async (
   const started = after.episodes[2].notebookId
   expect(await pagesIn(started)).toEqual(['m2-8'])
   expect(after.episodes[2].outline?.win).toBe('Estimate the cost')
+  expect((await loadProject(started))!.project.episode?.part).toEqual({
+    title: 'What it costs',
+    carries: 'Closes'
+  })
   expect(after.gaps![0]).toMatchObject({ state: 'closed', closedBy: 'm2-7' })
   expect(after.directions![0].answer).toMatchObject({
     state: 'followed',
