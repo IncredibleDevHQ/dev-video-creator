@@ -56,39 +56,48 @@ export const openMic = async (
       autoGainControl: true
     }
   })
-  const context = new AudioContext()
-  const url = URL.createObjectURL(
-    new Blob([TAP], { type: 'application/javascript' })
-  )
+  let opened: AudioContext | null = null
   try {
-    await context.audioWorklet.addModule(url)
-  } finally {
-    URL.revokeObjectURL(url)
-  }
-  const source = context.createMediaStreamSource(stream)
-  const tap = new AudioWorkletNode(context, 'mic-tap')
-  const mic: Mic = {
-    muted: false,
-    stop: () => {
-      tap.port.onmessage = null
-      source.disconnect()
-      tap.disconnect()
-      for (const track of stream.getTracks()) track.stop()
-      void context.close()
+    const context = (opened = new AudioContext())
+    const url = URL.createObjectURL(
+      new Blob([TAP], { type: 'application/javascript' })
+    )
+    try {
+      await context.audioWorklet.addModule(url)
+    } finally {
+      URL.revokeObjectURL(url)
     }
+    const source = context.createMediaStreamSource(stream)
+    const tap = new AudioWorkletNode(context, 'mic-tap')
+    const mic: Mic = {
+      muted: false,
+      stop: () => {
+        tap.port.onmessage = null
+        source.disconnect()
+        tap.disconnect()
+        for (const track of stream.getTracks()) track.stop()
+        void context.close()
+      }
+    }
+    tap.port.onmessage = (
+      event: MessageEvent<{ pcm: ArrayBuffer; level: number }>
+    ) => {
+      if (!mic.muted) chunk(event.data.pcm, event.data.level)
+    }
+    source.connect(tap)
+    // A worklet runs only while it leads somewhere: into a silent gain.
+    const silent = context.createGain()
+    silent.gain.value = 0
+    tap.connect(silent).connect(context.destination)
+    if (context.state === 'suspended') await context.resume()
+    return mic
+  } catch (reason) {
+    // The sound could not be set up (its tap failed to load, say): the
+    // microphone goes off again rather than staying on unheard (review 7).
+    for (const track of stream.getTracks()) track.stop()
+    void opened?.close()
+    throw reason
   }
-  tap.port.onmessage = (
-    event: MessageEvent<{ pcm: ArrayBuffer; level: number }>
-  ) => {
-    if (!mic.muted) chunk(event.data.pcm, event.data.level)
-  }
-  source.connect(tap)
-  // A worklet runs only while it leads somewhere: into a silent gain.
-  const silent = context.createGain()
-  silent.gain.value = 0
-  tap.connect(silent).connect(context.destination)
-  if (context.state === 'suspended') await context.resume()
-  return mic
 }
 
 const pcmOf = (base64: string) => {

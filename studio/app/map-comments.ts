@@ -77,13 +77,15 @@ const placeOf = (map: MapCanvas, event: PointerEvent): Place | null => {
   const key =
     (event.target as Element).closest<HTMLElement>('.map-el')?.dataset.k || ''
   const id = key.slice(2)
+  // A direction still being written is not kept yet: a comment there pins
+  // to its spot on the canvas.
   const target: CommentTarget = key.startsWith('m:')
     ? { kind: 'page', id }
     : key.startsWith('c:')
       ? { kind: 'copy', id }
       : key.startsWith('L:')
         ? { kind: 'lane', id }
-        : key.startsWith('d:')
+        : key.startsWith('d:') && id !== '__draft__'
           ? { kind: 'direction', id }
           : key.startsWith('g:')
             ? { kind: 'gap', id }
@@ -494,10 +496,21 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
       } else if (action === 'note') {
         if (!comment.text)
           return this.map.toast('Write it down first: it was not heard')
-        await mapApi.note(mapId, comment.text)
+        // On an open gap, the note fills it, as the gap's own note does.
+        const on = comment.target.kind === 'gap' ? comment.target.id : ''
+        const gap = this.map.view?.series?.gaps.some(
+          (entry) => entry.id === on && entry.state === 'open'
+        )
+          ? on
+          : undefined
+        await mapApi.note(mapId, comment.text, gap)
         this.closeThread()
         await resolve('Added as a note')
-        this.map.toast('Added as a note: it is being sorted into cards')
+        this.map.toast(
+          gap
+            ? 'Added as a note: organising puts it where the gap is'
+            : 'Added as a note: it is being sorted into cards'
+        )
       } else if (action === 'direction') {
         const series = this.map.view?.series
         if (!series)

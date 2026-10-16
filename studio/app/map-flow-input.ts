@@ -554,6 +554,9 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
   const series = map.view?.series
   if (kind === 'direction' && series) {
     const id = form.dataset.direction || ''
+    // Saved already: a second Save before the map redraws does nothing
+    // (review 7: it said the new direction was gone).
+    if (id !== map.editingDirection) return true
     const text = String(data.get('text') || '').trim()
     const draft = id === '__draft__' ? map.draftDirection : null
     map.editingDirection = null
