@@ -288,4 +288,35 @@ describe('Esc and the comments (UX-13)', () => {
     await minuteOn()
     expect(fetch).not.toHaveBeenCalled()
   })
+
+  it('closes a menu open over a comment first, then the comment', async () => {
+    const { map, root, document } = await openMap()
+    click(root.querySelector('[data-pin="k1"]'))
+    click(root.querySelector('[data-map="map-more"]'))
+    expect(map.slot('menu')?.hidden).toBe(false)
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect([map.slot('menu')?.hidden, map.comments.thread]).toEqual([
+      true,
+      'k1'
+    ])
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect(map.comments.thread).toBeNull()
+  })
+
+  it('lets words being typed in a comment leave their field before the comment goes', async () => {
+    const { map, root } = await openMap()
+    click(root.querySelector('[data-comment="tool"]'))
+    fire(map.canvas!, 'pointerdown', { button: 0, clientX: 40, clientY: 40 })
+    const field = root.querySelector<HTMLInputElement>(
+      '[data-comment-form="new"] input[name="text"]'
+    )!
+    field.value = 'The intro drags'
+    field.focus()
+    fire(field, 'keydown', { key: 'Escape' })
+    // Still there, with its words; the next Esc closes it.
+    expect(map.comments.composer).not.toBeNull()
+    expect(field.value).toBe('The intro drags')
+    fire(root.ownerDocument.body, 'keydown', { key: 'Escape' })
+    expect(map.comments.composer).toBeNull()
+  })
 })

@@ -531,3 +531,121 @@ it('takes a started episode the creator trimmed out of the series on Undo, rathe
   expect(await readRow('projects', trimmed)).not.toBeNull()
   expect(undone.episodes.map((e) => e.notebookId)).toEqual([first])
 })
+
+/** The creator duplicates a copy on the Wireframe stage: two copies of one
+ * card in the episode, the second redrawn. */
+const duplicate = (notebook: string, page: string) =>
+  changeProject(notebook, (current) => {
+    const slides = current.project.slides
+    const at = slides.findIndex((slide) => slide.copyOf?.slide === page)
+    const second = structuredClone(slides[at])
+    second.id = `${second.id}-2`
+    second.svg = '<svg><text>Second take</text></svg>'
+    slides.splice(at + 1, 0, second)
+  })
+const copiesOf = async (notebook: string, page: string) =>
+  (await loadProject(notebook))!.project.slides
+    .filter((slide) => slide.copyOf?.slide === page)
+    .map((slide) => slide.svg)
+
+it('keeps a duplicated copy of a card when a plan or an organising run sets the episode’s cards', async () => {
+  const map = await drawnMap('m-dup')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-dup', {})
+  const one = await add(series.id, '', ids.slice(0, 4))
+  await segues.settledAllSegues()
+  await duplicate(one, ids[1])
+  // Organising adds a card to it: the duplicate stays, each slide once.
+  replies['Place Pages'] = () => ({
+    moves: ids
+      .slice(4)
+      .map((page) => ({ page, into: one, after: ids[3], why: 'It goes on' })),
+    start: []
+  })
+  await organize.organizeNewPages('m-dup')
+  await organize.settledOrganize(series.id)
+  expect(await copiesOf(one, ids[1])).toHaveLength(2)
+  const slideIds = (await loadProject(one))!.project.slides.map((s) => s.id)
+  expect(new Set(slideIds).size).toBe(slideIds.length)
+  // A plan that keeps the card keeps the duplicate too.
+  replies['Plan Series'] = () =>
+    outline([{ episode: one, title: 'All of it', pages: ids }])
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect(await copiesOf(one, ids[1])).toContain(
+    '<svg><text>Second take</text></svg>'
+  )
+  await segues.settledAllSegues()
+})
+
+it('brings a moved edit back to its episode when a stopped plan cannot put that episode back', async () => {
+  const map = await drawnMap('m-moved')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-moved', {})
+  const a = await add(series.id, '', [ids[0], ids[1]])
+  const b = await add(series.id, '', [ids[2]])
+  const d = await add(series.id, '', [ids[3]])
+  await segues.settledAllSegues()
+  await changeProject(a, (current) => {
+    current.project.slides[1].svg = '<svg><text>Edit in A</text></svg>'
+  })
+  replies['Plan Series'] = () => {
+    // Card 2 and its edit go to B. While a new episode is filled, the
+    // creator retitles a page of A; then D's storyboard starts.
+    between.skip = 2
+    between.next = async () => {
+      await changeProject(a, (current) => {
+        current.project.slides[0].title = 'Renamed by me'
+      })
+      await startStoryboard(d)
+    }
+    return outline([
+      { episode: a, title: 'Opening', pages: [ids[0]] },
+      { episode: b, title: 'Then', pages: [ids[2], ids[1]] },
+      { title: 'New', pages: [ids[4], ids[5]] },
+      { episode: d, title: 'Last', pages: [ids[3]] }
+    ])
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect((await loadSeries(series.id))!.planning?.state).toBe('failed')
+  // B went back; A kept the creator's retitle, and the edit came home.
+  expect(await pagesIn(b)).toEqual([ids[2]])
+  expect(await copiesOf(a, ids[1])).toEqual([
+    '<svg><text>Edit in A</text></svg>'
+  ])
+  expect((await loadProject(a))!.project.slides[0].title).toBe('Renamed by me')
+  await segues.settledAllSegues()
+})
+
+it('puts everything back when a new episode an organising run starts cannot be made', async () => {
+  const map = await drawnMap('m-org-fail')
+  const ids = map.project.slides.map((slide) => slide.id)
+  const series = await episodes.startMapSeries('m-org-fail', {})
+  const one = await add(series.id, '', ids.slice(0, 2))
+  await segues.settledAllSegues()
+  replies['Place Pages'] = async () => {
+    // The card the new episode would hold leaves the map meanwhile.
+    await changeProject('m-org-fail', (current) => {
+      current.project.slides = current.project.slides.filter(
+        (slide) => slide.id !== ids[5]
+      )
+    })
+    return {
+      moves: [
+        { page: ids[2], left: true, why: 'Not yet' },
+        { page: ids[3], left: true, why: 'Not yet' },
+        { page: ids[4], into: one, after: ids[1], why: 'It goes on' },
+        { page: ids[5], start: 'k', why: 'A part of its own' }
+      ],
+      start: [started('k', 'New part', one)]
+    }
+  }
+  await organize.organizeNewPages('m-org-fail')
+  await organize.settledOrganize(series.id)
+  const after = (await loadSeries(series.id))!
+  expect(after.organizing?.state).toBe('failed')
+  expect(await pagesIn(one)).toEqual(ids.slice(0, 2))
+  expect(after.episodes.map((e) => e.notebookId)).toEqual([one])
+  await segues.settledAllSegues()
+})

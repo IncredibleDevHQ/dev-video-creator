@@ -755,20 +755,25 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
     globalThis.addEventListener?.('keydown', (event) => {
       if (!this.map.isOpen || event.defaultPrevented || dialogOpen()) return
       const e = event as KeyboardEvent
+      const typing = (e.target as Element)?.closest?.(
+        'input, textarea, select, [contenteditable]'
+      )
+      const menu = this.map.slot('menu')
       if (e.key === 'Escape' && this.escapable) {
+        const recording = this.recording || this.openingMic
+        // One at a time: a menu over it first; typed words leave the field.
+        if (!recording && menu && !menu.hidden) return
+        const words = (typing as HTMLTextAreaElement | null)?.value?.trim()
         e.preventDefault()
         e.stopImmediatePropagation()
-        if (this.recording || this.openingMic) this.cancelRecording()
+        if (!recording && words) return (typing as HTMLElement).blur()
+        if (recording) this.cancelRecording()
         else if (this.composer || this.thread) {
           this.composer = null
           this.thread = null
         } else this.tool = false
         return this.paint()
       }
-      const typing = (e.target as Element)?.closest?.(
-        'input, textarea, select, [contenteditable]'
-      )
-      const menu = this.map.slot('menu')
       if (
         typing ||
         e.metaKey ||

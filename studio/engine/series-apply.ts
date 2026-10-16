@@ -87,28 +87,32 @@ export const setEpisodePages = async (
     if (isMade(current))
       throw new Refusal('An episode’s video started; plan again')
     const slides = current.project.slides
+    // A card listed twice is placed once.
+    const wanted = [...new Set(pages)]
     const held = new Map<string, Slide>()
     for (const slide of slides) {
       const page = slide.copyOf?.slide
       if (page && cards.has(page) && !held.has(page)) held.set(page, slide)
     }
-    const extras = slides.filter(
-      (slide) => !slide.copyOf?.slide || !cards.has(slide.copyOf.slide)
-    )
+    // Own pages, copies of cards the map no longer shows, and a second copy
+    // of a card (the creator duplicated it) stay theirs (review 7).
+    const extras = slides.filter((slide) => {
+      const page = slide.copyOf?.slide
+      return !page || !cards.has(page) || held.get(page) !== slide
+    })
     // A copy the creator edited or kept that no other episode takes stays
     // where it is: a plan never throws their work away (review 7).
     const worked = slides.filter(
       (slide) =>
         stay.has(slide.id) &&
-        slide.copyOf &&
-        cards.has(slide.copyOf.slide) &&
-        !pages.includes(slide.copyOf.slide)
+        held.get(slide.copyOf?.slide || '') === slide &&
+        !wanted.includes(slide.copyOf!.slide)
     )
     // The plan read the map's cards as they are now: an open episode holds
     // them as they are, unless the creator edited or kept a copy.
     let updated = 0
     const next = [
-      ...pages
+      ...wanted
         .filter((page) => cards.has(page))
         .map((page) => {
           const was = held.get(page)
@@ -274,9 +278,22 @@ export const setPagesNoted = async (
 export const putBack = async (before: PutBack) => {
   for (const [notebook, { slides, written }] of before)
     await changeProject(notebook, (current) => {
-      const now = JSON.stringify(current.project.slides)
-      if (isMade(current) || now !== written) return
-      current.project.slides = slides
+      if (isMade(current)) return
+      if (JSON.stringify(current.project.slides) === written)
+        current.project.slides = slides
+      else {
+        // Changed since: what the creator did stays, and a worked copy the
+        // run took out of it comes back, so no edit is lost between two.
+        const here = new Set(current.project.slides.map((slide) => slide.id))
+        const gone = slides.filter(
+          (slide) =>
+            !here.has(slide.id) &&
+            slide.copyOf &&
+            (!untouched(slide) || slide.copyOf.kept)
+        )
+        if (!gone.length) return
+        current.project.slides = [...current.project.slides, ...gone]
+      }
       reconcileVideo(current.project, current, new Set())
     }).catch(() => {})
 }

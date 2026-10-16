@@ -36,8 +36,10 @@
   margin-top: 0;
 }
 .map-block-alert .map-group-act {
+  flex: none;
   padding: 0 9px;
   line-height: 18px;
+  white-space: nowrap;
 }
 .map-group-error {
   min-width: 0;

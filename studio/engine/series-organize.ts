@@ -482,17 +482,6 @@ export const applyPlacement = async (
     const at = move.after ? order.indexOf(move.after) + 1 : 0
     order.splice(move.after && at === 0 ? order.length : at, 0, move.page)
   }
-  // All or nothing, as a plan is: an episode whose video starts meanwhile
-  // stops the run, and the ones it filled go back as they were (review 7).
-  const filled: PutBack = new Map()
-  try {
-    for (const [notebook, order] of into)
-      await setPagesNoted(filled, notebook, map, order)
-  } catch (error) {
-    await putBack(filled)
-    throw error
-  }
-  for (const notebook of into.keys()) await scheduleAround(notebook)
   // New episodes, each put after the episode it follows, carrying what the
   // placement said it picks up and hands on, as a planned one does.
   const startedAt = new Map<string, string>()
@@ -500,30 +489,44 @@ export const applyPlacement = async (
   const lineName = new Map(
     (before?.lines || []).map((line) => [line.id, line.name])
   )
-  for (const item of plan.start) {
-    const pages = plan.moves
-      .filter((m) => m.start === item.key)
-      .map((m) => m.page)
-    const made = await addMapEpisode(
-      seriesId,
-      {
-        title: item.title,
-        slides: pages
-      },
-      true
-    )
-    await changeProject(made.notebook.project.id, (current) => {
-      const ref = current.project.episode
-      if (!ref) return
-      ref.part = { title: item.title, carries: item.carries }
-      ref.threads = item.lines
-        .map((id) => lineName.get(id) || '')
-        .filter(Boolean)
-      if (before?.length) ref.length = before.length
-    })
-    startedAt.set(item.key, made.notebook.project.id)
-    run.started.push(made.notebook.project.id)
+  // All or nothing, as a plan is: an episode whose video starts meanwhile,
+  // or a new one that can't start, stops the run, and what it changed goes
+  // back as it was (review 7).
+  const filled: PutBack = new Map()
+  try {
+    for (const [notebook, order] of into)
+      await setPagesNoted(filled, notebook, map, order)
+    for (const item of plan.start) {
+      const pages = plan.moves
+        .filter((m) => m.start === item.key)
+        .map((m) => m.page)
+      const made = await addMapEpisode(
+        seriesId,
+        {
+          title: item.title,
+          slides: pages
+        },
+        true
+      )
+      await changeProject(made.notebook.project.id, (current) => {
+        const ref = current.project.episode
+        if (!ref) return
+        ref.part = { title: item.title, carries: item.carries }
+        ref.threads = item.lines
+          .map((id) => lineName.get(id) || '')
+          .filter(Boolean)
+        if (before?.length) ref.length = before.length
+      })
+      startedAt.set(item.key, made.notebook.project.id)
+      run.started.push(made.notebook.project.id)
+    }
+  } catch (error) {
+    await putBack(filled)
+    for (const id of run.started)
+      await discardEpisode(seriesId, id).catch(() => {})
+    throw error
   }
+  for (const notebook of into.keys()) await scheduleAround(notebook)
   if (plan.start.length) {
     const series = (await loadSeries(seriesId))!
     const order = series.episodes

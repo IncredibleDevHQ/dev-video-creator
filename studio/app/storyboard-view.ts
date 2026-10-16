@@ -22,7 +22,6 @@ import {
   framesDone,
   framesPosed,
   type FrameSummary,
-  type FrameTransition,
   type SceneSummary,
   type Storyboard
 } from '../shared/storyboard'
@@ -241,8 +240,6 @@ ${
 </div>`
 }
 
-/** What the stage shows: the made episode, a built frame, or the page, with
- * the camera beside it while a take is recorded or reviewed. */
 /** A camera scene with no take yet, shown as its page: the stage keeps the
  * take's place, with Record and Upload in it (review 7). */
 const takeSlot = (
@@ -256,6 +253,8 @@ const takeSlot = (
   frame?.status !== 'animated' &&
   !frame?.still
 
+/** What the stage shows: the made episode, a built frame, or the page, with
+ * the camera beside it while a take is recorded or reviewed. */
 const stage = (
   snapshot: Snapshot,
   storyboard: Storyboard,
@@ -365,18 +364,6 @@ const frameState = (storyboard: Storyboard, frame: FrameSummary) =>
           ? 'Posing again'
           : 'Posing'
         : seconds(frame.duration)
-
-const GLYPHS: Record<FrameTransition, string> = {
-  cut: '│',
-  crossfade: '◐',
-  'blur-crossfade': '◍',
-  'push-slide LEFT': '←',
-  'push-slide RIGHT': '→',
-  'push-slide UP': '↑',
-  'push-slide DOWN': '↓',
-  'zoom-through': '⊕',
-  squeeze: '⇔'
-}
 
 /** How a frame enters, in words: a crossfade into a new scene runs longer. */
 export const transitionWords = (frame: FrameSummary, opensScene: boolean) =>

@@ -60,23 +60,26 @@ export const openLength = (map: MapCanvas, anchor: HTMLElement) => {
   // Saved once the hand settles: arrow keys change it a stop at a time.
   let timer = 0
   let pending: LengthGoal | null = null
-  const save = () => {
+  const save = async () => {
     window.clearTimeout(timer)
     const next = pending
     pending = null
-    return next
-      ? map
-          .run(
-            () => mapApi.brief(series.id, { length: next }),
-            `Each episode now runs ${windowLabel(next)}${next.strict ? ', and must fit' : ''}`
-          )
-          .then((saved) => {
-            // Not saved: the lanes say the window that stands (review 7).
-            if (!saved)
-              markRuns(map.root, map.view?.series?.length || DEFAULT_LENGTH)
-            return saved
-          })
-      : Promise.resolve(true)
+    if (!next) return true
+    // Only a refused save puts the lanes back on the window that stands,
+    // and closes the panel showing the refused one (review 7).
+    try {
+      await mapApi.brief(series.id, { length: next })
+    } catch (reason) {
+      map.hooks.error(reason)
+      markRuns(map.root, map.view?.series?.length || DEFAULT_LENGTH)
+      closePopover()
+      return false
+    }
+    await map.run(
+      async () => {},
+      `Each episode now runs ${windowLabel(next)}${next.strict ? ', and must fit' : ''}`
+    )
+    return true
   }
   wireLengthRanges(panel, (next, done) => {
     markRuns(map.root, next)
