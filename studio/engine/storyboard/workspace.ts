@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import type { BrandFontFile, Branding } from '../../shared/settings'
 import { dataRoot, readAsset } from '../persistence'
 import { cliTail, presetDir, runCli, runScript } from './hyperframes'
+import { studioFigures } from './figures'
 
 export const storyboardsRoot = () => join(dataRoot, 'storyboards')
 export const productionDir = (projectId: string, productionId: string) =>
@@ -339,10 +340,12 @@ export const createWorkspace = async (input: {
     join(presetDir(), preset, 'FRAME.md'),
     'utf8'
   )
-  const kept = keepFaceNames(
-    keepGreys(made, presetFrame),
-    presetFrame,
-    tokens.fonts.map((font) => font.family)
+  const kept = studioFigures(
+    keepFaceNames(
+      keepGreys(made, presetFrame),
+      presetFrame,
+      tokens.fonts.map((font) => font.family)
+    )
   )
   if (kept !== made) await writeFile(join(dir, 'frame.md'), kept)
   return dir

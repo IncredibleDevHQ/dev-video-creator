@@ -82,6 +82,11 @@ it('runs the storyboard machinery end to end on stub frames', async () => {
     }
   })
   expect(existsSync(join(dir, 'frame.md'))).toBe(true)
+  // The preset asks for slots (NN%, {metric}) where a figure is missing;
+  // nothing fills one later, so the studio's frame.md asks for none.
+  const design = await readFile(join(dir, 'frame.md'), 'utf8')
+  expect(design).toMatch(/Nothing fills a slot later/)
+  expect(design).not.toMatch(/Render (?:data )?slots as|else placeholder\./)
   const pages = [
     {
       id: 'p1',

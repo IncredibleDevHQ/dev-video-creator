@@ -22,6 +22,7 @@ import { readSubmission, submissionSchema } from '../harness/submissions'
 import { upstreamPath } from './hyperframes'
 import { tryFrame } from './check'
 import { poseFile, stillFile } from './board'
+import { slotsIn } from './figures'
 
 /** The GSAP the assembled episode loads (assemble-index.mjs, captions.mjs). */
 export const GSAP_URL =
@@ -177,6 +178,11 @@ export const frameShapeProblems = (html: string, frameId: string) => {
     problems.push('No <audio> element: the assembler mounts the sound')
   if (Buffer.byteLength(text) > 600_000)
     problems.push('The frame is over 600 kB; keep it lean')
+  const slots = slotsIn(text)
+  if (slots.length)
+    problems.push(
+      `The frame shows a placeholder where a figure goes (${slots.map((slot) => `“${slot}”`).join(', ')}), and nothing fills it later: show the figure the voiceover or this packet gives, or design that number out (a word, a label, a bar without a value). Never invent one.`
+    )
   return problems
 }
 
