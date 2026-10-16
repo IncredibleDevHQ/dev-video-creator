@@ -549,16 +549,21 @@ export const applyPlacement = async (
     const order = series.episodes
       .map((e) => e.notebookId)
       .filter((id) => !run.started.includes(id))
+    // Several after the same episode keep the plan's order: each goes
+    // after the one placed before it.
+    const placed = new Map<string, string>()
     for (const item of plan.start) {
       const id = startedAt.get(item.key)!
+      const follows = placed.get(item.after || '') ?? item.after
       // After the episode it follows; when that one left the series
       // meanwhile, after the last episode still in it, never first.
-      const after = !item.after
+      const after = !follows
         ? 0
-        : order.includes(item.after)
-          ? order.indexOf(item.after) + 1
+        : order.includes(follows)
+          ? order.indexOf(follows) + 1
           : order.length
       order.splice(after, 0, id)
+      placed.set(item.after || '', id)
     }
     await setSeriesOrder(seriesId, order)
     for (const id of run.started) await scheduleAround(id)

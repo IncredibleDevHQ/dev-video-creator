@@ -423,6 +423,40 @@ it('puts a new episode after the last one when the episode it follows left the s
   await segues.settledAllSegues()
 })
 
+it('keeps two new episodes after the same one in the plan’s order', async () => {
+  const ids = await drawnMap('m-two-after')
+  const series = await episodes.startMapSeries('m-two-after', {})
+  const one = await add(series.id, ids.slice(0, 2))
+  const two = await add(series.id, ids.slice(2, 4))
+  await segues.settledAllSegues()
+  const part = (key: string) => ({
+    key,
+    title: `Part ${key}`,
+    about: `Part ${key}`,
+    win: `Win of ${key}`,
+    teaches: [key],
+    carries: 'Hands on',
+    lines: [],
+    after: one
+  })
+  replies['Place Pages'] = async () => ({
+    moves: [
+      { page: ids[4], start: 'k0', why: 'A part of its own' },
+      { page: ids[5], start: 'k1', why: 'The part after it' },
+      { page: ids[6], left: true, why: 'Not yet' }
+    ],
+    start: [part('k0'), part('k1')]
+  })
+  await organize.organizeNewPages('m-two-after')
+  await organize.settledOrganize(series.id)
+  const order = await membersOf(series.id)
+  expect(order[0]).toBe(one)
+  expect(await pagesIn(order[1])).toEqual([ids[4]])
+  expect(await pagesIn(order[2])).toEqual([ids[5]])
+  expect(order[3]).toBe(two)
+  await segues.settledAllSegues()
+})
+
 it('organises on while an episode that left the series, and isn’t filled, starts its video', async () => {
   const ids = await drawnMap('m-left-made')
   const series = await episodes.startMapSeries('m-left-made', {})
