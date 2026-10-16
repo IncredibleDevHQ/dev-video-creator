@@ -14,10 +14,21 @@ export const takeRefusal = (storyboard: Storyboard, scene: SceneSummary) =>
     ? 'Wait until this step finishes to replace a take'
     : null
 
+type Spoken = Pick<SceneSummary, 'build'> & {
+  frames: Array<{ voiceover: string }>
+}
+
+/** A scene that needs the creator's take: a camera scene, for its picture,
+ * or one with words to say while the creator speaks the episode. One with
+ * nothing to say needs none: Record has no line to take (review 7). */
+export const needsTake = (scene: Spoken, recordVoice: boolean) =>
+  scene.build === 'camera' ||
+  (recordVoice && scene.frames.some((frame) => frame.voiceover.trim()))
+
 /** After the frames: every scene built goes on to assembly; a scene whose
  * take came in meanwhile is voiced next; otherwise the rest waits. */
 export const afterFrames = (
-  scenes: Array<Pick<SceneSummary, 'pageId' | 'take' | 'build'>>,
+  scenes: Array<Pick<SceneSummary, 'pageId' | 'take'> & Spoken>,
   voiced: string[],
   recordVoice = false
 ) => {
@@ -25,9 +36,7 @@ export const afterFrames = (
   if (!unvoiced.length) return 'assemble' as const
   // A scene voiced without a take (the voice is no longer the creator's)
   // or whose take came is voiced next; only one that needs a take waits.
-  return unvoiced.some(
-    (scene) => scene.take || !(scene.build === 'camera' || recordVoice)
-  )
+  return unvoiced.some((scene) => scene.take || !needsTake(scene, recordVoice))
     ? ('voice' as const)
     : ('wait' as const)
 }

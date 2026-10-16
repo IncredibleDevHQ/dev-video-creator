@@ -1,8 +1,10 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { Snapshot } from '../shared/api'
 import {
+  frameId,
   type BuildType,
   type EpisodePlan,
   type PlanFrame,
@@ -12,8 +14,12 @@ import type { Internal } from './storyboard/state'
 
 // Review 7's second look at the storyboard production: productions waiting
 // for takes from before the fix, a first take on a voiced scene, and a build
-// change after a failed plan. The agents, the voice and Hyperframes are
-// stand-ins: these checks prove the plumbing, never what a model makes.
+// change after a failed plan; then its eighth recheck: shots lanes that stop
+// together, a take that lands while the voice decides, a scene with nothing
+// to say, a capture not made yet, sound alone for a camera scene, the check's
+// rounds after a transition change, and one build line a scene. The agents,
+// the voice and Hyperframes are stand-ins: these checks prove the plumbing,
+// never what a model makes.
 const { planned, voiced, designed, built, checked, rendered, posed, hooks } =
   vi.hoisted(() => ({
     planned: vi.fn(),
@@ -69,11 +75,19 @@ vi.mock('./voice', async (original) => ({
 
 const { storeAsset, writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
-const { planSummary, writeInternal } = await import('./storyboard/state')
+const { planSummary, readInternal, writeInternal } =
+  await import('./storyboard/state')
 const { missingTakes, scheduleStoryboard, settledStoryboard, storyboardDir } =
   await import('./storyboard/pipeline')
-const { saveStoryboardTake, setStoryboardBuild, showTakeSlots } =
-  await import('./storyboard/actions')
+const {
+  retryStoryboard,
+  saveStoryboardTake,
+  setStoryboardBuild,
+  setStoryboardTransition,
+  showTakeSlots
+} = await import('./storyboard/actions')
+const { planPages } = await import('./storyboard/plan')
+const { runCommand } = await import('./voice')
 
 const frame = (number: number): PlanFrame => ({
   number,
@@ -381,4 +395,254 @@ it('voices a first take that came in while the frames were built before the epis
   expect([value.status, value.redo ?? []]).toEqual(['done', []])
   // Both takes were voiced before the video was made.
   expect(heard.at(-1)).toEqual({ p1: 'one', p2: 'two' })
+})
+
+const design = async (input: { plan: EpisodePlan; sceneIndex: number }) =>
+  input.plan.scenes[input.sceneIndex].frames.map((entry) => shot(entry.number))
+
+it('stops the shots once every lane has, keeping what a lane still at work designed', async () => {
+  const dir = await seed('lanes', {
+    storyboard: {
+      stage: 'shots',
+      status: 'working',
+      waitingFor: undefined,
+      approved: true,
+      plan: planSummary(made())
+    },
+    internal: made({ shots: {}, statuses: {} })
+  })
+  // Scene 1's agent stops; scene 2's is still at work.
+  let release = () => {}
+  const held = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  designed.mockImplementation(
+    async (input: { plan: EpisodePlan; sceneIndex: number }) => {
+      if (input.sceneIndex === 0) throw new Error('The shots agent stopped')
+      await held
+      return design(input)
+    }
+  )
+  scheduleStoryboard('lanes')
+  await vi.waitFor(() => expect(designed).toHaveBeenCalledTimes(2))
+  // Not stopped while a lane works: Try again can't pay for it twice.
+  const early = await Promise.race([
+    settledStoryboard('lanes').then(() => 'stopped'),
+    new Promise((resolve) => setTimeout(() => resolve('working'), 100))
+  ])
+  release()
+  await settledStoryboard('lanes')
+  expect(early).toBe('working')
+  const value = await stored('lanes')
+  expect([value.stage, value.status]).toEqual(['shots', 'failed'])
+  expect(Object.keys((await readInternal(dir)).shots || {})).toEqual(['3', '4'])
+  // Try again designs scene 1 alone, and makes the video.
+  designed.mockClear()
+  designed.mockImplementation(design)
+  await retryStoryboard('lanes')
+  await settledStoryboard('lanes')
+  expect(designed.mock.calls.map(([input]) => input.sceneIndex)).toEqual([0])
+  expect((await stored('lanes')).status).toBe('done')
+})
+
+it('voices a take that came in while the voice stage decided whether to wait', async () => {
+  // Scene 1 is voiced and built; scene 2, on camera, waits for its take.
+  const internal = made({
+    voiced: ['p1'],
+    statuses: { 1: 'animated', 2: 'animated' },
+    shots: { 1: shot(1), 2: shot(2) },
+    durations: { 1: 3, 2: 3 }
+  })
+  await seed('late-take', {
+    storyboard: {
+      stage: 'voice',
+      status: 'working',
+      waitingFor: undefined,
+      approved: true,
+      plan: planSummary(internal)
+    },
+    internal
+  })
+  // The take lands after the production read the storyboard.
+  hooks.workspace = () =>
+    saveStoryboardTake('late-take', 'p2', Buffer.from('camera'), 'video/webm')
+  scheduleStoryboard('late-take')
+  await settledStoryboard('late-take')
+  const value = await stored('late-take')
+  expect([value.stage, value.status, value.waitingFor]).toEqual([
+    'done',
+    'done',
+    undefined
+  ])
+  expect(heard.at(-1)).toEqual({ p2: 'camera' })
+})
+
+it('asks no take of a scene with nothing to say while the creator speaks', async () => {
+  const quiet: EpisodePlan = {
+    ...plan,
+    scenes: [
+      plan.scenes[0],
+      {
+        pageId: 'p2',
+        build: 'motion',
+        buildReason: 'It shows',
+        frames: [frame(3), frame(4)].map((entry) => ({
+          ...entry,
+          voiceover: ''
+        }))
+      }
+    ]
+  }
+  const internal = made({ plan: quiet, voiced: [] })
+  await seed('quiet', {
+    record: true,
+    storyboard: {
+      stage: 'voice',
+      status: 'working',
+      waitingFor: undefined,
+      approved: true,
+      plan: planSummary(internal, {}, true)
+    },
+    internal
+  })
+  // Scene 1 has a place for the creator's take; scene 2 has none to give.
+  expect((await stored('quiet')).plan!.scenes.map((s) => s.take)).toEqual([
+    null,
+    undefined
+  ])
+  scheduleStoryboard('quiet')
+  await settledStoryboard('quiet')
+  expect(missingTakes(await stored('quiet'), true)).toEqual(['p1'])
+  await saveStoryboardTake('quiet', 'p1', Buffer.from('one'), 'audio/webm')
+  await settledStoryboard('quiet')
+  const value = await stored('quiet')
+  expect([value.stage, value.status]).toEqual(['done', 'done'])
+})
+
+it('tells the planner a page has a capture only once one is made', () => {
+  const at = '2026-10-16T00:00:00.000Z'
+  const capture = (state: string, more: object = {}) => ({
+    url: 'https://example.com',
+    steps: [],
+    state,
+    at,
+    ...more
+  })
+  const last = {
+    url: 'https://example.com',
+    steps: [],
+    objectKey: 'demo.mp4',
+    seconds: 9,
+    at
+  }
+  const snapshot = {
+    project: {
+      slides: [
+        capture('failed', { error: 'It stopped' }),
+        capture('capturing'),
+        capture('failed', { last }),
+        capture('ready', { objectKey: 'demo.mp4', seconds: 9 })
+      ].map((entry, index) => ({
+        id: `c${index}`,
+        title: `Page ${index}`,
+        narration: 'What it says.',
+        capture: entry
+      }))
+    }
+  } as unknown as Snapshot
+  const pages = planPages(snapshot, ['c0', 'c1', 'c2', 'c3'])
+  expect(pages.map((page) => page.capture)).toEqual([false, false, true, true])
+})
+
+it('refuses sound alone for a camera scene’s take, and takes it for a spoken one', async () => {
+  await seed('sound-only', {
+    record: true,
+    storyboard: {
+      stage: 'voice',
+      status: 'waiting',
+      waitingFor: 'takes',
+      approved: true,
+      plan: planSummary(made({ voiced: [] }), {}, true)
+    },
+    internal: made({ voiced: [] })
+  })
+  const refused = 'This scene is on camera'
+  await expect(
+    saveStoryboardTake('sound-only', 'p2', Buffer.from('voice'), 'audio/webm')
+  ).rejects.toThrow(refused)
+  // Sound alone sent as a video is heard for what it is.
+  const dir = await mkdtemp(join(tmpdir(), 'sound-only-'))
+  const path = join(dir, 'voice.mp4')
+  await runCommand('ffmpeg', [
+    '-v',
+    'error',
+    '-y',
+    '-f',
+    'lavfi',
+    '-i',
+    'sine=frequency=440:duration=1',
+    '-c:a',
+    'aac',
+    path
+  ])
+  await expect(
+    saveStoryboardTake('sound-only', 'p2', await readFile(path), 'video/mp4')
+  ).rejects.toThrow(refused)
+  await rm(dir, { recursive: true, force: true })
+  expect((await stored('sound-only')).plan!.scenes[1].take).toBeNull()
+  // The faceless scene, which the creator speaks: their voice is its take.
+  await saveStoryboardTake('sound-only', 'p1', Buffer.from('one'), 'audio/webm')
+  expect((await stored('sound-only')).plan!.scenes[0].take?.duration).toBe(4)
+  await settledStoryboard('sound-only')
+})
+
+it('gives the check its rounds afresh when a transition change puts a stopped episode together again', async () => {
+  await seed('fresh-rounds', {
+    storyboard: {
+      stage: 'assemble',
+      status: 'failed',
+      waitingFor: undefined,
+      approved: true,
+      error: 'Hyperframes’ check still finds: Text runs off the frame',
+      plan: planSummary(made({ rounds: 2 }))
+    },
+    internal: made({ rounds: 2 })
+  })
+  checked.mockResolvedValueOnce({
+    byFrame: { [frameId(frame(2))]: ['Text runs off the frame'] },
+    other: [],
+    warnings: []
+  })
+  await setStoryboardTransition('fresh-rounds', 3, { transition: 'crossfade' })
+  await settledStoryboard('fresh-rounds')
+  const value = await stored('fresh-rounds')
+  expect([value.stage, value.status]).toEqual(['done', 'done'])
+  // Frame 2 was built again with what the check found.
+  expect(
+    built.mock.calls.map(([input]) => [input.number, input.findings])
+  ).toEqual([[2, ['Text runs off the frame']]])
+})
+
+it('keeps one build line a scene in the change a failed plan still owes', async () => {
+  await seed('one-build', {
+    storyboard: {
+      stage: 'plan',
+      status: 'failed',
+      waitingFor: undefined,
+      note: 'Merge scenes 1 and 2',
+      error: 'The planner stopped'
+    }
+  })
+  // Scene 1 as motion: the planner stops again; then on camera instead.
+  planned.mockRejectedValueOnce(new Error('The planner stopped'))
+  await setStoryboardBuild('one-build', 'p1', 'motion')
+  await settledStoryboard('one-build')
+  expect((await stored('one-build')).status).toBe('failed')
+  const value = (await setStoryboardBuild('one-build', 'p1', 'camera')).project
+    .video!.storyboard!
+  expect(value.note!.split('\n')).toEqual([
+    'Merge scenes 1 and 2',
+    'Build the scene for “Page p1” as on camera; keep the rest of the plan.'
+  ])
+  await settledStoryboard('one-build')
 })

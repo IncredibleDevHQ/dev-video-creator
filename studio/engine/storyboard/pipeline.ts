@@ -50,7 +50,7 @@ import {
   writeProjectFiles,
   type Internal
 } from './state'
-import { afterFrames } from './takes'
+import { afterFrames, needsTake } from './takes'
 
 /** Rounds of rebuilding frames the episode check refused. */
 const MOST_ROUNDS = 2
@@ -232,16 +232,11 @@ const planStage = async ({
 }
 
 /** The takes a stage needs and does not have: a camera scene's, or every
- * scene's when the creator speaks the whole episode. */
+ * scene's with words to say when the creator speaks the whole episode. */
 export const missingTakes = (storyboard: Storyboard, recordVoice: boolean) =>
   (storyboard.plan?.scenes || [])
-    .filter((scene) => (scene.build === 'camera' || recordVoice) && !scene.take)
+    .filter((scene) => needsTake(scene, recordVoice) && !scene.take)
     .map((scene) => scene.pageId)
-
-/** A scene that needs the creator's take: a camera scene, or every scene
- * when the creator speaks the whole episode. */
-const needsTake = (build: string, recordVoice: boolean) =>
-  build === 'camera' || recordVoice
 
 /**
  * Voices every scene that can be voiced now: those with no take to wait for,
@@ -278,11 +273,11 @@ const voiceStage = async ({
   const ready = plan.scenes.filter(
     (scene) =>
       !internal.voiced!.includes(scene.pageId) &&
-      (!needsTake(scene.build, recordVoice) || summary.get(scene.pageId)?.take)
+      (!needsTake(scene, recordVoice) || summary.get(scene.pageId)?.take)
   )
   if (!ready.length) {
     await writeInternal(dir, internal)
-    const waiting = missingTakes(storyboard, recordVoice).length > 0
+    let waiting = false
     await update(snapshot.project.id, (current, ledger) => {
       // Every scene that waits for a take shows its place for one, also
       // when the voice became the creator's after the plan.
@@ -293,10 +288,17 @@ const voiceStage = async ({
           takesOf(current)[page]?.objectKey !==
             takesOf(storyboard)[page]?.objectKey
       )
+      // Decided on the storyboard as it is now: a take or a voice that
+      // changed since this stage began is not missed (review 7).
+      const speaks = ledger.project.video?.settings.voice.kind === 'record'
+      waiting = missingTakes(current, speaks).length > 0
+      const unvoiced = (current.plan?.scenes || []).some(
+        (scene) => !internal.voiced!.includes(scene.pageId)
+      )
       if (waiting) {
         current.status = 'waiting'
         current.waitingFor = 'takes'
-      } else current.stage = current.redo.length ? 'voice' : 'shots'
+      } else current.stage = current.redo.length || unvoiced ? 'voice' : 'shots'
     })
     return waiting ? ('stop' as const) : undefined
   }
@@ -438,7 +440,15 @@ const shotsStage = async ({
       await writeInternal(dir, internal)
     }
   }
-  await Promise.all(Array.from({ length: Math.min(3, scenes.length) }, lane))
+  // The stage stops once every lane has: a call in flight is saved, so Try
+  // again never pays for it twice, and nothing writes after the stop.
+  const lanes = await Promise.allSettled(
+    Array.from({ length: Math.min(3, scenes.length) }, lane)
+  )
+  const failed = lanes.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected'
+  )
+  if (failed) throw failed.reason
   await writeInternal(dir, internal)
   await writeProjectFiles(dir, internal)
   await update(snapshot.project.id, (current, ledger) => {

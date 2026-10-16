@@ -120,6 +120,27 @@ export const probeSeconds = async (path: string) => {
   return seconds
 }
 
+// Whether a media file has a moving picture, as ffprobe lists its streams
+// (cover art is no picture: V leaves it out).
+export const hasPicture = async (path: string) => {
+  const output = await runCommand(
+    'ffprobe',
+    [
+      '-v',
+      'error',
+      '-select_streams',
+      'V',
+      '-show_entries',
+      'stream=codec_type',
+      '-of',
+      'csv=p=0',
+      path
+    ],
+    30_000
+  )
+  return output.trim().length > 0
+}
+
 const round = (seconds: number) => Math.round(seconds * 1000) / 1000
 
 // A line, the time its plan estimated for it, and the least time its moment

@@ -14,6 +14,7 @@ import {
   TRANSITION_LABELS,
   type BuildType,
   type FrameTransition,
+  type SceneSummary,
   type Storyboard,
   type StoryboardStage
 } from '../../shared/storyboard'
@@ -21,7 +22,7 @@ import { addEvent } from '../activity'
 import { storeAsset } from '../persistence'
 import { changeProject, loadProject } from '../projects'
 import { Refusal } from '../refusal'
-import { probeSeconds } from '../voice'
+import { hasPicture, probeSeconds } from '../voice'
 import { missingTakes, scheduleStoryboard, storyboardDir } from './pipeline'
 import { readInternal, writeInternal, writeProjectFiles } from './state'
 import { summaryNow, update } from './run'
@@ -159,13 +160,17 @@ export const setStoryboardBuild = async (
       throw new Refusal('Record a product capture before choosing Screen demo')
     delete storyboard.error
     storyboard.builds = { ...storyboard.builds, [pageId]: build }
-    const asked = `Build the scene for “${page?.title || pageId}” as ${BUILD_LABELS[build].toLowerCase()}; keep the rest of the plan.`
+    const head = `Build the scene for “${page?.title || pageId}” as `
+    const asked = `${head}${BUILD_LABELS[build].toLowerCase()}; keep the rest of the plan.`
     // A change asked for that a failed plan didn't make yet stays, with this
-    // one after it (review 7).
-    storyboard.note =
-      storyboard.status === 'failed' && storyboard.note
-        ? `${storyboard.note}\n${asked}`
-        : asked
+    // one after it (review 7); this scene's earlier build gives way to it.
+    const kept =
+      storyboard.status === 'failed'
+        ? (storyboard.note || '')
+            .split('\n')
+            .filter((line) => line && !line.startsWith(head))
+        : []
+    storyboard.note = [...kept, asked].join('\n')
     storyboard.stage = 'plan'
     storyboard.status = 'working'
     delete storyboard.waitingFor
@@ -210,19 +215,22 @@ export const setStoryboardTransition = async (
     if (!frame) throw new Refusal('Frame not found')
     frame.transition = transition
     delete frame.transitionWhy
+    const value = storyboard
+    again =
+      value.status === 'done' ||
+      (value.status === 'failed' &&
+        ['assemble', 'render'].includes(value.stage))
+    // Put together again, the check has its rounds afresh, as Try again
+    // gives them (review 7: it stopped at once with the same findings).
+    if (again) internal.rounds = 0
     await writeInternal(dir, internal)
     await writeProjectFiles(dir, internal)
-    const value = storyboard
     for (const scene of value.plan?.scenes || [])
       for (const entry of scene.frames)
         if (entry.number === number) {
           entry.transition = transition
           delete entry.transitionWhy
         }
-    again =
-      value.status === 'done' ||
-      (value.status === 'failed' &&
-        ['assemble', 'render'].includes(value.stage))
     if (again) {
       value.stage = 'assemble'
       value.status = 'working'
@@ -248,6 +256,8 @@ const TAKE_TYPES: Record<string, string> = {
   'audio/mpeg': '.mp3',
   'audio/wav': '.wav'
 }
+const NO_PICTURE =
+  'This scene is on camera: record its take, or upload a video, not sound alone'
 
 /** A scene's take, recorded or uploaded: once every take the plan needs is
  * in, the production carries on. */
@@ -264,10 +274,14 @@ export const saveStoryboardTake = async (
     throw new Refusal('The take is empty or too large')
   const dir = await mkdtemp(join(tmpdir(), 'storyboard-take-'))
   let duration = 0
+  // Sound alone has no picture; a file ffprobe can't tell about is let
+  // through, as before.
+  let picture = !type.startsWith('audio/')
   try {
     const path = join(dir, `take${extension}`)
     await writeFile(path, body)
     duration = Math.round((await probeSeconds(path)) * 100) / 100
+    if (picture) picture = await hasPicture(path).catch(() => true)
   } catch {
     throw new Refusal(
       'The take could not be read. Record it again, or upload an MP4 or WebM file'
@@ -276,6 +290,13 @@ export const saveStoryboardTake = async (
     await rm(dir, { recursive: true, force: true })
   }
   if (duration < 0.5) throw new Refusal('The take is too short')
+  // A camera scene is cut from its take's picture: sound alone would stop
+  // the voice every time (review 7).
+  const unseen = (scene: SceneSummary | undefined) =>
+    scene?.build === 'camera' && !picture
+  const board = (await loadProject(projectId))?.project.video?.storyboard
+  if (unseen(board?.plan?.scenes.find((entry) => entry.pageId === pageId)))
+    throw new Refusal(NO_PICTURE)
   const stored = await storeAsset({
     body,
     contentType: type,
@@ -290,6 +311,7 @@ export const saveStoryboardTake = async (
       (entry) => entry.pageId === pageId
     )
     if (!scene) throw new Refusal('Scene not found')
+    if (unseen(scene)) throw new Refusal(NO_PICTURE)
     const refusal = takeRefusal(storyboard, scene)
     if (refusal) throw new Refusal(refusal)
     // A first take for a scene already voiced without one (the voice became

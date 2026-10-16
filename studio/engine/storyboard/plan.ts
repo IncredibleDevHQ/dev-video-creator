@@ -6,6 +6,7 @@ import { readdirSync } from 'node:fs'
 import { writeFile, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Snapshot } from '../../shared/api'
+import { readyCapture } from '../../shared/capture'
 import type { Slide } from '../../shared/model'
 import type {
   BuildType,
@@ -58,7 +59,9 @@ export const planPages = (snapshot: Snapshot, pages: string[]): PlanPage[] =>
       id,
       title: slide.title,
       script: pageScript(slide),
-      capture: Boolean(slide.capture)
+      // A finished capture, or the last good one kept, is a demo to show;
+      // one still being made or that failed is not (review 7).
+      capture: Boolean(readyCapture(slide.capture))
     }
   })
 

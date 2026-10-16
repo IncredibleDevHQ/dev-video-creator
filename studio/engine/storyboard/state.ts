@@ -15,6 +15,7 @@ import type {
 import { frameId } from '../../shared/storyboard'
 import type { FrameVoice } from './voice'
 import { planFrames, renderScript, renderStoryboard } from './plan-files'
+import { needsTake } from './takes'
 
 export type Internal = {
   plan?: EpisodePlan
@@ -118,7 +119,7 @@ export const planSummary = (
       build: scene.build,
       buildReason: scene.buildReason,
       // A take given stays, even when the scene no longer needs one.
-      ...(scene.build === 'camera' || recordVoice || takes[scene.pageId]
+      ...(needsTake(scene, recordVoice) || takes[scene.pageId]
         ? { take: takes[scene.pageId] ?? null }
         : {}),
       frames: scene.frames.map((frame) => ({
