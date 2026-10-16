@@ -119,6 +119,12 @@ const seriesContext = async (
     ...(series.audience ? { audience: series.audience } : {}),
     ...(outline
       ? {
+          explain: (series.gaps || [])
+            .filter(
+              (gap) =>
+                gap.state === 'explained' && gap.episode === snapshot.project.id
+            )
+            .map((gap) => gap.missing),
           win: outline.win,
           teaches: outline.teaches,
           needs: outline.needs.map((need) =>

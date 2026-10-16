@@ -54,15 +54,16 @@ export const seriesHead = (view: MapView) => {
     : series.planning?.state === 'failed'
       ? `<span class="map-state is-failed" title="${escape(series.planning.error || '')}">planning failed</span>`
       : `<span class="map-state">${view.episodes.length ? `${plural(view.episodes.length, 'episode')} · ${plural(copies, 'card')}` : 'No episodes yet'}${open.length ? ` · <b class="map-gap-count">${plural(open.length, 'gap')}</b>` : ''}</span>`
-  const outlined = Boolean(series.outcome || series.lines.length)
-  return `<div class="map-series-head" style="height:${outlined ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${
+  // A plan has been made once it named the lines through the series.
+  const planned = series.lines.length > 0
+  return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${
     planning
       ? ''
-      : `<button type="button" class="${outlined ? 'quiet' : 'primary'}" data-map="plan-series">${outlined ? 'Plan again' : 'Plan the series'}</button>`
-  }<label class="map-organize" title="New cards place themselves into the episodes"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label></span></div>${
-    outlined
-      ? `<div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}</div>${lines}`
-      : '<p class="map-series-hint">Plan the series: it reads every card, finds the lines through them, orders episodes so each builds on the last, and names what the cards don’t cover.</p>'
+      : `<button type="button" class="${planned ? 'quiet' : 'primary'}" data-map="plan-series">${planned ? 'Plan again' : 'Plan the series'}</button>`
+  }<label class="map-organize" title="New cards place themselves into the episodes"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label></span></div><div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}</div>${
+    planned
+      ? lines
+      : '<p class="map-series-hint">The plan reads every card, finds the lines through them, orders episodes so each builds on the last, and names what the cards don’t cover.</p>'
   }</div>`
 }
 

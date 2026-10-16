@@ -221,6 +221,36 @@ it('briefs the episode with its length, the series around it and the creator’s
   expect(brief).toMatch(/no camera scenes/)
 })
 
+it('briefs the episode with what the series teaches: the outcome, its win, what it builds on', () => {
+  const brief = episodeBrief({
+    title: 'Parts',
+    length: { min: 40, max: 90, strict: false },
+    camera: false,
+    voMode: 'verbatim',
+    series: {
+      title: 'Video on Workers',
+      about: 'Building video pipelines',
+      number: 2,
+      outcome: 'Run a pipeline on Cloudflare',
+      audience: 'Workers developers',
+      win: 'Name the three parts',
+      teaches: ['container', 'orchestrator'],
+      needs: ['the gap managed streaming leaves (from “Why build”)'],
+      explain: ['What a Durable Object is']
+    }
+  })
+  expect(brief).toMatch(/viewers can: Run a pipeline on Cloudflare/)
+  expect(brief).toMatch(/For: Workers developers/)
+  expect(brief).toMatch(
+    /win \(what the viewer can do after it\): Name the three parts/
+  )
+  expect(brief).toMatch(/It teaches: container; orchestrator/)
+  expect(brief).toMatch(
+    /Explain in a line, as no page does: What a Durable Object is/
+  )
+  expect(brief).toMatch(/It builds on: the gap .*never teach it again/)
+})
+
 it('speaks an episode page once: its script already holds its segues', () => {
   const bridge = 'So when does it stop being enough?'
   const base = 'For many customers, it simply works.'

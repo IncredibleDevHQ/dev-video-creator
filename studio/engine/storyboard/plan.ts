@@ -88,6 +88,8 @@ export type SeriesContext = {
   win?: string
   teaches?: string[]
   needs?: string[]
+  /** What no card covers and the creator asked this episode to explain. */
+  explain?: string[]
 }
 
 /** BRIEF.md: the episode, its length, its series, what may be shown. */
@@ -140,6 +142,11 @@ export const episodeBrief = (input: {
             `This episode's win (what the viewer can do after it): ${series.win}`,
             ...(series.teaches?.length
               ? [`It teaches: ${series.teaches.join('; ')}`]
+              : []),
+            ...(series.explain?.length
+              ? [
+                  `Explain in a line, as no page does: ${series.explain.join('; ')}`
+                ]
               : []),
             ...(series.needs?.length
               ? [

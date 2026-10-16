@@ -87,7 +87,7 @@ export const LPAD = 14,
 /** The series' head, with an outline and without; the room the wires from
  * the cards cross to reach the series; a direction note's size. */
 export const HEAD = 132,
-  HEAD0 = 96,
+  HEAD0 = 126,
   WIRE = 200,
   DW = 240,
   DH = 112
@@ -239,10 +239,37 @@ export const mapLayout = (
   layout.map.h = Math.max(y - MY + MP - 8, 220)
   const series = view?.series
   if (!view || !series) return layout
-  // The series to the right of the cards; directions without a place sit
-  // in a row above it.
+  // The series to the right of the cards; directions without a place, or
+  // whose place a frame has grown over, sit in a row above it.
   const sx = MX + mw + WIRE
-  const loose = series.directions.filter((d) => !d.spot)
+  const headH = series.lines.length ? HEAD : HEAD0
+  const open = series.gaps.filter((gap) => gap.state === 'open')
+  const laneW = (episode: MapView['episodes'][number]) => {
+    const n = episode.copies.length
+    const gaps = open.filter((gap) => gap.episode === episode.notebook).length
+    return (
+      (n
+        ? LPAD * 2 + SW * 2 + QG * (n + 1) + QW * n
+        : LPAD * 2 + QW * 3 + QG * 2) +
+      gaps * (QW + QG)
+    )
+  }
+  const frameW = SP * 2 + Math.max(640, ...view.episodes.map(laneW))
+  const frameH = headH + view.episodes.length * (LANEH + LGAP) + DH + 80
+  const taken = [
+    layout.map,
+    { x: sx, y: MY, w: frameW, h: frameH },
+    { x: sx + frameW + SOGAP, y: MY, w: SOW, h: frameH }
+  ]
+  const overlaps = (spot: { x: number; y: number }) =>
+    taken.some(
+      (box) =>
+        spot.x < box.x + box.w &&
+        spot.x + DW > box.x &&
+        spot.y < box.y + box.h &&
+        spot.y + DH > box.y
+    )
+  const loose = series.directions.filter((d) => !d.spot || overlaps(d.spot))
   const sy = MY + (loose.length ? DH + 48 : 0)
   loose.forEach((direction, index) => {
     layout.directions[direction.id] = {
@@ -253,18 +280,15 @@ export const mapLayout = (
     }
   })
   for (const direction of series.directions)
-    if (direction.spot)
+    if (direction.spot && !loose.includes(direction))
       layout.directions[direction.id] = {
         x: direction.spot.x,
         y: direction.spot.y,
         w: DW,
         h: DH
       }
-  const outlined = Boolean(series.outcome || series.lines.length)
-  const headH = outlined ? HEAD : HEAD0
   let ly = sy + headH
   let widest = 640
-  const open = series.gaps.filter((gap) => gap.state === 'open')
   for (const episode of view.episodes) {
     const n = episode.copies.length
     const gaps = open.filter((gap) => gap.episode === episode.notebook)

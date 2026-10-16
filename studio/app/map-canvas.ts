@@ -504,7 +504,7 @@ export class MapCanvas {
   async startSeries() {
     await this.run(
       () => mapApi.startSeries(this.mapId),
-      'Series started. Add its first episode.'
+      'Series started. Say what a viewer can do by the end, then plan it.'
     )
     this.fitted = false
   }

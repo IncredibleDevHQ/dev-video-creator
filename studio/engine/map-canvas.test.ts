@@ -448,7 +448,7 @@ describe('the series as a connected canvas', () => {
           text: 'Keep it short',
           at: 'now',
           to: { episode: 'e2' },
-          spot: { x: 2000, y: 600 },
+          spot: { x: 4000, y: 600 },
           answer: { state: 'partly', why: 'Three cards', at: 'now' }
         }
       ]
@@ -478,9 +478,24 @@ describe('the series as a connected canvas', () => {
   }
   it('places directions and gaps, and wires each into what it guides', () => {
     const layout = mapLayout(snapshot, view, 'order')
-    // A direction without a place sits above the series; a placed one stays.
+    // A direction without a place sits above the series; a placed one stays,
+    // unless a frame has grown over it.
+    const covered = mapLayout(
+      snapshot,
+      {
+        ...view,
+        series: {
+          ...view.series!,
+          directions: [
+            { id: 'd3', text: 'x', at: 'now', spot: layout.lanes.e1 }
+          ]
+        }
+      },
+      'order'
+    )
+    expect(covered.directions.d3.y).toBeLessThan(covered.series!.y)
     expect(layout.directions.d1.y).toBeLessThan(layout.series!.y)
-    expect(layout.directions.d2).toMatchObject({ x: 2000, y: 600 })
+    expect(layout.directions.d2).toMatchObject({ x: 4000, y: 600 })
     // The gap comes first in the episode that needs it.
     expect(layout.gaps).toMatchObject([{ id: 'do', episode: 'e2' }])
     expect(layout.gaps[0].x).toBeLessThan(layout.copies.y.x)
@@ -490,7 +505,7 @@ describe('the series as a connected canvas', () => {
       ['d:d2', 'L:e2']
     ])
     // Placed past its episode, a note comes in from the right side.
-    expect(wires[1].x1).toBe(2000)
+    expect(wires[1].x1).toBe(4000)
     expect(wires[1].x2).toBe(layout.lanes.e2.x + layout.lanes.e2.w)
   })
   it('shows the outline: the suggested outcome, the lines, the gaps, each episode’s win', () => {

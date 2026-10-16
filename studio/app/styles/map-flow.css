@@ -399,6 +399,10 @@
   background: var(--map-frame);
 }
 .map-lane-win {
+  position: absolute;
+  left: 0;
+  right: 10px;
+  top: 36px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -722,4 +726,50 @@
 .map-add > button small,
 .map-add > button b {
   white-space: normal;
+}
+/* A gap says what it is inside its own dashed card: the lane's win row
+   runs above it. */
+.map-gap .map-node-label {
+  position: static;
+  margin-bottom: 2px;
+}
+/* Above the lane they sit in, as cards and segues are, so they take the
+   pointer; a direction note floats above everything on the canvas. */
+.map-gap {
+  z-index: 3;
+}
+.map-direction {
+  z-index: 4;
+}
+/* A note from the canvas: the question (a gap's, when it fills one) above
+   a text box as wide as the bar. */
+.map-ask[data-map-form='flow-note'] {
+  flex-wrap: wrap;
+  width: min(760px, calc(100vw - 120px));
+}
+.map-ask[data-map-form='flow-note'] label {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  white-space: normal;
+}
+.map-ask[data-map-form='flow-note'] textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--map-pill-line);
+  border-radius: 10px;
+  background: var(--map-node);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.map-ask[data-map-form='flow-note'] button {
+  margin-left: auto;
+}
+.map-ask[data-map-form='flow-note'] button + button {
+  margin-left: 0;
 }
