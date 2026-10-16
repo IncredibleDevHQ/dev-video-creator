@@ -629,10 +629,11 @@ export const tellOrganized = (map: MapCanvas) => {
   const when = stop?.at || stop?.error || ''
   if (stop?.state === 'failed' && when !== map.toldStop) {
     map.toldStop = when
-    map.toast(`Organising stopped: ${stop.error || 'try again'}`, {
-      label: 'Organise again',
-      map: 'organize-again'
-    })
+    map.toast(
+      `Organising stopped: ${stop.error || 'try again'}`,
+      { label: 'Organise again', map: 'organize-again' },
+      true
+    )
   }
   const run = map.view.series?.organized
   if (map.toldRun === null) {
@@ -646,6 +647,7 @@ export const tellOrganized = (map: MapCanvas) => {
   const gap = run.moves.some((move) => move.kind === 'closes')
   map.toast(
     `Organised ${placed} new card${placed === 1 ? '' : 's'} into the series${gap ? ', filling a gap' : ''}${left ? `; ${left} left out` : ''}`,
-    { label: 'Undo', map: `undo-organize:${run.id}` }
+    { label: 'Undo', map: `undo-organize:${run.id}` },
+    true
   )
 }

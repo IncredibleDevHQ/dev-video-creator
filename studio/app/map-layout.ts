@@ -3,6 +3,7 @@
 // with one lane per episode, the Socials box beside the series with what each
 // made episode was cut into, and the workflow's lines between them. Pure, so
 // the canvas can move things by diffing two layouts.
+import { routeDirection, type Point } from './map-route'
 import type { Snapshot } from '../shared/api'
 import { topicGroups, type MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
@@ -55,6 +56,8 @@ export type Flow = {
   to: string
   /** Where it turns, when that is a gutter rather than half way. */
   turn?: number
+  /** Its whole way, when it runs round a frame. */
+  points?: Point[]
 }
 
 export const MX = 40,
@@ -450,29 +453,26 @@ export const mapLayout = (
       targets.push({ key: 'B:series', box: layout.head, y: sy + headH / 2 })
     for (const target of targets) {
       // Every line ends at a frame, its arrow pointing in: a card at the
-      // Cards frame, an episode or the series at the series' frame. It
-      // leaves the box on the side facing the nearer gutter and turns there,
-      // beyond the box, so it never crosses a block (review 7).
-      const frame = target.key.startsWith('m:')
-        ? { x: layout.map.x, w: layout.map.w }
-        : { x: sx, w: layout.series.w }
-      const left = box.x + box.w / 2 < frame.x + frame.w / 2
-      const gutter = left ? frame.x - 20 : frame.x + frame.w + 20
-      const clear = left ? box.x + box.w <= gutter : box.x >= gutter
+      // Cards frame, an episode or the series at the series' frame, by the
+      // way that crosses no frame (review 7).
+      const frame = target.key.startsWith('m:') ? layout.map : layout.series
+      const { points, turn } = routeDirection(box, frame, target.y, [
+        layout.map,
+        layout.series
+      ])
+      const [x1, y1] = points[0]
+      const [x2, y2] = points[points.length - 1]
       layout.flows.push({
         key: `d:${direction.id}:${target.key}`,
         kind: 'direction',
         from: `d:${direction.id}`,
         to: target.key,
-        x1: left === clear ? box.x + box.w : box.x,
-        y1: box.y + box.h / 2,
-        x2: left ? frame.x : frame.x + frame.w,
-        y2: target.y,
-        turn: clear
-          ? gutter
-          : left
-            ? Math.min(gutter, box.x - 20)
-            : Math.max(gutter, box.x + box.w + 20)
+        x1,
+        y1,
+        x2,
+        y2,
+        turn: points.length === 4 && points[1][1] === y1 ? points[1][0] : turn,
+        points
       })
     }
   }

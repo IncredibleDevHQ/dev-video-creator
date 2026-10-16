@@ -559,6 +559,67 @@ describe('the series as a connected canvas', () => {
     expect(card.y2).toBe(toCard.cards.a.y + toCard.cards.a.h / 2)
     expect(card.turn).toBeGreaterThan(edge)
   })
+  it('takes each direction’s line round the frames, never through one, wherever its note sits (review 7)', () => {
+    const base = mapLayout(snapshot, view, 'order')
+    const cards = base.map
+    const frames = [cards, base.series!]
+    const below = Math.max(...frames.map((f) => f.y + f.h)) + 30
+    const placed = (
+      spot: { x: number; y: number },
+      to?: { episode?: string; pages?: string[] }
+    ) => {
+      const layout = mapLayout(
+        snapshot,
+        {
+          ...view,
+          series: {
+            ...view.series!,
+            directions: [{ id: 'n', text: 'x', at: 'now', spot, to }]
+          }
+        },
+        'order'
+      )
+      return { layout, flow: layout.flows.find((f) => f.from === 'd:n')! }
+    }
+    // How far a line runs inside a frame, along all its straight runs.
+    const inside = (points: Array<[number, number]>) =>
+      points.slice(1).reduce((sum, [x2, y2], i) => {
+        const [x1, y1] = points[i]
+        return (
+          sum +
+          frames.reduce((run, f) => {
+            const across =
+              y1 === y2 && y1 > f.y && y1 < f.y + f.h
+                ? Math.min(Math.max(x1, x2), f.x + f.w) -
+                  Math.max(Math.min(x1, x2), f.x)
+                : x1 === x2 && x1 > f.x && x1 < f.x + f.w
+                  ? Math.min(Math.max(y1, y2), f.y + f.h) -
+                    Math.max(Math.min(y1, y2), f.y)
+                  : 0
+            return run + Math.max(0, across)
+          }, 0)
+        )
+      }, 0)
+    const cases = [
+      // Left of the Cards, level with them, for the series or an episode.
+      placed({ x: cards.x - 300, y: cards.y + 20 }),
+      placed({ x: cards.x - 300, y: cards.y + 20 }, { episode: 'e2' }),
+      // Over the Cards' right edge, under every frame.
+      placed({ x: cards.x + cards.w - 60, y: below }),
+      placed({ x: cards.x + cards.w - 60, y: below }, { episode: 'e1' }),
+      // Past the series, for a card.
+      placed({ x: 4000, y: base.series!.y + 40 }, { pages: ['b'] })
+    ]
+    for (const { layout, flow } of cases) {
+      expect(flow.points).toBeDefined()
+      expect(inside(flow.points!)).toBe(0)
+      // It still ends at its target's frame, level with the target.
+      const frame = flow.to.startsWith('m:') ? layout.map : layout.series!
+      expect([frame.x, frame.x + frame.w]).toContain(flow.x2)
+      if (flow.to === 'm:b')
+        expect(flow.y2).toBe(layout.cards.b.y + layout.cards.b.h / 2)
+    }
+  })
   it('shows the outline: the suggested outcome, the lines, the gaps, each episode’s win', () => {
     const head = seriesHead(view)
     expect(head).toContain('Run a pipeline on Cloudflare')

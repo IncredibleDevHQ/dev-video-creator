@@ -13,7 +13,8 @@ export const settingsScreen = (
   capture: Recording,
   busy: boolean,
   projectId: string | null,
-  backLabel = '← Back to notebook'
+  // Opened from Home there is no notebook to go back to.
+  backLabel = projectId ? '← Back to notebook' : '← Back home'
 ) => {
   const tab = (id: SettingsPanel, label: string) =>
     html`<button

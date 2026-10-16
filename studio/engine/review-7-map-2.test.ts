@@ -486,4 +486,27 @@ describe('questions, directions and organising on the map (review 7)', () => {
     map.paint()
     expect(toast.hidden).toBe(true)
   })
+
+  it('keeps an Undo showing when organising news comes, then says the news', async () => {
+    const { map } = await openMap()
+    vi.useFakeTimers()
+    try {
+      map.toast('Copy removed', { label: 'Undo', map: 'undo-remove:x' })
+      map.view!.series!.organizing = {
+        state: 'failed',
+        error: 'An episode’s video started; plan again',
+        at: 'later'
+      }
+      map.paint()
+      const toast = map.slot('toast')!
+      expect(toast.textContent).toContain('Copy removed')
+      expect(toast.querySelector('[data-map="undo-remove:x"]')).not.toBeNull()
+      vi.advanceTimersByTime(7000)
+      expect(toast.hidden).toBe(false)
+      expect(toast.textContent).toContain('Organising stopped')
+      expect(toast.querySelector('[data-map="organize-again"]')).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

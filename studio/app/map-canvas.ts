@@ -55,6 +55,7 @@ type Hooks = {
   error: (reason: unknown) => void
 }
 
+type ToastAction = { label: string; map: string }
 export class MapCanvas {
   isOpen = false
   mapId = ''
@@ -104,6 +105,10 @@ export class MapCanvas {
   private poll: ReturnType<typeof setInterval> | null = null
   private unsubscribe: (() => void) | null = null
   private toastTimer: ReturnType<typeof setTimeout> | null = null
+  /** Whether the toast showing offers an action, such as Undo. */
+  private toastActs = false
+  /** News that waits for a toast with an action to go. */
+  private toastsWaiting: Array<{ text: string; action?: ToastAction }> = []
   /** What follows the camera: Studio AI's cursor, the comments' pins. */
   readonly onCamera: Array<(animate: boolean) => void> = []
   /** Talking with Studio AI, and comments said or typed. */
@@ -211,6 +216,7 @@ export class MapCanvas {
     this.changing = null
     this.renaming = null
     this.askingPlan = false
+    this.toastsWaiting = []
     if (this.poll) clearInterval(this.poll)
     this.poll = null
     this.unsubscribe?.()
@@ -316,18 +322,28 @@ export class MapCanvas {
     this.paint()
   }
   /** A short line over the canvas; with an action, a button that does it. */
-  toast(text: string, action?: { label: string; map: string }) {
+  /** Shows a line under the map; news the creator did not ask for (later)
+   * waits while a toast offers an action, so it never takes an Undo away. */
+  toast(text: string, action?: ToastAction, later = false) {
     const node = this.slot('toast')
     if (!node) return
+    if (later && !node.hidden && this.toastActs) {
+      this.toastsWaiting.push({ text, action })
+      return
+    }
     node.innerHTML = action
       ? `<span></span><button type="button" class="quiet" data-map="${action.map}">${action.label}</button>`
       : '<span></span>'
     node.querySelector('span')!.textContent = text
     node.hidden = false
     if (this.toastTimer) clearTimeout(this.toastTimer)
+    this.toastActs = Boolean(action)
     this.toastTimer = setTimeout(
       () => {
         node.hidden = true
+        this.toastActs = false
+        const next = this.toastsWaiting.shift()
+        if (next) this.toast(next.text, next.action, true)
       },
       action ? 7000 : 3200
     )

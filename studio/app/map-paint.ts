@@ -412,6 +412,21 @@ const across = (
     dy = y2 >= y1 ? 1 : -1
   return `M${x1},${y1} H${mid - r * d1} Q${mid},${y1} ${mid},${y1 + r * dy} V${y2 - r * dy} Q${mid},${y2} ${mid + r * d2},${y2} H${x2}`
 }
+// A line's whole way, each corner rounded as a turn in a gutter is.
+const route = (points: Array<[number, number]>) => {
+  let d = `M${points[0][0]},${points[0][1]}`
+  for (let i = 1; i < points.length - 1; i++) {
+    const [[px, py], [x, y], [nx, ny]] = points.slice(i - 1, i + 2)
+    const r = Math.min(
+      12,
+      (Math.abs(x - px) + Math.abs(y - py)) / 2,
+      (Math.abs(nx - x) + Math.abs(ny - y)) / 2
+    )
+    d += ` L${x - Math.sign(x - px) * r},${y - Math.sign(y - py) * r} Q${x},${y} ${x + Math.sign(nx - x) * r},${y + Math.sign(ny - y) * r}`
+  }
+  const [lx, ly] = points[points.length - 1]
+  return `${d} L${lx},${ly}`
+}
 const down = (x1: number, y1: number, x2: number, y2: number) => {
   const v = Math.max(16, (y2 - y1) * 0.5)
   return `M${x1},${y1} C${x1},${y1 + v} ${x2},${y2 - v} ${x2},${y2}`
@@ -482,7 +497,9 @@ const drawWires = (map: MapCanvas) => {
     const d =
       flow.kind === 'chain'
         ? down(flow.x1, flow.y1, flow.x2, flow.y2)
-        : across(flow.x1, flow.y1, flow.x2, flow.y2, flow.turn)
+        : flow.points
+          ? route(flow.points)
+          : across(flow.x1, flow.y1, flow.x2, flow.y2, flow.turn)
     const arrow = flow.kind === 'use' ? '' : ` marker-end="url(#${id})"`
     paths.push(
       `<path class="map-flow is-${flow.kind}${on ? ' is-lit' : ''}${color ? '' : ' is-neutral'}"${color ? ` stroke="${color}"` : ''}${arrow} d="${d}"/>`

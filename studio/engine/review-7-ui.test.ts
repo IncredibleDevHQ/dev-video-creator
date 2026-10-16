@@ -620,9 +620,10 @@ describe('Settings opened from the map (UX-7)', () => {
     const root = document.getElementById('app')!
     const back = vi.fn()
     const go = vi.fn()
+    let notebook: string | null = null
     const settings = new Settings(
       root,
-      () => null,
+      () => notebook,
       back,
       async () => {}
     )
@@ -637,13 +638,20 @@ describe('Settings opened from the map (UX-7)', () => {
     ;(close as HTMLElement).click()
     expect(go).toHaveBeenCalledOnce()
     expect(back).not.toHaveBeenCalled()
+    // Opened from Home, Back says where it goes.
+    void settings.open('voice')
+    expect(
+      root.querySelector('[data-action="close-settings"]')?.textContent
+    ).toBe('← Back home')
+    settings.close()
     // Opened from a notebook, it goes back there as before.
+    notebook = 'n1'
     void settings.open('voice')
     expect(
       root.querySelector('[data-action="close-settings"]')?.textContent
     ).toBe('← Back to notebook')
     settings.close()
-    expect(back).toHaveBeenCalledOnce()
+    expect(back).toHaveBeenCalledTimes(2)
     expect(go).toHaveBeenCalledOnce()
   })
 })
