@@ -20,10 +20,65 @@ const STRENGTH: BeatFunction[] = [
   'action'
 ]
 
+/** A part of the produced video: its place, what is said in it, and the
+ * story's beats it carries. */
+export type SceneTime = {
+  index: number
+  scene: { moments: Array<{ start: number; end: number; lines: string }> }
+  title?: string
+  start: number
+  end: number
+  beats: Array<{ function: BeatFunction; name?: string }>
+}
+
+// A storyboard frame's kind, as the beat a teaser reaches for.
+const FRAME_BEATS: Record<string, BeatFunction> = {
+  hook: 'hook',
+  pain_point: 'problem',
+  product_intro: 'explain',
+  feature_showcase: 'explain',
+  benefit_highlight: 'payoff',
+  social_proof: 'evidence',
+  branding: 'context',
+  cta: 'action'
+}
+
+/** A storyboard episode's scenes, timed by its frames as voiced, end to end
+ * as the film runs them (the Jev series run: no teaser could be cut from a
+ * storyboard episode, the older scenes' clock having nothing to time). */
+const storyboardTimes = (project: Project): SceneTime[] => {
+  let at = 0
+  return (project.video?.storyboard?.plan?.scenes || []).map((entry, index) => {
+    const start = at
+    const moments = entry.frames.map((frame) => {
+      const moment = {
+        start: at - start,
+        end: at - start + frame.duration,
+        lines: frame.voiceover
+      }
+      at += frame.duration
+      return moment
+    })
+    const kinds = entry.frames.map((frame) => FRAME_BEATS[frame.type])
+    return {
+      index,
+      scene: { moments },
+      title: project.slides.find((slide) => slide.id === entry.pageId)?.title,
+      start,
+      end: at,
+      beats: [...new Set(kinds.filter(Boolean))].map((fn) => ({
+        function: fn
+      }))
+    }
+  })
+}
+
 /** Each scene's place in the produced video, with its beats. */
-export const sceneTimes = (project: Project) => {
+export const sceneTimes = (project: Project): SceneTime[] => {
   const video = project.video
   if (!video?.produced) return []
+  // A storyboard episode is timed by its own frames.
+  if (video.storyboard?.plan) return storyboardTimes(project)
   const pages = plannedPages(project)
   return videoClock(project).flatMap((interval, index) => {
     const scene = video.scenes.find((item) => item.id === interval.sceneId)
@@ -113,6 +168,14 @@ export const captionCues = (
   }
   return cues.filter((cue) => cue.end > cue.start)
 }
+
+/** The captions a teaser adds: none over a storyboard episode, which says
+ * its own words on screen (the Jev series run showed both at once, and the
+ * blurred fill a third time). */
+export const teaserCues = (
+  project: Project,
+  segments: Array<{ from: number; to: number }>
+) => (project.video?.storyboard ? [] : captionCues(project, segments))
 
 const stamp = (seconds: number) => {
   const whole = Math.floor(seconds)

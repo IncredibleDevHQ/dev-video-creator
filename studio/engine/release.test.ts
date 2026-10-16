@@ -107,6 +107,63 @@ it('cuts the hook, then the beat that pays off, and captions what is said', () =
   )
 })
 
+it('times a storyboard episode by its frames: a teaser, its captions and chapters (Jev series run)', () => {
+  // Three scenes, two frames each of ten seconds; the older scenes' clock
+  // has nothing, as a storyboard episode's doesn't.
+  const kinds = [
+    ['hook', 'pain_point'],
+    ['product_intro', 'feature_showcase'],
+    ['social_proof', 'benefit_highlight']
+  ]
+  const base = project()
+  const told: Project = {
+    ...base,
+    video: {
+      ...base.video!,
+      scenes: [],
+      produced: { inputKey: 'sb', objectKey: 'n/video/sb.mp4' },
+      storyboard: {
+        id: 'sb',
+        pages: ['s0', 's1', 's2'],
+        stage: 'done',
+        status: 'done',
+        produced: { objectKey: 'n/video/sb.mp4', duration: 60 },
+        plan: {
+          scenes: kinds.map((types, scene) => ({
+            pageId: `s${scene}`,
+            frames: types.map((type, index) => ({
+              number: scene * 2 + index + 1,
+              title: `Frame ${scene * 2 + index + 1}`,
+              type,
+              duration: 10,
+              voiceover: `Words of frame ${scene * 2 + index + 1} said here`
+            }))
+          }))
+        }
+      }
+    } as never
+  }
+  const segments = plan.teaserSegments(told)
+  // The hook, then the scene that pays off with its evidence.
+  expect(segments).toEqual([
+    { from: 0, to: 4 },
+    { from: 40, to: 60 }
+  ])
+  expect(plan.captionCues(told, segments)[0]).toMatchObject({
+    start: 0,
+    text: 'Words of frame 1 said here'
+  })
+  expect(plan.chapters(told)).toEqual([
+    '0:00 Page 1',
+    '0:20 Page 2',
+    '0:40 Page 3'
+  ]) // Its words are on screen already: a teaser adds none over them.
+  expect(plan.teaserCues(told, segments)).toEqual([])
+  expect(
+    plan.teaserCues(project(), plan.teaserSegments(project()))
+  ).not.toEqual([])
+})
+
 it('keeps each channel’s words within its limits, and never the same', () => {
   const words = {
     x: `It broke at 14:02. Here is why https://example.com/${'a'.repeat(200)}`,

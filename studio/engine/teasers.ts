@@ -7,7 +7,7 @@ import { execFile } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { captionCues, teaserSegments } from '../shared/release-plan'
+import { teaserCues, teaserSegments } from '../shared/release-plan'
 import {
   CHANNEL_ASPECTS,
   emptyRelease,
@@ -100,7 +100,7 @@ export const cutTeaser = async (
     const source = join(dir, 'video.mp4')
     await writeFile(source, await readAsset(produced.objectKey))
     const frame = FRAME[teaser.aspect]
-    const cues = captionCues(project, teaser.segments)
+    const cues = teaserCues(project, teaser.segments)
     const pictures = await drawCaptions(dir, cues, frame.width)
     const audio = await hasAudio(source)
     const parts = teaser.segments.map(
@@ -118,7 +118,9 @@ export const cutTeaser = async (
       ...parts,
       `${joined}concat=n=${teaser.segments.length}:v=1:a=${audio ? 1 : 0}[cv]${audio ? '[ca]' : ''}`,
       '[cv]split[bgsrc][fgsrc]',
-      `[bgsrc]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},gblur=sigma=32,eq=brightness=-0.18[bg]`,
+      // The fill is the picture without its lowest fifth, where a video's own
+      // captions sit: blown up, they showed again behind the frame.
+      `[bgsrc]crop=iw:ih*0.8:0:0,scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},gblur=sigma=32,eq=brightness=-0.18[bg]`,
       `[fgsrc]scale=${W}:${H}:force_original_aspect_ratio=decrease[fg]`,
       '[bg][fg]overlay=(W-w)/2:(H-h)/2[c0]',
       ...cues.map(
