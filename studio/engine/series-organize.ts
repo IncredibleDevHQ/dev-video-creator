@@ -4,6 +4,7 @@
 // as a new episode after the last made one, against a gap they fill, or left
 // out with a reason. Made episodes never change. Each run is recorded, so
 // Undo takes out what it added; the cards it took back wait, unplaced.
+import { untouched } from './series-apply'
 import { randomUUID } from 'node:crypto'
 import { fitOf, withSegues } from '../shared/length'
 import type { OrganizeRun, Series } from '../shared/series'
@@ -11,7 +12,7 @@ import type { LengthGoal } from '../shared/storyboard'
 import { organizes } from '../shared/series'
 import { addEvent } from './activity'
 import { runValidatedJsonStage } from './creative/stage'
-import { addMapEpisode, changeCopies } from './map-episodes'
+import { addMapEpisode, changeCopies, removeEpisode } from './map-episodes'
 import { scheduleAround, settledSegues } from './map-segues'
 import { detectedHarness } from './notebook-intake'
 import { deleteRow } from './persistence'
@@ -276,11 +277,32 @@ export const organizeNewPages = async (mapId: string) => {
     organizing.has(seriesId)
   )
     return
-  const fresh = await freshOf(series, mapId)
-  if (!fresh.length) return
+  let claimed = false
   await changeSeries(seriesId, (current) => {
+    if (
+      current.planning?.state === 'planning' ||
+      current.organizing?.state === 'organizing'
+    )
+      return
     current.organizing = { state: 'organizing', at: new Date().toISOString() }
+    claimed = true
   })
+  if (!claimed) return
+  let fresh: Awaited<ReturnType<typeof freshOf>>
+  try {
+    fresh = await freshOf((await loadSeries(seriesId))!, mapId)
+  } catch (error) {
+    await changeSeries(seriesId, (current) => {
+      delete current.organizing
+    })
+    throw error
+  }
+  if (!fresh.length) {
+    await changeSeries(seriesId, (current) => {
+      delete current.organizing
+    })
+    return
+  }
   const job = place(seriesId, mapId, fresh)
     .catch((error: Error) =>
       changeSeries(seriesId, (current) => {
@@ -401,7 +423,26 @@ export const applyPlacement = async (
   }
   // Into open episodes: each new card after the card it follows.
   const into = new Map<string, string[]>()
-  for (const move of plan.moves.filter((m) => m.into)) {
+  const pending = plan.moves.filter((m) => m.into)
+  const sorted: typeof pending = []
+  while (pending.length) {
+    const at = pending.findIndex(
+      (move) =>
+        !move.after ||
+        !pending.some(
+          (other) => other.page === move.after && other.into === move.into
+        )
+    )
+    if (at < 0)
+      throw new Refusal('The placement contains a circular card order')
+    sorted.push(...pending.splice(at, 1))
+  }
+  // Check every destination before changing any of them.
+  for (const id of new Set(sorted.map((move) => move.into!))) {
+    if (isMade(await loadProject(id)))
+      throw new Refusal('An episode’s video started; plan again')
+  }
+  for (const move of sorted) {
     const notebook = move.into!
     if (!into.has(notebook)) {
       const snapshot = await loadProject(notebook)
@@ -409,7 +450,7 @@ export const applyPlacement = async (
     }
     const order = into.get(notebook)!
     const at = move.after ? order.indexOf(move.after) + 1 : 0
-    order.splice(at < 0 ? order.length : at, 0, move.page)
+    order.splice(move.after && at === 0 ? order.length : at, 0, move.page)
   }
   for (const [notebook, order] of into) {
     await setEpisodePages(notebook, map, order)
@@ -426,10 +467,14 @@ export const applyPlacement = async (
     const pages = plan.moves
       .filter((m) => m.start === item.key)
       .map((m) => m.page)
-    const made = await addMapEpisode(seriesId, {
-      title: item.title,
-      slides: pages
-    })
+    const made = await addMapEpisode(
+      seriesId,
+      {
+        title: item.title,
+        slides: pages
+      },
+      true
+    )
     await changeProject(made.notebook.project.id, (current) => {
       const ref = current.project.episode
       if (!ref) return
@@ -546,12 +591,39 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
       continue
     const snapshot = await loadProject(move.episode)
     if (!snapshot || isMade(snapshot)) continue
-    if (snapshot.project.slides.some((s) => s.id === move.copy))
+    if (
+      snapshot.project.slides.some(
+        (s) => s.id === move.copy && untouched(s) && !s.copyOf?.kept
+      )
+    )
       await changeCopies(move.episode, { action: 'remove', slide: move.copy })
   }
   for (const notebook of run.started) {
     const snapshot = await loadProject(notebook)
-    if (snapshot && !isMade(snapshot)) await discardEpisode(seriesId, notebook)
+    const copies = new Set(
+      run.moves
+        .filter((move) => move.episode === notebook)
+        .map((move) => move.copy)
+    )
+    if (!snapshot || isMade(snapshot)) continue
+    if (
+      !snapshot.project.episode?.named &&
+      snapshot.project.slides.every(
+        (slide) =>
+          copies.has(slide.id) &&
+          slide.copyOf &&
+          untouched(slide) &&
+          !slide.copyOf.kept
+      )
+    )
+      await discardEpisode(seriesId, notebook)
+    // One the creator worked on leaves the series and stays theirs.
+    else if (
+      (await loadSeries(seriesId))?.episodes.some(
+        (item) => item.notebookId === notebook
+      )
+    )
+      await removeEpisode(seriesId, { episode: notebook })
   }
   const after = await changeSeries(seriesId, (current) => {
     const pages = run.moves.map((move) => move.page)
@@ -582,6 +654,7 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
     seriesId,
     after.episodes.map((e) => e.notebookId)
   )
+  for (const episode of after.episodes) await scheduleAround(episode.notebookId)
   return after
 }
 

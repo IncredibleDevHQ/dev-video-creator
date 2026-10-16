@@ -9,7 +9,7 @@ export const notebookNextStep = (snapshot: Snapshot) => {
     return {
       title: 'Reading your article',
       description: 'Your notes will appear here when the article is ready.',
-      label: 'Reading the source…',
+      label: 'Create wireframes →',
       action: 'view-slides',
       disabled: true
     }
@@ -74,7 +74,7 @@ export const notebookHint = (snapshot: Snapshot, editable: boolean) => {
     `<section class="notebook-next${tone ? ` is-${tone}` : ''}" aria-label="Next step"><p>${text}</p>${
       editable ? choicesRow(snapshot, editable) : ''
     }</section>`
-  if (snapshot.status === 'reading') return line('Reading the source…')
+  if (snapshot.status === 'reading') return ''
   if (snapshot.status === 'failed' && snapshot.sourceOnly) return ''
   if (snapshot.status === 'failed')
     return line(

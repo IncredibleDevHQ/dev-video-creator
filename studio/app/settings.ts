@@ -15,6 +15,8 @@ export class Settings {
   private busy = false
   private poll: ReturnType<typeof setInterval> | null = null
   private epoch = 0
+  /** Where Back goes when Settings was opened from somewhere else. */
+  private returnTo: { label: string; go: () => void } | null = null
   private capture = new Recording(
     () => this.draw(),
     (seconds) => {
@@ -71,9 +73,13 @@ export class Settings {
       key.placeholder = 'Enter the key for this provider'
     })
   }
-  async open(panel: SettingsPanel = 'voice') {
+  async open(
+    panel: SettingsPanel = 'voice',
+    returnTo: { label: string; go: () => void } | null = null
+  ) {
     this.isOpen = true
     this.panel = panel
+    this.returnTo = returnTo
     this.draw()
     const epoch = ++this.epoch
     const [data, notebook] = await Promise.all([
@@ -97,14 +103,17 @@ export class Settings {
         void this.refresh().catch(() => {})
     }, 5000)
   }
-  close() {
+  /** Leaves Settings; a page that is unloading only cleans up. */
+  close(leaving = false) {
     this.isOpen = false
     this.epoch++
     if (this.poll) clearInterval(this.poll)
     this.poll = null
     this.capture.dispose()
     this.agentSetup?.dispose()
-    this.back()
+    const back = this.returnTo?.go || this.back
+    this.returnTo = null
+    if (!leaving) back()
   }
   private draw() {
     this.agentSetup?.dispose()
@@ -115,7 +124,8 @@ export class Settings {
         this.panel,
         this.capture,
         this.busy,
-        this.projectId()
+        this.projectId(),
+        this.returnTo?.label
       )
     const host = this.root.querySelector<HTMLElement>('[data-agent-settings]')
     if (this.isOpen && host && this.data) {

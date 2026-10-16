@@ -2,6 +2,7 @@ import { html } from './ui'
 import incredibleLogo from './assets/incredible-logo.svg'
 import type { StudioSettings } from '../shared/settings'
 import { CLONE_SCRIPT } from '../shared/settings'
+import { cssFamily } from '../shared/looks'
 import { voiceValue, voiceChoices } from './voice-choice'
 import { escape, button } from './ui'
 import type { Recording } from './recording'
@@ -11,7 +12,8 @@ export const settingsScreen = (
   panel: SettingsPanel,
   capture: Recording,
   busy: boolean,
-  projectId: string | null
+  projectId: string | null,
+  backLabel = '← Back to notebook'
 ) => {
   const tab = (id: SettingsPanel, label: string) =>
     html`<button
@@ -24,9 +26,7 @@ export const settingsScreen = (
       <a class="brand" href="/" aria-label="Incredible Studio"
         ><img src="${incredibleLogo}" alt="" />Incredible</a
       ><span>Settings</span>
-      <div class="header-actions">
-        ${button('← Back to notebook', 'close-settings')}
-      </div>
+      <div class="header-actions">${button(backLabel, 'close-settings')}</div>
     </header>
     <main class="settings-layout">
       <nav aria-label="Settings">
@@ -247,7 +247,7 @@ const brandingPanel = (data: StudioSettings, projectId: string | null) =>
                       )}${swatch(entry.brand.accent, 'Accent')}</span
                     ><strong
                       style="font-family:${escape(
-                        entry.brand.fonts?.display || 'Inter'
+                        cssFamily(entry.brand.fonts?.display || 'Inter')
                       )}, Inter, sans-serif"
                       >${escape(
                         entry.brand.look?.name || entry.brand.name || 'Look'

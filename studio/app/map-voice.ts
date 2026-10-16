@@ -16,6 +16,9 @@ import type { MapCanvas } from './map-canvas'
 import { escape } from './ui'
 import { openMic, VoicePlayer, type Mic } from './voice-audio'
 import { voiceIcon } from './voice-icons'
+import { TALK_TIP } from './map-view'
+
+const NEEDS_KEY = 'Studio AI needs an OpenAI key · click to set up'
 
 type CallState =
   | 'off'
@@ -102,8 +105,10 @@ export class VoiceCall {
   readonly cursor: AiCursor
   readonly aliases = new Aliases()
   private socket: WebSocket | null = null
+  private generation = 0
   private mic: Mic | null = null
   private micBlocked = false
+  private needsKey = false
   private player: VoicePlayer | null = null
   private jev = false
   private you: { item: string; text: string; reading?: VoiceReading | null } = {
@@ -130,6 +135,13 @@ export class VoiceCall {
   /** Opens the call. Studio AI joins once the engine says it is ready. */
   start() {
     if (this.on) return
+    if (this.needsKey) {
+      this.showSetup()
+      return
+    }
+    this.generation++
+    this.micBlocked = false
+    this.held = ''
     this.state = 'joining'
     this.reason = ''
     this.sent = ''
@@ -143,16 +155,22 @@ export class VoiceCall {
       )
       socket.binaryType = 'arraybuffer'
       this.socket = socket
-      socket.onopen = () => this.context(true)
+      socket.onopen = () => {
+        if (this.socket === socket) this.context(true)
+      }
       socket.onmessage = (event) => {
+        if (this.socket !== socket) return
         try {
           this.receive(JSON.parse(String(event.data)) as VoiceServerMessage)
         } catch {
           // Not a message of the call's.
         }
       }
-      socket.onclose = () => this.end(this.reason || 'The call ended')
+      socket.onclose = () => {
+        if (this.socket === socket) this.end(this.reason || 'The call ended')
+      }
       socket.onerror = () => {
+        if (this.socket !== socket) return
         this.reason ||= 'Studio AI could not be reached'
       }
     } catch {
@@ -169,6 +187,10 @@ export class VoiceCall {
 
   private end(reason: string) {
     if (!this.on) return
+    this.generation++
+    this.waiting = []
+    this.tools = Promise.resolve()
+    if (this.fade) clearTimeout(this.fade)
     this.state = 'off'
     this.mic?.stop()
     this.mic = null
@@ -187,6 +209,24 @@ export class VoiceCall {
     this.typing = false
     this.paint()
     if (reason) this.map.toast(reason)
+  }
+
+  private showSetup() {
+    const button = this.map.root.querySelector<HTMLElement>(
+      '[data-voice="talk"]'
+    )
+    const menu = this.map.slot('menu')
+    const stage = this.map.root.querySelector('.map-stage')
+    if (!button || !menu || !stage) return
+    menu.className = 'map-menu is-setup'
+    menu.innerHTML =
+      '<div role="dialog" aria-labelledby="map-setup-title"><p id="map-setup-title">Studio AI needs an OpenAI key</p><button type="button" class="primary" data-map="keys">Add a key in Settings</button><button type="button" data-voice="check-key">Try connecting again</button></div>'
+    menu.hidden = false
+    const anchor = button.getBoundingClientRect(),
+      bounds = stage.getBoundingClientRect()
+    menu.style.left = `${Math.max(8, Math.min(bounds.width - 300, anchor.right - bounds.left + 8))}px`
+    menu.style.top = `${Math.max(8, Math.min(bounds.height - menu.offsetHeight - 8, anchor.top - bounds.top))}px`
+    menu.querySelector<HTMLElement>('.primary')?.focus()
   }
 
   /** Words for Studio AI, typed or from a comment; a call opens if needed. */
@@ -220,12 +260,19 @@ export class VoiceCall {
 
   private async ready(jev: boolean) {
     this.jev = jev
+    const generation = this.generation
+    const socket = this.socket
     try {
-      this.mic = await openMic((pcm, level) => {
+      const mic = await openMic((pcm, level) => {
+        if (generation !== this.generation || socket !== this.socket) return
         this.level = level
-        if (this.socket?.readyState === WebSocket.OPEN) this.socket.send(pcm)
+        if (socket?.readyState === WebSocket.OPEN) socket.send(pcm)
       })
+      if (generation !== this.generation || !this.on) return mic.stop()
+      this.mic?.stop()
+      this.mic = mic
     } catch {
+      if (generation !== this.generation || !this.on) return
       // Without a microphone the call still takes typed words.
       this.micBlocked = true
       this.typing = true
@@ -280,15 +327,24 @@ export class VoiceCall {
         if (message.state === 'thinking' && this.state !== 'acting')
           this.set('thinking')
         return
-      case 'tool':
+      case 'tool': {
+        const generation = this.generation
         this.tools = this.tools.then(() =>
-          this.run(message.call, message.name, message.args)
+          this.run(message.call, message.name, message.args, generation)
         )
         return
+      }
       case 'held':
         this.held = message.why
         return this.caption(true)
       case 'error':
+        if (message.code === 'no-key') {
+          this.needsKey = true
+          this.reason = ''
+          this.end('')
+          this.showSetup()
+          return
+        }
         this.reason = message.message
         return this.map.toast(message.message)
       case 'closed':
@@ -297,16 +353,24 @@ export class VoiceCall {
     }
   }
 
-  private async run(call: string, name: string, args: Record<string, unknown>) {
-    if (!this.on) return
+  private async run(
+    call: string,
+    name: string,
+    args: Record<string, unknown>,
+    generation: number
+  ) {
+    const active = () => this.on && generation === this.generation
+    if (!active()) return
     this.set('acting')
     const output = await runAiTool(
       this.map,
       this.cursor,
       this.aliases,
       name,
-      args
+      args,
+      active
     )
+    if (!active()) return
     this.context()
     this.send({ type: 'tool_result', call, output })
     this.set(this.player?.speaking ? 'speaking' : 'listening')
@@ -393,7 +457,17 @@ export class VoiceCall {
       if (input && focused) input.focus()
     }
     dock.classList.toggle('is-on', this.on)
+    // Without a key, Talk stays enabled in its set-up state (review 7).
+    const talk = this.map.root.querySelector<HTMLElement>('[data-voice="talk"]')
+    const tip = this.needsKey ? NEEDS_KEY : TALK_TIP
+    talk?.classList.toggle('is-setup', this.needsKey)
+    if (talk?.hasAttribute('title') && talk.title !== tip) talk.title = tip
     this.context()
+  }
+
+  /** A reopened map asks for the key again: it may have been added since. */
+  recheckKey() {
+    this.needsKey = false
   }
 
   /** The dock's buttons and its typing line. */
@@ -405,7 +479,12 @@ export class VoiceCall {
       )
       if (!button || !this.map.isOpen) return
       const action = button.dataset.voice
-      if (action === 'talk') this.start()
+      if (action === 'check-key') {
+        this.needsKey = false
+        const menu = this.map.slot('menu')
+        if (menu) menu.hidden = true
+        this.start()
+      } else if (action === 'talk') this.start()
       else if (action === 'end') this.stop()
       else if (action === 'mute' && this.mic) {
         this.mic.muted = !this.mic.muted

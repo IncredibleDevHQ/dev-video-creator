@@ -177,6 +177,16 @@ app.mapCanvas = new MapCanvas(app.root, {
     if (app.snapshot?.project.id === back) app.render()
     else void app.openNotebook(back)
   },
+  openKeys: () => {
+    const { mapId, from } = app.mapCanvas
+    app.mapCanvas.dismiss()
+    void app.settingsScreen
+      .open('keys', {
+        label: '← Back to the map',
+        go: () => void app.mapCanvas.open(mapId, from)
+      })
+      .catch(app.error)
+  },
   error: showError
 })
 app.pendingChats = new Set<string>()
@@ -222,7 +232,6 @@ app.attach = (value: Snapshot) => {
     } = workspacePosition(value.project, new URL(location.href)))
   app.opening.reset()
   app.snapshot = value
-  localStorage.setItem('minimal-studio-project', value.project.id)
   const notebookUrl = new URL(location.href)
   notebookUrl.searchParams.delete('project')
   notebookUrl.searchParams.set('notebook', value.project.id)
@@ -273,10 +282,7 @@ installPlayerBar(app)
 installStoryboardPlayback(app)
 app.render()
 app.parameters = new URLSearchParams(location.search)
-app.saved =
-  app.parameters.get('notebook') ||
-  app.parameters.get('project') ||
-  localStorage.getItem('minimal-studio-project')
+app.saved = app.parameters.get('notebook') || app.parameters.get('project')
 const mapParameter = app.parameters.get('map')
 if (mapParameter) void app.mapCanvas.open(mapParameter)
 else if (app.saved) void app.openNotebook(app.saved)
@@ -284,7 +290,7 @@ else void app.refreshNotebooks().catch(app.error)
 window.addEventListener('pagehide', () => {
   app.stopPractice()
   app.capture.dispose()
-  if (app.settingsScreen.isOpen) app.settingsScreen.close()
+  if (app.settingsScreen.isOpen) app.settingsScreen.close(true)
   app.closeStream?.()
 })
 setInterval(() => updateProgressTimes(app.root), 10000)

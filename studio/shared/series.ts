@@ -164,6 +164,8 @@ export type EpisodeRef = {
 }
 
 export type SeriesSummary = {
+  map?: string
+  members?: Array<{ notebookId: string; number: number }>
   id: string
   title: string
   episodes: number

@@ -222,13 +222,26 @@ export const recolourLook = (
   to: LookPalette,
   fonts?: { from: LookFonts; to: LookFonts }
 ) => {
+  // Each pass runs only when its half of the look changes: snapping colours
+  // near a palette line is not an identity (review 7).
+  const samePalette = Object.keys(from).every(
+    (key) => from[key as keyof LookPalette] === to[key as keyof LookPalette]
+  )
+  const sameFonts =
+    !fonts ||
+    Object.keys(fonts.from).every(
+      (key) =>
+        fonts.from[key as keyof LookFonts] === fonts.to[key as keyof LookFonts]
+    )
+  let out = svg
   const cache = new Map<string, string>()
-  let out = svg.replace(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g, (match) => {
-    const key = match.toLowerCase()
-    if (!cache.has(key)) cache.set(key, lookColour(key, from, to))
-    return cache.get(key)!
-  })
-  if (fonts)
+  if (!samePalette)
+    out = out.replace(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g, (match) => {
+      const key = match.toLowerCase()
+      if (!cache.has(key)) cache.set(key, lookColour(key, from, to))
+      return cache.get(key)!
+    })
+  if (fonts && !sameFonts)
     out = out.replace(/<[a-zA-Z][^>]*\sfont-family="[^"]*"[^>]*>/g, (tag) => {
       const size = Number(/\sfont-size="([\d.]+)/.exec(tag)?.[1] || 0)
       return tag.replace(
@@ -239,6 +252,14 @@ export const recolourLook = (
     })
   return out
 }
+
+/** A family name as CSS reads it: bare when every word is an identifier,
+ * quoted otherwise ("Source Sans 3" ends in a number; review 7). Markup
+ * around it escapes it as markup does. */
+export const cssFamily = (name: string) =>
+  /^-?[A-Za-z_][\w-]*(?: -?[A-Za-z_][\w-]*)*$/.test(name)
+    ? name
+    : `'${name.replace(/[\\']/g, '\\$&')}'`
 
 // One family stack, each name swapped once for its role's new face. A face
 // the old look used for two roles goes by the text it sets: a monospaced
@@ -268,7 +289,8 @@ const swapFamilies = (
                 (size >= 28 || !roles.includes('body'))
               ? 'display'
               : 'body'
-      return fonts.to[role]
+      // Inside a font-family="…" attribute.
+      return cssFamily(fonts.to[role]).replace(/"/g, '&quot;')
     })
     .join(', ')
 }

@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { mix, type PageBrand } from '../source-page'
+import { cssFamily } from '../../shared/looks'
 
 const ICON_DIR = fileURLToPath(
   new URL('../../skills/page-master/templates/icons/', import.meta.url)
@@ -71,7 +72,7 @@ Every page of this deck follows this spec, so ${input.total} pages read as one d
 | warning | #d64545 | refusal, overload, failure only |
 
 ## Type
-- Families: headings \`${b.display}\`, text \`${b.body}\`, code \`${b.mono}\`. Write them as \`font-family="${b.body}, Inter, Helvetica, Arial, sans-serif"\` (mono: \`${b.mono}, Menlo, monospace\`).
+- Families: headings \`${b.display}\`, text \`${b.body}\`, code \`${b.mono}\`. Write them as \`font-family="${cssFamily(b.body).replace(/"/g, '&quot;')}, Inter, Helvetica, Arial, sans-serif"\` (headings: \`${cssFamily(b.display).replace(/"/g, '&quot;')}, Inter, Helvetica, Arial, sans-serif\`; mono: \`${cssFamily(b.mono).replace(/"/g, '&quot;')}, Menlo, monospace\`), with a name quoted as shown.
 - Sizes: page title 40 (bold, headings face); node label 24 (600); detail 20; figure 64–96; nothing smaller than 20.
 
 ## Layout

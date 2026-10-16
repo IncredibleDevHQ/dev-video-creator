@@ -50,6 +50,8 @@ type Hooks = {
   openPage: (id: string, index: number) => void
   /** Leaves the map for one of the notebook's stages. */
   openStage: (stage: 'notebook' | 'presentation' | 'video') => void
+  /** Opens Settings at its API keys; Back comes back to this map. */
+  openKeys: () => void
   error: (reason: unknown) => void
 }
 
@@ -80,6 +82,7 @@ export class MapCanvas {
   undo: { episode: string } | null = null
   /** The direction note being written. */
   editingDirection: string | null = null
+  draftDirection: import('../shared/series').Direction | null = null
   /** A connection being dragged from a node's handle: its wire's path. */
   connecting = ''
   /** The Queue is open. */
@@ -139,6 +142,7 @@ export class MapCanvas {
     this.toldRun = null
     this.returning = true
     this.comments.reset()
+    this.voice.recheckKey()
     this.fitted = false
     this.fittedPages = 0
     this.els.clear()
@@ -195,6 +199,9 @@ export class MapCanvas {
   }
   private stop() {
     this.voice.stop()
+    this.comments.reset()
+    this.draftDirection = null
+    this.editingDirection = null
     if (this.poll) clearInterval(this.poll)
     this.poll = null
     this.unsubscribe?.()
@@ -226,6 +233,13 @@ export class MapCanvas {
         : 'Notes open once the map is drawn'
     }
     if (add) add.disabled = !ready
+    if (this.view?.series) {
+      this.view.series.directions = this.view.series.directions.filter(
+        (direction) => direction.id !== '__draft__'
+      )
+      if (this.draftDirection)
+        this.view.series.directions.push(this.draftDirection)
+    }
     this.layout = mapLayout(this.snapshot, this.view, this.mode)
     paintWorld(this)
     renderBar(this)

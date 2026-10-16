@@ -14,17 +14,12 @@ import {
   origin,
   pageTitles,
   selectionOf,
-  takesOf,
+  summaryNow,
   update,
   type StageInput
 } from './run'
 import { buildFiles } from './shots'
-import {
-  episodeFrames,
-  planSummary,
-  writeInternal,
-  writeProjectFiles
-} from './state'
+import { episodeFrames, writeInternal, writeProjectFiles } from './state'
 import { poseFrame, sceneStandIn, type StandIn } from './stills'
 
 /** The stand-in each scene's stills show for its media: a picture from the
@@ -90,8 +85,8 @@ export const stillsStage = async ({
   let cursor = 0
   const save = async () => {
     await writeInternal(dir, internal)
-    await update(snapshot.project.id, (current) => {
-      current.plan = planSummary(internal, takesOf(current))
+    await update(snapshot.project.id, (current, ledger) => {
+      current.plan = summaryNow(internal, current, ledger)
     })
   }
   const lane = async () => {

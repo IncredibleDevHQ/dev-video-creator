@@ -33,7 +33,7 @@ export const notebookScreen = (snapshot: Snapshot, pending: boolean) => {
 <div class="notebook-heading">
 ${titled ? '' : `<h1>${escape(title)}</h1>`}
 <div class="notebook-meta">
-<div class="notebook-source"><span>${words.toLocaleString()} words</span><span aria-hidden="true">·</span>${project.sourceUrl ? `<a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener" title="Open original article">${escape(sourceLabel)} ↗</a>${editable ? button('Refresh', 'refresh-source') : ''}` : '<span>Your notes</span>'}</div>
+<div class="notebook-source"><span>${words.toLocaleString()} ${words === 1 ? 'word' : 'words'}</span><span aria-hidden="true">·</span>${project.sourceUrl ? `<a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener" title="Open original article">${escape(sourceLabel)} ↗</a>${editable ? button('Refresh', 'refresh-source') : ''}` : '<span>Your notes</span>'}</div>
 </div>
 ${notebookHint(snapshot, editable)}</div>
 ${editable ? notebookToolbar() : ''}

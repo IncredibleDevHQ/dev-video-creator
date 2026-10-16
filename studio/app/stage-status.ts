@@ -20,6 +20,7 @@ const caption = (
   const { project } = snapshot
   if (label === 'Stopped') return 'stopped'
   if (stage === 'presentation') {
+    if (snapshot.status === 'reading') return ''
     const phase = buildPhase(snapshot)
     if (active || phase?.word === 'reading') return phase?.word || 'drawing'
     if (label === 'Not started') return 'next'
@@ -29,6 +30,16 @@ const caption = (
     if (active) return label.split(' ')[0].toLowerCase()
     const video = project.video
     if (!video) return snapshot.status === 'ready' ? 'next' : ''
+    if (video.storyboard)
+      return video.storyboard.waitingFor === 'approval'
+        ? video.storyboard.stage === 'board'
+          ? 'stills to approve'
+          : 'plan to approve'
+        : video.storyboard.waitingFor === 'takes'
+          ? 'takes needed'
+          : video.storyboard.produced
+            ? 'ready'
+            : ''
     const views = snapshot.views || projectViews(project, snapshot.events)
     if (views.video.action === 'export') return 'ready'
     const made = views.video.madeScenes ?? video.scenes.length

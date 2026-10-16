@@ -7,7 +7,7 @@ import type { Snapshot } from '../shared/api'
 import { unusedPages } from '../shared/content-map'
 import type { MapCanvas } from './map-canvas'
 import type { Box } from './map-layout'
-import { mapPages, newPages, type MapPage } from './map-layout'
+import { LH, mapPages, newPages, type MapPage } from './map-layout'
 import {
   colorOf,
   copyCard,
@@ -83,6 +83,19 @@ const lastSlideEvent = (snapshot: Snapshot) =>
   [...snapshot.events].reverse().find((event) => event.kind === 'slide')
     ?.message || ''
 
+/**
+ * What the cards not grouped yet offer: grouping them, its progress, or,
+ * when it failed, its reason and the way to try again (review 6: it went
+ * back to "Group by topic" unsaid).
+ */
+export const groupAction = (snapshot: Snapshot) => {
+  const grouping = snapshot.project.grouping
+  if (grouping?.state === 'failed')
+    return `<span class="map-group-error" role="status" title="${escape(grouping.error || '')}">Grouping failed${grouping.error ? `: ${escape(grouping.error)}` : ''}</span><button type="button" class="map-group-act" data-map="group">Group again</button>`
+  const busy = grouping?.state === 'grouping'
+  return `<button type="button" class="map-group-act" data-map="group" ${busy ? 'disabled' : ''}>${busy ? 'Grouping… about a minute' : 'Group by topic · about a minute'}</button>`
+}
+
 export const paintWorld = (map: MapCanvas) => {
   const { snapshot, view, layout } = map
   if (!snapshot || !layout) return
@@ -130,7 +143,6 @@ export const paintWorld = (map: MapCanvas) => {
       },
       html: `<p>${escape(formingLabel(snapshot))}</p><small>Each page appears here as soon as the story plans it, then fills in as it is drawn.</small>`
     })
-  const grouping = snapshot.project.grouping?.state === 'grouping'
   for (const group of layout.groups)
     items.push({
       key: `G:${group.key}`,
@@ -138,7 +150,7 @@ export const paintWorld = (map: MapCanvas) => {
       box: group,
       html: `<b>${escape(group.label)}</b>${group.meta ? `<span>${escape(group.meta)}</span>` : ''}<span>${group.slides.length} page${group.slides.length === 1 ? '' : 's'}</span>${
         group.key === 't:' && snapshot.status === 'ready'
-          ? `<button type="button" class="map-group-act" data-map="group" ${grouping ? 'disabled' : ''}>${grouping ? 'Grouping… about a minute' : 'Group by topic · about a minute'}</button>`
+          ? groupAction(snapshot)
           : ''
       }`
     })
@@ -325,7 +337,7 @@ const sync = (map: MapCanvas, items: Item[]) => {
       delete map.fly[item.key]
       node.className = `map-el is-still ${item.cls}`
       node.style.transform = `translate(${(from || item.box).x}px,${(from || item.box).y}px)`
-      if (!from) node.style.opacity = '0'
+      if (from) node.style.opacity = '0'
       world.appendChild(node)
       void node.offsetWidth
     }
@@ -369,8 +381,11 @@ const sync = (map: MapCanvas, items: Item[]) => {
 // Wires bend as Flora's do: out of a node's right side and into the next
 // one's left; from one episode down into the next.
 const across = (x1: number, y1: number, x2: number, y2: number) => {
-  const h = Math.max(40, Math.abs(x2 - x1) * 0.5) * (x2 < x1 ? -1 : 1)
-  return `M${x1},${y1} C${x1 + h},${y1} ${x2 - h},${y2} ${x2},${y2}`
+  const mid = (x1 + x2) / 2
+  const r = Math.min(12, Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 2)
+  const dx = x2 >= x1 ? 1 : -1,
+    dy = y2 >= y1 ? 1 : -1
+  return `M${x1},${y1} H${mid - r * dx} Q${mid},${y1} ${mid},${y1 + r * dy} V${y2 - r * dy} Q${mid},${y2} ${mid + r * dx},${y2} H${x2}`
 }
 const down = (x1: number, y1: number, x2: number, y2: number) => {
   const v = Math.max(16, (y2 - y1) * 0.5)
@@ -463,7 +478,24 @@ const drawWires = (map: MapCanvas) => {
     `<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0,0 L10,5 L0,10 z"${fill ? ` fill="${fill}"` : ''}/></marker>`
   const defs = `<defs>${marker('map-arrow', '')}${[...colors].map((color) => marker(`map-arrow-${color.slice(1)}`, color)).join('')}</defs>`
   svg.classList.toggle('has-focus', Boolean(sel && sel.t !== 'series'))
-  svg.innerHTML = defs + paths.join('')
+  // Lines pass under what a block shows: its cards, copies, segues,
+  // directions, gaps and each episode's head (review 7).
+  const boxes = [
+    ...Object.values(layout.cards),
+    ...Object.values(layout.copies),
+    ...layout.segues,
+    ...Object.values(layout.directions),
+    ...layout.gaps,
+    ...Object.values(layout.lanes).map((lane) => ({
+      x: lane.x,
+      y: lane.y,
+      w: lane.w - 2,
+      h: LH
+    }))
+  ]
+  const mask = `<defs><mask id="map-content-mask" maskUnits="userSpaceOnUse" x="-100000" y="-100000" width="200000" height="200000"><rect x="-100000" y="-100000" width="200000" height="200000" fill="white"/>${boxes.map((box) => `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="8" fill="black"/>`).join('')}</mask></defs>`
+  svg.innerHTML =
+    defs + mask + `<g mask="url(#map-content-mask)">${paths.join('')}</g>`
 }
 
 /** Redraws only the wires, as a connection is dragged. */

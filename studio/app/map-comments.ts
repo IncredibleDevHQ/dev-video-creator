@@ -172,6 +172,8 @@ export class MapComments {
   } | null = null
   /** The microphone button is held down. */
   private pressing = false
+  private recordingToken = 0
+  private openingMic = false
   private sending: Place[] = []
   private ticker = 0
   private audio: HTMLAudioElement | null = null
@@ -199,6 +201,9 @@ export class MapComments {
   /** A map opens: nothing of the last one's is left open. */
   reset() {
     this.cancelRecording()
+    this.audio?.pause()
+    this.audio = null
+    this.playing = ''
     this.tool = false
     this.thread = null
     this.composer = null
@@ -219,6 +224,7 @@ export class MapComments {
   }
 
   setTool(on: boolean) {
+    this.cancelRecording()
     this.tool = on
     if (!on) this.composer = null
     this.paint()
@@ -379,16 +385,32 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
   }
 
   private async startRecording(kind: 'new' | 'reply') {
-    if (this.recording) return
+    if (this.recording || this.openingMic) return
+    const token = ++this.recordingToken
+    const thread = this.thread
+    const composer = this.composer
+    this.openingMic = true
     try {
       const rec = await Recording.start()
+      if (
+        token !== this.recordingToken ||
+        !this.map.isOpen ||
+        thread !== this.thread ||
+        composer !== this.composer
+      ) {
+        rec.cancel()
+        return
+      }
       // Let go before the microphone opened: a click, so the next stops it.
       this.recording = { rec, for: kind, held: this.pressing }
     } catch {
+      if (token !== this.recordingToken) return
       this.map.toast(
         'The microphone is off: allow it in the browser, or type the comment'
       )
       return
+    } finally {
+      if (token === this.recordingToken) this.openingMic = false
     }
     this.paint()
     const tick = () => {
@@ -405,7 +427,17 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
     this.ticker = requestAnimationFrame(tick)
   }
 
+  /** The thread closes; a reply being said to it goes too (review 7). */
+  private closeThread() {
+    this.cancelRecording()
+    this.thread = null
+    this.paint()
+  }
+
   private cancelRecording() {
+    this.recordingToken++
+    this.openingMic = false
+    this.pressing = false
     cancelAnimationFrame(this.ticker)
     this.recording?.rec.cancel()
     this.recording = null
@@ -416,7 +448,19 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
     if (!recording) return
     cancelAnimationFrame(this.ticker)
     this.recording = null
+    const token = this.recordingToken
+    const mapId = this.map.mapId
+    const thread = this.thread
+    const composer = this.composer
     const { blob, seconds } = await recording.rec.stop()
+    if (
+      token !== this.recordingToken ||
+      !this.map.isOpen ||
+      mapId !== this.map.mapId ||
+      thread !== this.thread ||
+      composer !== this.composer
+    )
+      return
     if (seconds < 0.6 || blob.size < 400) {
       this.map.toast('Too short to keep: hold the microphone while you talk')
       return this.paint()
@@ -493,10 +537,10 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
       )
     try {
       if (action === 'resolve') {
-        this.thread = null
+        this.closeThread()
         await resolve('')
       } else if (action === 'remove') {
-        this.thread = null
+        this.closeThread()
         this.take(
           (await mapApi.comments(mapId, { action: 'remove', id })).comments
         )
@@ -504,7 +548,7 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
         if (!comment.text)
           return this.map.toast('Write it down first: it was not heard')
         await mapApi.note(mapId, comment.text)
-        this.thread = null
+        this.closeThread()
         await resolve('Added as a note')
         this.map.toast('Added as a note: it is being sorted into cards')
       } else if (action === 'direction') {
@@ -533,7 +577,7 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
           to,
           ...(spot ? { spot } : {})
         })
-        this.thread = null
+        this.closeThread()
         await resolve('Made a direction')
         await this.map.refresh()
         this.map.toast('Made a direction: the next plan answers it')
@@ -545,7 +589,7 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
         )
         const said =
           comment.text || '(a said comment that was not written down)'
-        this.thread = null
+        this.closeThread()
         this.paint()
         this.map.voice.say(`About my comment on ${about}: ${said}`)
         this.map.toast('Asked Studio AI')
@@ -661,6 +705,7 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
       const target = event.target as Element
       const pin = target.closest<HTMLElement>('[data-pin]')
       if (pin) {
+        this.cancelRecording()
         this.composer = null
         this.thread =
           this.thread === pin.dataset.pin ? null : pin.dataset.pin || null
@@ -693,13 +738,19 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
       true
     )
     globalThis.addEventListener?.('keydown', (event) => {
-      if (!this.map.isOpen) return
+      if (!this.map.isOpen || event.defaultPrevented) return
       const e = event as KeyboardEvent
       if (
         e.key === 'Escape' &&
-        (this.recording || this.composer || this.thread || this.tool)
+        (this.recording ||
+          this.openingMic ||
+          this.composer ||
+          this.thread ||
+          this.tool)
       ) {
-        if (this.recording) this.cancelRecording()
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        if (this.recording || this.openingMic) this.cancelRecording()
         else if (this.composer || this.thread) {
           this.composer = null
           this.thread = null

@@ -29,6 +29,14 @@
   font-size: 12px;
   font-weight: 600;
 }
+.map-group-error {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--danger, #b91c1c);
+  font-weight: 600;
+  cursor: help;
+}
 .map-series-add {
   margin-top: 10px;
   padding: 6px 12px;

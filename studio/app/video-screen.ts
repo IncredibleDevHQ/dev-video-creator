@@ -45,6 +45,7 @@ import type { Recording } from './recording'
 import { cameraAt } from '../shared/camera-window'
 import { sceneOverlay } from './scene-overlay'
 import { escape, button } from './ui'
+import { storyboardHeader } from './storyboard-view'
 import { agentNames } from './agent-setup'
 import { wireframeStatus } from './wireframe-copy'
 import { productionChoice, sceneChoice } from './scene-link'
@@ -104,10 +105,8 @@ const sceneRailStatus = (snapshot: Snapshot, scene: Scene) => {
     )
       ? cameraCue('full')
       : microphoneCue
-    return `<span class="scene-state scene-recording-needed">${icon}<span>${escape(
-      label
-    )}</span>
-</span>`
+    const said = escape(label)
+    return `<span class="scene-state scene-recording-needed">${icon}<span>${said}</span></span>`
   }
   return label ? `<span class="scene-state">${escape(label)}</span>` : ''
 }
@@ -121,6 +120,7 @@ export const videoHeader = (snapshot: Snapshot) => {
       // The same test as the Wireframe header's (review 6).
       !videoOpens(snapshot)
     )
+  if (video.storyboard) return storyboardHeader(snapshot, video.storyboard)
   const view = snapshot.views?.video
   return `${
     video.produced

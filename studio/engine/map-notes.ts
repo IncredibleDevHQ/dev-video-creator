@@ -117,10 +117,21 @@ export const addNote = async (id: string, raw: unknown) => {
     throw new Refusal('Add notes once the wireframes are drawn')
   if (!(await readRow('outlines', id)))
     throw new Refusal('This notebook has no wireframes to sort into')
+  const gap = String((raw as { gap?: unknown })?.gap || '')
+  if (gap) {
+    const series = before.project.mapSeries
+      ? await loadSeries(before.project.mapSeries)
+      : null
+    if (
+      !series?.gaps?.some((entry) => entry.id === gap && entry.state === 'open')
+    )
+      throw new Refusal('Choose an open gap of this series')
+  }
   const note: MapNote = {
     id: randomUUID(),
     at: new Date().toISOString(),
     text,
+    ...(gap ? { gap } : {}),
     state: 'sorting'
   }
   const snapshot = await changeProject(id, async (current) => {
@@ -200,7 +211,13 @@ const sortNote = async (id: string, noteId: string) => {
       .map((gap) => ({ id: gap.id, missing: gap.missing, ask: gap.ask }))
     const sorted = await runValidatedJsonStage({
       projectId: id,
-      inputKey: fingerprintOf({ note: note.text, pages, topics, gaps }),
+      inputKey: fingerprintOf({
+        note: note.text,
+        gap: note.gap,
+        pages,
+        topics,
+        gaps
+      }),
       checkpoint: 'map-note',
       operation: 'revise-story',
       stage: 'story',
@@ -209,20 +226,36 @@ const sortNote = async (id: string, noteId: string) => {
       file: 'story/note.json',
       tool: 'story_submit_note',
       packet: {
-        'packet/NOTE.md': note.text,
+        'packet/NOTE.md': note.gap
+          ? `This note answers gap ${note.gap}. Make the answer a new card with fills set to that gap.\n\n${note.text}`
+          : note.text,
         'packet/PAGES.json': JSON.stringify(pages, null, 1),
         'packet/TOPICS.json': JSON.stringify(topics),
         'packet/GAPS.json': JSON.stringify(gaps, null, 1)
       },
       selection: snapshot.project.harness ?? (await detectedHarness()),
       origin: origin(),
-      validate: (raw) =>
-        validateSort(
+      validate: (raw) => {
+        const result = validateSort(
           raw,
           pages.map((page) => page.id),
           topics,
           gaps.map((gap) => gap.id)
         )
+        if (
+          note.gap &&
+          gaps.some((gap) => gap.id === note.gap) &&
+          !result.value.items.some(
+            (item) => item.kind === 'new' && item.fills === note.gap
+          )
+        ) {
+          result.problems.push(
+            `Create a new card answering the requested gap ${note.gap}`
+          )
+          result.ok = false
+        }
+        return result
+      }
     })
     await placeNote(id, noteId, sorted.items)
   } catch (error) {

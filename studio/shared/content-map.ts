@@ -10,6 +10,7 @@ export type MapNote = {
   id: string
   at: string
   text: string
+  gap?: string
   state: 'sorting' | 'sorted' | 'failed'
   results?: NoteResult[]
   error?: string

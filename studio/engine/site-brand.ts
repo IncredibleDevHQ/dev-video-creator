@@ -12,7 +12,14 @@ import { fontRoles, openFamily, type FontSignals } from './brand-fonts'
 import { storeAsset } from './persistence'
 import { BRAND_PAGE_SCRIPT } from './site-brand-page'
 import { rankIcons, readableOn, sanitizeSvg, type IconLink } from './site-logo'
-import { UA, fetchBinary, fetchText, publicUrl } from './source-fetch'
+import {
+  UA,
+  fetchBinary,
+  fetchText,
+  publicUrl,
+  assertPublicHost,
+  withFetchBudget
+} from './source-fetch'
 
 type DeclaredFace = {
   family: string
@@ -397,8 +404,23 @@ const keepSymbol = async (
  * caller falls back to what the page's stylesheets say.
  */
 export const readSiteBrand = async (url: string): Promise<SiteBrand | null> => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 45_000)
+  try {
+    return await withFetchBudget(controller.signal, () =>
+      readBrand(url, controller.signal)
+    )
+  } finally {
+    clearTimeout(timer)
+  }
+}
+const readBrand = async (
+  url: string,
+  signal: AbortSignal
+): Promise<SiteBrand | null> => {
   let browser: Browser
   try {
+    await assertPublicHost(url)
     const { default: puppeteer } = await import('puppeteer')
     browser = await puppeteer.launch({
       headless: true,
@@ -410,8 +432,26 @@ export const readSiteBrand = async (url: string): Promise<SiteBrand | null> => {
   } catch {
     return null
   }
+  const stop = () => {
+    void browser.close().catch(() => {})
+  }
+  signal.addEventListener('abort', stop, { once: true })
   try {
+    signal.throwIfAborted()
     const page = await browser.newPage()
+    await page.setRequestInterception(true)
+    page.on('request', (request) => {
+      if (/^(data|blob):/.test(request.url())) {
+        void request.continue().catch(() => {})
+        return
+      }
+      void assertPublicHost(request.url())
+        .then(
+          () => request.continue(),
+          () => request.abort()
+        )
+        .catch(() => {})
+    })
     await page.setUserAgent(UA)
     // A wide desktop window in light mode, as a brand's site is usually
     // seen (the computer's own dark mode would otherwise reach the page).
@@ -423,6 +463,7 @@ export const readSiteBrand = async (url: string): Promise<SiteBrand | null> => {
     page.on('response', (response) => {
       if (response.request().resourceType() !== 'font' || captured.size >= 24)
         return
+      if (Number(response.headers()['content-length']) > 2_000_000) return
       response
         .buffer()
         .then((body) => {
@@ -447,6 +488,15 @@ export const readSiteBrand = async (url: string): Promise<SiteBrand | null> => {
       .catch(() => undefined)
     await wait(300)
     const read = (await page.evaluate(BRAND_PAGE_SCRIPT)) as PageRead
+    // The page's own words: only plain #RRGGBB colours go on (review 7).
+    read.palette = Array.isArray(read.palette)
+      ? read.palette
+          .filter(
+            (colour) =>
+              typeof colour === 'string' && /^#[0-9a-f]{6}$/i.test(colour)
+          )
+          .slice(0, 24)
+      : []
     const from = new URL(page.url() || url).hostname.replace(/^www\./, '')
     const roles = brandRoles(read.stats, read.palette)
     const fonts = fontRoles(read.fonts)
@@ -455,7 +505,7 @@ export const readSiteBrand = async (url: string): Promise<SiteBrand | null> => {
     const symbol = await keepSymbol(browser, read, from)
     return {
       roles,
-      palette: read.palette.slice(0, 24),
+      palette: read.palette,
       fonts,
       fontFiles,
       ...(logo ? { logo } : {}),
@@ -465,6 +515,7 @@ export const readSiteBrand = async (url: string): Promise<SiteBrand | null> => {
   } catch {
     return null
   } finally {
+    signal.removeEventListener('abort', stop)
     await browser.close().catch(() => undefined)
   }
 }

@@ -207,6 +207,23 @@
   white-space: pre-wrap;
   user-select: text;
 }
+/* Studio AI without a key: what it needs, and the way to add it. */
+.map-menu.is-setup {
+  width: 252px;
+  padding: 12px;
+}
+.map-menu.is-setup p {
+  margin: 0 2px 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.map-menu.is-setup button {
+  justify-content: center;
+}
+.map-menu.is-setup button + button {
+  margin-top: 4px;
+  color: var(--muted);
+}
 .map-menu hr {
   border: 0;
   border-top: 1px solid var(--line);

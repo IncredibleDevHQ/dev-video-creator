@@ -95,7 +95,16 @@ export const createRenderStartScreen = (app: AppContext) => () => {
   const previousPlayer = app.root.querySelector<HTMLMediaElement>(
     '[data-scene-player]'
   )
-  const recent = app.showAllRecent ? app.notebooks : app.notebooks.slice(0, 8)
+  const grouped = new Set(
+    app.series.flatMap((series) =>
+      [
+        series.map,
+        ...(series.members || []).map((member) => member.notebookId)
+      ].filter(Boolean)
+    )
+  )
+  const loose = app.notebooks.filter((item) => !grouped.has(item.id))
+  const recent = app.showAllRecent ? loose : loose.slice(0, 8)
   // Your work is the home page: the notebooks sit straight under the field,
   // and the demo shows only until there is a notebook (review 5).
   const firstVisit = !app.notebooks.length
@@ -114,6 +123,7 @@ ${sourceComposer(app.pending)}
 <small id="source-hint" class="source-hint" aria-live="polite"></small>
 </div>
 </form>
+${seriesSection(app.series, app.notebooks)}
 ${
   firstVisit
     ? brandStory()
@@ -122,11 +132,11 @@ ${
 <div class="notebook-tiles">
 ${recent.map((item) => notebookTile(app, item)).join('')}
 </div>${
-        app.notebooks.length > recent.length
-          ? `<button type="button" class="quiet show-all" data-action="all-recent">Show all ${app.notebooks.length}</button>`
+        loose.length > recent.length
+          ? `<button type="button" class="quiet show-all" data-action="all-recent">Show all ${loose.length}</button>`
           : ''
       }</section>`
-}${seriesSection(app.series)}</main>`,
+}</main>`,
     previousPlayer
   )
 }

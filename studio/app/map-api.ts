@@ -10,8 +10,8 @@ const { request } = studioApi
 
 export const mapApi = {
   view: (id: string) => request<MapView>(`/projects/${id}/map`),
-  note: (id: string, text: string) =>
-    request<Snapshot>(`/projects/${id}/notes`, 'POST', { text }),
+  note: (id: string, text: string, gap?: string) =>
+    request<Snapshot>(`/projects/${id}/notes`, 'POST', { text, gap }),
   resortNote: (id: string, note: string) =>
     request<Snapshot>(`/projects/${id}/notes`, 'POST', { retry: note }),
   pick: (episode: string) =>

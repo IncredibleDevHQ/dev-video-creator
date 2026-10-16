@@ -226,8 +226,21 @@ export const installFlowInput = (map: MapCanvas) => {
     const pick = menu.querySelector<HTMLElement>(`[data-key="${key}"]`)
     if (pick) {
       event.preventDefault()
+      event.stopPropagation()
       pick.click()
+    } else if (key === 'arrowup' || key === 'arrowdown') {
+      event.preventDefault()
+      event.stopPropagation()
+      const choices = [
+        ...menu.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+      ]
+      const at = choices.indexOf(document.activeElement as HTMLButtonElement)
+      choices[
+        (at + (key === 'arrowdown' ? 1 : -1) + choices.length) % choices.length
+      ]?.focus()
     } else if (key === 'escape') {
+      event.preventDefault()
+      event.stopPropagation()
       menu.hidden = true
     }
   })
@@ -332,8 +345,9 @@ export const showAdd = (
   menu.className = 'map-menu map-add'
   menu.dataset.for = 'add'
   const box = stage.getBoundingClientRect()
-  menu.style.left = `${Math.min(event.clientX - box.left, box.width - 300)}px`
-  menu.style.top = `${Math.min(event.clientY - box.top, box.height - 260)}px`
+  // Kept inside the canvas on every side (review 7).
+  menu.style.left = `${Math.max(8, Math.min(event.clientX - box.left, box.width - 300))}px`
+  menu.style.top = `${Math.max(8, Math.min(event.clientY - box.top, box.height - 260))}px`
   menu.hidden = false
   menu.querySelector<HTMLElement>('button')?.focus()
 }
@@ -373,13 +387,14 @@ export const flowAction = async (map: MapCanvas, name: string, arg: string) => {
   switch (name) {
     case 'cancel': {
       const editing = map.editingDirection
+      if (editing === '__draft__') map.draftDirection = null
       if (!editing && !map.briefing && !map.noteAsk) return false
       map.editingDirection = null
       map.briefing = null
       map.noteAsk = null
       // A new note left as it was made is not kept.
       const draft = series?.directions.find((d) => d.id === editing)
-      if (series && draft?.text === 'New direction')
+      if (series && editing !== '__draft__' && draft?.text === 'New direction')
         await map.run(() => mapApi.removeDirection(series.id, draft.id))
       else map.paint()
       return true
@@ -393,7 +408,12 @@ export const flowAction = async (map: MapCanvas, name: string, arg: string) => {
       )
       showAdd(
         map,
-        { clientX: canvas.left + 80, clientY: canvas.top + 90 },
+        (() => {
+          const button = map.root
+            .querySelector('[data-map="add"]')!
+            .getBoundingClientRect()
+          return { clientX: button.right + 8, clientY: button.top }
+        })(),
         at,
         addChoices(map)
       )
@@ -402,14 +422,13 @@ export const flowAction = async (map: MapCanvas, name: string, arg: string) => {
     case 'flow-direction': {
       if (!series) return true
       const spot = menuAt || { x: map.layout?.series?.x ?? 400, y: 40 }
-      let made = ''
-      await map.run(async () => {
-        const saved = await mapApi.direction(series.id, {
-          text: 'New direction',
-          spot
-        })
-        made = saved.directions?.at(-1)?.id || ''
-      })
+      const made = '__draft__'
+      map.draftDirection = {
+        id: made,
+        text: '',
+        at: new Date().toISOString(),
+        spot
+      }
       if (made) {
         map.editingDirection = made
         map.paint()
@@ -442,6 +461,7 @@ export const flowAction = async (map: MapCanvas, name: string, arg: string) => {
       return true
     }
     case 'direction-edit':
+      map.draftDirection = null
       map.editingDirection = arg
       map.paint()
       map.root
@@ -520,13 +540,23 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
   if (kind === 'direction' && series) {
     const id = form.dataset.direction || ''
     const text = String(data.get('text') || '').trim()
+    const draft = id === '__draft__' ? map.draftDirection : null
     map.editingDirection = null
+    map.draftDirection = null
     if (!text) {
+      if (draft) {
+        map.paint()
+        return true
+      }
       await map.run(() => mapApi.removeDirection(series.id, id))
       return true
     }
     await map.run(
-      () => mapApi.direction(series.id, { id, text }),
+      () =>
+        mapApi.direction(
+          series.id,
+          draft ? { text, spot: draft.spot } : { id, text }
+        ),
       'Saved. Wire it to what it guides; the next plan answers it.'
     )
     return true
@@ -551,7 +581,7 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
       return true
     }
     await map.run(
-      () => mapApi.note(map.mapId, text),
+      () => mapApi.note(map.mapId, text, gap),
       gap
         ? 'Note added: it becomes a card, and organising puts it where the gap is'
         : 'Note added: sorting it into the map'

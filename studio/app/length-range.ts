@@ -10,8 +10,8 @@ import {
   SWEET_SPOT,
   episodesFor,
   lengthLabel,
-  stopOf,
   windowLabel,
+  windowStops,
   wordBudget
 } from '../shared/length'
 import type { LengthGoal } from '../shared/storyboard'
@@ -60,8 +60,7 @@ export const lengthRange = (
   options: LengthRangeOptions = {}
 ) => {
   const names = options.names || { min: 'min', max: 'max', strict: 'strict' }
-  const from = stopOf(goal.min)
-  const to = Math.max(from + 1, stopOf(goal.max))
+  const [from, to] = windowStops(goal)
   const shown = { ...goal, min: LENGTH_STOPS[from], max: LENGTH_STOPS[to] }
   const tick = (seconds: number, label: string) =>
     `<span style="--at:${along(seconds).toFixed(4)}">${label}</span>`

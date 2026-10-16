@@ -86,7 +86,7 @@ export type VoiceServerMessage =
     }
   | { type: 'held'; call: string; name: string; why: string }
   | { type: 'busy'; state: 'thinking' | 'idle' }
-  | { type: 'error'; message: string }
+  | { type: 'error'; message: string; code?: 'no-key' }
   | { type: 'closed'; reason: string }
 
 /** What a comment is pinned to. */

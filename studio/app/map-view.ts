@@ -29,6 +29,10 @@ const closeIcon =
 const chevron =
   '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
 
+/** What Talk says on hover, with its key. */
+export const TALK_TIP =
+  'Talk to Studio AI · T: it hears you, answers, and works on the canvas'
+
 export const EPISODE_COLORS = [
   '#3f9e5f',
   '#4f8fe0',
@@ -69,7 +73,7 @@ export const mapPage = (title: string) => `<div class="map-page">
 <section class="map-stage">
 <div class="map-canvas" data-map-canvas><div class="map-world" data-map-world><svg class="map-wires" data-map-wires></svg></div></div>
 <nav class="map-toolpill" aria-label="Canvas tools">
-<button type="button" class="map-tool-talk" data-voice="talk" title="Talk to Studio AI · T: it hears you, answers, and works on the canvas" aria-label="Talk to Studio AI">${voiceIcon('spark', 17)}</button>
+<button type="button" class="map-tool-talk" data-voice="talk" title="${TALK_TIP}" aria-label="Talk to Studio AI">${voiceIcon('spark', 17)}</button>
 <button type="button" class="map-tool-add" data-map="add" title="Add a direction, a note or an episode · or double-click the canvas" aria-label="Add">+</button>
 <button type="button" data-comment="tool" title="Comment · C: say it or type it" aria-label="Comment" aria-pressed="false">${voiceIcon('comment')}</button>
 </nav>
@@ -94,7 +98,7 @@ export const mapStages = (snapshot: Snapshot) =>
   )
     .map(
       ([stage, label]) =>
-        `<button type="button" data-map="stage:${stage}" ${stage === 'presentation' ? 'aria-current="page"' : ''} ${stage === 'video' && !videoOpens(snapshot) ? 'disabled title="Make the wireframes first"' : ''}>${label}</button>`
+        `<button type="button" data-map="stage:${stage}"  ${stage === 'video' && !videoOpens(snapshot) ? 'disabled title="Make the wireframes first"' : ''}>${label}</button>`
     )
     .join('')
 
@@ -112,7 +116,8 @@ export const mapTools = (
   const shown = [
     mode === 'topic' ? 'By topic' : 'By order',
     filter === 'unused' ? 'unused' : filter === 'new' ? 'from notes' : '',
-    mode === 'topic' && grouping?.state === 'grouping' ? 'grouping…' : ''
+    mode === 'topic' && grouping?.state === 'grouping' ? 'grouping…' : '',
+    mode === 'topic' && grouping?.state === 'failed' ? 'grouping failed' : ''
   ]
     .filter(Boolean)
     .join(' · ')
@@ -290,6 +295,9 @@ export const segueCard = (episode: MapEpisode, end: boolean, last: boolean) => {
   return `<div class="map-segue-k">${label}</div><div class="map-segue-s">${writing ? 'writing…' : escape(text || (episode.segues === 'failed' ? 'Could not write it' : '—'))}</div>`
 }
 
+const fitArrow = (fit: 'short' | 'long') =>
+  `<svg class="map-runs-arrow" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${fit === 'short' ? 'M12 5v14m-6-6 6 6 6-6' : 'M12 19V5m-6 6 6-6 6 6'}"/></svg>`
+
 /** About how long the episode runs, against the series' window. */
 const runs = (view: MapView, episode: MapEpisode) => {
   if (!episode.seconds) return ''
@@ -299,7 +307,12 @@ const runs = (view: MapView, episode: MapEpisode) => {
     fit === 'within'
       ? `About ${lengthLabel(episode.seconds)} spoken, inside ${windowLabel(goal)}`
       : `About ${lengthLabel(episode.seconds)} spoken; each episode asks for ${windowLabel(goal)}`
-  return ` · <span class="map-runs${fit === 'within' ? '' : ` is-${fit}`}" data-runs="${episode.seconds}" title="${escape(said)}">${lengthLabel(episode.seconds)}</span>`
+  // Outside the window, said in words with an arrow, never by colour alone.
+  const reason =
+    fit === 'within'
+      ? ''
+      : ` · ${fitArrow(fit)}${fit === 'short' ? `under ${lengthLabel(goal.min)}` : `over ${lengthLabel(goal.max)}`}`
+  return ` · <span class="map-runs${fit === 'within' ? '' : ` is-${fit}`}" data-runs="${episode.seconds}" title="${escape(said)}">${lengthLabel(episode.seconds)}${reason}</span>`
 }
 
 /** The lane's header: the episode, its state, and the way into making it;

@@ -377,6 +377,37 @@ it('brings the video’s stopped line back with the only stopped scene', async (
   )
 })
 
+it('restores a readable line from an Undo record 5876b274 saved', async () => {
+  await seed('undo-old')
+  await makeVideo('undo-old', {
+    presence: 'high',
+    voice: { kind: 'ai', id: 'default' }
+  })
+  await vi.waitFor(async () =>
+    expect(
+      (await loadProject('undo-old'))!.project.video!.scenes.every(
+        (scene) => scene.phase === 'waiting'
+      )
+    ).toBe(true)
+  )
+  await changeProject('undo-old', (saved) => {
+    const video = saved.project.video!
+    video.scenes[1].phase = 'failed'
+    video.scenes[1].failure = 'production'
+    video.phase = 'failed'
+    video.error = 'A scene stopped. Other saved animations are ready.'
+  })
+  await editSlide('undo-old', { action: 'delete', slideId: 'b' })
+  // That build kept only that the video stood stopped, as true.
+  await changeProject('undo-old', (saved) => {
+    ;(saved.deletedSlide as { stopped?: unknown }).stopped = true
+  })
+  const back = await editSlide('undo-old', { action: 'undo-delete' })
+  expect(back.project.video!.error).toBe(
+    'A scene stopped. Other saved animations are ready.'
+  )
+})
+
 it('resumes the saved plan without another model request and keeps a newer matching take', async () => {
   await seed('saved-plan')
   await makeVideo('saved-plan', {

@@ -5,7 +5,7 @@ import type { Snapshot } from '../../shared/api'
 import type { Storyboard } from '../../shared/storyboard'
 import { changeProject } from '../projects'
 import { detectedHarness } from '../notebook-intake'
-import type { Internal } from './state'
+import { planSummary, type Internal } from './state'
 
 export const origin = () =>
   process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
@@ -32,6 +32,20 @@ export const takesOf = (storyboard: Storyboard) =>
     (storyboard.plan?.scenes || [])
       .filter((scene) => scene.take !== undefined)
       .map((scene) => [scene.pageId, scene.take ?? null])
+  )
+
+/** The plan as the creator sees it now: a take's place for each scene that
+ * needs one (a camera scene, or every scene while the creator speaks), and
+ * every take given so far (review 7). */
+export const summaryNow = (
+  internal: Internal,
+  storyboard: Storyboard,
+  snapshot: Snapshot
+) =>
+  planSummary(
+    internal,
+    takesOf(storyboard),
+    snapshot.project.video?.settings.voice.kind === 'record'
   )
 
 export const selectionOf = async (snapshot: Snapshot) => {

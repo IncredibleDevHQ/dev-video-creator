@@ -25,6 +25,23 @@
 .map-page:has(.map-voice.is-on) .map-tool-talk {
   box-shadow: 0 0 0 3px var(--map-ai-soft);
 }
+/* Without a key: still Talk, softened, with a mark that it needs setting up. */
+.map-toolpill .map-tool-talk.is-setup {
+  position: relative;
+  background: var(--map-ai-soft);
+  color: var(--map-ai);
+}
+.map-toolpill .map-tool-talk.is-setup::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--map-ai);
+  box-shadow: 0 0 0 2px var(--map-pill);
+}
 
 /* The call. */
 .map-voice {

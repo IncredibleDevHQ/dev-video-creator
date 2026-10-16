@@ -1,6 +1,7 @@
 import type { SourceRead } from './source-document'
 import type { OutlineScene, OutlinePart } from './source-outline'
 import { hsl } from './source-colours'
+import { cssFamily } from '../shared/looks'
 export type PageBrand = {
   ground: string
   text: string
@@ -130,8 +131,10 @@ const textLines = (
     )
     .join('\n')
 
+// A name CSS can't read bare ("Source Sans 3") is quoted, or the whole
+// stack is dropped (review 7).
 const fontAttr = (family: string, fallback: string) =>
-  `font-family="${escapeXml(family)}, ${fallback}"`
+  `font-family="${escapeXml(cssFamily(family))}, ${fallback}"`
 
 // The figure a stat's label states, when it states one: "99.9% uptime",
 // "40 ms", "3× faster", "10 regions". A number that belongs to a name —

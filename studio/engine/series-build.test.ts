@@ -520,8 +520,10 @@ it('calls an open episode what the plan made it, unless the creator named it; a 
   const add = async (title: string, slides: string[]) =>
     (await episodes.addMapEpisode(series.id, { title, slides })).notebook
       .project.id
+  // A title typed when an episode is added is the creator's name for it
+  // (review 7); one added without a title takes the planner's.
   const made = await add('Made', [ids[0], ids[1]])
-  const open = await add('Old name', [ids[2], ids[3]])
+  const open = await add('', [ids[2], ids[3]])
   const mine = await add('Was there', [ids[4], ids[5]])
   await makeVideo(made)
   await episodes.retitleEpisode(mine, { title: 'My own name' })
@@ -559,7 +561,7 @@ it('calls an open episode what the plan made it, unless the creator named it; a 
   })
   await planSeries(series.id, {})
   await settledSeriesPlan(series.id)
-  expect(told.map((item) => Boolean(item.named))).toEqual([false, false, true])
+  expect(told.map((item) => Boolean(item.named))).toEqual([true, false, true])
   const titled = async (id: string) => (await loadProject(id))!
   expect((await titled(made)).project.title).toBe('Made')
   expect((await titled(open)).project.title).toBe('What the plan made it')

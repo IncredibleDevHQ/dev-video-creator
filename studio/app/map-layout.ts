@@ -62,8 +62,9 @@ export const MX = 40,
   CH = 124,
   CG = 18,
   COLS = 2
-/** A card's label sits above it, as a node's does in Flora. */
-export const CL = 26
+/** A card's label sits above it, as a node's does in Flora, with room for
+ * two lines of title (review 6: titles were cut to one). */
+export const CL = 42
 export const MH = 64,
   GH = 30
 export const MW = MP * 2 + COLS * CW + (COLS - 1) * CG
@@ -399,9 +400,9 @@ export const mapLayout = (
         episode: episode.notebook,
         from: `m:${page}`,
         to: `L:${episode.notebook}`,
-        x1: card.x + card.w,
+        x1: layout.map.x + layout.map.w,
         y1: card.y + card.h / 2,
-        x2: lane.x,
+        x2: sx,
         y2: lane.y + LH / 2
       })
     }

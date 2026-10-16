@@ -14,7 +14,8 @@ import {
   TRANSITION_LABELS,
   type BuildType,
   type FrameTransition,
-  type Storyboard
+  type Storyboard,
+  type StoryboardStage
 } from '../../shared/storyboard'
 import { addEvent } from '../activity'
 import { storeAsset } from '../persistence'
@@ -134,16 +135,28 @@ export const setStoryboardBuild = async (
     throw new Refusal('Choose how the scene is built')
   const snapshot = await changeProject(projectId, (current) => {
     const storyboard = storyboardOf(current)
-    if (storyboard.stage !== 'review')
+    if (
+      storyboard.stage !== 'review' &&
+      !(storyboard.stage === 'plan' && storyboard.status === 'failed')
+    )
       throw new Refusal(
         'A scene’s build can change while the plan waits for you'
       )
     const scene = storyboard.plan?.scenes.find(
       (entry) => entry.pageId === pageId
     )
-    if (!scene) throw new Refusal('Scene not found')
-    if (scene.build === build) return
+    if (!scene && !storyboard.pages.includes(pageId))
+      throw new Refusal('Scene not found')
+    if (scene?.build === build && storyboard.status !== 'failed') return
     const page = current.project.slides.find((slide) => slide.id === pageId)
+    if (!page) throw new Refusal('Page not found')
+    if (
+      build === 'screen' &&
+      !page.capture?.objectKey &&
+      !page.capture?.last?.objectKey
+    )
+      throw new Refusal('Record a product capture before choosing Screen demo')
+    delete storyboard.error
     storyboard.builds = { ...storyboard.builds, [pageId]: build }
     storyboard.note = `Build the scene for “${page?.title || pageId}” as ${BUILD_LABELS[build].toLowerCase()}; keep the rest of the plan.`
     storyboard.stage = 'plan'
@@ -176,23 +189,23 @@ export const setStoryboardTransition = async (
   if (!TRANSITIONS.includes(transition))
     throw new Refusal('Choose one of the transitions')
   if (number === 1) throw new Refusal('The first frame enters with a cut')
-  const storyboard = (await loadProject(projectId))?.project.video?.storyboard
-  if (!storyboard?.plan) throw new Refusal('There is no plan yet')
-  if (storyboard.status === 'working')
-    throw new Refusal('Wait until this step finishes to change a transition')
-  const dir = storyboardDir(projectId, storyboard)
-  const internal = await readInternal(dir)
-  const frame = internal.plan?.scenes
-    .flatMap((scene) => scene.frames)
-    .find((entry) => entry.number === number)
-  if (!frame) throw new Refusal('Frame not found')
-  frame.transition = transition
-  delete frame.transitionWhy
-  await writeInternal(dir, internal)
-  await writeProjectFiles(dir, internal)
   let again = false
-  const snapshot = await changeProject(projectId, (current) => {
-    const value = storyboardOf(current)
+  const snapshot = await changeProject(projectId, async (current) => {
+    const storyboard = storyboardOf(current)
+    if (!storyboard?.plan) throw new Refusal('There is no plan yet')
+    if (storyboard.status === 'working')
+      throw new Refusal('Wait until this step finishes to change a transition')
+    const dir = storyboardDir(projectId, storyboard)
+    const internal = await readInternal(dir)
+    const frame = internal.plan?.scenes
+      .flatMap((scene) => scene.frames)
+      .find((entry) => entry.number === number)
+    if (!frame) throw new Refusal('Frame not found')
+    frame.transition = transition
+    delete frame.transitionWhy
+    await writeInternal(dir, internal)
+    await writeProjectFiles(dir, internal)
+    const value = storyboard
     for (const scene of value.plan?.scenes || [])
       for (const entry of scene.frames)
         if (entry.number === number) {
@@ -297,12 +310,31 @@ export const saveStoryboardTake = async (
   return snapshot
 }
 
+/** The stages that come after the voice, the voice among them. */
+const VOICED: StoryboardStage[] = [
+  'voice',
+  'shots',
+  'frames',
+  'assemble',
+  'render'
+]
+
 /** Carry on after a stop, from the stage that stopped. */
 export const retryStoryboard = async (projectId: string) => {
-  const snapshot = await changeProject(projectId, (current) => {
+  const snapshot = await changeProject(projectId, async (current) => {
     const storyboard = storyboardOf(current)
     if (storyboard.status !== 'failed')
       throw new Refusal('Nothing to try again')
+    // A replaced take is voiced again, from the voice on: before it, the
+    // stills and their approval come first (review 7).
+    if (storyboard.redo?.length && VOICED.includes(storyboard.stage))
+      storyboard.stage = 'voice'
+    if (storyboard.stage === 'assemble' || storyboard.stage === 'voice') {
+      const dir = storyboardDir(projectId, storyboard)
+      const internal = await readInternal(dir)
+      internal.rounds = 0
+      await writeInternal(dir, internal)
+    }
     storyboard.status = 'working'
     delete storyboard.error
     storyboard.updatedAt = new Date().toISOString()

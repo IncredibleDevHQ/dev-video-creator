@@ -292,9 +292,13 @@ describe('the map’s markup', () => {
         ['out', 'L:e1', 'D:e1']
       ]
     )
+    // Lines run in the gutters: out of the cards' block at the card's
+    // height, into the series' frame at the episode's (review 7: they cut
+    // across cards and episodes).
     const use = layout.flows[0]
-    expect(use.x1).toBe(layout.cards.a.x + layout.cards.a.w)
-    expect(use.x2).toBe(layout.lanes.e1.x)
+    expect(use.x1).toBe(layout.map.x + layout.map.w)
+    expect(use.y1).toBe(layout.cards.a.y + layout.cards.a.h / 2)
+    expect(use.x2).toBe(layout.series!.x)
   })
   it('lets a made episode’s teaser be watched and its posts read', () => {
     const cut = derivedBlock(view, {

@@ -39,6 +39,8 @@ export const planSeries = async (seriesId: string, raw: unknown) => {
     value.length === undefined ? undefined : validLength(value.length)
   const series = await changeSeries(seriesId, (current) => {
     if (!current.map) throw new Refusal('This series has no content map')
+    if (current.organizing?.state === 'organizing')
+      throw new Refusal('Wait until the new cards are organised')
     if (current.planning?.state === 'planning')
       throw new Refusal('The episodes are being planned')
     // The bar's line of ideas is a direction for the whole series.
@@ -147,16 +149,14 @@ const runPlan = async (seriesId: string) => {
   const number = new Map(existing.map((item) => [item.notebook, item.number]))
   // The last plan's gaps, each with what the creator did with it, so a gap
   // keeps its id, an ignored one stays away, and a dropped one says why.
-  const lastGaps = (series.gaps || [])
-    .filter((gap) => gap.state !== 'closed')
-    .map((gap) => ({
-      id: gap.id,
-      missing: gap.missing,
-      state: gap.state,
-      ...(gap.episode && number.get(gap.episode)
-        ? { episode: number.get(gap.episode) }
-        : {})
-    }))
+  const lastGaps = (series.gaps || []).map((gap) => ({
+    id: gap.id,
+    missing: gap.missing,
+    state: gap.state,
+    ...(gap.episode && number.get(gap.episode)
+      ? { episode: number.get(gap.episode) }
+      : {})
+  }))
   const suggested = new Set(series.suggested || [])
   const given = {
     outcome: Boolean(series.outcome && !suggested.has('outcome')),

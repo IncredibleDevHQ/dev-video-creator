@@ -65,9 +65,17 @@ export const saveStoryboardRecording = async (app: AppContext) => {
   app.capture.phase = 'uploading'
   app.render()
   try {
-    app.snapshot = await uploadTake(projectId, pageId, app.capture.blob)
-    app.capture.dispose()
-    app.sbRecord = null
+    const saved = await uploadTake(projectId, pageId, app.capture.blob)
+    // Saved either way: the recorder lets go of its take, and the page shows
+    // it only while the creator is still on its notebook (review 7).
+    if (
+      app.sbRecord?.projectId === projectId &&
+      app.sbRecord.pageId === pageId
+    ) {
+      app.capture.dispose()
+      app.sbRecord = null
+    }
+    if (app.snapshot?.project.id === projectId) app.snapshot = saved
   } catch (reason) {
     app.capture.phase = 'reviewing'
     app.render()
@@ -154,13 +162,31 @@ export const clickStoryboard = async (
     return true
   }
   if (action === 'sb-transition-set') {
-    app.snapshot = await api.setStoryboardTransition(
-      id,
-      Number(target.dataset.number),
-      target.dataset.value || ''
-    )
-    app.dialog.close()
-    app.render()
+    if (app.dialog.dataset.saving === 'true') return true
+    app.dialog.dataset.saving = 'true'
+    const buttons = [
+      ...app.dialog.querySelectorAll<HTMLButtonElement>('button')
+    ]
+    buttons.forEach((button) => {
+      button.disabled = true
+    })
+    try {
+      const saved = await api.setStoryboardTransition(
+        id,
+        Number(target.dataset.number),
+        target.dataset.value || ''
+      )
+      if (app.snapshot?.project.id === id) {
+        app.snapshot = saved
+        app.dialog.close()
+        app.render()
+      }
+    } finally {
+      delete app.dialog.dataset.saving
+      buttons.forEach((button) => {
+        button.disabled = false
+      })
+    }
     return true
   }
   if (action === 'sb-still') {
@@ -256,8 +282,11 @@ export const changeStoryboard = async (app: AppContext, element: Element) => {
   ) {
     const file = element.files?.[0]
     if (!file) return true
-    app.snapshot = await uploadTake(id, element.dataset.page, file)
-    app.render()
+    const saved = await uploadTake(id, element.dataset.page, file)
+    if (app.snapshot?.project.id === id) {
+      app.snapshot = saved
+      app.render()
+    }
     return true
   }
   return false

@@ -67,6 +67,7 @@ const panAtEdge = (map: MapCanvas, drag: DragState, event: PointerEvent) => {
 }
 
 const selectionOf = (key: string): MapSel => {
+  if (key.startsWith('d:')) return { t: 'direction', id: key.slice(2) }
   if (key.startsWith('m:')) return { t: 'page', id: key.slice(2) }
   if (key.startsWith('c:')) return { t: 'copy', id: key.slice(2) }
   if (/^(L|Z|s|e):/.test(key)) return { t: 'lane', id: key.slice(2) }
@@ -112,7 +113,9 @@ export const installMapInput = (map: MapCanvas) => {
     const el = (event.target as Element).closest?.<HTMLElement>(
       '[data-map-canvas] .map-el'
     )
-    const own = (event.target as Element).closest?.('button, a, input')
+    const own = (event.target as Element).closest?.(
+      'button, a, input, textarea, select, [contenteditable]'
+    )
     if (el && !own && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault()
       map.select(selectionOf(el.dataset.k || ''))
@@ -124,7 +127,12 @@ export const installMapInput = (map: MapCanvas) => {
   root.addEventListener('focusin', (event) => {
     const el = event.target as HTMLElement
     const canvas = map.canvas
-    if (!el.classList?.contains('map-el') || !canvas?.contains(el)) return
+    if (
+      !el.classList?.contains('map-el') ||
+      !canvas?.contains(el) ||
+      !el.matches(':focus-visible')
+    )
+      return
     canvas.scrollLeft = 0
     canvas.scrollTop = 0
     const at = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(
@@ -298,6 +306,9 @@ export const installMapInput = (map: MapCanvas) => {
     if ((key === 'S:socials' || key.startsWith('D:')) && map.layout.socials)
       return map.fit(pad(map.layout.socials))
     const sel = selectionOf(key)
+    // A direction is brought close, as a block is (review 7).
+    if (sel?.t === 'direction' && map.layout.directions[sel.id])
+      return map.fit(pad(map.layout.directions[sel.id]))
     const lane =
       sel?.t === 'lane'
         ? sel.id
@@ -309,7 +320,7 @@ export const installMapInput = (map: MapCanvas) => {
     map.fit()
   })
   globalThis.addEventListener?.('keydown', (event) => {
-    if (!map.isOpen) return
+    if (!map.isOpen || event.defaultPrevented) return
     const e = event as KeyboardEvent
     if ((e.target as Element)?.closest?.('input, textarea, select')) return
     const mod = e.metaKey || e.ctrlKey
@@ -328,6 +339,9 @@ export const installMapInput = (map: MapCanvas) => {
       e.preventDefault()
       void map.removeCopy(sel.id)
     } else if (key === 'escape') {
+      // One Esc closes one thing: an open menu is the chrome's to close.
+      const menu = map.slot('menu')
+      if (menu && !menu.hidden) return
       map.naming = null
       map.changing = null
       map.renaming = null
@@ -617,6 +631,8 @@ const dispatch = async (
     }
     case 'reveal':
       return map.reveal(arg)
+    case 'keys':
+      return map.hooks.openKeys()
     case 'help':
       return target && !reopened ? showHelp(map, target) : undefined
     case 'note-more':

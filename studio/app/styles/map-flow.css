@@ -143,7 +143,16 @@
   font-weight: 600;
   color: inherit;
 }
+.map-card .map-node-label {
+  align-items: last baseline;
+}
 .map-card .map-node-label b {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--map-label);
 }
 .map-card.is-selected .map-node-label b,

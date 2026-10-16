@@ -44,6 +44,8 @@ export const openPopover = (
   }
   const onKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape') {
+      // Handled: what lies under the popover stays open (review 7).
+      event.preventDefault()
       close()
       anchor.focus?.()
     }

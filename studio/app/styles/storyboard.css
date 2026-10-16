@@ -131,16 +131,17 @@
 .sb-strip .sb-transition {
   flex: none;
   align-self: center;
-  width: 22px;
+  min-width: 22px;
   height: 22px;
   margin: 0 -3px;
-  padding: 0;
+  padding: 0 8px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--panel);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
+  white-space: nowrap;
   z-index: 1;
 }
 .sb-strip .sb-transition:hover:not(:disabled) {
@@ -309,4 +310,42 @@
   .sb-frame-detail dl {
     grid-template-columns: 1fr;
   }
+}
+/* Until the take is recorded: a neutral outline, never a stranger's face,
+   with Record and Upload under the stage where the take will play. */
+.sb-take-placeholder {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  height: 100%;
+  color: var(--muted);
+}
+.sb-take-placeholder svg {
+  width: 30%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.sb-take-placeholder small {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  color: inherit;
+}
+.sb-take-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.sb-take-placeholder .sb-take-actions {
+  justify-content: center;
+  margin-top: 0;
+}
+.sb-take-placeholder .sb-take-actions button:not(.primary) {
+  border-color: var(--line);
 }

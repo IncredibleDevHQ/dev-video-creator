@@ -742,3 +742,10 @@ dialog[data-story] .brand-story {
   border-radius: 6px;
   background: var(--paper);
 }
+.look-logo span {
+  display: grid;
+  gap: 2px;
+}
+.look-logo small {
+  color: var(--danger, #b91c1c);
+}

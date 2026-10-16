@@ -79,17 +79,21 @@ const adding = new Set<string>()
  * A new episode of the map's series: a notebook of copies of the pages the
  * creator chose, in that order, drawn already and ready to become a video.
  */
-export const addMapEpisode = async (seriesId: string, raw: unknown) => {
+export const addMapEpisode = async (
+  seriesId: string,
+  raw: unknown,
+  planned = false
+) => {
   if (adding.has(seriesId)) throw new Refusal('An episode is being added')
   adding.add(seriesId)
   try {
-    return await addOne(seriesId, raw)
+    return await addOne(seriesId, raw, planned)
   } finally {
     adding.delete(seriesId)
   }
 }
 
-const addOne = async (seriesId: string, raw: unknown) => {
+const addOne = async (seriesId: string, raw: unknown, planned: boolean) => {
   const series = await loadSeries(seriesId)
   if (!series?.map) throw new Refusal('This series has no content map')
   const map = await mapOf(series.map)
@@ -131,6 +135,7 @@ const addOne = async (seriesId: string, raw: unknown) => {
       episode: {
         series: seriesId,
         number,
+        ...(named && !planned ? { named: true } : {}),
         ...(previously ? { previously } : {}),
         ...(series.length ? { length: series.length } : {})
       },
@@ -208,6 +213,10 @@ const clearOnly = (
       })
     : Promise.resolve()
 const gone = () => new Refusal('That page is no longer in this episode')
+const usedByStoryboard = () =>
+  new Refusal(
+    'This page is used by the storyboard and cannot move to another episode'
+  )
 
 /**
  * Changes an episode's copies: add a copy of a map page (or cut it in, so
@@ -269,6 +278,10 @@ export const changeCopies = async (id: string, raw: unknown) => {
     const target = await episodeOf(to)
     if (target.project.copyOfMap !== mapId)
       throw new Refusal('Move it to an episode of the same map')
+    // The storyboard is planned from its pages: one it uses stays (review 7).
+    const planned = (current: Snapshot) =>
+      current.project.video?.storyboard?.pages.includes(slideId)
+    if (planned(episode)) throw usedByStoryboard()
     const page = copy.copyOf?.slide
     const moved = movedCopy(copy)
     // Into the other episode first, then out of this one; put back if it
@@ -283,6 +296,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
     try {
       await changeProject(id, (current) => {
         if (!current.project.slides.some((s) => s.id === slideId)) throw gone()
+        if (planned(current)) throw usedByStoryboard()
         current.project.slides = current.project.slides.filter(
           (s) => s.id !== slideId
         )
@@ -310,6 +324,11 @@ export const changeCopies = async (id: string, raw: unknown) => {
       const slides = current.project.slides
       const index = slides.findIndex((s) => s.id === slideId)
       if (index < 0) throw gone()
+      // The storyboard is planned from its pages, as on the Wireframe stage.
+      if (current.project.video?.storyboard?.pages.includes(slideId))
+        throw new Refusal(
+          'This page is used by the storyboard and cannot be deleted'
+        )
       // Kept for Undo, with its scene, as the Wireframe stage's delete does
       // (review 6: one key removed a made scene for good).
       current.deletedSlide = keptForUndo(current.project, index)

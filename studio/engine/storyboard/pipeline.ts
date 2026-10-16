@@ -31,6 +31,7 @@ import {
   origin,
   pageTitles,
   selectionOf,
+  summaryNow,
   takesOf,
   update,
   type StageInput
@@ -44,7 +45,6 @@ import {
 } from './assemble'
 import {
   episodeFrames,
-  planSummary,
   readInternal,
   writeInternal,
   writeProjectFiles,
@@ -216,7 +216,7 @@ const planStage = async ({
   await writeFile(join(dir, 'BRIEF.md'), brief)
   await writeProjectFiles(dir, next)
   await update(snapshot.project.id, (current, ledger) => {
-    current.plan = planSummary(next, takesOf(current))
+    current.plan = summaryNow(next, current, ledger)
     current.length = length
     delete current.note
     current.stage = 'review'
@@ -260,6 +260,7 @@ const voiceStage = async ({
   const frames = episodeFrames(plan)
   // A take replaced: its scene is voiced, designed and built again.
   const redo = storyboard.redo || []
+  if (redo.length) internal.rounds = 0
   internal.voiced = (internal.voiced || []).filter(
     (page) => !redo.includes(page)
   )
@@ -282,12 +283,20 @@ const voiceStage = async ({
   if (!ready.length) {
     await writeInternal(dir, internal)
     const waiting = missingTakes(storyboard, recordVoice).length > 0
-    await update(snapshot.project.id, (current) => {
-      delete current.redo
+    await update(snapshot.project.id, (current, ledger) => {
+      // Every scene that waits for a take shows its place for one, also
+      // when the voice became the creator's after the plan.
+      current.plan = summaryNow(internal, current, ledger)
+      current.redo = (current.redo || []).filter(
+        (page) =>
+          !redo.includes(page) ||
+          takesOf(current)[page]?.objectKey !==
+            takesOf(storyboard)[page]?.objectKey
+      )
       if (waiting) {
         current.status = 'waiting'
         current.waitingFor = 'takes'
-      } else current.stage = 'shots'
+      } else current.stage = current.redo.length ? 'voice' : 'shots'
     })
     return waiting ? ('stop' as const) : undefined
   }
@@ -342,9 +351,14 @@ const voiceStage = async ({
   await writeProjectFiles(dir, internal)
   await writeBoard(dir, internal, pageTitles(snapshot))
   await update(snapshot.project.id, (current, ledger) => {
-    current.plan = planSummary(internal, takesOf(current))
-    current.stage = 'shots'
-    delete current.redo
+    current.plan = summaryNow(internal, current, ledger)
+    current.redo = (current.redo || []).filter(
+      (page) =>
+        !pages.includes(page) ||
+        takesOf(current)[page]?.objectKey !==
+          takesOf(storyboard)[page]?.objectKey
+    )
+    current.stage = current.redo.length ? 'voice' : 'shots'
     addEvent(
       ledger,
       'video',
@@ -451,8 +465,8 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
   let cursor = 0
   const save = async () => {
     await writeInternal(dir, internal)
-    await update(snapshot.project.id, (current) => {
-      current.plan = planSummary(internal, takesOf(current))
+    await update(snapshot.project.id, (current, ledger) => {
+      current.plan = summaryNow(internal, current, ledger)
     })
   }
   const lane = async () => {
@@ -544,7 +558,7 @@ const assembleStage = async ({ snapshot, dir, internal }: StageInput) => {
     }
     await writeInternal(dir, internal)
     await update(snapshot.project.id, (current, ledger) => {
-      current.plan = planSummary(internal, takesOf(current))
+      current.plan = summaryNow(internal, current, ledger)
       current.stage = 'frames'
       addEvent(
         ledger,

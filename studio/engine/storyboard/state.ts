@@ -1,7 +1,8 @@
 // What a storyboard production keeps beside its Hyperframes project
 // (.studio/state.json), and the summary the creator sees on the notebook.
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { mkdir, readFile, writeFile, rename, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import type {
   EpisodePlan,
@@ -46,9 +47,28 @@ export const readInternal = async (dir: string): Promise<Internal> =>
     ? (JSON.parse(await readFile(statePath(dir), 'utf8')) as Internal)
     : {}
 
+const writes = new Map<string, Promise<void>>()
 export const writeInternal = async (dir: string, internal: Internal) => {
-  await mkdir(join(dir, '.studio'), { recursive: true })
-  await writeFile(statePath(dir), JSON.stringify(internal, null, 1))
+  // Capture now: queued writes must not serialize a later mutable state.
+  const body = JSON.stringify(internal, null, 1)
+  const next = (writes.get(dir) || Promise.resolve())
+    .catch(() => {})
+    .then(async () => {
+      await mkdir(join(dir, '.studio'), { recursive: true })
+      const temporary = `${statePath(dir)}.${randomUUID()}.tmp`
+      try {
+        await writeFile(temporary, body)
+        await rename(temporary, statePath(dir))
+      } finally {
+        await rm(temporary, { force: true })
+      }
+    })
+  writes.set(dir, next)
+  try {
+    await next
+  } finally {
+    if (writes.get(dir) === next) writes.delete(dir)
+  }
 }
 
 /** STORYBOARD.md and SCRIPT.md as they stand: durations, media, shots and
@@ -83,7 +103,8 @@ export const writeProjectFiles = async (dir: string, internal: Internal) => {
 /** The plan as the creator reviews it, with each frame's state. */
 export const planSummary = (
   internal: Internal,
-  takes: Record<string, SceneSummary['take']> = {}
+  takes: Record<string, SceneSummary['take']> = {},
+  recordVoice = false
 ): Storyboard['plan'] => {
   const plan = internal.plan!
   return {
@@ -96,7 +117,8 @@ export const planSummary = (
       pageId: scene.pageId,
       build: scene.build,
       buildReason: scene.buildReason,
-      ...(scene.build === 'camera' || takes[scene.pageId]
+      // A take given stays, even when the scene no longer needs one.
+      ...(scene.build === 'camera' || recordVoice || takes[scene.pageId]
         ? { take: takes[scene.pageId] ?? null }
         : {}),
       frames: scene.frames.map((frame) => ({

@@ -205,7 +205,6 @@ export const chromeAction = (
 /** Zoom levels and the chrome's keys: ? for shortcuts, N for the notes,
  * T to talk, ⌘\ for the interface. */
 export const installChrome = (map: MapCanvas) => {
-  let level = ''
   let saving: ReturnType<typeof setTimeout> | null = null
   map.onCamera.push(() => {
     if (saving) clearTimeout(saving)
@@ -214,18 +213,29 @@ export const installChrome = (map: MapCanvas) => {
       if (map.mapId === id) remember(VIEW_KEY + id, JSON.stringify(map.camera))
     }, 500)
     const next = detailFor(map.camera.k)
-    if (next === level) return
-    level = next
     const canvas = map.canvas
     canvas?.classList.toggle('is-far', next !== 'near')
     canvas?.classList.toggle('is-farthest', next === 'farthest')
   })
   globalThis.addEventListener?.('keydown', (event) => {
-    if (!map.isOpen) return
+    if (!map.isOpen || event.defaultPrevented) return
     const e = event as KeyboardEvent
     const typing = (e.target as Element)?.closest?.(
       'input, textarea, select, [contenteditable]'
     )
+    if (e.key === 'Escape') {
+      const menu = map.slot('menu')
+      if (menu && !menu.hidden) {
+        hideMenu(map)
+        e.preventDefault()
+        return
+      }
+      if (map.root.querySelector('.map-page.is-notes-open')) {
+        setNotes(map, false)
+        e.preventDefault()
+        return
+      }
+    }
     if (typing) return
     if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
       e.preventDefault()

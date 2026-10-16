@@ -57,24 +57,61 @@
   font-size: 13px;
 }
 
-/* A series: its tiles on the home page, its page, the switch to start one. */
+/* A series: its row on the home page (its content map and episodes
+   together), its page, the switch to start one. */
 .start .saved-series {
   margin-top: 28px;
 }
-.series-tiles {
+.series-rows {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+}
+.series-row {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: left;
+}
+.series-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 12px;
 }
-.series-tile {
-  display: grid;
-  gap: 4px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--panel);
-  color: inherit;
+.series-row-title {
+  padding: 0;
+  white-space: normal;
   text-align: left;
+  font-size: 17px;
+  font-weight: 600;
+}
+.series-row-title:hover {
+  background: none;
+  color: var(--accent);
+}
+.series-row-head small {
+  flex: none;
+}
+.series-row ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+}
+.series-row li button {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  gap: 5px;
+  padding: 12px;
+  text-align: left;
+  white-space: normal;
+  background: var(--panel);
+}
+.series-row small {
+  color: var(--muted);
 }
 .series-form,
 .episode-form,

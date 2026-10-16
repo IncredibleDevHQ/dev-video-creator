@@ -189,3 +189,7 @@
   color: var(--map-gap);
   font-weight: 600;
 }
+.map-runs-arrow {
+  margin-right: 2px;
+  vertical-align: -1px;
+}

@@ -93,9 +93,17 @@ export const settleNotebook = (
 }
 
 export const settleSeries = (series: Series, at = new Date().toISOString()) => {
-  if (series.planning?.state !== 'planning') return false
-  series.planning = { state: 'failed', error: RESTARTED, at }
-  return true
+  let changed = false
+  if (series.planning?.state === 'planning') {
+    series.planning = { state: 'failed', error: RESTARTED, at }
+    changed = true
+  }
+  // Organising holds the series too (review 7): cut off, it lets go.
+  if (series.organizing?.state === 'organizing') {
+    series.organizing = { state: 'failed', error: RESTARTED, at }
+    changed = true
+  }
+  return changed
 }
 
 /** At startup: every notebook and series with work that was cut off. */

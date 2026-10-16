@@ -22,6 +22,7 @@ import {
   type Heard,
   type Turn
 } from './voice-agent'
+import { VOICE_TOOLS } from '../shared/voice'
 import type {
   ToolOutcome,
   VoiceReading,
@@ -92,9 +93,12 @@ class VoiceSession {
     const key = await voiceDeps.key().catch(() => '')
     if (this.closed) return
     if (!key) {
+      // Said by a code, so the page offers the way to add one (review 7).
       this.toPage({
         type: 'error',
-        message: 'Studio AI needs an OpenAI key: add OPENAI_API_KEY to .env'
+        code: 'no-key',
+        message:
+          'Studio AI needs an OpenAI key: add one in Settings → API keys, or OPENAI_API_KEY in .env'
       })
       return this.close('No OpenAI key')
     }
@@ -369,6 +373,8 @@ class VoiceSession {
     else this.continue()
   }
 
+  private usedConfirmations = new Set<string>()
+
   private async call(item: NonNullable<RealtimeEvent['item']>) {
     const call = String(item.call_id || '')
     const name = String(item.name || '')
@@ -385,7 +391,24 @@ class VoiceSession {
         error: 'The arguments were not JSON'
       })
     }
-    const decision = gate(name, args, await this.heardFor(this.latest))
+    const utterance = this.latest
+    const decision = gate(name, args, await this.heardFor(utterance))
+    const big = VOICE_TOOLS[name as keyof typeof VOICE_TOOLS]?.big
+    if (decision.run && big && utterance) {
+      if (this.usedConfirmations.has(utterance)) {
+        this.toPage({
+          type: 'held',
+          call,
+          name,
+          why: 'That confirmation has already been used; ask again for this change'
+        })
+        return this.answer(call, {
+          ok: false,
+          error: 'Ask for a new confirmation for this change'
+        })
+      }
+      this.usedConfirmations.add(utterance)
+    }
     if (this.closed) return
     if (!decision.run) {
       this.toPage({ type: 'held', call, name, why: decision.why })

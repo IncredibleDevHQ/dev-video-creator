@@ -88,12 +88,15 @@ const target = (event: Event) =>
   ) || null
 
 export const installTooltips = () => {
+  new MutationObserver(() => {
+    if (owner && !owner.isConnected) hide()
+  }).observe(document.body, { childList: true, subtree: true })
   document.addEventListener('pointerover', (event) => {
     // Inside the control already showing: its title is lent, so look there.
     if (owner?.contains(event.target as Node)) return
     const element = target(event)
-    if (!element) return
     hide()
+    if (!element) return
     if ((event as PointerEvent).pointerType === 'touch') return
     timer = setTimeout(() => show(element), Date.now() < warmUntil ? 0 : DELAY)
   })

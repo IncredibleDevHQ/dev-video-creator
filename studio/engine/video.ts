@@ -1,3 +1,4 @@
+import { LENGTH_STOPS, windowStops } from '../shared/length'
 import type { SceneStage } from '../shared/model'
 import { donePages, videoOpens } from '../shared/state'
 import {
@@ -57,7 +58,11 @@ export const validLength = (raw: unknown): LengthGoal | undefined => {
     min >= max
   )
     throw new Refusal('Give the length as a range, the shorter end first')
-  return { min, max, strict: value.strict === true }
+  // Kept on the slider's stops, so a window is always one the creator can
+  // see and set (review 7: 20–30 min showed as “20–NaN min”).
+  const [from, to] = windowStops({ min, max })
+  const strict = value.strict === true
+  return { min: LENGTH_STOPS[from], max: LENGTH_STOPS[to], strict }
 }
 export const validateVideoSettings = (value: unknown): VideoSettings => {
   const raw = value as VideoSettings

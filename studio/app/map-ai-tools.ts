@@ -18,6 +18,10 @@ type Ctx = {
   cursor: AiCursor
   aliases: Aliases
   args: Record<string, unknown>
+  /** The studio's map requests, refused once the call has ended. */
+  api: typeof mapApi
+  /** Whether the call that asked is still on. */
+  active: () => boolean
 }
 
 const words = (value: unknown, limit = 600) =>
@@ -51,11 +55,14 @@ const episodeWords = (map: MapCanvas, notebook: string) => {
 const cardTitle = (map: MapCanvas, id: string) =>
   map.snapshot?.project.slides.find((slide) => slide.id === id)?.title || ''
 
-/** Shows the canvas as it is after a change, and says what happened. */
-const done = async (map: MapCanvas, did: string): Promise<ToolOutcome> => {
-  map.snapshot = await api.load(map.mapId)
-  await map.refresh()
-  map.toast(`Studio AI: ${did}`)
+/** Shows the canvas as it is after a change, and says what happened; not
+ * once the call has ended (review 7). */
+const done = async (ctx: Ctx, did: string): Promise<ToolOutcome> => {
+  if (!ctx.active()) throw new Error('The call ended')
+  ctx.map.snapshot = await api.load(ctx.map.mapId)
+  if (!ctx.active()) throw new Error('The call ended')
+  await ctx.map.refresh()
+  ctx.map.toast(`Studio AI: ${did}`)
   return { ok: true, did }
 }
 
@@ -267,17 +274,17 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     ctx.cursor.doing('Adding a direction')
     await pickFromAdd(ctx, spot, 'flow-direction')
     await ctx.cursor.type(text)
-    const saved = await mapApi.direction(series.id, { text, spot })
+    const saved = await ctx.api.direction(series.id, { text, spot })
     const made = saved.directions?.at(-1)?.id || ''
     ctx.cursor.typed()
-    await done(ctx.map, `Added the direction ${quote(text)}`)
+    await done(ctx, `Added the direction ${quote(text)}`)
     const box = made ? ctx.map.layout?.directions[made] : undefined
     if (!guide || !made || !box)
       return { ok: true, did: `Added the direction ${quote(text)}` }
     if (guide.box) await ctx.cursor.drag(handle(box), corner(guide.box))
-    await mapApi.direction(series.id, { id: made, to: guide.to })
+    await ctx.api.direction(series.id, { id: made, to: guide.to })
     return done(
-      ctx.map,
+      ctx,
       `Added the direction ${quote(text)}, guiding ${guide.said}`
     )
   },
@@ -290,8 +297,8 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     const guide = guideOf(ctx, ctx.args.guides, direction)
     ctx.cursor.doing('Wiring a direction')
     if (guide.box) await ctx.cursor.drag(handle(box), corner(guide.box))
-    await mapApi.direction(series.id, { id, to: guide.to })
-    return done(ctx.map, `Wired ${quote(direction.text)} to ${guide.said}`)
+    await ctx.api.direction(series.id, { id, to: guide.to })
+    return done(ctx, `Wired ${quote(direction.text)} to ${guide.said}`)
   },
   async remove_direction(ctx) {
     const series = seriesOf(ctx.map)
@@ -301,11 +308,8 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     if (box) await ctx.cursor.glide(corner(box))
     ctx.cursor.mark(`d:${id}`)
     await ctx.cursor.press()
-    await mapApi.removeDirection(series.id, id)
-    return done(
-      ctx.map,
-      `Removed the direction ${quote(direction?.text || '')}`
-    )
+    await ctx.api.removeDirection(series.id, id)
+    return done(ctx, `Removed the direction ${quote(direction?.text || '')}`)
   },
   async add_note(ctx) {
     const text = words(ctx.args.text, 4000)
@@ -323,10 +327,10 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     ctx.cursor.doing('Adding a note')
     await pickFromAdd(ctx, at, 'flow-note')
     await ctx.cursor.type(text)
-    await mapApi.note(ctx.map.mapId, text)
+    await ctx.api.note(ctx.map.mapId, text, gap || undefined)
     ctx.cursor.typed()
     return done(
-      ctx.map,
+      ctx,
       gap
         ? 'Added a note: it becomes a card where the gap is'
         : 'Added a note: it is being sorted into cards'
@@ -355,9 +359,9 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
       })
       ctx.map.fly[`pending:${episode}`] ||= { x: from.x, y: from.y }
     }
-    await mapApi.copies(episode, { action: 'add', slide: card, index })
+    await ctx.api.copies(episode, { action: 'add', slide: card, index })
     return done(
-      ctx.map,
+      ctx,
       `Copied ${quote(cardTitle(ctx.map, card))} into ${episodeWords(ctx.map, episode)}`
     )
   },
@@ -377,9 +381,9 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
         after ? handle(before, true) : corner(before),
         corner(moving)
       )
-    await mapApi.placeAfter(series.id, episode, after)
+    await ctx.api.placeAfter(series.id, episode, after)
     return done(
-      ctx.map,
+      ctx,
       after
         ? `${episodeWords(ctx.map, episode)} now comes after ${episodeWords(ctx.map, after)}`
         : `${episodeWords(ctx.map, episode)} now comes first`
@@ -400,7 +404,7 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     ctx.cursor.doing('Starting an episode')
     await pickFromAdd(ctx, at, 'new-episode')
     if (about || title) await ctx.cursor.type(about || title)
-    await mapApi.addEpisode(series.id, {
+    await ctx.api.addEpisode(series.id, {
       ...(about && !cards.length
         ? { about }
         : { title: title || about || undefined }),
@@ -408,7 +412,7 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     })
     ctx.cursor.typed()
     return done(
-      ctx.map,
+      ctx,
       about && !cards.length
         ? `Started an episode about ${quote(about)}: the studio is picking its cards`
         : `Started the episode ${quote(title || about || 'new')}`
@@ -426,13 +430,13 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     ctx.cursor.mark('B:series')
     await ctx.cursor.press()
     await ctx.cursor.type(outcome || audience)
-    await mapApi.brief(series.id, {
+    await ctx.api.brief(series.id, {
       ...(outcome ? { outcome } : {}),
       ...(audience ? { audience } : {})
     })
     ctx.cursor.typed()
     return done(
-      ctx.map,
+      ctx,
       outcome
         ? `Set the outcome: ${quote(outcome)}`
         : `Set the audience: ${quote(audience)}`
@@ -445,10 +449,10 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     if (head) await ctx.cursor.glide(corner(head))
     await ctx.cursor.press()
     const series =
-      ctx.map.view?.series || (await mapApi.startSeries(ctx.map.mapId))
-    await mapApi.planSeries(series.id, ideas ? { ideas } : {})
+      ctx.map.view?.series || (await ctx.api.startSeries(ctx.map.mapId))
+    await ctx.api.planSeries(series.id, ideas ? { ideas } : {})
     return done(
-      ctx.map,
+      ctx,
       'Planning the series: it reads every card, then the episodes take shape'
     )
   },
@@ -461,9 +465,9 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     if (box) await ctx.cursor.glide(corner(box))
     ctx.cursor.mark(`g:${id}`)
     await ctx.cursor.press()
-    await mapApi.gap(series.id, id, explain ? 'explained' : 'ignored')
+    await ctx.api.gap(series.id, id, explain ? 'explained' : 'ignored')
     return done(
-      ctx.map,
+      ctx,
       explain
         ? `The episode now explains ${quote(gap?.missing || 'it')} in a line`
         : `Set aside the gap ${quote(gap?.missing || '')}`
@@ -476,8 +480,8 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     const head = ctx.map.layout?.head
     if (head) await ctx.cursor.glide(corner(head))
     await ctx.cursor.press()
-    await mapApi.undoOrganize(series.id, run.id)
-    return done(ctx.map, 'Took those cards out again: they wait to be placed')
+    await ctx.api.undoOrganize(series.id, run.id)
+    return done(ctx, 'Took those cards out again: they wait to be placed')
   },
   async add_comment(ctx) {
     const text = words(ctx.args.text, 2000)
@@ -486,7 +490,7 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     if (pin.box) await ctx.cursor.glide(corner(pin.box))
     await ctx.cursor.press()
     await ctx.cursor.type(text)
-    await mapApi.comments(ctx.map.mapId, {
+    await ctx.api.comments(ctx.map.mapId, {
       action: 'add',
       target: pin.target,
       text,
@@ -494,7 +498,7 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     })
     ctx.cursor.typed()
     return done(
-      ctx.map,
+      ctx,
       `Left a comment on ${targetWords(pin.target, ctx.map.snapshot, ctx.map.view)}`
     )
   },
@@ -506,26 +510,26 @@ const TOOLS: Record<VoiceToolName, (ctx: Ctx) => Promise<ToolOutcome>> = {
     if (pin) await ctx.cursor.glideTo(pin)
     await ctx.cursor.press()
     await ctx.cursor.type(text)
-    await mapApi.comments(ctx.map.mapId, {
+    await ctx.api.comments(ctx.map.mapId, {
       action: 'reply',
       id,
       text,
       by: 'ai'
     })
     ctx.cursor.typed()
-    return done(ctx.map, 'Replied to the comment')
+    return done(ctx, 'Replied to the comment')
   },
   async resolve_comment(ctx) {
     const id = ctx.aliases.need(ctx.args.comment, 'k')
     const pin = ctx.map.root.querySelector(`[data-pin="${id}"]`)
     if (pin) await ctx.cursor.glideTo(pin)
     await ctx.cursor.press()
-    await mapApi.comments(ctx.map.mapId, {
+    await ctx.api.comments(ctx.map.mapId, {
       action: 'resolve',
       id,
       outcome: 'Resolved by Studio AI'
     })
-    return done(ctx.map, 'Resolved the comment')
+    return done(ctx, 'Resolved the comment')
   }
 }
 
@@ -535,19 +539,55 @@ export const runAiTool = async (
   cursor: AiCursor,
   aliases: Aliases,
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  active: () => boolean = () => true
 ): Promise<ToolOutcome> => {
   const tool = TOOLS[name as VoiceToolName]
   if (!tool) return { ok: false, error: `There is no tool called ${name}` }
   try {
-    return await tool({ map, cursor, aliases, args })
+    if (!active()) throw new Error('The call ended')
+    const guarded = new Proxy(cursor, {
+      get(target, key) {
+        const value = Reflect.get(target, key)
+        if (typeof value !== 'function') return value
+        return (...values: unknown[]) => {
+          if (!active()) throw new Error('The call ended')
+          const result = value.apply(target, values)
+          return result instanceof Promise
+            ? result.then((out: unknown) => {
+                if (!active()) throw new Error('The call ended')
+                return out
+              })
+            : result
+        }
+      }
+    })
+    // Each request asks first whether the call is still on.
+    const requests = new Proxy(mapApi, {
+      get(target, key) {
+        const value = Reflect.get(target, key)
+        if (typeof value !== 'function') return value
+        return (...values: unknown[]) => {
+          if (!active()) throw new Error('The call ended')
+          return value.apply(target, values)
+        }
+      }
+    })
+    return await tool({
+      map,
+      cursor: guarded,
+      aliases,
+      args,
+      api: requests,
+      active
+    })
   } catch (error) {
-    cursor.typed()
+    if (active()) cursor.typed()
     return {
       ok: false,
       error: error instanceof Error ? error.message : String(error)
     }
   } finally {
-    cursor.doing(null)
+    if (active()) cursor.doing(null)
   }
 }

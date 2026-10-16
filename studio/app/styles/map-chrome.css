@@ -13,7 +13,8 @@
 .map-page.is-notes-open .map-rail {
   display: flex;
   position: absolute;
-  left: 12px;
+  right: 12px;
+  left: auto;
   top: 10px;
   bottom: 12px;
   width: 300px;
@@ -57,7 +58,7 @@
 }
 .map-page.is-notes-open .map-toolpill,
 .map-page.is-notes-open .map-zoom {
-  left: 326px;
+  left: 16px;
 }
 
 /* The header's tools: Notes, View, the next step, More. */

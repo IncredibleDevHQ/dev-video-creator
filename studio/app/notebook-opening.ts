@@ -31,6 +31,8 @@ export class NotebookOpening {
       this.ready(snapshot)
     } catch (reason) {
       if (request !== this.request) return
+      if (reason instanceof Error && /not found/i.test(reason.message))
+        localStorage.removeItem('minimal-studio-project')
       this.state = {
         id,
         phase: 'failed',
@@ -43,18 +45,26 @@ export class NotebookOpening {
     }
   }
 }
+const missing = (state: NotebookOpeningState) =>
+  /not found/i.test(state.message || '')
+
 export const notebookOpeningView = (state: NotebookOpeningState) =>
   html`<main class="notebook-opening">
     <section role="status" aria-live="polite">
       ${state.phase === 'loading'
         ? '<span class="spinner" aria-hidden="true"></span><h1>Opening your notebook</h1><p>Loading your saved wireframes, scenes and activity.</p>'
-        : html`<h1>Could not open this notebook</h1>
-            <p>
-              ${escape(state.message || 'Try again when Studio is available.')}
-            </p>
-            ${button('Try again', 'open-notebook', true)}
-            <p class="opening-note">
-              Your notebook link is kept. Retrying only loads saved work.
-            </p>`}
+        : missing(state)
+          ? // Gone for good: one line, and the way home (review 7).
+            '<h1>This notebook is no longer available</h1><a class="primary opening-home" href="/">Back to your notebooks</a>'
+          : html`<h1>Could not open this notebook</h1>
+              <p>
+                ${escape(
+                  state.message || 'Try again when Studio is available.'
+                )}
+              </p>
+              ${button('Try again', 'open-notebook', true)}
+              <p class="opening-note">
+                Your notebook link is kept. Retrying only loads saved work.
+              </p>`}
     </section>
   </main>`

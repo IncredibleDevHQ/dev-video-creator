@@ -51,6 +51,7 @@ export const agentActivity = (snapshot: Snapshot) => {
   const { project } = snapshot
   // The same phase as the tab and the card; only the pill counts pages.
   const phase = buildPhase(snapshot)
+  if (snapshot.status === 'reading') return ''
   if (phase)
     return phase.count
       ? `${phase.word} ${phase.count}`
@@ -82,7 +83,8 @@ const agentPill = (snapshot: Snapshot, connected: boolean) => {
       ? ''
       : agentActivity(snapshot)
     : 'reconnecting'
-  const working = connected && Boolean(activity)
+  const working =
+    connected && (Boolean(activity) || snapshot.status === 'reading')
   return `<button type="button" class="agent-pill${working ? ' is-working' : ''}${connected ? '' : ' is-offline'}" data-action="agent-menu" data-popover="agent" aria-label="Agent: ${escape(name)}${activity ? `, ${escape(activity)}` : ''}. Change agent or model"><i class="agent-dot" aria-hidden="true"></i><span class="agent-name">${escape(name)}</span>${activity ? `<span class="agent-activity">${escape(activity)}</span>` : ''}${chevron}</button>`
 }
 

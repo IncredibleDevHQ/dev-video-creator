@@ -279,12 +279,25 @@ export const videoDisplay = (
           : storyboard.status === 'waiting'
             ? storyboard.waitingFor === 'takes'
               ? 'Waiting for your takes'
-              : 'Plan ready for you'
+              : storyboard.stage === 'board'
+                ? 'Stills ready for you'
+                : 'Plan ready for you'
             : storyboard.status === 'failed'
               ? 'Stopped'
               : 'Made',
       active: storyboard.status === 'working',
-      actionLabel: storyboard.produced ? 'Export MP4' : 'Making the video'
+      actionLabel:
+        storyboard.status === 'failed'
+          ? 'Try again'
+          : storyboard.waitingFor === 'approval'
+            ? storyboard.stage === 'board'
+              ? 'Approve the stills'
+              : 'Approve the plan'
+            : storyboard.waitingFor === 'takes'
+              ? 'Record your take'
+              : storyboard.produced
+                ? 'Export MP4'
+                : 'Making the video'
     }
   }
   const views =

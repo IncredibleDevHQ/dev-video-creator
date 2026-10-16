@@ -32,6 +32,13 @@ export const stopOf = (seconds: number) =>
     0
   )
 
+/** A window's ends as stops: each at its nearest, the shorter one below the
+ * longer, so every window has two ends the slider can show. */
+export const windowStops = (goal: Pick<LengthGoal, 'min' | 'max'>) => {
+  const from = Math.min(stopOf(goal.min), LENGTH_STOPS.length - 2)
+  return [from, Math.max(from + 1, stopOf(goal.max))] as [number, number]
+}
+
 const minutes = (seconds: number) => {
   const value = Math.round((seconds / 60) * 2) / 2
   return Number.isInteger(value) ? String(value) : value.toFixed(1)

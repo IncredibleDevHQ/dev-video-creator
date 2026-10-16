@@ -34,7 +34,7 @@ export const pagesOf = (snapshot: Snapshot) =>
     .filter(Boolean)
 
 /** A copy as it came from the map: nothing in it edited in the episode. */
-const untouched = (copy: Slide) =>
+export const untouched = (copy: Slide) =>
   pageHash({ ...copy, narration: copy.base || '' }) === copy.copyOf?.hash
 
 /** The map's card as it is now, for a copy that is behind it and was never
@@ -67,7 +67,8 @@ const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
 export const setEpisodePages = async (
   notebook: string,
   map: Snapshot,
-  pages: string[]
+  pages: string[],
+  carried: Map<string, Slide> = new Map()
 ) => {
   const cards = new Map(
     map.project.slides
@@ -76,6 +77,8 @@ export const setEpisodePages = async (
   )
   let changed = false
   await changeProject(notebook, (current) => {
+    if (isMade(current))
+      throw new Refusal('An episode’s video started; plan again')
     const slides = current.project.slides
     const held = new Map<string, Slide>()
     for (const slide of slides) {
@@ -93,7 +96,15 @@ export const setEpisodePages = async (
         .filter((page) => cards.has(page))
         .map((page) => {
           const was = held.get(page)
-          if (!was) return copyOf(map.project.id, cards.get(page)!)
+          if (!was) {
+            const edited = carried.get(page)
+            if (!edited) return copyOf(map.project.id, cards.get(page)!)
+            const moved = structuredClone(edited)
+            delete moved.bridge
+            delete moved.outro
+            moved.narration = moved.base || moved.narration
+            return moved
+          }
           const fresh = caughtUp(map.project.id, was, cards.get(page)!)
           if (fresh) updated += 1
           return fresh || was
@@ -185,6 +196,13 @@ const mergeGaps = (
     gap.id === id || gap.missing.toLowerCase() === missing.toLowerCase()
   const fresh = planned.map((gap): SeriesGap => {
     const was = before.find((item) => same(item, gap.id, gap.missing))
+    // A card's answer holds; one a plan only called resolved opens again
+    // when a later plan names it (review 7).
+    const kept =
+      was &&
+      (was.state === 'explained' ||
+        was.state === 'ignored' ||
+        (was.state === 'closed' && Boolean(was.closedBy)))
     return {
       id: gap.id,
       missing: gap.missing,
@@ -193,10 +211,9 @@ const mergeGaps = (
         : {}),
       why: gap.why,
       ask: gap.ask,
-      state:
-        was && (was.state === 'explained' || was.state === 'ignored')
-          ? was.state
-          : 'open'
+      state: kept ? was.state : 'open',
+      ...(kept && was.closedBy ? { closedBy: was.closedBy } : {}),
+      ...(kept && was.resolved ? { resolved: was.resolved } : {})
     }
   })
   const kept = before
@@ -219,19 +236,45 @@ export const applyOutline = async (
     existing: Array<{ notebook: string; made: boolean }>
   }
 ) => {
+  const carried = new Map<string, Slide>()
+  for (const entry of context.existing) {
+    const latest = await loadProject(entry.notebook)
+    if (!entry.made && isMade(latest))
+      throw new Refusal('An episode’s video started; plan again')
+    if (!entry.made)
+      for (const copy of latest?.project.slides || []) {
+        if (copy.copyOf && (!untouched(copy) || copy.copyOf.kept))
+          carried.set(copy.copyOf.slide, copy)
+      }
+  }
   const order: string[] = []
   for (const episode of plan.episodes) {
     if (episode.episode) {
       const was = context.existing.find((e) => e.notebook === episode.episode)
       if (was && !was.made)
-        await setEpisodePages(episode.episode, context.map, episode.pages)
+        await setEpisodePages(
+          episode.episode,
+          context.map,
+          episode.pages,
+          carried
+        )
       order.push(episode.episode)
       continue
     }
-    const made = await addMapEpisode(seriesId, {
-      title: episode.title,
-      slides: episode.pages
-    })
+    const made = await addMapEpisode(
+      seriesId,
+      {
+        title: episode.title,
+        slides: []
+      },
+      true
+    )
+    await setEpisodePages(
+      made.notebook.project.id,
+      context.map,
+      episode.pages,
+      carried
+    )
     order.push(made.notebook.project.id)
   }
   await setSeriesOrder(seriesId, order)
@@ -240,11 +283,12 @@ export const applyOutline = async (
   const madeOnes = new Set(
     context.existing.filter((e) => e.made).map((e) => e.notebook)
   )
+  const latestSeries = await loadSeries(seriesId)
   for (const [index, notebook] of order.entries()) {
     const episode = plan.episodes[index]
     await changeProject(notebook, (current) => {
       const ref = current.project.episode
-      if (!ref) return
+      if (!ref || isMade(current)) return
       // An open episode is called what the plan made it, unless the creator
       // named it; a made one keeps the name its video has.
       const renamed =
@@ -256,7 +300,7 @@ export const applyOutline = async (
       ref.threads = episode.lines
         .map((id) => lineName.get(id) || '')
         .filter(Boolean)
-      if (context.series.length) ref.length = context.series.length
+      if (latestSeries?.length) ref.length = latestSeries.length
       addEvent(
         current,
         'slide',
@@ -324,6 +368,8 @@ export const applyOutline = async (
         direction.answer = { state: answer.state, why: answer.why, at }
     }
     delete current.planning
+    // A new plan supersedes the placement Undo, whose copies may have moved.
+    delete current.organized
   })
   // A gap the plan no longer needs is said, not just gone.
   const dropped = plan.resolved
@@ -354,7 +400,7 @@ export const applySeriesLength = async (seriesId: string) => {
     if (isMade(await loadProject(item.notebookId))) continue
     await changeProject(item.notebookId, (current) => {
       const ref = current.project.episode
-      if (!ref) return
+      if (!ref || isMade(current)) return
       if (series.length) ref.length = series.length
       else delete ref.length
     })

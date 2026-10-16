@@ -110,6 +110,11 @@ export const listSeries = async (): Promise<SeriesSummary[]> => {
         id,
         title: series.title,
         episodes: series.episodes.length,
+        ...(series.map ? { map: series.map } : {}),
+        members: series.episodes.map(({ notebookId, number }) => ({
+          notebookId,
+          number
+        })),
         planned: series.arc ? series.arc.parts.length : null,
         updatedAt: series.arc?.at || series.createdAt
       })

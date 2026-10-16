@@ -84,6 +84,12 @@
   font-size: 12px;
   margin-top: 20px;
 }
+.notebook-opening .opening-home {
+  display: inline-block;
+  margin-top: 8px;
+  border-radius: 8px;
+  text-decoration: none;
+}
 .media-recovery {
   display: flex;
   align-items: center;

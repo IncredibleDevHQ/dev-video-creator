@@ -1,6 +1,6 @@
 // A series on the home page, its page (arc, episodes, threads, next
 // episode), the dialog that starts one, and the chip on an episode.
-import type { Snapshot } from '../shared/api'
+import type { Snapshot, NotebookSummary } from '../shared/api'
 import { narrativeById } from '../shared/narratives'
 import type { Series, SeriesEpisode, SeriesSummary } from '../shared/series'
 import { nextPart } from '../shared/series'
@@ -13,17 +13,55 @@ export type SeriesPageData = {
   >
 }
 
+/** Where one of a series' notebooks stands, in a few words. */
+const notebookState = (item?: NotebookSummary) =>
+  !item
+    ? 'Unavailable'
+    : item.videoReady
+      ? 'Video ready'
+      : item.hasVideo
+        ? 'Video in progress'
+        : item.status === 'ready'
+          ? 'Wireframes ready'
+          : item.status === 'failed'
+            ? 'Needs attention'
+            : item.status
+
+/** One of a series' notebooks: its content map, or an episode. */
+const seriesEntry = (
+  notebooks: NotebookSummary[],
+  id: string,
+  label: string,
+  map = false
+) => {
+  const item = notebooks.find((notebook) => notebook.id === id)
+  const opens = map
+    ? `data-action="open-map-of" data-map="${escape(id)}"`
+    : `data-notebook="${escape(id)}"`
+  return `<li><button type="button" ${opens}><b>${escape(label)}</b><span>${escape(item?.title || label)}</span><small>${escape(notebookState(item))}</small></button></li>`
+}
+
+/** A series with its source and episodes together, and how far it has come. */
+const seriesRow = (item: SeriesSummary, notebooks: NotebookSummary[]) => {
+  const map = item.map
+    ? seriesEntry(notebooks, item.map, 'Content map', true)
+    : ''
+  const episodes = (item.members || [])
+    .map((member) =>
+      seriesEntry(notebooks, member.notebookId, `Episode ${member.number}`)
+    )
+    .join('')
+  const count = `${item.episodes} ${item.episodes === 1 ? 'episode' : 'episodes'}${item.planned ? ` of ${item.planned} planned` : ''}`
+  return `<article class="series-row"><div class="series-row-head"><button type="button" class="series-row-title" data-action="open-series" data-series="${escape(item.id)}">${escape(item.title)}</button><small>${count}</small></div>${map || episodes ? `<ol>${map}${episodes}</ol>` : ''}</article>`
+}
+
 /** The creator's series, under their notebooks. */
-export const seriesSection = (list: SeriesSummary[]) =>
+export const seriesSection = (
+  list: SeriesSummary[],
+  notebooks: NotebookSummary[] = []
+) =>
   list.length
-    ? `<section class="saved-notebooks saved-series" aria-labelledby="series-heading">
-<div class="saved-notebooks-heading"><h2 id="series-heading">Your series</h2></div>
-<div class="series-tiles">${list
-        .map(
-          (item) =>
-            `<button type="button" class="series-tile" data-action="open-series" data-series="${escape(item.id)}"><span class="tile-title">${escape(item.title)}</span><span class="tile-meta">${item.episodes} ${item.episodes === 1 ? 'episode' : 'episodes'}${item.planned ? ` of ${item.planned} planned` : ''}</span></button>`
-        )
-        .join('')}</div></section>`
+    ? `<section class="saved-notebooks saved-series" aria-labelledby="series-heading"><div class="saved-notebooks-heading"><h2 id="series-heading">Your series</h2></div><div class="series-rows">${list.map((item) => seriesRow(item, notebooks)).join('')}</div></section>`
     : ''
 
 /** The switch at the start: a series, its subject, and how it grows. */

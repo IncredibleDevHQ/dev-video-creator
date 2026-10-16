@@ -5,6 +5,7 @@
 // choose, and nothing is saved until Apply. It replaces the brand dialog.
 import {
   FONT_CHOICES,
+  cssFamily,
   filesFor,
   fontName,
   loadableFont,
@@ -55,7 +56,7 @@ export const offeredFaces = (app: AppContext) => {
 
 /** A small title page in a look: the notebook's title over a little diagram. */
 export const lookSample = (title: string, look: Look) =>
-  `<span class="look-sample" style="--look-ground:${look.palette.ground};--look-text:${look.palette.text};--look-accent:${look.palette.accent};--look-secondary:${look.palette.secondary};--look-display:${escape(look.fonts.display)}" aria-hidden="true"><b>${escape(title)}</b><i><em></em><em></em><em></em></i></span>`
+  `<span class="look-sample" style="--look-ground:${escape(look.palette.ground)};--look-text:${escape(look.palette.text)};--look-accent:${escape(look.palette.accent)};--look-secondary:${escape(look.palette.secondary)};--look-display:${escape(cssFamily(look.fonts.display))}" aria-hidden="true"><b>${escape(title)}</b><i><em></em><em></em><em></em></i></span>`
 
 const tile = (title: string, look: Look, pressed: boolean) =>
   `<button type="button" class="look-tile" data-look-id="${escape(look.id)}" aria-pressed="${pressed}">${lookSample(title, look)}<span class="look-name">${escape(look.name)}</span><small>${escape(look.description)}</small></button>`
@@ -112,6 +113,46 @@ const looksFor = (app: AppContext, from: Look) => {
   return list
 }
 
+/** How much of a logo's ink stands out from a ground: the share of its
+ * opaque pixels unlike the ground's colour, measured as the brand reader
+ * measures a logo (review 7: a dark logo vanished on a dark chip). */
+export const logoContrast = (data: ArrayLike<number>, ground: string) => {
+  const rgb = [1, 3, 5].map((at) => parseInt(ground.slice(at, at + 2), 16))
+  let opaque = 0
+  let shown = 0
+  for (let i = 0; i + 3 < data.length; i += 4) {
+    if (data[i + 3] <= 40) continue
+    opaque++
+    const apart =
+      Math.abs(data[i] - rgb[0]) +
+      Math.abs(data[i + 1] - rgb[1]) +
+      Math.abs(data[i + 2] - rgb[2])
+    if (apart > 90) shown++
+  }
+  return opaque ? shown / opaque : 1
+}
+
+/** Says so beside the logo when most of it blends into the look's ground. */
+const checkLogo = async (element: HTMLElement, ground: string) => {
+  const img = element.querySelector<HTMLImageElement>('.look-logo img')
+  const note = element.querySelector<HTMLElement>('[data-look-logo-note]')
+  if (!img || !note) return
+  try {
+    await img.decode()
+    const scale = Math.min(1, 240 / (img.naturalWidth || 1))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale))
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale))
+    const context = canvas.getContext('2d')
+    if (!context) return
+    context.drawImage(img, 0, 0, canvas.width, canvas.height)
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+    note.hidden = logoContrast(data, ground) >= 0.5
+  } catch {
+    // Not decoded (or no canvas): no warning rather than a wrong one.
+  }
+}
+
 /** Re-colour the drawn wireframes on screen to the draft look (no save). */
 export const syncLookPreview = (root: HTMLElement) => {
   if (!open) return
@@ -121,7 +162,7 @@ export const syncLookPreview = (root: HTMLElement) => {
   )) {
     const host = svg.parentElement!
     if (!originals.has(host)) originals.set(host, host.innerHTML)
-    host.innerHTML = recolourLook(
+    const preview = recolourLook(
       originals.get(host)!,
       from.palette,
       draft.palette,
@@ -130,6 +171,7 @@ export const syncLookPreview = (root: HTMLElement) => {
         to: draft.fonts
       }
     )
+    if (host.innerHTML !== preview) host.innerHTML = preview
   }
 }
 
@@ -197,15 +239,16 @@ export const openLookPanel = (app: AppContext) => {
     )
       .map(
         ([key, label]) =>
-          `<label><input type="color" data-look-colour="${key}" value="${draft.palette[key]}"><span>${label}</span></label>`
+          `<label><input type="color" data-look-colour="${key}" value="${escape(draft.palette[key])}"><span>${label}</span></label>`
       )
       .join('')}</div>
 <h3>Fonts</h3>
 <div class="look-fonts"><label>Headings${fontMenu('display', draft.fonts.display, offered)}</label><label>Text${fontMenu('body', draft.fonts.body, offered)}</label></div>
-${siteLogo ? `<h3>Logo</h3><label class="look-logo"><input type="checkbox" data-look-logo ${useLogo ? 'checked' : ''}><img src="/objects/${escape(siteLogo.pngKey)}" alt="${escape(siteLogo.from)} logo"><span>Use ${escape(siteLogo.from)}’s logo in videos</span></label>` : ''}
+${siteLogo ? `<h3>Logo</h3><label class="look-logo"><input type="checkbox" data-look-logo ${useLogo ? 'checked' : ''}><img style="background:${escape(draft.palette.ground)}" src="/objects/${escape(siteLogo.pngKey)}" alt="${escape(siteLogo.from)} logo"><span>Use ${escape(siteLogo.from)}’s logo in videos<small data-look-logo-note hidden>Hard to see on this background</small></span></label>` : ''}
 <p class="popover-error" role="alert" data-look-error></p></div>
 <div class="look-actions">${domain ? `<label class="look-remember"><input type="checkbox" data-look-remember> Save for ${escape(domain)}</label>` : ''}<button type="button" data-look-cancel>Cancel</button><button type="button" class="primary" data-look-apply ${draft === from && useLogo === logoUsed ? 'disabled' : ''}>${drawn ? 'Apply to all wireframes' : 'Use this look'}</button></div>`
     syncLookPreview(app.root)
+    void checkLogo(element, draft.palette.ground)
   }
   const change = (next: Look) => {
     open!.draft = next

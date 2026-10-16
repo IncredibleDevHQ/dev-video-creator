@@ -97,6 +97,39 @@ describe('the quiet chrome around the map', () => {
     expect(bare.at(-1)).toMatchObject({ disabled: true })
   })
 
+  it('says a failed grouping, with its reason and Group again', async () => {
+    const { groupAction } = await import('../app/map-paint')
+    const failed = snapshot({
+      grouping: { state: 'failed', error: 'The agent ran out of time' }
+    })
+    // Where the cards wait, and in the View button (review 6: it went back
+    // to "Group by topic" unsaid).
+    expect(groupAction(failed)).toContain(
+      'Grouping failed: The agent ran out of time'
+    )
+    expect(groupAction(failed)).toContain('>Group again</button>')
+    expect(mapTools(failed, view(true), 'topic', 'all')).toContain(
+      'By topic · grouping failed'
+    )
+    expect(groupAction(snapshot())).toContain('Group by topic')
+    expect(
+      groupAction(snapshot({ grouping: { state: 'grouping' } }))
+    ).toContain('disabled')
+  })
+
+  it('leaves room for two lines of a card’s title above it', async () => {
+    const { mapLayout } = await import('../app/map-layout')
+    const slides = ['a', 'b', 'c'].map((id) => ({
+      id,
+      title: `Card ${id}`,
+      svg: '<svg/>'
+    }))
+    const layout = mapLayout(snapshot({ slides }), null, 'order')
+    // Two 16 px lines and the gap above the next row's card (review 6: one).
+    const { a, c } = layout.cards
+    expect(c.y - (a.y + a.h)).toBeGreaterThanOrEqual(2 * 16 + 6)
+  })
+
   it('counts the notes, and says when one is being sorted', () => {
     const count = (notes: ReturnType<typeof note>[]) =>
       noteCount({ snapshot: snapshot({ notes }) } as unknown as MapCanvas)

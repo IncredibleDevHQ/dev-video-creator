@@ -659,7 +659,8 @@ export const editSlide = (id: string, edit: SlideEdit) =>
         // only stopped scene came back, and the line didn't).
         if (stopped && scene.phase === 'failed' && video.phase === 'idle') {
           video.phase = 'failed'
-          video.error = stopped
+          // One saved by 5876b274 said only that it stood stopped.
+          video.error = typeof stopped === 'string' ? stopped : stoppedLine(1)
         }
       }
       delete snapshot.deletedSlide
@@ -667,6 +668,12 @@ export const editSlide = (id: string, edit: SlideEdit) =>
     else {
       if (index < 0) throw new Refusal('Slide not found')
       if (edit.action === 'delete') {
+        if (
+          snapshot.project.video?.storyboard?.pages.includes(slides[index].id)
+        )
+          throw new Refusal(
+            'This page is used by the storyboard and cannot be deleted'
+          )
         snapshot.deletedSlide = keptForUndo(snapshot.project, index)
         slides.splice(index, 1)
       }
