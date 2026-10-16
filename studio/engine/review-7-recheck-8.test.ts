@@ -423,6 +423,67 @@ it('puts a new episode after the last one when the episode it follows left the s
   await segues.settledAllSegues()
 })
 
+it('puts an episode back when a step after its new cards fails', async () => {
+  const ids = await drawnMap('m-after-write')
+  const series = await episodes.startMapSeries('m-after-write', {})
+  const a = await add(series.id, [ids[0], ids[1]])
+  await segues.settledAllSegues()
+  replies['Plan Series'] = () => {
+    // A gets its new cards, then reading their evidence fails.
+    between.next = async () => {
+      throw new Error('The evidence could not be read')
+    }
+    return outline(
+      [{ episode: a, title: 'Opening', pages: [ids[0], ids[3]] }],
+      [ids[1], ids[2], ids[4], ids[5], ids[6]]
+    )
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect((await loadSeries(series.id))!.planning?.state).toBe('failed')
+  expect(await pagesIn(a)).toEqual([ids[0], ids[1]])
+  await segues.settledAllSegues()
+})
+
+it('puts an episode back though its segues were written while the plan went', async () => {
+  const ids = await drawnMap('m-segue-mid')
+  const series = await episodes.startMapSeries('m-segue-mid', {})
+  const a = await add(series.id, [ids[0], ids[1]])
+  const b = await add(series.id, [ids[2]])
+  const x = await add(series.id, [ids[4]])
+  await segues.settledAllSegues()
+  replies['Plan Series'] = () => {
+    // After A is set, its lines are written again as B is; then X's video
+    // starts, which stops the plan.
+    between.skip = 1
+    between.next = async () => {
+      await changeProject(a, (current) => {
+        const first = current.project.slides[0]
+        first.bridge = 'A new line into it.'
+        first.bridgeFor = 'mid-run'
+        first.narration = [first.bridge, first.base, first.outro]
+          .filter(Boolean)
+          .join(' ')
+      })
+      await startStoryboard(x)
+    }
+    return outline(
+      [
+        { episode: a, title: 'Opening', pages: [ids[0], ids[1], ids[3]] },
+        { episode: b, title: 'Middle', pages: [ids[2], ids[5]] },
+        { episode: x, title: 'Later', pages: [ids[4]] }
+      ],
+      [ids[6]]
+    )
+  }
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  expect((await loadSeries(series.id))!.planning?.state).toBe('failed')
+  expect(await pagesIn(a)).toEqual([ids[0], ids[1]])
+  expect(await pagesIn(b)).toEqual([ids[2]])
+  await segues.settledAllSegues()
+})
+
 it('keeps two new episodes after the same one in the plan’s order', async () => {
   const ids = await drawnMap('m-two-after')
   const series = await episodes.startMapSeries('m-two-after', {})

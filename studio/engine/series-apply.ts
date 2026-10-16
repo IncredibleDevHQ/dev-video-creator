@@ -280,7 +280,19 @@ export type PutBack = Map<string, { slides: Slide[]; written: string }>
 const slidesOf = async (id: string) =>
   (await loadProject(id))?.project.slides || []
 
-/** Gives an open episode its cards, noting how to put them back. */
+/** An episode's cards as the creator would change them: the lines the
+ * studio writes around them left out, so segues written while a run goes
+ * aren't taken for the creator's edit, and a script the creator wrote is
+ * kept whole. */
+export const cardsOf = (slides: Slide[]) =>
+  JSON.stringify(
+    slides.map(({ bridge, bridgeFor, outro, outroFor, ...card }) =>
+      card.base === undefined ? card : { ...card, narration: '' }
+    )
+  )
+
+/** Gives an open episode its cards, noting how to put them back: noted
+ * also when a step after the write fails, so it goes back too. */
 export const setPagesNoted = async (
   before: PutBack,
   notebook: string,
@@ -290,9 +302,11 @@ export const setPagesNoted = async (
   stay?: Set<string>
 ) => {
   const slides = await slidesOf(notebook)
-  await setEpisodePages(notebook, map, pages, carried, stay)
-  const written = JSON.stringify(await slidesOf(notebook))
-  before.set(notebook, { slides, written })
+  try {
+    await setEpisodePages(notebook, map, pages, carried, stay)
+  } finally {
+    before.set(notebook, { slides, written: cardsOf(await slidesOf(notebook)) })
+  }
 }
 
 /** All or nothing: what a stopped run changed goes back as it was, unless
@@ -314,7 +328,7 @@ export const putBack = async (
   // holds: a copy moved into it stays there.
   const keeps = [...before.keys()].filter(
     (notebook) =>
-      JSON.stringify(slidesNow(notebook)) !== before.get(notebook)!.written ||
+      cardsOf(slidesNow(notebook)) !== before.get(notebook)!.written ||
       isMade(now.get(notebook) ?? null)
   )
   const stays = new Set(
@@ -330,11 +344,10 @@ export const putBack = async (
     next: (slides: Slide[]) => Slide[]
   ) =>
     changeProject(notebook, (current) => {
-      if (isMade(current) || JSON.stringify(current.project.slides) !== as)
-        return
+      if (isMade(current) || cardsOf(current.project.slides) !== as) return
       current.project.slides = next(current.project.slides)
       reconcileVideo(current.project, current, new Set())
-      left.set(notebook, JSON.stringify(current.project.slides))
+      left.set(notebook, cardsOf(current.project.slides))
     }).catch(() => {})
   for (const [notebook, { slides, written }] of before) {
     if (keeps.includes(notebook)) continue
@@ -363,8 +376,7 @@ export const putBack = async (
       current.project.slides = [...current.project.slides, original]
       reconcileVideo(current.project, current, new Set())
       home = true
-      if (left.has(source))
-        left.set(source, JSON.stringify(current.project.slides))
+      if (left.has(source)) left.set(source, cardsOf(current.project.slides))
     }).catch(() => {})
     if (!home) away.add(id)
     // Then out of where it went.
