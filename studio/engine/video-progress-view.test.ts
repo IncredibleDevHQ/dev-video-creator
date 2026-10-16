@@ -571,9 +571,11 @@ it('keeps the planned presenter space visible when animation exists but recordin
   expect(
     document.querySelector('[data-rehearsal-animation]')?.getAttribute('src')
   ).toBe('/objects/animation.mp4')
+  // The take's place is a neutral outline, never a stock photo (review 7).
   expect(
-    document.querySelector('.presenter-preview img')?.getAttribute('alt')
-  ).toBe('Presenter stand-in')
+    document.querySelector('.presenter-preview .take-placeholder')?.textContent
+  ).toContain('Your take goes here')
+  expect(document.querySelector('.presenter-preview img')).toBeNull()
   expect(document.querySelector('[data-animation-player]')).toBeNull()
   expect(document.querySelector('[data-stand-in-play]')).not.toBeNull()
   expect(document.querySelector('[data-stand-in-seek]')).not.toBeNull()
@@ -586,7 +588,7 @@ it('keeps the planned presenter space visible when animation exists but recordin
   expect(
     document.querySelector('[data-saved-presenter]')?.getAttribute('src')
   ).toBe('/objects/recorded.webm')
-  expect(document.querySelector('.presenter-preview img')).toBeNull()
+  expect(document.querySelector('.take-placeholder')).toBeNull()
 })
 
 it('stops current activity at missing recordings instead of showing an obsolete final render', async () => {

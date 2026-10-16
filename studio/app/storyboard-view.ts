@@ -26,7 +26,7 @@ import {
   type SceneSummary,
   type Storyboard
 } from '../shared/storyboard'
-import { cameraCue } from './camera-cue'
+import { cameraCue, takePlaceholder } from './camera-cue'
 import type { Recording } from './recording'
 import {
   countdownOverlay,
@@ -318,7 +318,7 @@ const stage = (
         ? `<div class="presenter-preview beside-slide"><video class="take-player" data-sb-take src="${escape(capture.url)}" controls playsinline></video></div>`
         : scene?.take
           ? `<div class="presenter-preview beside-slide"><video data-sb-take src="/objects/${escape(scene.take.objectKey)}" controls playsinline preload="metadata"></video></div>`
-          : `<div class="presenter-preview beside-slide"><div class="sb-take-placeholder"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="36" r="19"/><path d="M24 108v-15a36 36 0 0 1 72 0v15"/></svg><small>${cameraCue('full')}Your take goes here</small><div class="sb-take-actions">${actions(storyboard, scene, frame, capture, false, true)}</div></div></div>`
+          : `<div class="presenter-preview beside-slide">${takePlaceholder(`<div class="sb-take-actions">${actions(storyboard, scene, frame, capture, false, true)}</div>`)}</div>`
   return `<div class="stage video-stage sb-stage ${camera && !shown ? 'presenter-layout-beside-slide' : ''}" style="${camera && !shown ? presenterLayoutStyle('beside-slide') : ''}">${camera && shown ? picture : `${picture}${presenter}`}${chip}${recording ? countdownOverlay(capture) : ''}</div>`
 }
 
@@ -516,7 +516,9 @@ export const storyboardHeader = (
     )?.pageId
     return `<button type="button" class="primary" data-action="sb-record" data-page="${escape(page || '')}" ${page ? '' : 'disabled'}>Record your take</button>`
   }
-  if (storyboard.produced)
+  // Being made again (a transition changed), the last cut is not offered as
+  // the video: the header says what is happening until the new one is made.
+  if (storyboard.produced && storyboard.status !== 'working')
     return `${release}${button('Export MP4', 'produce-video', true)}`
   return `<span class="header-video-status" role="status">${escape(videoDisplay(snapshot).label)}</span>`
 }

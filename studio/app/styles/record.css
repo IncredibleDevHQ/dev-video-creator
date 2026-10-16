@@ -1,5 +1,5 @@
 /* Recording in place: the light and clock, the countdown on the stage, the
-   microphone's level, and Start in recording red. */
+   microphone's level, Start in recording red, and the take's place. */
 .rec-light {
   display: inline-flex;
   align-items: center;
@@ -110,6 +110,33 @@
   .video-actions
   .primary[data-action='record-begin']:hover:not(:disabled) {
   background: #c9302a;
+}
+/* Until the take is recorded, on the storyboard and a scene's page: a
+   neutral outline in the take's place, never a stranger's face. */
+.take-placeholder {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  height: 100%;
+  color: var(--muted);
+}
+/* The outline only: the camera cue's own icon keeps its size. */
+.take-placeholder > svg {
+  width: 30%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.take-placeholder small {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  color: inherit;
+  text-align: center;
 }
 @media (prefers-reduced-motion: reduce) {
   .rec-light > i,

@@ -88,6 +88,17 @@ export const mapPage = (title: string) => `<div class="map-page">
 </div>
 </div>`
 
+/** A map that no longer exists: one line, and the way back, to the notebook
+ * it was opened from or home (review 7: its link stayed on Loading…). */
+export const mapGone = (back = '') => `<header>
+<a class="brand" href="/" aria-label="Incredible Studio"><img src="${incredibleLogo}" alt="">Incredible</a>
+</header>
+<main class="notebook-opening"><section role="status" aria-live="polite"><h1>This map is gone</h1>${
+  back
+    ? `<a class="primary opening-home" href="/?notebook=${encodeURIComponent(back)}">Back to the notebook</a>`
+    : '<a class="primary opening-home" href="/">Back to your notebooks</a>'
+}</section></main>`
+
 /** The notebook's stages; the map is a view of the Wireframe stage. */
 export const mapStages = (snapshot: Snapshot) =>
   (

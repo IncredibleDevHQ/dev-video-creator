@@ -113,21 +113,32 @@ const looksFor = (app: AppContext, from: Look) => {
   return list
 }
 
+/** A colour's relative luminance as WCAG measures it: 0 black, 1 white. */
+const luminance = (r: number, g: number, b: number) => {
+  const [R, G, B] = [r, g, b].map((value) => {
+    const c = value / 255
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B
+}
+
 /** How much of a logo's ink stands out from a ground: the share of its
- * opaque pixels unlike the ground's colour, measured as the brand reader
- * measures a logo (review 7: a dark logo vanished on a dark chip). */
+ * opaque pixels at 3:1 contrast with it or more, WCAG's line for graphics
+ * (review 7: a dark logo vanished on a dark chip, and a yellow or light
+ * grey one on white went unwarned). */
 export const logoContrast = (data: ArrayLike<number>, ground: string) => {
-  const rgb = [1, 3, 5].map((at) => parseInt(ground.slice(at, at + 2), 16))
+  const [r, g, b] = [1, 3, 5].map((at) =>
+    parseInt(ground.slice(at, at + 2), 16)
+  )
+  const back = luminance(r, g, b)
   let opaque = 0
   let shown = 0
   for (let i = 0; i + 3 < data.length; i += 4) {
     if (data[i + 3] <= 40) continue
     opaque++
-    const apart =
-      Math.abs(data[i] - rgb[0]) +
-      Math.abs(data[i + 1] - rgb[1]) +
-      Math.abs(data[i + 2] - rgb[2])
-    if (apart > 90) shown++
+    const ink = luminance(data[i], data[i + 1], data[i + 2])
+    const ratio = (Math.max(ink, back) + 0.05) / (Math.min(ink, back) + 0.05)
+    if (ratio >= 3) shown++
   }
   return opaque ? shown / opaque : 1
 }

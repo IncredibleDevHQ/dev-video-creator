@@ -63,6 +63,17 @@ const hide = () => {
   restore()
 }
 
+/** The tip's words, with its shortcut set apart. */
+const write = (node: HTMLElement, title: string) => {
+  const { text, keys } = tipParts(title)
+  node.textContent = text
+  if (keys) {
+    const kbd = document.createElement('kbd')
+    kbd.textContent = keys
+    node.append(kbd)
+  }
+}
+
 const show = (element: HTMLElement) => {
   const title = element.getAttribute('title') || ''
   if (!title || !element.isConnected) return
@@ -71,15 +82,24 @@ const show = (element: HTMLElement) => {
   // The browser's own tooltip would show too.
   element.removeAttribute('title')
   const node = layer()
-  const { text, keys } = tipParts(title)
-  node.textContent = text
-  if (keys) {
-    const kbd = document.createElement('kbd')
-    kbd.textContent = keys
-    node.append(kbd)
-  }
+  write(node, title)
   node.hidden = false
   place(node, element.getBoundingClientRect())
+}
+
+/** Gives a control new words, also while its tooltip shows them (its title
+ * is lent then): the tooltip says them at once, and the title comes back
+ * with them (review 7: Talk said the old words until the map drew again). */
+export const retitle = (element: HTMLElement, title: string) => {
+  if (element !== owner) {
+    if (element.getAttribute('title') !== title)
+      element.setAttribute('title', title)
+    return
+  }
+  lent = title
+  if (!tip || tip.hidden) return
+  write(tip, title)
+  place(tip, element.getBoundingClientRect())
 }
 
 const target = (event: Event) =>

@@ -261,7 +261,7 @@ describe('the storyboard’s next step (UX-1)', () => {
 describe('the storyboard’s buttons (UX-2, UX-3, UX-4)', () => {
   it('puts Record and Upload on the camera scene’s stage, where its take goes', () => {
     const html = page(storyboard({ stage: 'voice', approved: true }), 1)
-    const slot = html.querySelector('.sb-stage .sb-take-placeholder')
+    const slot = html.querySelector('.sb-stage .take-placeholder')
     expect(slot?.textContent).toContain('Your take goes here')
     expect(texts(slot!.querySelectorAll('button'))).toEqual([
       'Upload',
@@ -316,12 +316,12 @@ describe('the storyboard’s buttons (UX-2, UX-3, UX-4)', () => {
       'Upload',
       'Record again'
     ])
-    expect(html.querySelector('.sb-take-placeholder')).toBeNull()
+    expect(html.querySelector('.take-placeholder')).toBeNull()
   })
 
   it('stands a neutral outline in for the take, never a stranger’s photo', () => {
     const html = page(storyboard({ stage: 'voice', approved: true }), 1)
-    const slot = html.querySelector('.sb-take-placeholder')!
+    const slot = html.querySelector('.take-placeholder')!
     expect(html.querySelector('img[src*="presenter"]')).toBeNull()
     expect(slot.querySelector('img')).toBeNull()
     expect(slot.querySelector('svg')).not.toBeNull()
@@ -331,7 +331,7 @@ describe('the storyboard’s buttons (UX-2, UX-3, UX-4)', () => {
     const slot = page(
       storyboard({ stage: 'voice', approved: true }),
       1
-    ).querySelector('.sb-take-placeholder')!
+    ).querySelector('.take-placeholder')!
     const camera = [...slot.querySelectorAll('*')].some((node) =>
       /camera/i.test(
         `${node.getAttribute('class') || ''} ${node.getAttribute('aria-label') || ''}`

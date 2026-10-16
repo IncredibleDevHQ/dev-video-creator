@@ -319,31 +319,6 @@
     grid-template-columns: 1fr;
   }
 }
-/* Until the take is recorded: a neutral outline, never a stranger's face,
-   with Record and Upload under the stage where the take will play. */
-.sb-take-placeholder {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 16px;
-  height: 100%;
-  color: var(--muted);
-}
-.sb-take-placeholder svg {
-  width: 30%;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-}
-.sb-take-placeholder small {
-  position: static;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  background: none;
-  color: inherit;
-}
 .sb-take-actions {
   display: flex;
   justify-content: flex-end;
@@ -354,10 +329,11 @@
   height: 32px;
   margin-right: auto;
 }
-.sb-take-placeholder .sb-take-actions {
+/* Record and Upload in the take's place, under its outline. */
+.take-placeholder .sb-take-actions {
   justify-content: center;
   margin-top: 0;
 }
-.sb-take-placeholder .sb-take-actions button:not(.primary) {
+.take-placeholder .sb-take-actions button:not(.primary) {
   border-color: var(--line);
 }

@@ -542,7 +542,7 @@ const dispatch = async (
   if (name !== 'cancel' && name !== 'copy-post') hideMenu(map)
   if (chromeAction(map, name, target, Boolean(reopened))) return
   if (name === 'length') return target ? openLength(map, target) : undefined
-  if (await flowAction(map, name, arg)) return
+  if (await flowAction(map, name, arg, Boolean(reopened))) return
   switch (name) {
     case 'close':
       return map.close()

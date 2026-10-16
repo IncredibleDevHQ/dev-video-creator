@@ -666,6 +666,9 @@ describe('keys on the map (CV-2, CV-8, CV-11, UX-13, UX-14)', () => {
     const menu = map.slot('menu')!
     expect([menu.style.left, menu.style.top]).toEqual(['56px', '360px'])
     add.getBoundingClientRect = () => rect(112, 820, 36, 36)
+    // The same + again closes it; the next opens it where + is now.
+    click(add)
+    expect(menu.hidden).toBe(true)
     click(add)
     expect(menu.style.top).toBe('540px')
   })

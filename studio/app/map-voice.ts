@@ -13,6 +13,7 @@ import { Aliases, canvasText, heldWords } from './map-ai-canvas'
 import { AiCursor } from './map-ai'
 import { runAiTool } from './map-ai-tools'
 import type { MapCanvas } from './map-canvas'
+import { retitle } from './tooltip'
 import { escape } from './ui'
 import { openMic, VoicePlayer, type Mic } from './voice-audio'
 import { voiceIcon } from './voice-icons'
@@ -467,9 +468,8 @@ export class VoiceCall {
     dock.classList.toggle('is-on', this.on)
     // Without a key, Talk stays enabled in its set-up state (review 7).
     const talk = this.map.root.querySelector<HTMLElement>('[data-voice="talk"]')
-    const tip = this.needsKey ? NEEDS_KEY : TALK_TIP
     talk?.classList.toggle('is-setup', this.needsKey)
-    if (talk?.hasAttribute('title') && talk.title !== tip) talk.title = tip
+    if (talk) retitle(talk, this.needsKey ? NEEDS_KEY : TALK_TIP)
     this.context()
   }
 

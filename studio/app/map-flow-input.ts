@@ -382,8 +382,14 @@ export const addChoices = (
     : ['start-series', 'Series', 'A series from these cards', 'S']
 ]
 
-/** The planning actions. True when the action was one of them. */
-export const flowAction = async (map: MapCanvas, name: string, arg: string) => {
+/** The planning actions. True when the action was one of them. Reopened:
+ * its menu was open, and the same button closes it. */
+export const flowAction = async (
+  map: MapCanvas,
+  name: string,
+  arg: string,
+  reopened = false
+) => {
   const series = map.view?.series
   switch (name) {
     case 'cancel': {
@@ -408,6 +414,8 @@ export const flowAction = async (map: MapCanvas, name: string, arg: string) => {
       return true
     }
     case 'add': {
+      // A second click on + closes its menu, as toggles do (review 7).
+      if (reopened) return true
       const canvas = map.canvas!.getBoundingClientRect()
       const at = worldPoint(
         map,

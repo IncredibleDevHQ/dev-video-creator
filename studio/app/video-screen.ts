@@ -27,7 +27,7 @@ import {
   recordPlace,
   recordTitle
 } from './record-view'
-import { cameraCue, microphoneCue } from './camera-cue'
+import { cameraCue, microphoneCue, takePlaceholder } from './camera-cue'
 import { gear } from './camera-settings'
 import {
   momentNeedsRecording,
@@ -56,7 +56,6 @@ import {
   takePickedTemplate,
   templatePicker
 } from './template-picker'
-const standIn = new URL('./assets/presenter.jpg', import.meta.url).href
 /**
  * What a moment is, one way everywhere (review 6: the strip said Voice and
  * Record, the transcript Graphics only and You full screen): a voice over
@@ -433,8 +432,7 @@ export const videoScreen = (
                               moment.take.objectKey
                             )}" ${practicing ? 'muted' : ''} playsinline preload="auto">
 </video>`
-                          : `<img src="${standIn}" alt="Presenter stand-in">
-<small>Presenter stand-in</small>`
+                          : takePlaceholder()
                     }</div>`
                   : ''
               }${sceneOverlay(project, moment)}`
