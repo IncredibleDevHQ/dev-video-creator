@@ -20,15 +20,28 @@ import {
 } from './storyboard-view'
 import { button, escape } from './ui'
 
-const uploadTake = (projectId: string, pageId: string, blob: Blob) =>
-  requestJson<Snapshot>(
+// A file the picker offers, by the name the engine takes it under: browsers
+// call an .m4a audio/x-m4a, and a .wav or an .mp3 by older names.
+const TYPE_NAMES: Record<string, string> = {
+  'audio/x-m4a': 'audio/mp4',
+  'audio/mp3': 'audio/mpeg',
+  'audio/x-wav': 'audio/wav',
+  'audio/wave': 'audio/wav',
+  'audio/vnd.wave': 'audio/wav',
+  'video/x-m4v': 'video/mp4'
+}
+
+const uploadTake = (projectId: string, pageId: string, blob: Blob) => {
+  const type = (blob.type || 'video/webm').split(';')[0]
+  return requestJson<Snapshot>(
     `/api/projects/${projectId}/storyboard/scenes/${pageId}/take`,
     {
       method: 'PUT',
-      headers: { 'Content-Type': (blob.type || 'video/webm').split(';')[0] },
+      headers: { 'Content-Type': TYPE_NAMES[type] || type },
       body: blob
     }
   )
+}
 
 const storyboardOf = (app: AppContext) =>
   app.snapshot?.project.video?.storyboard
@@ -225,9 +238,13 @@ export const clickStoryboard = async (
     app.dialog.querySelector<HTMLTextAreaElement>('#sb-still-note')?.focus()
     return true
   }
-  if (action === 'sb-approve') app.snapshot = await api.approveStoryboard(id)
-  else if (action === 'sb-retry') app.snapshot = await api.retryStoryboard(id)
-  else if (action === 'sb-change') {
+  if (action === 'sb-approve' || action === 'sb-retry') {
+    const saved = await (action === 'sb-approve'
+      ? api.approveStoryboard(id)
+      : api.retryStoryboard(id))
+    // Shown on its own notebook only: another may have opened meanwhile.
+    if (app.snapshot?.project.id === id) app.snapshot = saved
+  } else if (action === 'sb-change') {
     app.showDialog(changeDialog(storyboard?.stage === 'board'))
     app.dialog.querySelector<HTMLTextAreaElement>('#sb-note')?.focus()
     return true
@@ -270,16 +287,16 @@ export const submitStoryboard = async (
 ) => {
   if (!['storyboard-change', 'storyboard-still'].includes(form.id)) return
   if (!app.snapshot) return
+  const id = app.snapshot.project.id
   const note = String(values.get('note') || '').trim()
   if (!note) throw new Error('Say what to change')
-  app.snapshot =
+  const saved =
     form.id === 'storyboard-still'
-      ? await api.noteStoryboardFrame(
-          app.snapshot.project.id,
-          Number(form.dataset.number),
-          note
-        )
-      : await api.approveStoryboard(app.snapshot.project.id, note)
+      ? await api.noteStoryboardFrame(id, Number(form.dataset.number), note)
+      : await api.approveStoryboard(id, note)
+  // Another notebook opened meanwhile keeps its page, and its own dialog.
+  if (app.snapshot?.project.id !== id) return
+  app.snapshot = saved
   app.dialog.close()
   app.render()
 }
@@ -293,12 +310,15 @@ export const changeStoryboard = async (app: AppContext, element: Element) => {
     element.dataset.sbBuild !== undefined &&
     element.dataset.page
   ) {
-    app.snapshot = await api.setStoryboardBuild(
+    const saved = await api.setStoryboardBuild(
       id,
       element.dataset.page,
       element.value
     )
-    app.render()
+    if (app.snapshot?.project.id === id) {
+      app.snapshot = saved
+      app.render()
+    }
     return true
   }
   if (

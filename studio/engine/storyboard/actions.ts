@@ -10,6 +10,7 @@ import type { Snapshot } from '../../shared/api'
 import {
   BUILD_TYPES,
   BUILD_LABELS,
+  TAKE_TYPES,
   TRANSITIONS,
   TRANSITION_LABELS,
   type BuildType,
@@ -247,15 +248,6 @@ export const setStoryboardTransition = async (
   return snapshot
 }
 
-const TAKE_TYPES: Record<string, string> = {
-  'video/webm': '.webm',
-  'video/mp4': '.mp4',
-  'video/quicktime': '.mov',
-  'audio/webm': '.webm',
-  'audio/mp4': '.m4a',
-  'audio/mpeg': '.mp3',
-  'audio/wav': '.wav'
-}
 const NO_PICTURE =
   'This scene is on camera: record its take, or upload a video, not sound alone'
 

@@ -221,6 +221,18 @@ export type SceneSummary = {
   take?: { objectKey: string; duration: number } | null
 }
 
+/** The files a take may be, and the extension each is kept with: a camera
+ * scene's take is a video, a spoken scene's may be its sound alone. */
+export const TAKE_TYPES: Record<string, string> = {
+  'video/webm': '.webm',
+  'video/mp4': '.mp4',
+  'video/quicktime': '.mov',
+  'audio/webm': '.webm',
+  'audio/mp4': '.m4a',
+  'audio/mpeg': '.mp3',
+  'audio/wav': '.wav'
+}
+
 /** A storyboard video's state, kept on the notebook (project.video). */
 export type Storyboard = {
   /** The production: one Hyperframes project on disk. */

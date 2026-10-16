@@ -16,6 +16,7 @@ import {
   BUILD_TYPES,
   SCENE_CHANGE_SECONDS,
   STAGE_LABELS,
+  TAKE_TYPES,
   TRANSITION_LABELS,
   frameCount,
   frameId,
@@ -241,11 +242,25 @@ ${
 }
 
 /** A spoken scene's take, to hear it back: a camera scene's plays on the
- * stage (review 7: a voice-only take had no player). */
-const voiceTake = (scene: SceneSummary | undefined) =>
-  scene?.take && scene.build !== 'camera'
-    ? `<audio class="sb-voice-take" controls preload="metadata" src="/objects/${escape(scene.take.objectKey)}"></audio>`
-    : ''
+ * stage (review 7: a voice-only take had no player). One under review plays
+ * from the recording, before it is saved. */
+const voiceTake = (scene: SceneSummary | undefined, review?: string) =>
+  !scene || scene.build === 'camera'
+    ? ''
+    : review
+      ? `<audio class="sb-voice-take" data-sb-take src="${escape(review)}" controls></audio>`
+      : scene.take
+        ? `<audio class="sb-voice-take" controls preload="metadata" src="/objects/${escape(scene.take.objectKey)}"></audio>`
+        : ''
+
+/** The files the take picker offers: those the engine takes, a camera
+ * scene's videos or a spoken scene's sound (review 7: it offered any). */
+const takeAccept = (scene: SceneSummary | undefined) =>
+  Object.keys(TAKE_TYPES)
+    .filter((type) =>
+      type.startsWith(scene?.build === 'camera' ? 'video/' : 'audio/')
+    )
+    .join(',')
 
 /** A camera scene with no take yet, shown as its page: the stage keeps the
  * take's place, with Record and Upload in it (review 7). */
@@ -544,6 +559,9 @@ export const storyboardScreen = (
     focused || takeSlot(storyboard, scene, frame)
       ? ''
       : actions(storyboard, scene, frame, capture, false, true)
+  // A voice-only take under review plays where a saved one does.
+  const heard =
+    reviewingTake && capture.url ? voiceTake(scene, capture.url) : ''
   return `<section class="video-workspace storyboard-workspace ${focused ? 'is-focused' : ''}" data-capture-phase="${capture.phase}" aria-label="Storyboard">
 ${rail(snapshot, storyboard, chosen, focused)}
 <div class="stage-area" ${focused ? 'role="dialog" aria-modal="true" aria-label="Presenter studio"' : ''}>
@@ -554,7 +572,7 @@ ${
 }
 ${storyboard.status === 'failed' && storyboard.error ? `<p class="sb-alert" role="alert">${escape(storyboard.error)}</p>` : ''}
 ${stage(snapshot, storyboard, scene, frame, capture, recording)}
-${takes ? `<div class="sb-take-actions">${voiceTake(scene)}${takes}</div>` : ''}
+${takes || heard ? `<div class="sb-take-actions">${heard || voiceTake(scene)}${takes}</div>` : ''}
 ${scene ? prompter(scene, capture, recording) : ''}
 ${scene && !focused ? sceneLine(storyboard, scene, chosen, page?.title || scene.pageId, Boolean(page?.capture?.objectKey || page?.capture?.last?.objectKey)) : ''}
 ${scene ? strip(snapshot, storyboard, scene, frame?.number, focused) : ''}
@@ -566,6 +584,6 @@ ${
 }
 <div class="video-actions"><div></div><div>${actions(storyboard, scene, frame, capture, recording)}</div></div>
 </div>
-<input type="file" data-sb-take-file accept="video/*,audio/*" hidden>
+<input type="file" data-sb-take-file accept="${takeAccept(scene)}" hidden>
 </section>`
 }
