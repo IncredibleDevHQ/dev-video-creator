@@ -343,6 +343,7 @@ export const showAdd = (
       `data-map="${action}" data-key="${key.toLowerCase()}"><i>${key}</i>`
   )
   menu.className = 'map-menu map-add'
+  delete menu.dataset.for
   menu.dataset.for = 'add'
   const box = stage.getBoundingClientRect()
   // Kept inside the canvas on every side (review 7).
@@ -580,8 +581,17 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
       map.paint()
       return true
     }
+    // A refused note comes back in its form, its words kept (review 7).
+    try {
+      await mapApi.note(map.mapId, text, gap)
+    } catch (reason) {
+      map.noteAsk = { text, gap }
+      map.paint()
+      map.hooks.error(reason)
+      return true
+    }
     await map.run(
-      () => mapApi.note(map.mapId, text, gap),
+      async () => {},
       gap
         ? 'Note added: it becomes a card, and organising puts it where the gap is'
         : 'Note added: sorting it into the map'

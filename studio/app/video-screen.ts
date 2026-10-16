@@ -120,18 +120,16 @@ export const videoHeader = (snapshot: Snapshot) => {
       // The same test as the Wireframe header's (review 6).
       !videoOpens(snapshot)
     )
-  if (video.storyboard) return storyboardHeader(snapshot, video.storyboard)
+  const due = dueCount(snapshot)
+  const release = button(
+    due ? `Release · ${due} due` : 'Release',
+    'release-dialog'
+  )
+  // A made storyboard video is released the same way (review 7).
+  if (video.storyboard)
+    return storyboardHeader(snapshot, video.storyboard, release)
   const view = snapshot.views?.video
-  return `${
-    video.produced
-      ? button(
-          dueCount(snapshot)
-            ? `Release · ${dueCount(snapshot)} due`
-            : 'Release',
-          'release-dialog'
-        )
-      : ''
-  }${button(videoDisplay(snapshot).actionLabel, 'produce-video', true, !view?.enabled)}`
+  return `${video.produced ? release : ''}${button(videoDisplay(snapshot).actionLabel, 'produce-video', true, !view?.enabled)}`
 }
 export const videoScreen = (
   snapshot: Snapshot,

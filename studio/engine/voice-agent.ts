@@ -305,13 +305,15 @@ export type GateDecision = { run: true } | { run: false; why: string }
 /**
  * Whether a tool may run. Looking always may. A change runs when the
  * creator's latest words read as a request for it, now; a big change also
- * needs their yes. Without a reading (Jev is not set up, or did not answer)
- * a change runs, and a big one still needs the AI to have asked.
+ * needs their yes. Without Jev a change runs, and a big one still needs the
+ * AI to have asked; with Jev, a big change waits for words it could read
+ * (review 7: an unheard or unread answer let one through).
  */
 export const gate = (
   name: string,
   args: Record<string, unknown>,
-  heard: Heard
+  heard: Heard,
+  jev = false
 ): GateDecision => {
   const tool = VOICE_TOOLS[name as keyof typeof VOICE_TOOLS]
   if (!tool) return { run: false, why: `There is no tool called ${name}` }
@@ -324,6 +326,11 @@ export const gate = (
   if (!heard)
     return { run: false, why: 'The creator has not asked for anything yet' }
   const reading = heard.reading
+  if (!reading && tool.big && jev)
+    return {
+      run: false,
+      why: 'The creator’s last words could not be read: ask again, and wait for their yes'
+    }
   if (!reading) return { run: true }
   const said = `“${heard.text.slice(0, 120)}”`
   if (reading.act < 0.5)

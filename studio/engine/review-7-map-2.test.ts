@@ -319,4 +319,77 @@ describe('Esc and the comments (UX-13)', () => {
     fire(root.ownerDocument.body, 'keydown', { key: 'Escape' })
     expect(map.comments.composer).toBeNull()
   })
+
+  it('closes a menu open over a recording first, and the take goes on', async () => {
+    const { asks } = media()
+    const { map, root, document } = await openMap()
+    reply(root)
+    asks[0].grant()
+    await settle()
+    click(root.querySelector('[data-map="map-more"]'))
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect(map.slot('menu')?.hidden).toBe(true)
+    expect(asks[0].stop).not.toHaveBeenCalled()
+    expect(root.querySelector('.map-recording')).not.toBeNull()
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect(asks[0].stop).toHaveBeenCalled()
+  })
+
+  it('closes the queue’s list with Esc before what is selected', async () => {
+    const { map, document } = await openMap()
+    map.select({ t: 'lane', id: 'e1' })
+    map.queueOpen = true
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect([map.queueOpen, map.sel?.t]).toEqual([false, 'lane'])
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect(map.sel).toBeNull()
+  })
+
+  it('lets go of the microphone when a recorder that stopped by itself is cancelled', async () => {
+    const { asks } = media()
+    const { root, document } = await openMap()
+    reply(root)
+    asks[0].grant()
+    await settle()
+    // The browser stopped it (the device went away): stopping an inactive
+    // recorder does nothing, and no stop event comes, as in the browser.
+    const recorder = FakeRecorder.made[0]
+    recorder.state = 'inactive'
+    recorder.stop = vi.fn(() => {})
+    fire(document.body, 'keydown', { key: 'Escape' })
+    expect(asks[0].stop).toHaveBeenCalled()
+  })
+})
+
+describe('the map’s set-up popover and the note form (review 7)', () => {
+  it('opens a menu at the first click after Studio AI’s set-up popover', async () => {
+    const { map, root } = await openMap()
+    const more = root.querySelector('[data-map="map-more"]')!
+    click(more)
+    click(more)
+    const voice = map.voice as unknown as { needsKey: boolean }
+    voice.needsKey = true
+    map.voice.start()
+    expect(map.slot('menu')?.className).toContain('is-setup')
+    click(more)
+    expect(map.slot('menu')?.hidden).toBe(false)
+    expect(map.slot('menu')?.className).toContain('is-more')
+  })
+
+  it('keeps a refused note’s words in its form', async () => {
+    const { map, root } = await openMap()
+    vi.mocked(mapApi.note).mockRejectedValueOnce(new Error('Refused'))
+    map.noteAsk = { text: '' }
+    map.paint()
+    const form = root.querySelector<HTMLFormElement>(
+      '[data-map-form="flow-note"]'
+    )!
+    form.querySelector('textarea')!.textContent = 'An idea worth a card'
+    fire(form, 'submit')
+    await settle()
+    expect(map.noteAsk).toMatchObject({ text: 'An idea worth a card' })
+    expect(
+      root.querySelector('[data-map-form="flow-note"] textarea')?.textContent
+    ).toBe('An idea worth a card')
+  })
 })

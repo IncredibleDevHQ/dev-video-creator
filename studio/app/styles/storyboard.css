@@ -342,6 +342,10 @@
   gap: 8px;
   margin-top: 10px;
 }
+.sb-voice-take {
+  height: 32px;
+  margin-right: auto;
+}
 .sb-take-placeholder .sb-take-actions {
   justify-content: center;
   margin-top: 0;

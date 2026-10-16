@@ -94,11 +94,20 @@ export const setEpisodePages = async (
       const page = slide.copyOf?.slide
       if (page && cards.has(page) && !held.has(page)) held.set(page, slide)
     }
-    // Own pages, copies of cards the map no longer shows, and a second copy
-    // of a card (the creator duplicated it) stay theirs (review 7).
+    // A second copy of a card (the creator duplicated it) stays theirs:
+    // beside the card's own when the card stays, else at the end, with
+    // their own pages and copies of cards the map no longer shows (review 7).
+    const second = (slide: Slide) => {
+      const page = slide.copyOf?.slide
+      return Boolean(page && cards.has(page) && held.get(page) !== slide)
+    }
+    const beside = (page: string) =>
+      slides.filter((slide) => slide.copyOf?.slide === page && second(slide))
     const extras = slides.filter((slide) => {
       const page = slide.copyOf?.slide
-      return !page || !cards.has(page) || held.get(page) !== slide
+      return (
+        !page || !cards.has(page) || (second(slide) && !wanted.includes(page))
+      )
     })
     // A copy the creator edited or kept that no other episode takes stays
     // where it is: a plan never throws their work away (review 7).
@@ -114,29 +123,29 @@ export const setEpisodePages = async (
     const next = [
       ...wanted
         .filter((page) => cards.has(page))
-        .map((page) => {
-          const was = held.get(page)
-          // An edited or kept copy goes with its card, over an untouched copy
-          // here too (review 7: the edit was lost when both held the card).
-          const edited = carried.get(page)
-          const replaces =
-            !was ||
-            (untouched(was) && !was.copyOf?.kept && edited?.id !== was.id)
-          if (edited && replaces) {
-            const moved = structuredClone(edited)
-            delete moved.bridge
-            delete moved.outro
-            moved.narration = moved.base || moved.narration
-            return moved
-          }
-          if (!was) return copyOf(map.project.id, cards.get(page)!)
-          const fresh = caughtUp(map.project.id, was, cards.get(page)!)
-          if (fresh) updated += 1
-          return fresh || was
-        }),
+        .flatMap((page) => [placed(page), ...beside(page)]),
       ...worked,
       ...extras
     ]
+    function placed(page: string) {
+      const was = held.get(page)
+      // An edited or kept copy goes with its card, over an untouched copy
+      // here too (review 7: the edit was lost when both held the card).
+      const edited = carried.get(page)
+      const replaces =
+        !was || (untouched(was) && !was.copyOf?.kept && edited?.id !== was.id)
+      if (edited && replaces) {
+        const moved = structuredClone(edited)
+        delete moved.bridge
+        delete moved.outro
+        moved.narration = moved.base || moved.narration
+        return moved
+      }
+      if (!was) return copyOf(map.project.id, cards.get(page)!)
+      const fresh = caughtUp(map.project.id, was, cards.get(page)!)
+      if (fresh) updated += 1
+      return fresh || was
+    }
     if (
       !updated &&
       next.map((slide) => slide.id).join() === slides.map((s) => s.id).join()
@@ -274,28 +283,53 @@ export const setPagesNoted = async (
 }
 
 /** All or nothing: what a stopped run changed goes back as it was, unless
- * the creator changed it since (review 7). */
-export const putBack = async (before: PutBack) => {
-  for (const [notebook, { slides, written }] of before)
+ * the creator changed it since (review 7). A copy the run moved stays in
+ * exactly one episode: where it went, if that one can't go back, else home. */
+export const putBack = async (
+  before: PutBack,
+  moved: Set<string> = new Set()
+) => {
+  const now = new Map<string, Slide[]>()
+  for (const notebook of before.keys())
+    now.set(notebook, await slidesOf(notebook))
+  const changed = new Set(
+    [...before]
+      .filter(([notebook, { written }]) => {
+        return JSON.stringify(now.get(notebook)) !== written
+      })
+      .map(([notebook]) => notebook)
+  )
+  const away = new Set(
+    [...changed].flatMap((notebook) =>
+      (now.get(notebook) || []).map((slide) => slide.id)
+    )
+  )
+  for (const [notebook, { slides, written }] of before) {
+    if (changed.has(notebook)) continue
     await changeProject(notebook, (current) => {
-      if (isMade(current)) return
-      if (JSON.stringify(current.project.slides) === written)
-        current.project.slides = slides
-      else {
-        // Changed since: what the creator did stays, and a worked copy the
-        // run took out of it comes back, so no edit is lost between two.
-        const here = new Set(current.project.slides.map((slide) => slide.id))
-        const gone = slides.filter(
-          (slide) =>
-            !here.has(slide.id) &&
-            slide.copyOf &&
-            (!untouched(slide) || slide.copyOf.kept)
-        )
-        if (!gone.length) return
-        current.project.slides = [...current.project.slides, ...gone]
-      }
+      const unchanged = JSON.stringify(current.project.slides) === written
+      if (isMade(current) || !unchanged) return
+      current.project.slides = slides.filter(
+        (slide) => !(moved.has(slide.id) && away.has(slide.id))
+      )
       reconcileVideo(current.project, current, new Set())
     }).catch(() => {})
+  }
+  if (!changed.size || !moved.size) return
+  const held = new Set<string>()
+  for (const notebook of before.keys())
+    for (const slide of await slidesOf(notebook)) held.add(slide.id)
+  for (const notebook of changed) {
+    const home = before
+      .get(notebook)!
+      .slides.filter((slide) => moved.has(slide.id) && !held.has(slide.id))
+    if (home.length)
+      await changeProject(notebook, (current) => {
+        if (isMade(current)) return
+        current.project.slides = [...current.project.slides, ...home]
+        reconcileVideo(current.project, current, new Set())
+      }).catch(() => {})
+  }
 }
 
 /** An episode a run started and nobody touched: out of the series, and
@@ -323,15 +357,24 @@ export const applyOutline = async (
   // What each open episode holds, and the copies the creator worked on.
   const worked: Array<{ notebook: string; copy: Slide }> = []
   const holds = new Map<string, Map<string, Slide>>()
+  const members = new Set(
+    ((await loadSeries(seriesId))?.episodes || []).map((e) => e.notebookId)
+  )
   for (const entry of context.existing) {
     const latest = await loadProject(entry.notebook)
     if (!entry.made && isMade(latest))
       throw new Refusal('An episode’s video started; plan again')
+    // One taken out of the series while the plan was written is the
+    // creator's now: the plan doesn't touch it (review 7).
+    if (!members.has(entry.notebook))
+      throw new Refusal('An episode left the series meanwhile; plan again')
     if (entry.made || !latest) continue
     const own = new Map<string, Slide>()
     for (const copy of latest.project.slides) {
-      if (!copy.copyOf) continue
-      if (!own.has(copy.copyOf.slide)) own.set(copy.copyOf.slide, copy)
+      // A second copy of a card (a duplicate) stays where it is; only the
+      // first goes with its card (review 7).
+      if (!copy.copyOf || own.has(copy.copyOf.slide)) continue
+      own.set(copy.copyOf.slide, copy)
       if (!untouched(copy) || copy.copyOf.kept)
         worked.push({ notebook: entry.notebook, copy })
     }
@@ -405,7 +448,7 @@ export const applyOutline = async (
       order.push(made.notebook.project.id)
     }
   } catch (error) {
-    await putBack(before)
+    await putBack(before, new Set([...carried.values()].map((c) => c.id)))
     for (const notebook of created)
       await discardEpisode(seriesId, notebook).catch(() => {})
     // The neighbours of a discarded episode say their lines again.

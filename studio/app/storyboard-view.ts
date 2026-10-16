@@ -240,6 +240,13 @@ ${
 </div>`
 }
 
+/** A spoken scene's take, to hear it back: a camera scene's plays on the
+ * stage (review 7: a voice-only take had no player). */
+const voiceTake = (scene: SceneSummary | undefined) =>
+  scene?.take && scene.build !== 'camera'
+    ? `<audio class="sb-voice-take" controls preload="metadata" src="/objects/${escape(scene.take.objectKey)}"></audio>`
+    : ''
+
 /** A camera scene with no take yet, shown as its page: the stage keeps the
  * take's place, with Record and Upload in it (review 7). */
 const takeSlot = (
@@ -476,7 +483,8 @@ const actions = (
  */
 export const storyboardHeader = (
   snapshot: Snapshot,
-  storyboard: Storyboard
+  storyboard: Storyboard,
+  release = ''
 ) => {
   if (storyboard.status === 'failed')
     return button('Try again', 'sb-retry', true)
@@ -493,7 +501,8 @@ export const storyboardHeader = (
     )?.pageId
     return `<button type="button" class="primary" data-action="sb-record" data-page="${escape(page || '')}" ${page ? '' : 'disabled'}>Record your take</button>`
   }
-  if (storyboard.produced) return button('Export MP4', 'produce-video', true)
+  if (storyboard.produced)
+    return `${release}${button('Export MP4', 'produce-video', true)}`
   return `<span class="header-video-status" role="status">${escape(videoDisplay(snapshot).label)}</span>`
 }
 
@@ -545,7 +554,7 @@ ${
 }
 ${storyboard.status === 'failed' && storyboard.error ? `<p class="sb-alert" role="alert">${escape(storyboard.error)}</p>` : ''}
 ${stage(snapshot, storyboard, scene, frame, capture, recording)}
-${takes ? `<div class="sb-take-actions">${takes}</div>` : ''}
+${takes ? `<div class="sb-take-actions">${voiceTake(scene)}${takes}</div>` : ''}
 ${scene ? prompter(scene, capture, recording) : ''}
 ${scene && !focused ? sceneLine(storyboard, scene, chosen, page?.title || scene.pageId, Boolean(page?.capture?.objectKey || page?.capture?.last?.objectKey)) : ''}
 ${scene ? strip(snapshot, storyboard, scene, frame?.number, focused) : ''}

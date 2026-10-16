@@ -17,12 +17,17 @@ export const takeRefusal = (storyboard: Storyboard, scene: SceneSummary) =>
 /** After the frames: every scene built goes on to assembly; a scene whose
  * take came in meanwhile is voiced next; otherwise the rest waits. */
 export const afterFrames = (
-  scenes: Array<Pick<SceneSummary, 'pageId' | 'take'>>,
-  voiced: string[]
+  scenes: Array<Pick<SceneSummary, 'pageId' | 'take' | 'build'>>,
+  voiced: string[],
+  recordVoice = false
 ) => {
   const unvoiced = scenes.filter((scene) => !voiced.includes(scene.pageId))
   if (!unvoiced.length) return 'assemble' as const
-  return unvoiced.some((scene) => scene.take)
+  // A scene voiced without a take (the voice is no longer the creator's)
+  // or whose take came is voiced next; only one that needs a take waits.
+  return unvoiced.some(
+    (scene) => scene.take || !(scene.build === 'camera' || recordVoice)
+  )
     ? ('voice' as const)
     : ('wait' as const)
 }

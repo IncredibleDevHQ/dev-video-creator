@@ -68,6 +68,8 @@ const panAtEdge = (map: MapCanvas, drag: DragState, event: PointerEvent) => {
 }
 
 const selectionOf = (key: string): MapSel => {
+  // A direction still being written isn't one yet: it can't be selected.
+  if (key === 'd:__draft__') return null
   if (key.startsWith('d:')) return { t: 'direction', id: key.slice(2) }
   if (key.startsWith('m:')) return { t: 'page', id: key.slice(2) }
   if (key.startsWith('c:')) return { t: 'copy', id: key.slice(2) }
@@ -352,9 +354,14 @@ export const installMapInput = (map: MapCanvas) => {
       // A comment, its recording or the comment tool closes first (review 7).
       if (map.comments.escapable) return
       e.preventDefault()
-      map.naming = null
-      map.changing = null
-      map.renaming = null
+      // Then the queue's list, then a question in the bar, then what is
+      // selected: one at a time.
+      if (map.queueOpen) {
+        map.queueOpen = false
+        return map.paint()
+      }
+      if (map.naming || map.changing || map.renaming || map.askingPlan)
+        return void dispatch(map, 'cancel')
       map.select(null)
     }
   })

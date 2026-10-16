@@ -221,6 +221,8 @@ export class VoiceCall {
     const stage = this.map.root.querySelector('.map-stage')
     if (!button || !menu || !stage) return
     menu.className = 'map-menu is-setup'
+    // Not any menu's: the next menu click opens that menu (review 7).
+    delete menu.dataset.for
     menu.innerHTML =
       '<div role="dialog" aria-labelledby="map-setup-title"><p id="map-setup-title">Studio AI needs an OpenAI key</p><button type="button" class="primary" data-map="keys">Add a key in Settings</button><button type="button" data-voice="check-key">Try connecting again</button></div>'
     menu.hidden = false

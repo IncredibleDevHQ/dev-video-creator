@@ -30,7 +30,7 @@
 @keyframes map-panel-in {
   from {
     opacity: 0;
-    transform: translateX(-8px);
+    transform: translateX(8px);
   }
 }
 .map-rail-head {

@@ -16,10 +16,15 @@ it('takes a scene’s first take any time, and replaces one only between steps',
 
 it('after the frames: assemble, voice a take that came in, or wait', () => {
   const scenes = [
-    { pageId: 'a', take: undefined },
-    { pageId: 'b', take: null }
+    { pageId: 'a', take: undefined, build: 'faceless' as const },
+    { pageId: 'b', take: null, build: 'camera' as const }
   ]
   expect(afterFrames(scenes, ['a', 'b'])).toBe('assemble')
   expect(afterFrames(scenes, ['a'])).toBe('wait')
-  expect(afterFrames([scenes[0], { pageId: 'b', take }], ['a'])).toBe('voice')
+  expect(afterFrames([scenes[0], { ...scenes[1], take }], ['a'])).toBe('voice')
+  // A spoken scene left unvoiced: voiced at once when the voice is no
+  // longer the creator's, waiting for its take while it is (review 7).
+  const spoken = [{ pageId: 'c', take: null, build: 'faceless' as const }]
+  expect(afterFrames(spoken, [])).toBe('voice')
+  expect(afterFrames(spoken, [], true)).toBe('wait')
 })

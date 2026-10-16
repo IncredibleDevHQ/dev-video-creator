@@ -509,9 +509,33 @@ describe('the series as a connected canvas', () => {
       ['d:d1', 'B:series'],
       ['d:d2', 'L:e2']
     ])
-    // Placed past its episode, a note comes in from the right side.
+    // Placed past its episode, a note comes in from the right side: at the
+    // series' frame, turning in the gutter beside it (review 7).
+    const right = layout.series!.x + layout.series!.w
     expect(wires[1].x1).toBe(4000)
-    expect(wires[1].x2).toBe(layout.lanes.e2.x + layout.lanes.e2.w)
+    expect(wires[1].x2).toBe(right)
+    expect(wires[1].turn).toBe(right + 20)
+    // One sitting above the series goes round it: down the gutter on its
+    // left and in at the frame, never across the series (review 7).
+    const above = mapLayout(
+      snapshot,
+      {
+        ...view,
+        series: {
+          ...view.series!,
+          directions: [
+            { id: 'd4', text: 'x', at: 'now', to: { episode: 'e2' } }
+          ]
+        }
+      },
+      'order'
+    )
+    const wire = above.flows.find((flow) => flow.from === 'd:d4')!
+    const box = above.directions.d4
+    expect(box.y).toBeLessThan(above.series!.y)
+    expect(wire.x2).toBe(above.series!.x)
+    expect(wire.turn).toBeLessThan(above.series!.x)
+    expect(wire.turn).toBeLessThan(box.x)
   })
   it('shows the outline: the suggested outcome, the lines, the gaps, each episode’s win', () => {
     const head = seriesHead(view)

@@ -392,7 +392,12 @@ class VoiceSession {
       })
     }
     const utterance = this.latest
-    const decision = gate(name, args, await this.heardFor(utterance))
+    const decision = gate(
+      name,
+      args,
+      await this.heardFor(utterance),
+      voiceDeps.jev()
+    )
     const big = VOICE_TOOLS[name as keyof typeof VOICE_TOOLS]?.big
     if (decision.run && big && utterance) {
       if (this.usedConfirmations.has(utterance)) {

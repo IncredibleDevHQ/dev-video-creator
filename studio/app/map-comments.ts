@@ -15,6 +15,7 @@ import { mapApi } from './map-api'
 import { DH, DW, type Box } from './map-layout'
 import { dialogOpen, escape } from './ui'
 import { voiceIcon } from './voice-icons'
+import { CommentRecording } from './comment-recording'
 
 type Point = { x: number; y: number }
 type Place = { target: CommentTarget; at: Point }
@@ -93,80 +94,12 @@ const placeOf = (map: MapCanvas, event: PointerEvent): Place | null => {
   return { target, at: box ? pinAt(box, target) : at }
 }
 
-/** A recording from the microphone, with its level for the meter. */
-class Recording {
-  private chunks: Blob[] = []
-  private began = Date.now()
-  private analyser: AnalyserNode
-  private context: AudioContext
-  private constructor(
-    private readonly stream: MediaStream,
-    private readonly recorder: MediaRecorder
-  ) {
-    this.context = new AudioContext()
-    this.analyser = this.context.createAnalyser()
-    this.context.createMediaStreamSource(stream).connect(this.analyser)
-    recorder.ondataavailable = (event) => {
-      if (event.data.size) this.chunks.push(event.data)
-    }
-    recorder.start(250)
-  }
-  static async start() {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true }
-    })
-    const type = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/mp4',
-      'audio/ogg'
-    ].find((candidate) => MediaRecorder.isTypeSupported?.(candidate))
-    return new Recording(
-      stream,
-      new MediaRecorder(stream, type ? { mimeType: type } : {})
-    )
-  }
-  get seconds() {
-    return (Date.now() - this.began) / 1000
-  }
-  level() {
-    const data = new Uint8Array(this.analyser.fftSize)
-    this.analyser.getByteTimeDomainData(data)
-    let sum = 0
-    for (const value of data) sum += ((value - 128) / 128) ** 2
-    return Math.min(1, Math.sqrt(sum / data.length) * 4)
-  }
-  private release() {
-    for (const track of this.stream.getTracks()) track.stop()
-    void this.context.close()
-  }
-  stop(): Promise<{ blob: Blob; seconds: number }> {
-    const seconds = this.seconds
-    return new Promise((resolve) => {
-      this.recorder.onstop = () => {
-        this.release()
-        resolve({
-          blob: new Blob(this.chunks, {
-            type: this.recorder.mimeType || 'audio/webm'
-          }),
-          seconds
-        })
-      }
-      this.recorder.stop()
-    })
-  }
-  cancel() {
-    this.recorder.onstop = () => this.release()
-    if (this.recorder.state !== 'inactive') this.recorder.stop()
-  }
-}
-
 export class MapComments {
   tool = false
   thread: string | null = null
   composer: Place | null = null
   private recording: {
-    rec: Recording
+    rec: CommentRecording
     for: 'new' | 'reply'
     held: boolean
   } | null = null
@@ -174,8 +107,7 @@ export class MapComments {
   private pressing = false
   private recordingToken = 0
   private openingMic = false
-  /** Whether Esc has something here to close: a recording, a thread, a
-   * composer or the comment tool (the map leaves Esc to it then). */
+  /** Something here for Esc: a recording, thread, composer or the tool. */
   get escapable() {
     return Boolean(
       this.recording ||
@@ -406,7 +338,7 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
     const composer = this.composer
     this.openingMic = true
     try {
-      const rec = await Recording.start()
+      const rec = await CommentRecording.start()
       if (
         token !== this.recordingToken ||
         !this.map.isOpen ||
@@ -762,7 +694,7 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
       if (e.key === 'Escape' && this.escapable) {
         const recording = this.recording || this.openingMic
         // One at a time: a menu over it first; typed words leave the field.
-        if (!recording && menu && !menu.hidden) return
+        if (menu && !menu.hidden) return
         const words = (typing as HTMLTextAreaElement | null)?.value?.trim()
         e.preventDefault()
         e.stopImmediatePropagation()

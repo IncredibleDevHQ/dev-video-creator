@@ -53,6 +53,8 @@ export type Flow = {
   /** The keys of the nodes it joins, for lighting what is selected. */
   from: string
   to: string
+  /** Where it turns, when that is a gutter rather than half way. */
+  turn?: number
 }
 
 export const MX = 40,
@@ -447,6 +449,32 @@ export const mapLayout = (
     if (!targets.length && layout.head)
       targets.push({ key: 'B:series', box: layout.head, y: sy + headH / 2 })
     for (const target of targets) {
+      // An episode is entered at the series' frame, from the gutter on the
+      // side nearer the direction, so the line never crosses the series
+      // (review 7). It leaves the box on the side facing that gutter, and
+      // turns beyond the box.
+      if (target.key.startsWith('L:')) {
+        const sw = layout.series.w
+        const left = box.x + box.w / 2 < sx + sw / 2
+        const gutter = left ? sx - 20 : sx + sw + 20
+        const clear = left ? box.x + box.w <= gutter : box.x >= gutter
+        layout.flows.push({
+          key: `d:${direction.id}:${target.key}`,
+          kind: 'direction',
+          from: `d:${direction.id}`,
+          to: target.key,
+          x1: left === clear ? box.x + box.w : box.x,
+          y1: box.y + box.h / 2,
+          x2: left ? sx : sx + sw,
+          y2: target.y,
+          turn: clear
+            ? gutter
+            : left
+              ? Math.min(gutter, box.x - 20)
+              : Math.max(gutter, box.x + box.w + 20)
+        })
+        continue
+      }
       // Into its target's left side; a note placed past it comes in from
       // the right, never across it.
       const past = box.x > target.box.x + target.box.w

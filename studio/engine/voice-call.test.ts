@@ -108,6 +108,18 @@ describe('the session and the gate', () => {
     expect(gate('copy_card', {}, heard('put it in', null))).toEqual({
       run: true
     })
+    // With Jev on, words it could not read (an empty or failed transcript,
+    // a slow reading) never stand in for a yes to a big change (review 7).
+    const unread = heard('', null)
+    expect(
+      gate('plan_series', { confirmed: true }, unread, true)
+    ).toMatchObject({ run: false })
+    expect(gate('plan_series', { confirmed: true }, unread)).toEqual({
+      run: true
+    })
+    expect(gate('copy_card', {}, heard('put it in', null), true)).toEqual({
+      run: true
+    })
     // A question is answered, not acted on, and the reason says what Jev heard.
     const asked = gate(
       'add_direction',

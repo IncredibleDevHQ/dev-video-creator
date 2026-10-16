@@ -407,8 +407,10 @@ const shotsStage = async ({
     )
     .map(({ index }) => index)
   let cursor = 0
+  // A lane that fails stops the others before their next paid call.
+  let stopped = false
   const lane = async () => {
-    while (cursor < scenes.length) {
+    while (!stopped && cursor < scenes.length) {
       const index = scenes[cursor++]
       const shots = await designSceneShots({
         snapshot,
@@ -428,6 +430,9 @@ const shotsStage = async ({
             .filter((frame) => internal.stills?.[frame.number])
             .map((frame) => [frame.number, join(dir, stillFile(frame.id))])
         )
+      }).catch((error: unknown) => {
+        stopped = true
+        throw error
       })
       for (const shot of shots) internal.shots![shot.number] = shot
       await writeInternal(dir, internal)
@@ -513,7 +518,11 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
       `${failed.length} frame${failed.length === 1 ? '' : 's'} could not be built: ${failed.map((frame) => frame.number).join(', ')}`
     )
   await update(snapshot.project.id, (current, ledger) => {
-    const next = afterFrames(current.plan?.scenes || [], internal.voiced || [])
+    const next = afterFrames(
+      current.plan?.scenes || [],
+      internal.voiced || [],
+      ledger.project.video?.settings.voice.kind === 'record'
+    )
     // A take that came in while these frames were built is voiced next: a
     // new one, or one for a scene voiced before it (review 7).
     if (next === 'voice' || current.redo?.length) {

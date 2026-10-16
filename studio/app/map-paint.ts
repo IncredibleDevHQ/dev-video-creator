@@ -7,13 +7,7 @@ import type { Snapshot } from '../shared/api'
 import { unusedPages } from '../shared/content-map'
 import type { MapCanvas } from './map-canvas'
 import type { Box } from './map-layout'
-import {
-  LH,
-  mapPages,
-  newPages,
-  type MapMode,
-  type MapPage
-} from './map-layout'
+import { mapPages, newPages, type MapMode, type MapPage } from './map-layout'
 import {
   colorOf,
   copyCard,
@@ -399,6 +393,7 @@ const sync = (map: MapCanvas, items: Item[]) => {
 
 // Wires bend as Flora's do: out of a node's right side and into the next
 // one's left; from one episode down into the next.
+// A turn in a gutter may lie past both ends: each corner bends its own way.
 const across = (
   x1: number,
   y1: number,
@@ -406,10 +401,16 @@ const across = (
   y2: number,
   mid = (x1 + x2) / 2
 ) => {
-  const r = Math.min(12, Math.abs(x2 - x1) / 4, Math.abs(y2 - y1) / 2)
-  const dx = x2 >= x1 ? 1 : -1,
+  const r = Math.min(
+    12,
+    Math.abs(mid - x1) / 2,
+    Math.abs(x2 - mid) / 2,
+    Math.abs(y2 - y1) / 2
+  )
+  const d1 = mid >= x1 ? 1 : -1,
+    d2 = x2 >= mid ? 1 : -1,
     dy = y2 >= y1 ? 1 : -1
-  return `M${x1},${y1} H${mid - r * dx} Q${mid},${y1} ${mid},${y1 + r * dy} V${y2 - r * dy} Q${mid},${y2} ${mid + r * dx},${y2} H${x2}`
+  return `M${x1},${y1} H${mid - r * d1} Q${mid},${y1} ${mid},${y1 + r * dy} V${y2 - r * dy} Q${mid},${y2} ${mid + r * d2},${y2} H${x2}`
 }
 const down = (x1: number, y1: number, x2: number, y2: number) => {
   const v = Math.max(16, (y2 - y1) * 0.5)
@@ -467,20 +468,10 @@ const drawWires = (map: MapCanvas) => {
     if (color) colors.add(color)
     const on = lit(map, flow.from, flow.to)
     const id = color ? `map-arrow-${color.slice(1)}` : 'map-arrow'
-    // A direction from outside the series into it turns in the gutter
-    // before the series, never across its head (review 7).
-    const series = layout.series
-    const gutter =
-      flow.kind === 'direction' &&
-      series &&
-      flow.x1 < series.x &&
-      flow.x2 > series.x
-        ? series.x - 20
-        : undefined
     const d =
       flow.kind === 'chain'
         ? down(flow.x1, flow.y1, flow.x2, flow.y2)
-        : across(flow.x1, flow.y1, flow.x2, flow.y2, gutter)
+        : across(flow.x1, flow.y1, flow.x2, flow.y2, flow.turn)
     const arrow = flow.kind === 'use' ? '' : ` marker-end="url(#${id})"`
     paths.push(
       `<path class="map-flow is-${flow.kind}${on ? ' is-lit' : ''}${color ? '' : ' is-neutral'}"${color ? ` stroke="${color}"` : ''}${arrow} d="${d}"/>`
@@ -519,11 +510,12 @@ const drawWires = (map: MapCanvas) => {
     ...layout.segues,
     ...Object.values(layout.directions),
     ...layout.gaps,
-    // Heads inset a little, so an arrow into one keeps its tip.
+    // Whole episodes and the series' head, inset a little so an arrow at
+    // one keeps its tip: no line crosses what they hold (review 7).
     ...[
-      ...Object.values(layout.lanes).map((lane) => ({ ...lane, h: LH })),
+      ...Object.values(layout.lanes),
       ...(layout.head ? [layout.head] : [])
-    ].map((box) => ({ x: box.x + 3, y: box.y, w: box.w - 5, h: box.h }))
+    ].map((box) => ({ x: box.x + 3, y: box.y + 3, w: box.w - 6, h: box.h - 6 }))
   ]
   const mask = `<defs><mask id="map-content-mask" maskUnits="userSpaceOnUse" x="-100000" y="-100000" width="200000" height="200000"><rect x="-100000" y="-100000" width="200000" height="200000" fill="white"/>${boxes.map((box) => `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="8" fill="black"/>`).join('')}</mask></defs>`
   // The line being dragged stays above everything.

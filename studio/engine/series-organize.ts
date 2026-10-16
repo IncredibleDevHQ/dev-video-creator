@@ -508,6 +508,8 @@ export const applyPlacement = async (
         },
         true
       )
+      // Noted at once, so a step after it that fails discards it too.
+      run.started.push(made.notebook.project.id)
       await changeProject(made.notebook.project.id, (current) => {
         const ref = current.project.episode
         if (!ref) return
@@ -518,12 +520,15 @@ export const applyPlacement = async (
         if (before?.length) ref.length = before.length
       })
       startedAt.set(item.key, made.notebook.project.id)
-      run.started.push(made.notebook.project.id)
     }
   } catch (error) {
     await putBack(filled)
     for (const id of run.started)
       await discardEpisode(seriesId, id).catch(() => {})
+    // The neighbours of a discarded episode say their lines again (SR-10).
+    if (run.started.length)
+      for (const item of (await loadSeries(seriesId))?.episodes || [])
+        await scheduleAround(item.notebookId)
     throw error
   }
   for (const notebook of into.keys()) await scheduleAround(notebook)
@@ -672,8 +677,17 @@ export const undoOrganize = async (seriesId: string, raw: unknown) => {
     // One the creator worked on leaves the series and stays theirs.
     else await removeEpisode(seriesId, { episode: notebook })
   }
+  // A card still in an episode of the series (its copy was edited, so it
+  // stayed) keeps its gap closed, and isn't waiting to be placed (review 7).
+  const still = new Set<string>()
+  for (const item of (await loadSeries(seriesId))?.episodes || []) {
+    const snapshot = await loadProject(item.notebookId)
+    if (snapshot) for (const page of pagesOf(snapshot)) still.add(page)
+  }
   const after = await changeSeries(seriesId, (current) => {
-    const pages = run.moves.map((move) => move.page)
+    const pages = run.moves
+      .map((move) => move.page)
+      .filter((page) => !still.has(page))
     for (const gap of current.gaps || [])
       if (
         gap.state === 'closed' &&

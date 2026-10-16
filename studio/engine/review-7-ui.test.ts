@@ -186,6 +186,32 @@ describe('the storyboard’s next step (UX-1)', () => {
     expect(videoHeader(notebook(storyboard()))).toContain(
       '>Approve the plan</button>'
     )
+    // A made storyboard video is released as any video is (review 7).
+    const released = videoHeader(
+      notebook(
+        storyboard({
+          stage: 'done',
+          status: 'done',
+          waitingFor: undefined,
+          approved: true,
+          produced: { objectKey: 'k.mp4', duration: 18 }
+        })
+      )
+    )
+    expect(released).toContain('data-action="release-dialog"')
+    expect(released).toContain('>Export MP4</button>')
+  })
+
+  it('plays back a take the creator only spoke, beside its buttons', () => {
+    const spoken = storyboard({ stage: 'voice', approved: true })
+    spoken.plan!.scenes[0].take = { objectKey: 'n/voice.webm', duration: 9 }
+    const html = page(spoken, 0)
+    const player = html.querySelector('.sb-take-actions audio')
+    expect(player?.getAttribute('src')).toBe('/objects/n/voice.webm')
+    // A camera take plays on the stage instead.
+    const camera = storyboard({ stage: 'voice', approved: true })
+    camera.plan!.scenes[1].take = { objectKey: 'n/take.webm', duration: 8 }
+    expect(page(camera, 1).querySelector('.sb-take-actions audio')).toBeNull()
   })
 
   it('says a working stage as status text, never as a greyed button', () => {

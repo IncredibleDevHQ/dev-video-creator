@@ -21,7 +21,7 @@ const content = (map: MapCanvas) => {
     const gap = map.noteAsk.gap
       ? view?.series?.gaps.find((g) => g.id === map.noteAsk!.gap)
       : undefined
-    return `<form class="map-ask" data-map-form="flow-note"><label>${gap ? `Fill the gap · ${escape(gap.ask)}` : 'A note for the map: it becomes cards'}<textarea name="note" rows="2" maxlength="20000" placeholder="${gap ? 'Say it in your words, or paste a link' : 'An idea, a link, a half-thought…'}"></textarea></label><button type="submit" class="primary">Add</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
+    return `<form class="map-ask" data-map-form="flow-note"><label>${gap ? `Fill the gap · ${escape(gap.ask)}` : 'A note for the map: it becomes cards'}<textarea name="note" rows="2" maxlength="20000" placeholder="${gap ? 'Say it in your words, or paste a link' : 'An idea, a link, a half-thought…'}">${escape(map.noteAsk.text)}</textarea></label><button type="submit" class="primary">Add</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
   }
   if (map.briefing) {
     const key = map.briefing
