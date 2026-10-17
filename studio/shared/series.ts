@@ -62,13 +62,21 @@ export type Direction = {
   id: string
   text: string
   at: string
-  /** What it is wired to; neither means the whole series. */
+  /** What it is wired to; neither means the whole series. Up to
+   * DIRECTION_CARDS cards. */
   to?: { episode?: string; pages?: string[] }
   /** Where it sits on the canvas, in world units. */
   spot?: { x: number; y: number }
   /** How the last plan took it. */
   answer?: { state: 'followed' | 'partly' | 'not'; why: string; at: string }
 }
+
+/** The most cards one direction guides: past that, it guides an episode or
+ * the whole series, and the creator is told so, never cut short. */
+export const DIRECTION_CARDS = 12
+/** Saying so, wherever a card would be one too many. */
+export const tooManyCards = () =>
+  `A direction guides up to ${DIRECTION_CARDS} cards: wire it to an episode or the whole series`
 
 /** A viewer's-eye note on one episode of the plan. */
 export type ViewerFlag = {

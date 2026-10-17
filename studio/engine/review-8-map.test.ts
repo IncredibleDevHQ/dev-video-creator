@@ -1128,4 +1128,60 @@ describe('the content map, round 2 of the audit', () => {
     z(root.querySelector('[data-map-form="note"] textarea')!)
     expect(undo).toHaveBeenCalledTimes(1)
   })
+
+  it('ticks the whole series for a direction whose episode or cards were deleted, saves no dead card, and says a 13th card is one too many', async () => {
+    const shown = view()
+    const direction = shown.series!.directions[0]
+    direction.to = { episode: 'gone' }
+    const { map } = await openMap(shown)
+    patch(win.HTMLElement.prototype, 'focus', () => {})
+    map.select({ t: 'direction', id: 'd1' })
+    const bar = map.slot('bar')!
+    const menu = map.slot('menu')!
+    /** Apply to…, opened afresh: the choices ticked. */
+    const ticked = async () => {
+      menu.hidden = true
+      click(bar.querySelector('[data-map="menu:apply-to"]'))
+      await settle()
+      return [...menu.querySelectorAll<HTMLElement>('[aria-checked="true"]')]
+        .map((b) => b.dataset.map)
+        .join()
+    }
+    const choose = async (action: string) => {
+      click(menu.querySelector(`[data-map="${action}"]`))
+      await settle()
+    }
+    const set = async (to: typeof direction.to) => {
+      direction.to = to
+      await map.refresh()
+    }
+    expect(await ticked()).toBe('apply-to:series')
+    // A card deleted from the map: only the cards still there are ticked,
+    // and taking the last one off guides the series, the dead one gone.
+    await set({ pages: ['gone', 'b'] })
+    expect(await ticked()).toBe('apply-to:card:b')
+    await choose('apply-to:card:b')
+    expect(mapApi.direction).toHaveBeenLastCalledWith('s', {
+      id: 'd1',
+      to: null
+    })
+    await set({ pages: ['gone'] })
+    expect(await ticked()).toBe('apply-to:series')
+    await choose('apply-to:card:c')
+    expect(mapApi.direction).toHaveBeenLastCalledWith('s', {
+      id: 'd1',
+      to: { pages: ['c'] }
+    })
+    // Twelve cards guided, a thirteenth is said to be too many, not sent.
+    const cards = 'abcdefghijklm'.split('')
+    map.snapshot!.project.slides = cards.map(slide)
+    await set({ pages: cards.slice(0, 12) })
+    const sent = vi.mocked(mapApi.direction).mock.calls.length
+    await ticked()
+    await choose('apply-to:card:m')
+    expect(mapApi.direction).toHaveBeenCalledTimes(sent)
+    expect(map.slot('toast')!.textContent).toBe(
+      'A direction guides up to 12 cards: wire it to an episode or the whole series'
+    )
+  })
 })

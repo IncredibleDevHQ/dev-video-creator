@@ -4,7 +4,13 @@
 // partly or not, and why.
 import { randomUUID } from 'node:crypto'
 import type { Snapshot } from '../shared/api'
-import type { Direction, Series, SeriesGap } from '../shared/series'
+import {
+  DIRECTION_CARDS,
+  tooManyCards,
+  type Direction,
+  type Series,
+  type SeriesGap
+} from '../shared/series'
 import { loadProject } from './projects'
 import { Refusal } from './refusal'
 import { changeSeries, loadSeries } from './series'
@@ -44,10 +50,18 @@ export const scopeOf = (
 
 const MAX = 30
 
+/** The map's cards, so a card deleted since is never wired again. */
+const cardsOf = async (seriesId: string) => {
+  const series = await loadSeries(seriesId)
+  const map = series?.map ? await loadProject(series.map) : null
+  return map ? new Set(map.project.slides.map((slide) => slide.id)) : null
+}
+
 /** Adds a direction, or changes one: its words, what it is wired to, where
  * it sits. A changed text waits for the next plan's answer. */
-export const saveDirection = (seriesId: string, raw: unknown) => {
+export const saveDirection = async (seriesId: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
+  const cards = value.to === undefined ? null : await cardsOf(seriesId)
   return changeSeries(seriesId, (series) => {
     const all = directionsOf(series)
     const id = value.id ? String(value.id) : ''
@@ -58,7 +72,8 @@ export const saveDirection = (seriesId: string, raw: unknown) => {
     if (!text) throw new Refusal('Write the direction first')
     if (!existing && all.length >= MAX)
       throw new Refusal(`A series takes up to ${MAX} directions`)
-    const to = value.to === undefined ? existing?.to : toOf(value.to, series)
+    const to =
+      value.to === undefined ? existing?.to : toOf(value.to, series, cards)
     const spot = value.spot === undefined ? existing?.spot : spotOf(value.spot)
     const next: Direction = {
       id: existing?.id || randomUUID(),
@@ -80,7 +95,14 @@ export const saveDirection = (seriesId: string, raw: unknown) => {
   })
 }
 
-const toOf = (raw: unknown, series: Series): Direction['to'] => {
+/** What a direction is wired to: an episode of the series, or cards still
+ * on the map, up to DIRECTION_CARDS; one more is refused, saying so, never
+ * dropped unsaid (round 2). */
+const toOf = (
+  raw: unknown,
+  series: Series,
+  cards: Set<string> | null
+): Direction['to'] => {
   const value = (raw ?? {}) as Record<string, unknown>
   if (value.episode) {
     const episode = String(value.episode)
@@ -89,8 +111,11 @@ const toOf = (raw: unknown, series: Series): Direction['to'] => {
     return { episode }
   }
   const pages = Array.isArray(value.pages)
-    ? [...new Set(value.pages.map(String))].slice(0, 12)
+    ? [...new Set(value.pages.map(String))].filter(
+        (page) => !cards || cards.has(page)
+      )
     : []
+  if (pages.length > DIRECTION_CARDS) throw new Refusal(tooManyCards())
   return pages.length ? { pages } : undefined
 }
 const spotOf = (raw: unknown) => {

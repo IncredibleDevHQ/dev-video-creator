@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
 import type { Snapshot } from '../shared/api'
 import type { Slide } from '../shared/model'
-// Review 8's content map, round 2 of the audit, in the engine: Undo of a
-// removal.
+// Review 8's content map, round 2 of the audit, in the engine: a direction's
+// cards, and Undo of a removal.
 // The agent is a stand-in: these checks prove the plumbing, not what a model
 // would write.
 const { stage, replies } = vi.hoisted(() => ({
@@ -23,6 +23,7 @@ const { writeRow } = await import('./persistence')
 const { loadProject, editSlide } = await import('./projects')
 const episodes = await import('./map-episodes')
 const segues = await import('./map-segues')
+const directions = await import('./series-directions')
 afterAll(async () => {
   await segues.settledAllSegues()
   await rm(root, { recursive: true, force: true })
@@ -127,6 +128,32 @@ const twoEpisodes = async (map: string) => {
     two: two.notebook.project.id
   }
 }
+it('wires a direction to cards still on the map, up to twelve, and says a thirteenth is one too many', async () => {
+  await drawnMap('r4', 14)
+  const series = await episodes.startMapSeries('r4', {})
+  const saved = await directions.saveDirection(series.id, { text: 'Pair up' })
+  const id = saved.directions!.at(-1)!.id
+  const cards = (n: number) =>
+    Array.from({ length: n }, (_, i) => `r4-${i + 1}`)
+  // A card deleted from the map is never wired again; alone, it leaves the
+  // whole series.
+  let now = await directions.saveDirection(series.id, {
+    id,
+    to: { pages: ['gone', ...cards(12)] }
+  })
+  expect(now.directions!.at(-1)!.to).toEqual({ pages: cards(12) })
+  now = await directions.saveDirection(series.id, {
+    id,
+    to: { pages: ['gone'] }
+  })
+  expect(now.directions!.at(-1)!.to).toBeUndefined()
+  await expect(
+    directions.saveDirection(series.id, { id, to: { pages: cards(13) } })
+  ).rejects.toThrow(
+    'A direction guides up to 12 cards: wire it to an episode or the whole series'
+  )
+})
+
 it('brings back the page the map removed, and refuses when another was removed since', async () => {
   const { one } = await twoEpisodes('r5')
   const [a, b] = (await loadProject(one))!.project.slides
