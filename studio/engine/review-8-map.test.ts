@@ -321,3 +321,72 @@ describe('what the keys reach zoomed out (F12)', () => {
     ).not.toBeNull()
   })
 })
+
+describe('a cut or a copy waiting to be pasted (F13)', () => {
+  const three = () => {
+    const shown = view()
+    shown.episodes.push(episode('e3', 3, []))
+    return shown
+  }
+  const press = async (key: string) => {
+    fire(win.document.body, 'keydown', { key, metaKey: true })
+    await settle()
+  }
+
+  it('keeps a cut an episode refused, says why there, and pastes it into another', async () => {
+    const { map } = await openMap(three())
+    map.select({ t: 'copy', id: 'y' })
+    await press('x')
+    const cut = { mode: 'move', copy: 'y', from: 'e1' }
+    expect(map.clip).toEqual(cut)
+    // Ep 2 has page b already: Paste can't be pressed there, and says why.
+    map.select({ t: 'lane', id: 'e2' })
+    const bar = map.slot('bar')!
+    const paste = bar.querySelector<HTMLButtonElement>('button')!
+    expect([paste.textContent, paste.disabled]).toEqual(['Paste', true])
+    expect(bar.querySelector('.map-info')?.textContent).toContain(
+      'the cut page is here already'
+    )
+    await press('v')
+    expect(mapApi.copies).not.toHaveBeenCalled()
+    expect(map.slot('toast')!.textContent).toBe(
+      'Ep 2 has that page already: select another episode'
+    )
+    expect(map.clip).toEqual(cut)
+    // Ep 3 can take it: its Paste is there, and the cut lands.
+    map.select({ t: 'lane', id: 'e3' })
+    expect(bar.querySelector('[data-map="paste"]')?.className).toBe('primary')
+    await press('v')
+    expect(mapApi.copies).toHaveBeenCalledWith('e1', {
+      action: 'move',
+      slide: 'y',
+      to: 'e3',
+      index: undefined
+    })
+    expect(map.clip).toBeNull()
+  })
+
+  it('keeps a cut the engine refused, and a copied page to paste again', async () => {
+    const { map, hooks } = await openMap(three())
+    vi.mocked(mapApi.copies).mockRejectedValueOnce(
+      new Error('That episode already has a copy of this page')
+    )
+    map.select({ t: 'copy', id: 'y' })
+    await press('x')
+    map.select({ t: 'lane', id: 'e3' })
+    await press('v')
+    expect(hooks.error).toHaveBeenCalledOnce()
+    expect(map.clip).toEqual({ mode: 'move', copy: 'y', from: 'e1' })
+    expect(map.slot('bar')!.querySelector('[data-map="paste"]')).not.toBeNull()
+    // A page copied from the map: an episode that has it says so first.
+    map.select({ t: 'page', id: 'a' })
+    await press('c')
+    map.select({ t: 'lane', id: 'e1' })
+    await press('v')
+    expect(map.slot('toast')!.textContent).toBe(
+      'Ep 1 has that page already: select another episode'
+    )
+    expect(map.clip).toEqual({ mode: 'copy', slide: 'a' })
+    expect(mapApi.copies).toHaveBeenCalledTimes(1)
+  })
+})

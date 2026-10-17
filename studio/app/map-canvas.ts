@@ -8,7 +8,7 @@ import type { MapView } from '../shared/content-map'
 import { api } from './api'
 import { confirmAction } from './confirm-action'
 import { mapApi } from './map-api'
-import { renderBar, hideMenu } from './map-bar'
+import { renderBar, hideMenu, holdsClip } from './map-bar'
 import { installMapInput, type DragState } from './map-input'
 import { installFlowInput, tellOrganized } from './map-flow-input'
 import { queueItems, queuePill } from './map-nodes'
@@ -106,6 +106,8 @@ export class MapCanvas {
   /** The bar asks for the series' outcome or audience. */
   briefing: 'outcome' | 'audience' | null = null
   private adding = false
+  /** A paste on its way: a second ⌘V waits for it. */
+  private pasting = false
   /** The map just opened: its last view is put back once, else it fits. */
   private returning = true
   private fitted = false
@@ -473,7 +475,10 @@ export class MapCanvas {
       'Back in the episode'
     )
   }
-  paste() {
+  /** Pastes into the selected episode. A cut stays on the clipboard until
+   * it lands, so a refused paste can go somewhere else (review 8); an
+   * episode with the page already says so first, as Copy to does. */
+  async paste() {
     const clip = this.clip
     if (!clip) return this.toast('Select a page and press ⌘C first')
     let episode = this.sel?.t === 'lane' ? this.sel.id : null
@@ -487,16 +492,40 @@ export class MapCanvas {
       }
     }
     if (!episode) return this.toast('Select an episode to paste into')
-    if (clip.mode === 'move') {
+    const lane = this.view?.episodes.find((e) => e.notebook === episode)
+    if (clip.mode === 'move' && !this.episodeOf(clip.copy)) {
       this.clip = null
-      // In its own lane, the copy leaves first: places after it move up one.
-      const lane = this.view?.episodes.find((e) => e.notebook === episode)
-      const was = lane?.copies.findIndex((c) => c.id === clip.copy) ?? -1
-      if (index !== undefined && was >= 0 && was < index) index -= 1
-      return this.moveCopy(clip.copy, episode, index)
+      this.paint()
+      return this.toast('The cut page has left its episode: cut it again')
     }
-    if (clip.mode === 'cut') this.clip = null
-    return this.copyInto(clip.slide, episode, index, clip.mode === 'cut')
+    if (holdsClip(this, clip, episode))
+      return this.toast(
+        `Ep ${lane?.number ?? ''} has that page already: select another episode`
+      )
+    if (this.pasting) return
+    this.pasting = true
+    try {
+      let landed: boolean | undefined
+      if (clip.mode === 'move') {
+        // In its own lane, the copy leaves first: places after it move up.
+        const was = lane?.copies.findIndex((c) => c.id === clip.copy) ?? -1
+        if (index !== undefined && was >= 0 && was < index) index -= 1
+        landed = await this.moveCopy(clip.copy, episode, index)
+      } else
+        landed = await this.copyInto(
+          clip.slide,
+          episode,
+          index,
+          clip.mode === 'cut'
+        )
+      // A copy stays to be pasted again; a cut goes once it has landed.
+      if (landed && clip.mode !== 'copy' && this.clip === clip) {
+        this.clip = null
+        this.paint()
+      }
+    } finally {
+      this.pasting = false
+    }
   }
   /** Asks what the new episode is about, in the bar; the pages go with it. */
   newEpisode(slides: string[] = []) {

@@ -147,17 +147,26 @@ const content = (map: MapCanvas) => {
     const episode = view.episodes.find((e) => e.notebook === sel.id)
     if (!episode) return ''
     const failed = episode.picking?.state === 'failed'
+    // An episode with the page already can't take it, as Copy to says: the
+    // cut or copy waits for another (review 8).
+    const here = clip ? holdsClip(map, clip, episode.notebook) : false
+    const paste = !clip
+      ? ''
+      : here
+        ? '<button type="button" class="quiet" disabled title="This episode has that page already">Paste</button>'
+        : act('paste', 'Paste', '⌘V', true)
+    const said = here
+      ? `<small>the ${clip?.mode === 'copy' ? 'copied' : 'cut'} page is here already</small>`
+      : clipped
     // Its way into making, as on its lane, here where an open Notes panel
     // never covers it (review 8); a paste or a failed pick leads first.
     const make = act(
       `open:${episode.notebook}`,
       episode.video ? 'Open' : 'Make video',
       '',
-      !clip && !failed
+      !(clip && !here) && !failed
     )
-    return `<div class="map-info"><b style="color:${colorOf(view, episode.notebook)}">Ep ${episode.number}</b> · ${escape(episode.title)}<small>${episode.copies.length} page${episode.copies.length === 1 ? '' : 's'}${episode.segues === 'failed' ? ' · segues failed' : ''}</small>${clipped}</div>${
-      clip ? act('paste', 'Paste', '⌘V', true) : ''
-    }${failed ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${make}${act('rename-episode', 'Rename')}${more('lane')}`
+    return `<div class="map-info"><b style="color:${colorOf(view, episode.notebook)}">Ep ${episode.number}</b> · ${escape(episode.title)}<small>${episode.copies.length} page${episode.copies.length === 1 ? '' : 's'}${episode.segues === 'failed' ? ' · segues failed' : ''}</small>${said}</div>${paste}${failed ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${make}${act('rename-episode', 'Rename')}${more('lane')}`
   }
   if (sel?.t === 'series' && view?.series) {
     const series = view.series
@@ -235,6 +244,30 @@ export const showMenu = (
 export const hideMenu = (map: MapCanvas) => {
   const menu = map.slot('menu')
   if (menu) menu.hidden = true
+}
+
+/** Whether an episode has the page a clip holds already, so a paste there
+ * would be refused; a cut copy's own episode doesn't count (pasting there
+ * moves it within). */
+export const holdsClip = (
+  map: MapCanvas,
+  clip: NonNullable<MapCanvas['clip']>,
+  episode: string
+) => {
+  const page =
+    clip.mode === 'move'
+      ? map.episodeOf(clip.copy)?.copies.find((c) => c.id === clip.copy)?.copyOf
+          ?.slide
+      : clip.slide
+  const lane = map.view?.episodes.find((e) => e.notebook === episode)
+  return Boolean(
+    page &&
+    lane?.copies.some(
+      (copy) =>
+        copy.copyOf?.slide === page &&
+        (clip.mode !== 'move' || copy.id !== clip.copy)
+    )
+  )
 }
 
 /** The episodes a page or copy can go to, and a new one; an episode that
