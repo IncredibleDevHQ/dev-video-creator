@@ -200,6 +200,58 @@ const fitNote = (releaseAt: string, now: Date, moved: number, left: number) => {
 export const MOVED_LATER =
   'The release moved later: Plan again to spread the lead-up.'
 
+/** What the creator made of a step a plan offered: approved it, wrote its
+ * words, or gave it a day or time of its own. */
+export type Work = 'approved' | 'words' | 'time'
+/** A step of the last plan a new one leaves out, and what the creator had
+ * made of it. */
+export type Lost = { item: CampaignItem; work: Work[] }
+
+/** What the creator made of a step, against the plan's own for it: a day
+ * or time is theirs when they set it (or, saved before that was kept, when
+ * it differs from the plan's); a launch post's, when it stopped following
+ * the release. */
+const workOn = (old: CampaignItem, planned?: CampaignItem): Work[] => [
+  ...(old.state === 'approved' ? (['approved'] as const) : []),
+  ...(old.edited ? (['words'] as const) : []),
+  ...((
+    old.kind === 'launch'
+      ? old.afterRelease === undefined
+      : old.timed ||
+        (planned &&
+          !old.from &&
+          (old.offsetDays !== planned.offsetDays || old.time !== planned.time))
+  )
+    ? (['time'] as const)
+    : [])
+]
+
+/**
+ * A step planned again, with what the creator made of it the last time
+ * kept: approved or dropped, their words, their day and time (review 8,
+ * round 2: Plan again put every step back to the template's).
+ */
+const carry = (planned: CampaignItem, old: CampaignItem): CampaignItem => {
+  const work = workOn(old, planned)
+  const next: CampaignItem = {
+    ...planned,
+    state:
+      old.state === 'approved' || old.state === 'dropped' ? old.state : 'draft'
+  }
+  // Approved words are the ones the creator said yes to.
+  if (work.includes('words') || work.includes('approved')) {
+    next.words = old.words
+    if (old.edited) next.edited = true
+  }
+  if (work.includes('time')) {
+    next.offsetDays = old.offsetDays
+    next.time = old.time
+    if (old.timed) next.timed = true
+    delete next.afterRelease
+  }
+  return next
+}
+
 /** The default plan; posted items are the creator's and stay as they are. */
 export const planCampaign = (
   project: Project,
@@ -215,7 +267,7 @@ export const planCampaign = (
 export const campaignPlan = (
   project: Project,
   options: { lastOfRun?: boolean; now?: Date } = {}
-): { items: CampaignItem[]; note?: string } => {
+): { items: CampaignItem[]; note?: string; lost: Lost[] } => {
   const now = options.now || new Date()
   const release: Release = project.release || { teasers: [], campaign: [] }
   const posts = release.posts
@@ -291,7 +343,27 @@ export const campaignPlan = (
   const kept = release.campaign.filter(
     (entry) => entry.state === 'posted' || entry.state === 'unknown'
   )
-  let fresh = plan.filter((entry) => !kept.some((done) => done.id === entry.id))
+  // A step planned again keeps what the creator made of it; the ones a
+  // plan leaves out are said, so the creator is asked first.
+  const before = new Map(
+    release.campaign
+      .filter((entry) => ['draft', 'approved', 'dropped'].includes(entry.state))
+      .map((entry) => [entry.id, entry])
+  )
+  // A step moved closer by an earlier plan is the step it was moved from.
+  const origin = new Map<string, string>()
+  const carried = new Set<string>()
+  let fresh = plan
+    .filter((entry) => !kept.some((done) => done.id === entry.id))
+    .map((entry) => {
+      const old =
+        before.get(entry.id) ||
+        [...before.values()].find((one) => one.from === entry.id)
+      if (!old) return entry
+      origin.set(entry.id, old.id)
+      carried.add(old.id)
+      return carry(entry, old)
+    })
   let note: string | undefined
   const at = release.at
   const when = (campaign: CampaignItem[]): Timed => ({
@@ -304,6 +376,7 @@ export const campaignPlan = (
       (entry) => entry.offsetDays < 0 && late(when(fresh), entry, now)
     )
     fresh = fresh.filter((entry) => !gone.includes(entry))
+    for (const entry of gone) carried.delete(origin.get(entry.id) || '')
     let moved = 0
     for (const channel of new Set(gone.map((entry) => entry.channel))) {
       const covered = [...fresh, ...kept].some(
@@ -313,9 +386,15 @@ export const campaignPlan = (
       const days = covered ? null : nextDay(when(fresh), latest, now)
       if (days === null) continue
       moved++
+      // Moved closer, it is still the step the creator made, on the
+      // plan's day now.
+      if (origin.has(latest.id)) carried.add(origin.get(latest.id)!)
+      const step = { ...latest }
+      delete step.timed
       fresh.push({
-        ...latest,
+        ...step,
         id: `${latest.kind}-${channel}-${days}`,
+        from: latest.from || latest.id,
         offsetDays: days,
         words:
           latest.words === countdown(latest.offsetDays)
@@ -330,13 +409,24 @@ export const campaignPlan = (
   if (up?.state === 'uploaded' && up.videoId)
     markYouTubeUp(fresh, up.videoId, up.publishAt || up.at)
   const all = [...kept, ...fresh]
+  const lost = [...before.values()]
+    .filter((entry) => !carried.has(entry.id))
+    .map((entry) => ({
+      item: entry,
+      work: workOn(
+        entry,
+        plan.find((one) => one.id === entry.id)
+      )
+    }))
+    .filter((entry) => entry.work.length)
   return {
     items: at
       ? all.sort(byDue(when(all)))
       : all.sort(
           (a, b) => a.offsetDays - b.offsetDays || a.time.localeCompare(b.time)
         ),
-    ...(note ? { note } : {})
+    ...(note ? { note } : {}),
+    lost
   }
 }
 

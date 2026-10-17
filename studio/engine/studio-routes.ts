@@ -141,7 +141,7 @@ const route = async (
           ? await postItem(id, body)
           : body.action === 'change'
             ? await changeItem(id, body)
-            : await planCampaignFor(id)
+            : await planCampaignFor(id, body)
       )
     if (action === 'youtube' && method === 'POST')
       return ok(await publishToYouTube(id, body))

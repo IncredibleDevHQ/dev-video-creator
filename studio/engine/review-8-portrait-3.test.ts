@@ -190,8 +190,7 @@ it('stops a rebuild cut off by a restart, and a new one picks up from the frames
   const shape = join(dir, 'shapes', '1080x1920', 'compositions', 'frames')
   await writeFile(join(shape, 'f01-frame-1.html'), '<template>1</template>')
   await settleInterruptedWork()
-  const now = async () =>
-    (await loadProject('r2'))!.project.release!.teasers[0]
+  const now = async () => (await loadProject('r2'))!.project.release!.teasers[0]
   expect((await now()).rebuild).toEqual({
     state: 'failed',
     frames: 4,

@@ -70,6 +70,12 @@ export type CampaignItem = {
   postUrl?: string
   /** What went wrong, or needs checking, the last time it was posted. */
   note?: string
+  /** The creator wrote its words: a new plan keeps them. */
+  edited?: boolean
+  /** The creator gave it its day or time: a new plan keeps them. */
+  timed?: boolean
+  /** Moved closer by a plan made near the release: the step it was. */
+  from?: string
 }
 
 export type YouTubeUpload = {

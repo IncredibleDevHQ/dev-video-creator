@@ -23,6 +23,7 @@ const { setYouTubeVideo } = await import('./numbers')
 const { writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
 const { campaignSection, releaseLabel } = await import('../app/campaign-view')
+const { clickRelease } = await import('../app/release-controller')
 afterAll(() => rm(root, { recursive: true, force: true }))
 
 const doc = (html: string) => parseHTML(`<div>${html}</div>`).document
@@ -185,11 +186,121 @@ it('keeps a launch time the creator chose, and moves an old plan’s template ti
     .planCampaign(legacy, { now: EARLY })
     .map((item) => {
       if (item.kind !== 'launch') return item
-      const { afterRelease: _, ...rest } = item
-      return { ...rest, time: old[item.channel] }
+      const step = { ...item, time: old[item.channel] }
+      delete step.afterRelease
+      return step
     })
   await save(legacy)
   expect(await clock('legacy', 'youtube')).toBe('18:00')
   await changeItem('legacy', { item: 'launch-youtube-0', time: '08:00' })
   expect(await clock('legacy', 'youtube')).toBe('08:00')
+})
+
+it('plans again keeping the creator’s approvals, words and times, and asks before leaving any out (round 2)', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(EARLY)
+  try {
+    await save(project('again'))
+    await planCampaignFor('again')
+    const change = (item: string, more: Record<string, unknown>) =>
+      changeItem('again', { item, ...more })
+    await change('teaser-x--14', { state: 'approved' })
+    await change('launch-x-0', { state: 'approved' })
+    await change('teaser-linkedin--7', { words: 'Mine, not the plan’s.' })
+    await change('launch-youtube-0', { time: '08:00' })
+    await change('teaser-x--2', { offsetDays: -3 })
+    await change('clip-x-2', { state: 'dropped' })
+    const made = (await loadProject('again'))!.project.release!.campaign
+    // Planned again in good time, everything the creator made stays.
+    const again = await planCampaignFor('again')
+    const byId = (items: typeof made) =>
+      Object.fromEntries(
+        items.map((item) => [
+          item.id,
+          [item.state, item.words, item.offsetDays, item.afterRelease]
+        ])
+      )
+    expect(byId(again.project.release!.campaign)).toEqual(byId(made))
+    // Opened on 17 October, three days out: the approved X teaser of
+    // 6 October has gone by, and only the later one moves closer.
+    vi.setSystemTime(new Date(2026, 9, 17, 8, 53))
+    const today = (await loadProject('again'))!
+    const left = plan.campaignPlan(today.project).lost
+    expect(left.map(({ item, work }) => [item.id, work])).toEqual([
+      ['teaser-x--14', ['approved']]
+    ])
+    // The engine waits for the creator's yes…
+    await expect(planCampaignFor('again')).rejects.toThrow(
+      'Planning again leaves out a step you changed: say yes to it first'
+    )
+    expect((await loadProject('again'))!.project.release!.campaign).toEqual(
+      today.project.release!.campaign
+    )
+    // …and the page asks it, saying what goes.
+    const app = {
+      snapshot: today,
+      dialog: { open: false, dataset: {}, querySelector: () => null },
+      showDialog: vi.fn()
+    }
+    notebook.mockResolvedValue(today)
+    confirm.mockResolvedValueOnce(false)
+    await clickRelease(app as never, {} as never, 'plan-campaign')
+    expect(confirm.mock.calls[0][0]).toMatchObject({
+      title: 'Plan the campaign again?',
+      detail:
+        'It leaves out the X teaser of Tue, Oct 6 (approved). Every other step keeps your approvals, words and times.'
+    })
+    expect(notebook).not.toHaveBeenCalled()
+    confirm.mockResolvedValueOnce(true)
+    await clickRelease(app as never, {} as never, 'plan-campaign')
+    expect(notebook.mock.calls.at(-1)).toEqual([
+      'again',
+      'campaign',
+      { action: 'plan', confirmed: true }
+    ])
+    const planned = await planCampaignFor('again', { confirmed: true })
+    const items = planned.project.release!.campaign
+    const find = (id: string) => items.find((item) => item.id === id)!
+    expect(find('launch-x-0').state).toBe('approved')
+    // The LinkedIn teaser of 13 October moved closer with the words written.
+    const linkedin = items.find(
+      (item) => item.channel === 'linkedin' && item.kind === 'teaser'
+    )!
+    expect(linkedin.offsetDays).toBeGreaterThan(-7)
+    expect(linkedin.words).toBe('Mine, not the plan’s.')
+    expect(find('launch-youtube-0')).toMatchObject({ time: '08:00' })
+    expect(find('launch-youtube-0').afterRelease).toBeUndefined()
+    expect(find('clip-x-2').state).toBe('dropped')
+    // The X teaser the creator moved to three days out, moved closer still.
+    const moved = items.filter(
+      (item) => item.channel === 'x' && item.kind === 'teaser'
+    )
+    expect(moved).toHaveLength(1)
+    expect(moved[0].offsetDays).toBeGreaterThan(-3)
+    expect(items.some((item) => item.id === 'teaser-x--14')).toBe(false)
+    // With nothing left out, Plan again asks nothing.
+    confirm.mockClear()
+    await clickRelease(
+      { ...app, snapshot: planned } as never,
+      {} as never,
+      'plan-campaign'
+    )
+    expect(confirm).not.toHaveBeenCalled()
+    expect(notebook.mock.calls.at(-1)).toEqual([
+      'again',
+      'campaign',
+      { action: 'plan' }
+    ])
+    // The teaser the plan moved closer, given a time by the creator, keeps
+    // it through the next plan, which is still that step.
+    await changeItem('again', { item: moved[0].id, time: '19:00' })
+    const kept = (await planCampaignFor('again')).project.release!.campaign
+    expect(
+      kept
+        .filter((item) => item.channel === 'x' && item.kind === 'teaser')
+        .map((item) => [item.id, item.time])
+    ).toEqual([[moved[0].id, '19:00']])
+  } finally {
+    vi.useRealTimers()
+  }
 })

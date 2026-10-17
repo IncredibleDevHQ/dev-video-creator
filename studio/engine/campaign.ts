@@ -22,8 +22,12 @@ import { Refusal } from './refusal'
 import { UncertainPost } from './posting'
 import { loadSeries } from './series'
 
-/** Plans (or re-plans) the campaign; posted items stay as they went out. */
-export const planCampaignFor = async (id: string) => {
+/** Plans (or re-plans) the campaign; posted items stay as they went out,
+ * and the rest keep what the creator made of them. A plan that would leave
+ * out a step the creator approved, wrote or timed waits for their yes
+ * (review 8, round 2: Plan again dropped them without a word). */
+export const planCampaignFor = async (id: string, raw: unknown = {}) => {
+  const sure = (raw as { confirmed?: unknown })?.confirmed === true
   const snapshot = await loadProject(id)
   if (!snapshot) throw new Refusal('Notebook not found')
   if (!snapshot.project.release?.at)
@@ -37,6 +41,10 @@ export const planCampaignFor = async (id: string) => {
     const release = current.project.release || emptyRelease()
     // Planned today: what has gone by is moved closer or left out, and said.
     const plan = campaignPlan(current.project, { lastOfRun })
+    if (plan.lost.length && !sure)
+      throw new Refusal(
+        `Planning again leaves out ${plan.lost.length === 1 ? 'a step' : `${plan.lost.length} steps`} you changed: say yes to it first`
+      )
     release.campaign = plan.items
     release.launchesFollow = true
     if (plan.note) release.campaignNote = plan.note
@@ -56,7 +64,12 @@ export const changeItem = (id: string, raw: unknown) => {
     if (!item) throw new Refusal('That item is not in the campaign')
     if (item.state === 'posted') throw new Refusal('It has gone out already')
     if (item.state === 'posting') throw new Refusal('It is being posted now')
-    if (typeof value.words === 'string') item.words = value.words.slice(0, 5000)
+    // Words the creator wrote are theirs: a new plan keeps them.
+    if (typeof value.words === 'string') {
+      const words = value.words.slice(0, 5000)
+      if (words !== item.words) item.edited = true
+      item.words = words
+    }
     // Approved with nothing to say, it could only be refused when posted:
     // neither approved so, nor emptied once approved.
     if (
@@ -84,10 +97,13 @@ export const changeItem = (id: string, raw: unknown) => {
     if (value.follow === true && item.kind === 'launch') {
       item.afterRelease = LAUNCH_AFTER[item.channel]
       item.offsetDays = 0
+      delete item.timed
     } else if (days !== item.offsetDays || time !== shown) {
       delete item.afterRelease
       item.offsetDays = days
       item.time = time
+      // The creator's own day or time: a new plan keeps it.
+      item.timed = true
     }
     if (item.afterRelease !== undefined && when) item.time = clockOf(when, item)
     if (['draft', 'approved', 'dropped'].includes(String(value.state)))
@@ -168,8 +184,11 @@ export const postItem = async (id: string, raw: unknown) => {
       const found = current.project.release?.campaign.find(
         (entry) => entry.id === itemId
       )
-      if (found && found.state !== 'posted' && found.state !== 'posting')
-        found.words = edited.trim().slice(0, 5000)
+      const words = edited.trim().slice(0, 5000)
+      if (found && found.state !== 'posted' && found.state !== 'posting') {
+        if (words !== found.words) found.edited = true
+        found.words = words
+      }
     })
   let item: CampaignItem | undefined
   let words = ''

@@ -1,7 +1,8 @@
 // The release dialog: teasers, words, the bundle, and what follows it.
 import type { Snapshot } from '../shared/api'
 import type { AppContext } from './app-context'
-import { campaignSection } from './campaign-view'
+import { campaignPlan, timed } from '../shared/campaign'
+import { campaignSection, lostWords } from './campaign-view'
 import { confirmAction } from './confirm-action'
 import { numbersSection } from './numbers-view'
 import { releaseBusy, releaseDialog } from './release-view'
@@ -114,8 +115,31 @@ export const clickRelease = async (
   if (!app.snapshot) return
   const id = app.snapshot.project.id
   if (action === 'release-dialog') showRelease(app)
-  if (action === 'plan-campaign')
-    update(app, await studioApi.notebook(id, 'campaign', { action: 'plan' }))
+  // Planned again, each step keeps what the creator made of it; one the
+  // new plan leaves out is said first (review 8, round 2).
+  if (action === 'plan-campaign') {
+    const release = timed(app.snapshot.project.release)
+    const lost = release
+      ? campaignPlan(app.snapshot.project, {
+          lastOfRun: release.campaign.some((item) => item.kind === 'recap')
+        }).lost
+      : []
+    if (lost.length) {
+      const sure = await confirmAction({
+        title: 'Plan the campaign again?',
+        detail: `It leaves out ${lostWords(release!, lost)}. Every other step keeps your approvals, words and times.`,
+        action: 'Plan again'
+      })
+      if (!sure) return
+    }
+    update(
+      app,
+      await studioApi.notebook(id, 'campaign', {
+        action: 'plan',
+        ...(lost.length ? { confirmed: true } : {})
+      })
+    )
+  }
   if (action === 'campaign-follow')
     update(
       app,

@@ -14,7 +14,9 @@ import {
   ownLaunchTime,
   timed,
   whenWords,
-  type Timed
+  type Lost,
+  type Timed,
+  type Work
 } from '../shared/campaign'
 import { CHANNEL_LABELS, type CampaignItem } from '../shared/release'
 import { escape } from './ui'
@@ -148,6 +150,24 @@ ${
 }
 <p class="release-note">Only YouTube schedules on its own. An approved X or LinkedIn item waits here when its time comes; ${'{link}'} becomes the video’s tagged link.</p>
 <button type="button" class="quiet" data-action="plan-campaign">${release.campaign.length ? 'Plan again' : 'Plan the campaign'}</button></section>`
+}
+
+const WORK_WORDS: Record<Work, string> = {
+  approved: 'approved',
+  words: 'your words',
+  time: 'its own time'
+}
+
+/** The steps a new plan leaves out and what the creator made of them, in
+ * a sentence: "the X teaser of Tue, Oct 6 (approved, your words)". */
+export const lostWords = (release: Timed, lost: Lost[]) => {
+  const said = lost.map(
+    ({ item, work }) =>
+      `the ${CHANNEL_LABELS[item.channel]} ${KIND_WORDS[item.kind].toLowerCase()} of ${dayAndTime(dueAt(release, item)).split(' · ')[0]} (${work.map((one) => WORK_WORDS[one]).join(', ')})`
+  )
+  return said.length > 3
+    ? `${said.slice(0, 3).join('; ')} and ${said.length - 3} more`
+    : said.join('; ')
 }
 
 /** How many approved items are due, for the Release button. */
