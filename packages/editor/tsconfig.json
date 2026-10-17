@@ -1,8 +1,0 @@
-{
-	"extends": "config/tsconfig-react.json",
-	"compilerOptions": {
-		"disableSizeLimit": true
-	},
-	"include": ["."],
-	"exclude": ["dist", "build", "node_modules"]
-}

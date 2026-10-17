@@ -1,0 +1,136 @@
+/* Input-group composition: the editor and its action share one focus boundary. */
+.source-composer {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 2px 5px #00000005;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+.source-composer:hover {
+  border-color: color-mix(in srgb, var(--muted) 55%, var(--line));
+}
+.source-composer:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.source-composer textarea {
+  display: block;
+  min-height: 66px;
+  height: 66px;
+  max-height: 220px;
+  padding: 21px 74px 21px 20px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  resize: none;
+  overflow-y: auto;
+  font-size: 16px;
+  line-height: 24px;
+  box-shadow: none;
+}
+.source-composer textarea:focus-visible {
+  outline: none;
+}
+.source-composer textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.9;
+}
+.source-submit {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 2px 6px #00000014;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.source-submit svg {
+  width: 21px;
+  height: 21px;
+  transition: transform 200ms ease;
+}
+:root[data-theme='dark'] .source-submit {
+  color: #102c1a;
+}
+.source-composer .source-submit:disabled {
+  opacity: 1;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 12%, var(--panel));
+  box-shadow: none;
+}
+.source-submit:not(:disabled) .source-arrow {
+  animation: source-ready 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.source-submit:not(:disabled):hover {
+  background: color-mix(in srgb, var(--accent) 88%, white);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 25%, transparent);
+  transform: translateY(-1px);
+}
+.source-submit:not(:disabled):hover svg {
+  transform: translateY(-2px);
+}
+.source-submit:not(:disabled):active {
+  transform: scale(0.93);
+  box-shadow: none;
+}
+.source-submit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.source-submit .source-spinner,
+.source-composer[aria-busy='true'] .source-arrow {
+  display: none;
+}
+.source-composer[aria-busy='true'] .source-spinner {
+  display: block;
+  animation: source-spin 850ms linear infinite;
+}
+@keyframes source-ready {
+  from {
+    opacity: 0.5;
+    translate: 0 3px;
+    scale: 0.85;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes source-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@media (max-width: 600px) {
+  .source-composer textarea {
+    min-height: 72px;
+    padding-left: 16px;
+    padding-right: 68px;
+  }
+  .source-submit {
+    right: 10px;
+    bottom: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .source-composer,
+  .source-composer * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

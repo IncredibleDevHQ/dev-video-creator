@@ -1,0 +1,576 @@
+// Where everything sits on the content map's canvas, in world units: the map
+// block of pages (in the notebook's order, or by topic), the series under it
+// with one lane per episode, the Socials box beside the series with what each
+// made episode was cut into, and the workflow's lines between them. Pure, so
+// the canvas can move things by diffing two layouts.
+import { noteBlock, routeDirection, type Point } from './map-route'
+import type { Snapshot } from '../shared/api'
+import { topicGroups, type MapView } from '../shared/content-map'
+import type { Slide } from '../shared/model'
+
+export type MapMode = 'order' | 'topic'
+export type MapFilter = 'all' | 'unused' | 'new'
+export type Box = { x: number; y: number; w: number; h: number }
+export type MapGroup = Box & {
+  key: string
+  label: string
+  meta: string
+  slides: string[]
+}
+export type MapLayout = {
+  map: Box
+  groups: MapGroup[]
+  cards: Record<string, Box>
+  series: Box | null
+  /** The series' head: its outcome, audience, through-lines and gaps. */
+  head: Box | null
+  lanes: Record<string, Box & { rowY: number }>
+  copies: Record<string, Box & { episode: string; index: number }>
+  segues: Array<Box & { key: string; episode: string; end: boolean }>
+  bridges: Array<Box & { key: string; copy: string }>
+  connectors: Array<Box & { key: string }>
+  empties: Record<string, Box>
+  /** Each open gap, as a dashed card where its episode needs it. */
+  gaps: Array<Box & { id: string; episode: string }>
+  /** The creator's directions, where they sit. */
+  directions: Record<string, Box>
+  /** The Socials box, outside the series; null without a series. */
+  socials: Box | null
+  /** Each made episode's place in the Socials box, level with its lane. */
+  derived: Array<Box & { episode: string }>
+  /** The workflow's wires: each card into the episodes that use it, each
+   * episode into the next, each made episode into its socials, each
+   * direction into what it guides. */
+  flows: Flow[]
+}
+export type Flow = {
+  key: string
+  kind: 'use' | 'chain' | 'out' | 'direction'
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  episode?: string
+  /** The keys of the nodes it joins, for lighting what is selected. */
+  from: string
+  to: string
+  /** Where it turns, when that is a gutter rather than half way. */
+  turn?: number
+  /** Its whole way, when it runs round a frame. */
+  points?: Point[]
+}
+
+export const MX = 40,
+  MY = 40,
+  MP = 20,
+  CW = 220,
+  CH = 124,
+  CG = 18,
+  COLS = 2
+/** A card's label sits above it, as a node's does in Flora, with room for
+ * two lines of title (review 6: titles were cut to one). */
+export const CL = 42
+export const MH = 64,
+  GH = 30
+export const MW = MP * 2 + COLS * CW + (COLS - 1) * CG
+/** A bigger map gets more columns: with the series beside it, the whole
+ * stays near the canvas's shape. */
+export const columnsFor = (pages: number) =>
+  pages <= 8 ? COLS : pages <= 18 ? 3 : pages <= 32 ? 4 : 5
+const widthFor = (cols: number) => MP * 2 + cols * CW + (cols - 1) * CG
+export const SH = 58,
+  SP = 16,
+  LH = 58,
+  QW = 184,
+  QH = 176,
+  QG = 40,
+  SW = 136
+/** A line into a page wraps to two lines under the connector before it. */
+export const BH = 34
+export const LPAD = 14,
+  LGAP = 34,
+  LANEH = LH + QH + BH + 22
+/** The series' head, with an outline and without; the room the wires from
+ * the cards cross to reach the series; a direction note's size. */
+export const HEAD = 132,
+  HEAD0 = 126,
+  WIRE = 200,
+  DW = 240,
+  DH = 112
+/** The Socials box's width, and the room its lines cross to reach it. */
+export const SOW = 330,
+  SOGAP = 150
+
+const dayOf = (at: string) =>
+  new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+
+/** A page on the map: drawn, a first draft being checked, being drawn, or
+ * only planned yet (its title from the story, its picture still to come). */
+export type MapPage = {
+  id: string
+  title: string
+  slide?: Slide
+  state: 'drawn' | 'draft' | 'drawing' | 'planned'
+}
+
+/**
+ * The map's pages in order. While the story is planned and drawn, every
+ * planned page is already there by its title, and fills in as it is drawn:
+ * the map forms on the canvas, as in the Wireframe stage's rail.
+ */
+/** How many of the map's cards are drawn: a first draft being checked counts,
+ * as far as the map shows (the Cards line and the Queue say the same). */
+export const drawnCount = (pages: MapPage[]) =>
+  pages.filter((page) => page.state === 'drawn' || page.state === 'draft')
+    .length
+
+export const mapPages = (snapshot: Snapshot): MapPage[] => {
+  const slides = snapshot.project.slides
+  const drawn = (slide: Slide): MapPage => ({
+    id: slide.id,
+    title: slide.title,
+    slide,
+    state: !slide.svg ? 'planned' : slide.draft ? 'draft' : 'drawn'
+  })
+  const plan = snapshot.status === 'ready' ? [] : snapshot.plan || []
+  if (!plan.length) return slides.map(drawn)
+  const drawing = new Set(
+    snapshot.stopping
+      ? []
+      : (snapshot.drawing || []).map((index) => plan[index]?.id)
+  )
+  const pages: MapPage[] = plan.map((entry) => {
+    const slide = slides.find((item) => item.id === entry.id)
+    return slide
+      ? drawn(slide)
+      : {
+          id: entry.id,
+          title: entry.title,
+          state: drawing.has(entry.id) ? 'drawing' : 'planned'
+        }
+  })
+  for (const slide of slides)
+    if (!plan.some((entry) => entry.id === slide.id)) pages.push(drawn(slide))
+  return pages
+}
+
+/**
+ * The map's groups. By order, one unlabelled group in the notebook's order
+ * (a note's page sits where it was placed, numbered with the rest); by
+ * topic, a labelled group per topic. While the map forms, its pages are one
+ * group in the story's order.
+ */
+export const mapGroups = (snapshot: Snapshot, mode: MapMode) => {
+  const slides = snapshot.project.slides
+  if (snapshot.status !== 'ready' && snapshot.plan?.length)
+    return [
+      {
+        key: 'pages',
+        label: '',
+        meta: '',
+        slides: mapPages(snapshot).map((page) => page.id)
+      }
+    ]
+  if (mode === 'topic')
+    return topicGroups(slides, snapshot.project.topics).map((group) => ({
+      key: `t:${group.name}`,
+      label: group.name || 'Not grouped yet',
+      meta: '',
+      slides: group.slides
+    }))
+  return [
+    { key: 'pages', label: '', meta: '', slides: slides.map((s) => s.id) }
+  ].filter((group) => group.slides.length)
+}
+
+/** When a page came from a note: the note's day. */
+export const noteDay = (snapshot: Snapshot, slide: Slide) => {
+  const note = slide.fromNote
+    ? snapshot.project.notes?.find((item) => item.id === slide.fromNote)
+    : undefined
+  return note ? dayOf(note.at) : ''
+}
+
+/** Pages the latest note added or changed: the "New" filter. */
+export const newPages = (snapshot: Snapshot) => {
+  const last = snapshot.project.notes?.at(-1)
+  if (!last) return new Set<string>()
+  return new Set([
+    ...snapshot.project.slides
+      .filter((slide) => slide.fromNote === last.id)
+      .map((slide) => slide.id),
+    ...(last.results || [])
+      .filter((result) => result.kind === 'adds')
+      .map((result) => result.slideId)
+  ])
+}
+
+export const mapLayout = (
+  snapshot: Snapshot,
+  view: MapView | null,
+  mode: MapMode
+): MapLayout => {
+  const layout: MapLayout = {
+    map: { x: MX, y: MY, w: 0, h: 0 },
+    groups: [],
+    cards: {},
+    series: null,
+    head: null,
+    lanes: {},
+    copies: {},
+    segues: [],
+    bridges: [],
+    connectors: [],
+    empties: {},
+    gaps: [],
+    directions: {},
+    socials: null,
+    derived: [],
+    flows: []
+  }
+  // The cards on the left, each with its label above it.
+  const cols = columnsFor(mapPages(snapshot).length)
+  const mw = widthFor(cols)
+  layout.map.w = mw
+  let y = MY + MH
+  for (const group of mapGroups(snapshot, mode)) {
+    if (group.label) {
+      layout.groups.push({ ...group, x: MX + MP, y, w: mw - MP * 2, h: GH - 8 })
+      y += GH
+    }
+    group.slides.forEach((id, index) => {
+      layout.cards[id] = {
+        x: MX + MP + (index % cols) * (CW + CG),
+        y: y + CL + Math.floor(index / cols) * (CH + CL + CG),
+        w: CW,
+        h: CH
+      }
+    })
+    y += Math.ceil(group.slides.length / cols) * (CH + CL + CG) + 8
+  }
+  layout.map.h = Math.max(y - MY + MP - 8, 220)
+  const series = view?.series
+  if (!view || !series) return layout
+  // The series to the right of the cards; directions without a place, or
+  // whose place a frame has grown over, sit in a row above it.
+  const sx = MX + mw + WIRE
+  const headH = series.lines.length ? HEAD : HEAD0
+  const open = series.gaps.filter((gap) => gap.state === 'open')
+  const laneW = (episode: MapView['episodes'][number]) => {
+    const n = episode.copies.length
+    const gaps = open.filter((gap) => gap.episode === episode.notebook).length
+    return (
+      (n
+        ? LPAD * 2 + SW * 2 + QG * (n + 1) + QW * n
+        : LPAD * 2 + QW * 3 + QG * 2) +
+      gaps * (QW + QG)
+    )
+  }
+  const frameW = SP * 2 + Math.max(640, ...view.episodes.map(laneW))
+  const frameH = headH + view.episodes.length * (LANEH + LGAP) + DH + 80
+  const taken = [
+    layout.map,
+    { x: sx, y: MY, w: frameW, h: frameH },
+    { x: sx + frameW + SOGAP, y: MY, w: SOW, h: frameH }
+  ]
+  const overlaps = (spot: { x: number; y: number }) =>
+    taken.some(
+      (box) =>
+        spot.x < box.x + box.w &&
+        spot.x + DW > box.x &&
+        spot.y < box.y + box.h &&
+        spot.y + DH > box.y
+    )
+  const loose = series.directions.filter((d) => !d.spot || overlaps(d.spot))
+  const sy = MY + (loose.length ? DH + 48 : 0)
+  loose.forEach((direction, index) => {
+    layout.directions[direction.id] = {
+      x: sx + index * (DW + 24),
+      y: MY,
+      w: DW,
+      h: DH
+    }
+  })
+  for (const direction of series.directions)
+    if (direction.spot && !loose.includes(direction))
+      layout.directions[direction.id] = {
+        x: direction.spot.x,
+        y: direction.spot.y,
+        w: DW,
+        h: DH
+      }
+  let ly = sy + headH
+  let widest = 640
+  for (const episode of view.episodes) {
+    const n = episode.copies.length
+    const gaps = open.filter((gap) => gap.episode === episode.notebook)
+    const lx = sx + SP
+    // A gap the episode needs comes first: it is missing before it starts.
+    const x0 = lx + LPAD + gaps.length * (QW + QG)
+    const rowY = ly + LH
+    gaps.forEach((gap, index) =>
+      layout.gaps.push({
+        id: gap.id,
+        episode: episode.notebook,
+        x: lx + LPAD + index * (QW + QG),
+        y: rowY,
+        w: QW,
+        h: QH
+      })
+    )
+    const w =
+      (n
+        ? LPAD * 2 + SW * 2 + QG * (n + 1) + QW * n
+        : LPAD * 2 + QW * 3 + QG * 2) +
+      gaps.length * (QW + QG)
+    layout.lanes[episode.notebook] = { x: lx, y: ly, w, h: LANEH, rowY }
+    widest = Math.max(widest, w)
+    if (!n)
+      layout.empties[episode.notebook] = {
+        x: x0,
+        y: rowY,
+        w: QW * 3 + QG * 2,
+        h: QH
+      }
+    else {
+      layout.segues.push({
+        key: `s:${episode.notebook}`,
+        episode: episode.notebook,
+        end: false,
+        x: x0,
+        y: rowY,
+        w: SW,
+        h: QH
+      })
+      episode.copies.forEach((copy, index) => {
+        const x = x0 + SW + QG + index * (QW + QG)
+        layout.copies[copy.id] = {
+          x,
+          y: rowY,
+          w: QW,
+          h: QH,
+          episode: episode.notebook,
+          index
+        }
+        layout.connectors.push({
+          key: `k:${copy.id}`,
+          x: x - QG + 6,
+          y: rowY + QH / 2,
+          w: QG - 12,
+          h: 2
+        })
+        if (index)
+          layout.bridges.push({
+            key: `b:${copy.id}`,
+            copy: copy.id,
+            x: x - QG / 2 - 104,
+            y: rowY + QH + 8,
+            w: 208,
+            h: BH
+          })
+      })
+      const ex = x0 + SW + QG + n * (QW + QG)
+      layout.connectors.push({
+        key: `k:end:${episode.notebook}`,
+        x: ex - QG + 6,
+        y: rowY + QH / 2,
+        w: QG - 12,
+        h: 2
+      })
+      layout.segues.push({
+        key: `e:${episode.notebook}`,
+        episode: episode.notebook,
+        end: true,
+        x: ex,
+        y: rowY,
+        w: SW,
+        h: QH
+      })
+    }
+    ly += LANEH + LGAP
+  }
+  layout.series = {
+    x: sx,
+    y: sy,
+    w: SP * 2 + widest,
+    h: Math.max(ly - sy + SP - LGAP, 180)
+  }
+  layout.head = { x: sx, y: sy, w: SP * 2 + widest, h: headH }
+  // Each card into the episodes that hold a copy of it.
+  for (const episode of view.episodes) {
+    const lane = layout.lanes[episode.notebook]
+    const seen = new Set<string>()
+    for (const copy of episode.copies) {
+      const page = copy.copyOf?.slide
+      const card = page ? layout.cards[page] : undefined
+      if (!page || !card || seen.has(page)) continue
+      seen.add(page)
+      layout.flows.push({
+        key: `u:${page}:${episode.notebook}`,
+        kind: 'use',
+        episode: episode.notebook,
+        from: `m:${page}`,
+        to: `L:${episode.notebook}`,
+        x1: layout.map.x + layout.map.w,
+        y1: card.y + card.h / 2,
+        x2: sx,
+        y2: lane.y + LH / 2
+      })
+    }
+  }
+  // Each episode into the next: the order a viewer meets them.
+  view.episodes.forEach((episode, index) => {
+    const next = view.episodes[index + 1]
+    if (!next) return
+    const a = layout.lanes[episode.notebook]
+    const b = layout.lanes[next.notebook]
+    layout.flows.push({
+      key: `n:${episode.notebook}`,
+      kind: 'chain',
+      episode: episode.notebook,
+      from: `L:${episode.notebook}`,
+      to: `L:${next.notebook}`,
+      x1: a.x + 30,
+      y1: a.y + a.h,
+      x2: b.x + 30,
+      y2: b.y
+    })
+  })
+  // What a made episode was cut into: the Socials box, beside the series,
+  // each episode's place level with its lane and a wire into it.
+  const ox = sx + layout.series.w + SOGAP
+  let bottom = sy + SH
+  for (const episode of view.episodes) {
+    if (!episode.video?.joined && !episode.teasers.length && !episode.posts)
+      continue
+    const lane = layout.lanes[episode.notebook]
+    const rows = Math.max(1, episode.teasers.length) + 1
+    const top = Math.max(bottom, lane.y)
+    const place = {
+      episode: episode.notebook,
+      x: ox + SP,
+      y: top,
+      w: SOW - SP * 2,
+      h: 44 + rows * 32
+    }
+    layout.derived.push(place)
+    bottom = top + place.h + 14
+    layout.flows.push({
+      key: `o:${episode.notebook}`,
+      kind: 'out',
+      episode: episode.notebook,
+      from: `L:${episode.notebook}`,
+      to: `D:${episode.notebook}`,
+      x1: lane.x + lane.w,
+      y1: lane.y + LH / 2,
+      x2: place.x,
+      y2: place.y + 22
+    })
+  }
+  layout.socials = {
+    x: ox,
+    y: sy,
+    w: SOW,
+    h: Math.max(bottom - sy + SP - 14, 180)
+  }
+  // Each direction into what it guides: an episode, its cards, or the series,
+  // wired last so its line goes round every block, the Socials box too.
+  for (const direction of series.directions) {
+    const box = layout.directions[direction.id]
+    if (!box) continue
+    const targets: Array<{ key: string; box: Box; y: number }> = []
+    const lane = direction.to?.episode
+      ? layout.lanes[direction.to.episode]
+      : undefined
+    if (lane)
+      targets.push({
+        key: `L:${direction.to!.episode}`,
+        box: lane,
+        y: lane.y + 18
+      })
+    for (const page of direction.to?.pages || []) {
+      const card = layout.cards[page]
+      if (card)
+        targets.push({ key: `m:${page}`, box: card, y: card.y + card.h / 2 })
+    }
+    if (!targets.length && layout.head)
+      targets.push({ key: 'B:series', box: layout.head, y: sy + headH / 2 })
+    for (const target of targets) {
+      // Every line ends at a frame, its arrow pointing in: a card at the
+      // Cards frame, an episode or the series at the series' frame, by the
+      // way that crosses no block (review 7).
+      const frame = target.key.startsWith('m:') ? layout.map : layout.series
+      const { points, turn } = routeDirection(box, frame, target.y, [
+        layout.map,
+        layout.series,
+        layout.socials,
+        ...Object.entries(layout.directions)
+          .filter(([id]) => id !== direction.id)
+          .map(([, other]) => noteBlock(other))
+      ])
+      const [x1, y1] = points[0]
+      const [x2, y2] = points[points.length - 1]
+      layout.flows.push({
+        key: `d:${direction.id}:${target.key}`,
+        kind: 'direction',
+        from: `d:${direction.id}`,
+        to: target.key,
+        x1,
+        y1,
+        x2,
+        y2,
+        turn: points.length === 4 && points[1][1] === y1 ? points[1][0] : turn,
+        points
+      })
+    }
+  }
+  return layout
+}
+
+/** Everything's outer edge, for fitting the canvas to the window. */
+export const extent = (layout: MapLayout, focus?: Box) => {
+  const boxes = focus
+    ? [focus]
+    : [
+        layout.map,
+        ...(layout.series ? [layout.series] : []),
+        ...(layout.socials ? [layout.socials] : []),
+        ...Object.values(layout.directions)
+      ]
+  const x0 = Math.min(...boxes.map((b) => b.x)) - 30
+  const y0 = Math.min(...boxes.map((b) => b.y)) - 30
+  const x1 = Math.max(...boxes.map((b) => b.x + b.w)) + 30
+  const y1 = Math.max(...boxes.map((b) => b.y + b.h)) + 30
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+}
+
+/** Where a dragged page would land in an episode's lane, if over one. */
+export const dropSpot = (
+  layout: MapLayout,
+  view: MapView,
+  point: { x: number; y: number },
+  skip?: string
+) => {
+  for (const episode of view.episodes) {
+    const lane = layout.lanes[episode.notebook]
+    if (!lane) continue
+    if (point.x < lane.x || point.x > lane.x + lane.w + 40) continue
+    if (point.y < lane.y || point.y > lane.y + lane.h) continue
+    const copies = episode.copies.filter((copy) => copy.id !== skip)
+    let index = copies.length
+    for (let i = 0; i < copies.length; i++) {
+      const box = layout.copies[copies[i].id]
+      if (point.x < box.x + box.w / 2) {
+        index = i
+        break
+      }
+    }
+    const marker = !copies.length
+      ? lane.x + LPAD + 4
+      : index < copies.length
+        ? layout.copies[copies[index].id].x - QG / 2
+        : layout.copies[copies[copies.length - 1].id].x + QW + QG / 2
+    return { episode: episode.notebook, index, marker, y: lane.rowY }
+  }
+  return null
+}

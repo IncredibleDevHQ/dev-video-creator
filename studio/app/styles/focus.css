@@ -1,0 +1,514 @@
+/* One uninterrupted presenter workspace for rehearsal, capture and review. */
+body:has(.is-focused) {
+  overflow: hidden;
+}
+body:has(.is-focused) > #app > header {
+  pointer-events: none;
+  filter: blur(7px);
+  opacity: 0.3;
+}
+.video-workspace.is-focused > .rail,
+.video-workspace.is-focused > .transcript {
+  pointer-events: none;
+  filter: blur(7px);
+  opacity: 0.25;
+}
+.video-workspace.is-focused:before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: #07100de0;
+  backdrop-filter: blur(10px);
+  z-index: 20;
+}
+.video-workspace.is-focused > .stage-area {
+  position: fixed;
+  inset: 16px 24px;
+  z-index: 21;
+  width: auto;
+  max-width: none;
+  padding: 18px 28px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--bg);
+  box-shadow: 0 24px 100px #0008;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  animation: presenter-enter 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.focus-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin: 0 auto 14px;
+  width: 100%;
+  max-width: 1200px;
+  min-height: 38px;
+}
+.focus-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.focus-heading strong {
+  font-size: 14px;
+}
+.focus-heading span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.focus-heading button {
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+.is-focused .video-stage {
+  width: min(100%, calc((100dvh - 300px) * 16 / 9));
+  min-height: 180px;
+  flex-shrink: 0;
+  align-self: center;
+  box-shadow: none;
+}
+.is-focused .stage-area > .moment-timeline,
+.is-focused .stage-area > .recording-nudge,
+.is-focused .stage-area > .chat,
+.is-focused .stage-area > .reply,
+.is-focused .stage-area > .recording-handoff,
+.is-focused .stage-area > .video-run-status {
+  display: none;
+}
+.is-focused .practice-panel,
+.is-focused .recording-script {
+  width: 100%;
+  max-width: 1000px;
+  align-self: center;
+  margin: 14px 0;
+  border: 0;
+  background: transparent;
+  padding: 8px 16px;
+}
+.is-focused .recording-script {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  color: inherit;
+}
+.is-focused .recording-script > span {
+  font-size: clamp(18px, 2vw, 26px);
+  max-height: 120px;
+}
+.is-focused .practice-panel p {
+  text-align: center;
+  font-size: clamp(18px, 2vw, 26px);
+  max-height: 120px;
+}
+.is-focused .video-actions {
+  width: 100%;
+  max-width: 1000px;
+  align-self: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+.is-focused .video-actions > div:first-child {
+  display: none;
+}
+.is-focused .take-review {
+  max-width: 1000px;
+  width: 100%;
+  align-self: center;
+}
+@keyframes presenter-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .video-workspace.is-focused > .stage-area {
+    animation: none;
+  }
+}
+@media (max-width: 700px) {
+  .video-workspace.is-focused > .stage-area {
+    inset: 6px;
+    padding: 12px;
+  }
+  .focus-heading > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .is-focused .video-stage {
+    width: 100%;
+  }
+  .is-focused .video-actions > div {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+.video-workspace.is-focused > .stage-area {
+  background: #141c18;
+  color: #eef3ef;
+}
+.is-focused .focus-heading span,
+.is-focused .practice-panel-heading small {
+  color: #aab8af;
+}
+.is-focused .focus-heading button,
+.is-focused .video-actions button {
+  background: #26322b;
+  color: #eef3ef;
+  border-color: #3a493f;
+}
+.is-focused .video-actions .primary {
+  background: #23783d;
+}
+.is-focused .practice-panel-heading > div {
+  margin-right: auto;
+}
+
+.animation-status {
+  width: min(100%, 1000px);
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #aab8af;
+}
+.animation-status[hidden] {
+  display: none;
+}
+.animation-status progress {
+  flex: 1;
+  min-width: 60px;
+  height: 5px;
+  accent-color: var(--accent);
+}
+.animation-status span {
+  white-space: nowrap;
+}
+
+.is-focused .practice-panel {
+  max-width: 880px;
+  padding: 12px 16px 4px;
+}
+.is-focused .practice-panel p {
+  max-width: 760px;
+  margin: 20px auto 0;
+  font-size: clamp(19px, 1.7vw, 25px);
+  line-height: 1.65;
+}
+.is-focused .practice-panel-heading strong {
+  font-size: 12px;
+  font-weight: 500;
+  color: #b5c3ba;
+}
+.is-focused .practice-panel-heading small {
+  font-size: 11px;
+  color: #87998d;
+}
+.is-focused .practice-panel-heading button {
+  border: 1px solid #34453a;
+  border-radius: 20px;
+  padding: 7px 13px;
+  color: #b5c3ba;
+}
+.is-focused .video-actions {
+  margin: 20px auto 4px;
+}
+.is-focused .video-actions > div:last-child {
+  gap: 12px;
+}
+.practice-action-hint {
+  font-size: 11px;
+  color: #87998d;
+}
+.is-focused .video-actions [data-action='record-moment'] {
+  background: transparent;
+  border-color: transparent;
+  color: #b5c3ba;
+  font-weight: 400;
+}
+.is-focused .video-actions button {
+  min-height: 40px;
+  font-size: 13px;
+  padding: 9px 18px;
+}
+
+.is-focused .video-actions > div:last-child {
+  position: relative;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding-bottom: 20px;
+}
+.is-focused .video-actions .practice-action-hint {
+  position: absolute;
+  top: calc(100% - 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  text-align: center;
+  font-size: 11px;
+}
+.is-focused .practice-panel-heading .record-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #68504f;
+  background: #2b2221;
+  color: #f4e9e8;
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 8px 12px;
+  margin-left: 8px;
+}
+.record-entry-dot {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #f05c58;
+  box-shadow: 0 0 0 3px #f05c5818;
+}
+.is-focused .practice-panel-heading .record-entry:hover {
+  background: #402a28;
+  border-color: #a66964;
+}
+
+[data-prompter] [data-transcript-word] {
+  color: #aab8af;
+  transition:
+    color 0.12s,
+    background-color 0.12s;
+}
+[data-prompter] .word-read {
+  color: #eef3ef;
+}
+[data-prompter] .spoken-word {
+  color: #fff;
+  background: #297947;
+  box-shadow: 0 0 0 2px #297947;
+  border-radius: 3px;
+}
+
+.is-focused .practice-panel-heading [data-action='practice-camera'] {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  background: #26322b;
+  color: #eef3ef;
+  min-height: 36px;
+}
+
+.presenter-preview .camera-starting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #142019d9;
+  color: #eef3ef;
+  font-size: 14px;
+  z-index: 3;
+}
+.camera-starting .activity-orbit {
+  flex: none;
+}
+
+.is-focused .practice-panel {
+  max-width: 920px;
+  padding: 16px 20px;
+  background: #19231e;
+  border: 1px solid #344239;
+  border-radius: 14px;
+}
+.is-focused .practice-panel-heading strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: #edf4ef;
+  letter-spacing: 0.02em;
+}
+.is-focused .practice-panel-heading small {
+  font-size: 12px;
+  color: #a4b5a9;
+  line-height: 1.5;
+}
+.is-focused .practice-panel-heading .camera-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 9px 13px;
+  background: #243029;
+  color: #edf4ef;
+  border: 1px solid #506257;
+}
+.is-focused .practice-panel-heading .camera-toggle.is-on {
+  background: #203d2c;
+  border-color: #5c9d72;
+  color: #c4f2d1;
+}
+.prompter-window {
+  position: relative;
+  max-width: 660px;
+  margin: 18px auto 0;
+  padding-left: 24px;
+  border-left: 2px solid #4a9363;
+}
+.prompter-caret {
+  position: absolute;
+  left: 5px;
+  top: 14px;
+  color: #7ddc9d;
+  font-size: 26px;
+  line-height: 1;
+}
+.is-focused .practice-panel .prompter-window p {
+  margin: 0;
+  padding: 10px 8px 14px;
+  max-height: 148px;
+  text-align: left;
+  font-size: clamp(22px, 2.2vw, 30px);
+  line-height: 1.6;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  text-wrap: wrap;
+  scroll-behavior: smooth;
+}
+.prompter-window [data-prompter] .word-read {
+  color: #84988b;
+}
+.prompter-window [data-prompter] .spoken-word {
+  color: #fff;
+  background: #286b40;
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-focused .practice-panel .prompter-window p {
+    scroll-behavior: auto;
+  }
+}
+
+/* Reserve room for the reading window and transport before sizing the canvas. */
+.video-workspace.is-focused > .stage-area {
+  padding: 14px 24px;
+  gap: 8px;
+}
+.is-focused .focus-heading {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+.is-focused .video-stage {
+  width: min(100%, calc((100dvh - 370px) * 16 / 9));
+  min-height: 0;
+  flex-shrink: 0;
+}
+.capture-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 920px;
+  align-self: center;
+  flex-shrink: 0;
+}
+.capture-toolbar .camera-toggle,
+.capture-toolbar .record-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid #506257;
+  border-radius: 8px;
+  background: #243029;
+  color: #edf4ef;
+  font-size: 13px;
+}
+.capture-toolbar .camera-toggle.is-on {
+  background: #203d2c;
+  border-color: #5c9d72;
+  color: #c4f2d1;
+}
+.capture-toolbar .record-entry {
+  background: #2b2221;
+  border-color: #68504f;
+  color: #f4e9e8;
+}
+/* Record beside Start practice, the one primary (review 6). */
+.video-actions .record-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #68504f;
+  border-radius: 8px;
+  background: #2b2221;
+  color: #f4e9e8;
+}
+.video-actions .record-entry:hover {
+  background: #402a28;
+  border-color: #a66964;
+}
+.is-focused .practice-panel {
+  margin: 0;
+  padding: 10px 16px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+.is-focused .practice-panel-heading {
+  min-height: 20px;
+}
+.is-focused .practice-panel-heading > div {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.is-focused .prompter-window {
+  margin-top: 8px;
+  max-width: 720px;
+}
+.is-focused .practice-panel .prompter-window p {
+  height: 76px;
+  max-height: 76px;
+  padding: 0 8px;
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.45;
+  overflow-y: auto;
+}
+.prompter-caret {
+  top: 4px;
+}
+.is-focused .video-actions {
+  margin: 0;
+  flex-shrink: 0;
+}
+.is-focused .video-actions > div:last-child {
+  padding-bottom: 16px;
+}
+@media (max-height: 650px) {
+  .is-focused .video-stage {
+    width: min(100%, calc((100dvh - 310px) * 16 / 9));
+  }
+  .is-focused .practice-panel-heading small {
+    display: none;
+  }
+  .is-focused .practice-panel .prompter-window p {
+    height: 58px;
+    max-height: 58px;
+    font-size: 20px;
+  }
+}

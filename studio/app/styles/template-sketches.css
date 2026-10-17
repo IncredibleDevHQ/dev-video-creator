@@ -1,0 +1,310 @@
+/* The slot sketches. A card sets the notebook's look as --sk-ground,
+   --sk-text and --sk-accent; every other colour is mixed from them, so a
+   sketch reads on any look, light or dark. */
+/* Sketches: a look gives ground, text and accent; the rest is mixed. */
+.tpl-sketch,
+.tpl-option-thumb {
+  --sk-ink: var(--sk-text, #1f2328);
+  --sk-ink2: color-mix(in srgb, var(--sk-ink) 68%, var(--sk-ground, #fff));
+  --sk-ink3: color-mix(in srgb, var(--sk-ink) 16%, var(--sk-ground, #fff));
+  --sk-line: color-mix(in srgb, var(--sk-ink) 22%, var(--sk-ground, #fff));
+  --sk-edge: color-mix(in srgb, var(--sk-ink) 40%, var(--sk-ground, #fff));
+  --sk-surface: color-mix(in srgb, var(--sk-ink) 4%, var(--sk-ground, #fff));
+  background: var(--sk-ground, #fff);
+}
+.tpl-sketch svg,
+.tpl-option-thumb svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.sk-card {
+  fill: var(--sk-surface);
+  stroke: var(--sk-line);
+  stroke-width: 1.2;
+}
+.sk-ink {
+  fill: var(--sk-ink);
+}
+.sk-ink2 {
+  fill: var(--sk-ink2);
+}
+.sk-ink3 {
+  fill: var(--sk-ink3);
+}
+.sk-bg {
+  fill: var(--sk-ground, #fff);
+}
+.sk-acc {
+  fill: var(--sk-accent, #3a5fcd);
+}
+.sk-ok {
+  fill: #1f9d55;
+}
+.sk-warn {
+  fill: #d99a00;
+}
+.sk-bad {
+  fill: #d64545;
+}
+.sk-sacc,
+.sk-sok,
+.sk-sbad {
+  fill: none;
+  stroke-width: 2.5;
+}
+.sk-sacc {
+  stroke: var(--sk-accent, #3a5fcd);
+}
+.sk-sok {
+  stroke: #1f9d55;
+}
+.sk-sbad {
+  stroke: #d64545;
+}
+.sk-edge {
+  fill: none;
+  stroke: var(--sk-edge);
+  stroke-width: 1.8;
+}
+.sk-cam {
+  fill: #26303d;
+}
+.sk-person {
+  fill: #8a9bb0;
+}
+.sk-chip {
+  fill: #0b1220;
+}
+.sk-before {
+  fill: var(--sk-ink2);
+  opacity: 0.45;
+}
+.sk-gate {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.sk-onacc {
+  fill: #fff;
+}
+.sk-onacc-line {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+}
+.sk-cursor {
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 1;
+}
+.sk-label,
+.sk-small,
+.sk-big,
+.sk-mid,
+.sk-title,
+.sk-white {
+  font-family: Inter, Arial, sans-serif;
+}
+.sk-label {
+  fill: var(--sk-ink2);
+  font-size: 9px;
+  font-weight: 600;
+}
+.sk-small {
+  fill: var(--sk-ink2);
+  font-size: 7.5px;
+  font-weight: 500;
+}
+.sk-big {
+  fill: var(--sk-ink);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.sk-mid {
+  fill: var(--sk-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sk-title {
+  fill: var(--sk-ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+.sk-white {
+  fill: #fff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.sk-mono,
+.sk-term,
+.sk-term-ok,
+.sk-term-dim {
+  font:
+    600 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.sk-mono {
+  fill: var(--sk-ink);
+}
+.sk-term {
+  fill: #e6edf3;
+}
+.sk-term-ok {
+  fill: var(--sk-accent, #2dd4bf);
+}
+.sk-term-dim {
+  fill: #a8b6c4;
+}
+.sk-term-bar {
+  fill: #5b6b7b;
+}
+.sk-term-bar-ok {
+  fill: var(--sk-accent, #2dd4bf);
+}
+.sk-draw {
+  stroke-dasharray: 1;
+}
+.sk-tb {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.sk-tl {
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+.sk-tr {
+  transform-box: fill-box;
+  transform-origin: right center;
+}
+.sk-bl {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+/* Words set over the speaker's camera: captions, headlines and tags. */
+.sk-cap,
+.sk-cap-big,
+.sk-cap-huge,
+.sk-cap-small,
+.sk-cap-tag {
+  font-family: Inter, Arial, sans-serif;
+  fill: #fff;
+}
+.sk-cap {
+  font-size: 12.5px;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: rgb(0 0 0 / 0.4);
+  stroke-width: 2.2px;
+  stroke-linejoin: round;
+}
+.sk-cap-hi {
+  fill: color-mix(in srgb, var(--sk-accent, #3a5fcd) 62%, #fff);
+}
+.sk-cap-big {
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  text-anchor: middle;
+}
+.sk-cap-huge {
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: -1.5px;
+  text-anchor: middle;
+}
+.sk-cap-small {
+  fill: rgb(255 255 255 / 0.82);
+  font-size: 8.5px;
+  font-weight: 600;
+}
+.sk-cap-tag {
+  fill: rgb(255 255 255 / 0.75);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.sk-glass {
+  fill: rgb(12 16 22 / 0.74);
+  stroke: rgb(255 255 255 / 0.18);
+  stroke-width: 1;
+}
+.sk-ring {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+}
+.sk-spot {
+  fill: rgb(255 255 255 / 0.1);
+}
+.sk-chalk,
+.sk-chalk-acc {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sk-chalk {
+  stroke: #f8fafc;
+  stroke-width: 2.2;
+}
+.sk-chalk-acc {
+  stroke: color-mix(in srgb, var(--sk-accent, #3a5fcd) 62%, #fff);
+  stroke-width: 2.6;
+}
+.sk-quote-mark {
+  fill: var(--sk-accent, #3a5fcd);
+  font:
+    900 64px Georgia,
+    serif;
+}
+.sk-chip-text {
+  fill: var(--sk-ground, #fff);
+  font:
+    700 8px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  text-anchor: middle;
+}
+
+/* Product and systems sketches: diff counts and a progress ring. */
+.sk-ok-text,
+.sk-bad-text {
+  font:
+    700 9px ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+.sk-ok-text {
+  fill: #1f9d55;
+}
+.sk-bad-text {
+  fill: #d64545;
+}
+.sk-gauge-track {
+  fill: none;
+  stroke: var(--sk-ink3);
+  stroke-width: 8;
+}
+.sk-sacc.sk-gauge-fill {
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.sk-hero {
+  fill: var(--sk-ink);
+  font:
+    900 54px Inter,
+    Arial,
+    sans-serif;
+  letter-spacing: -2px;
+  text-anchor: middle;
+}
+.sk-dashed {
+  stroke-dasharray: 5 5;
+}

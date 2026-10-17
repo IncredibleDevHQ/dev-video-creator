@@ -1,0 +1,203 @@
+// The content map: a notebook's wireframes, which keep growing as the creator
+// adds notes, and the episodes copied from them. An episode never shares a
+// page with the map: it holds a copy that remembers where it came from, so
+// the map can say which episodes use each page and when an original changed.
+import type { Snapshot } from './api'
+import type { Slide } from './model'
+
+/** A note added after the wireframes, and what it became in the map. */
+export type MapNote = {
+  id: string
+  at: string
+  text: string
+  gap?: string
+  /** Waiting: saved while the map was drawn, sorted once it is. */
+  state: 'waiting' | 'sorting' | 'sorted' | 'failed'
+  results?: NoteResult[]
+  error?: string
+  /** The episode it was written in, when not on the map itself. */
+  from?: string
+}
+export type NoteResult = {
+  kind: 'new' | 'adds' | 'covered'
+  slideId: string
+  title: string
+  /** What the note said about it, in a line. */
+  line: string
+  /** The series gap a new page answers, for organising to close. */
+  fills?: string
+  /** The change it queued on the card (an addition), until it lands. */
+  change?: string
+  /** Read, never kept: the episodes whose copy shows the card as it is
+   * now, by number. */
+  episodes?: number[]
+  /** Read: the episodes whose copy waits for the creator's Update. */
+  waits?: number[]
+  /** Read: its addition still on its way to the card, or failed there. */
+  landing?: 'adding' | 'failed'
+  /** Read: why its addition failed. */
+  failure?: string
+}
+
+/** Where a copied page came from: the map, its page, and that page then. */
+export type SlideCopy = {
+  notebook: string
+  slide: string
+  hash: string
+  /** The original's version the creator chose to keep this copy against. */
+  kept?: string
+}
+
+/** One page of an episode, as the map's canvas shows it. */
+export type MapCopy = {
+  id: string
+  title: string
+  /** Left out when it is the map page's own drawing: the canvas has it. */
+  svg?: string | null
+  copyOf?: SlideCopy
+  /** The episode's line into this page, and out of the last one. */
+  bridge?: string
+  outro?: string
+  /** Either line still promising past the creator's words: what to check. */
+  checks?: { bridge?: string; outro?: string }
+  /** The map's page changed since this copy was made. */
+  stale: boolean
+  /** The map's page was deleted; the copy keeps its content. */
+  orphan: boolean
+  /** Its scene, when the episode has a video. */
+  scene?: { phase: string; made: boolean }
+}
+
+export type MapEpisode = {
+  notebook: string
+  number: number
+  title: string
+  status: Snapshot['status']
+  /** Its video has started: the plan keeps it as it is. */
+  made: boolean
+  /** What it does in the series, from the last plan. */
+  outline?: import('./series').EpisodeOutline
+  /** What it picks up and hands on, from the last plan. */
+  carries?: string
+  /** Writing the segues between its pages. */
+  segues?: 'writing' | 'failed'
+  /** Choosing its pages from what the creator said it is about. */
+  picking?: { state: 'picking' | 'failed'; about: string }
+  copies: MapCopy[]
+  /** About how long it runs, spoken: its pages' scripts. */
+  seconds?: number
+  video: { scenes: number; made: number; joined: boolean } | null
+  teasers: Array<{
+    id: string
+    channel: string
+    aspect: string
+    state: string
+    /** The cut, once ready, to watch from the canvas. */
+    objectKey?: string
+  }>
+  /** The posts' words for each channel, once drafted. */
+  posts: { x: string; linkedin: string; youtube: string } | null
+  /** Posts being drafted, or why the last draft failed. */
+  drafting?: { state: 'drafting' | 'failed'; error?: string } | null
+}
+
+/** Everything the canvas needs: the map's pages, its series and episodes. */
+export type MapView = {
+  notebook: string
+  title: string
+  series: {
+    id: string
+    title: string
+    /** The episodes being planned by the agent, or why they were not. */
+    planning?: {
+      state: 'planning' | 'failed'
+      error?: string
+      waiting?: string
+    }
+    ideas?: string
+    length?: import('./storyboard').LengthGoal
+    /** How many drawn cards the map has, and how long they run, spoken. */
+    cards?: number
+    seconds?: number
+    autoplan?: boolean
+    /** New cards organise themselves into the episodes. */
+    organize: boolean
+    organizing?: { state: 'organizing' | 'failed'; error?: string; at?: string }
+    /** The last organising run, while it can be undone. */
+    organized?: import('./series').OrganizeRun
+    /** The series' through-line, from its last plan. */
+    through?: string
+    outcome?: string
+    audience?: string
+    suggested?: Array<'outcome' | 'audience'>
+    directions: import('./series').Direction[]
+    lines: import('./series').ThroughLine[]
+    gaps: import('./series').SeriesGap[]
+    flags: import('./series').ViewerFlag[]
+    /** Cards the last plan left out, and cards held back from organising. */
+    left: string[]
+    held: string[]
+  } | null
+  episodes: MapEpisode[]
+  /** For each page of the map, the episodes that hold a copy of it. */
+  usage: Record<string, string[]>
+  /** Comments pinned on the canvas, said or typed. */
+  comments?: import('./voice').MapComment[]
+}
+
+/**
+ * A page without the map's and the episode's bookkeeping: what a scene is
+ * planned from, and what a redraw checks. Grouping, setting aside, cutting,
+ * keeping a copy's version or noting what a segue was written for changes
+ * none of what the page shows or says (a segue's words are in its script).
+ */
+export const pageContent = <T extends Slide>(slide: T) => {
+  const {
+    fromNote,
+    topic,
+    aside,
+    onlyIn,
+    copyOf,
+    base,
+    bridge,
+    outro,
+    bridgeFor,
+    outroFor,
+    ...content
+  } = slide
+  void [fromNote, topic, aside, onlyIn, copyOf, base, bridge, outro]
+  void [bridgeFor, outroFor]
+  return content
+}
+
+/** The topics the map's pages are grouped by, in order, with their pages. */
+export const topicGroups = (
+  slides: Array<{ id: string; topic?: string }>,
+  topics: string[] = []
+) => {
+  const groups = topics
+    .map((name) => ({
+      name,
+      slides: slides.filter((slide) => slide.topic === name).map((s) => s.id)
+    }))
+    .filter((group) => group.slides.length)
+  const loose = slides.filter(
+    (slide) => !slide.topic || !topics.includes(slide.topic)
+  )
+  if (loose.length)
+    groups.push({ name: '', slides: loose.map((slide) => slide.id) })
+  return groups
+}
+
+/** A page used by more than one episode of the series repeats itself. */
+export const repeatsIn = (view: MapView, episode: string, slide?: string) =>
+  slide ? (view.usage[slide] || []).filter((other) => other !== episode) : []
+
+/** The map's pages no episode uses, leaving out those set aside. */
+export const unusedPages = (
+  slides: Array<{ id: string; aside?: boolean }>,
+  view: MapView
+) =>
+  slides
+    .filter((slide) => !slide.aside && !view.usage[slide.id]?.length)
+    .map((slide) => slide.id)

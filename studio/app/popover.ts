@@ -1,0 +1,68 @@
+// A small panel under the control that opened it, closed by Escape, a click
+// outside, or the control again. One popover is open at a time.
+let current: { panel: HTMLElement; close: () => void; key: string } | null =
+  null
+
+export const closePopover = () => current?.close()
+export const popoverOpen = (key: string) => current?.key === key
+
+export const openPopover = (
+  anchor: HTMLElement,
+  key: string,
+  content: string,
+  className = ''
+) => {
+  if (current?.key === key) {
+    current.close()
+    return null
+  }
+  current?.close()
+  const panel = document.createElement('div')
+  panel.className = `popover ${className}`.trim()
+  panel.setAttribute('role', 'dialog')
+  panel.innerHTML = content
+  document.body.append(panel)
+  const place = () => {
+    const box = anchor.getBoundingClientRect()
+    const width = panel.offsetWidth
+    // Right-aligned under the control, kept inside the window on both
+    // sides, so a control near an edge never opens it off screen (review 7).
+    let left = box.right - width
+    if (left < 12) left = box.left
+    left = Math.min(left, window.innerWidth - width - 12)
+    panel.style.left = `${Math.round(Math.max(12, left))}px`
+    // Under the control, or over it when the window ends first.
+    const below = box.bottom + 8 + panel.offsetHeight <= window.innerHeight - 12
+    panel.style.top = `${Math.round(below ? box.bottom + 8 : Math.max(12, box.top - 8 - panel.offsetHeight))}px`
+  }
+  place()
+  const outside = (event: MouseEvent) => {
+    const target = event.target as Node
+    // The opening control toggles; it may have been redrawn since it opened.
+    const toggle =
+      target instanceof Element && target.closest(`[data-popover="${key}"]`)
+    if (panel.contains(target) || anchor.contains(target) || toggle) return
+    close()
+  }
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      // Handled: what lies under the popover stays open (review 7).
+      event.preventDefault()
+      close()
+      anchor.focus?.()
+    }
+  }
+  const close = () => {
+    document.removeEventListener('mousedown', outside, true)
+    document.removeEventListener('keydown', onKey, true)
+    window.removeEventListener('resize', place)
+    panel.remove()
+    if (current?.panel === panel) current = null
+  }
+  document.addEventListener('mousedown', outside, true)
+  document.addEventListener('keydown', onKey, true)
+  window.addEventListener('resize', place)
+  current = { panel, close, key }
+  panel.querySelector<HTMLElement>('input,select,button')?.focus()
+  return panel
+}

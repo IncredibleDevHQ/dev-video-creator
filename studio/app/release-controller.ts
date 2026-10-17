@@ -1,0 +1,398 @@
+// The release dialog: teasers, words, the bundle, and what follows it.
+import type { Snapshot } from '../shared/api'
+import type { AppContext } from './app-context'
+import { timed, type Lost } from '../shared/campaign'
+import { campaignSection, lostWords } from './campaign-view'
+import { confirmAction } from './confirm-action'
+import { numbersSection } from './numbers-view'
+import { releaseBusy, releaseDialog } from './release-view'
+import { api } from './api'
+import { studioApi } from './studio-api'
+import { busy, typingIn } from './ui'
+import type { AccountsView } from '../shared/accounts'
+
+/** The sections after the bundle: the campaign, then the numbers. */
+const extras: Array<(snapshot: Snapshot) => string> = [
+  campaignSection,
+  numbersSection
+]
+
+let following: ReturnType<typeof setTimeout> | null = null
+let shown = ''
+/** What the follow loop watches: whatever is still being made. */
+const progress = (snapshot: Snapshot) => {
+  const release = snapshot.project.release
+  return JSON.stringify([
+    release?.teasers.map((item) => [
+      item.id,
+      item.state,
+      item.rebuild?.state,
+      item.rebuild?.done
+    ]),
+    release?.drafting?.state,
+    release?.youtube?.state,
+    release?.campaign.map((item) => item.state)
+  ])
+}
+/** Shows the release, and follows it while a teaser or the words are made. */
+export const showRelease = (app: AppContext) => {
+  const snapshot = app.snapshot
+  if (!snapshot) return
+  const scroll = app.dialog.open ? app.dialog.scrollTop : 0
+  app.showDialog(
+    releaseDialog(snapshot, extras.map((section) => section(snapshot)).join(''))
+  )
+  app.dialog.dataset.release = snapshot.project.id
+  app.dialog.scrollTop = scroll
+  shown = progress(snapshot)
+  if (following) clearTimeout(following)
+  if (releaseBusy(snapshot)) follow(app)
+}
+
+// Refreshes while something is made: only when it changed, never under the
+// creator's typing, and never over another dialog opened from this one.
+const follow = (app: AppContext) => {
+  following = setTimeout(() => {
+    following = null
+    const snapshot = app.snapshot
+    if (
+      !snapshot ||
+      !app.dialog.open ||
+      !app.dialog.querySelector('#release-form') ||
+      app.dialog.dataset.release !== snapshot.project.id
+    )
+      return
+    if (typingIn(app.dialog) || progress(snapshot) === shown) follow(app)
+    else showRelease(app)
+  }, 2000)
+}
+
+/** With a publish time the upload is private until then: the privacy
+ * choice is disabled and says so. */
+export const syncPublishForm = (form: Element | null | undefined) => {
+  const at = form?.querySelector<HTMLInputElement>('[name="publishAt"]')
+  const privacy = form?.querySelector<HTMLSelectElement>('[name="privacy"]')
+  if (!at || !privacy) return
+  // One option chosen: a single choice lets the others go by itself.
+  const pick = (value: string) => {
+    const option = [...privacy.querySelectorAll('option')].find(
+      (item) => item.value === value
+    )
+    if (option) option.selected = true
+  }
+  // The creator's own choice waits while a time holds it at private, and
+  // comes back when the time is cleared.
+  if (at.value && !privacy.disabled) privacy.dataset.chosen = privacy.value
+  if (!at.value && privacy.disabled && privacy.dataset.chosen)
+    pick(privacy.dataset.chosen)
+  privacy.disabled = Boolean(at.value)
+  if (at.value) pick('private')
+  // A time away from the campaign's launch says when that is (review 8).
+  const differs = form?.querySelector<HTMLElement>('.publish-differs')
+  if (differs)
+    differs.hidden = !at.value || at.value === form?.getAttribute('data-launch')
+}
+
+/** The words typed in an item's row, when its form is open. */
+const typedWords = (target: HTMLElement) => {
+  const row = target.closest('.campaign-item')
+  const field = row?.querySelector<HTMLTextAreaElement>(
+    'form.campaign-edit textarea[name="words"]'
+  )
+  return field ? field.value : null
+}
+
+const update = (app: AppContext, snapshot: Snapshot) => {
+  app.snapshot = snapshot
+  showRelease(app)
+}
+
+export const clickRelease = async (
+  app: AppContext,
+  target: HTMLButtonElement,
+  action: string | undefined
+) => {
+  if (!app.snapshot) return
+  const id = app.snapshot.project.id
+  if (action === 'release-dialog') showRelease(app)
+  // Planned again, each step keeps what the creator made of it; one the
+  // new plan leaves out is said first (review 8, round 2), as the engine
+  // reckons it: it alone knows where the series' run ends (round 3).
+  if (action === 'plan-campaign') {
+    const release = timed(app.snapshot.project.release)
+    const { lost } = release
+      ? await studioApi.request<{ lost: Lost[] }>(
+          `/projects/${encodeURIComponent(id)}/campaign`,
+          'POST',
+          { action: 'lost' }
+        )
+      : { lost: [] as Lost[] }
+    if (lost.length) {
+      const sure = await confirmAction({
+        title: 'Plan the campaign again?',
+        detail: `It leaves out ${lostWords(release!, lost)}. Every other step keeps your approvals, words and times.`,
+        action: 'Plan again'
+      })
+      if (!sure) return
+    }
+    update(
+      app,
+      await studioApi.notebook(id, 'campaign', {
+        action: 'plan',
+        ...(lost.length ? { confirmed: true } : {})
+      })
+    )
+  }
+  if (action === 'campaign-follow')
+    update(
+      app,
+      await studioApi.notebook(id, 'campaign', {
+        action: 'change',
+        item: target.dataset.item,
+        follow: true
+      })
+    )
+  // A teaser drawn again for its shape: an AI run for each of its frames,
+  // so the creator says yes first (review 8, round 1).
+  if (action === 'teaser-rebuild') {
+    const frames = Number(target.dataset.frames) || 0
+    // Its frames drawn already and only its text unmeasured: none drawn
+    // again, and it says so (round 3).
+    const sure = await confirmAction(
+      frames
+        ? {
+            title: 'Draw its frames again?',
+            detail: `The frame agent draws each of its ${frames} frame${frames === 1 ? '' : 's'} again for a phone, keeping its words and pictures: ${frames} AI run${frames === 1 ? '' : 's'}. The teaser is then cut from them.`,
+            action: 'Rebuild'
+          }
+        : {
+            title: 'Check and cut it again?',
+            detail:
+              'Its frames drawn for a phone are kept: their text is measured again and the teaser cut again from them, with no AI run unless the episode changed since.',
+            action: 'Rebuild'
+          }
+    )
+    if (sure)
+      update(
+        app,
+        await studioApi.notebook(id, 'teasers', {
+          action: 'rebuild',
+          teaser: target.dataset.teaser
+        })
+      )
+    return
+  }
+  if (action === 'teaser-keep')
+    update(
+      app,
+      await studioApi.notebook(id, 'teasers', {
+        action: 'keep',
+        teaser: target.dataset.teaser
+      })
+    )
+  // Another picture for the thumbnail, before the bundle or the upload.
+  if (action === 'choose-cover')
+    update(
+      app,
+      await studioApi.notebook(id, 'release', {
+        cover: target.dataset.poster
+          ? { poster: true }
+          : target.dataset.frame === undefined
+            ? { at: Number(target.dataset.at) }
+            : { frame: Number(target.dataset.frame) }
+      })
+    )
+  // The title set over it, or taken off (review 8, round 2).
+  if (action === 'cover-title')
+    update(
+      app,
+      await studioApi.notebook(id, 'release', {
+        coverTitle: target.getAttribute('aria-pressed') !== 'true'
+      })
+    )
+  // The thumbnail approved as shown: the bundle and the upload carry it.
+  if (action === 'approve-cover')
+    update(
+      app,
+      await studioApi.notebook(id, 'release', {
+        approveCover: target.dataset.stamp
+      })
+    )
+  // An overdue item moved to the soonest day it can still go out.
+  if (action === 'campaign-move')
+    update(
+      app,
+      await studioApi.notebook(id, 'campaign', {
+        action: 'change',
+        item: target.dataset.item,
+        offsetDays: Number(target.dataset.days)
+      })
+    )
+  if (action === 'campaign-state')
+    update(
+      app,
+      await studioApi.notebook(id, 'campaign', {
+        action: 'change',
+        item: target.dataset.item,
+        state: target.dataset.state,
+        // Approving keeps what was typed (review 6: it wiped it).
+        ...(typedWords(target) !== null ? { words: typedWords(target) } : {})
+      })
+    )
+  if (action === 'campaign-post') {
+    const x = target.dataset.channel === 'x'
+    const item = app.snapshot.project.release?.campaign.find(
+      (entry) => entry.id === target.dataset.item
+    )
+    // The words on screen, as typed, are the ones confirmed and posted; an
+    // emptied box posts nothing.
+    const words = typedWords(target) ?? item?.words ?? ''
+    if (!words.trim()) throw new Error('Write the post’s words first')
+    // Posting is public and, on X, charged: the creator sees the words and
+    // the price, and says yes first.
+    const prices = x
+      ? (await studioApi.request<AccountsView>('/accounts')).xPrices
+      : null
+    const cost = prices
+      ? /https?:\/\/|\{link\}/.test(words)
+        ? prices.postWithLink
+        : prices.post
+      : 0
+    const again = Boolean(target.dataset.again)
+    const sure = await confirmAction({
+      title: again ? 'Post it again?' : `Post on ${x ? 'X' : 'LinkedIn'} now?`,
+      detail: `${again ? `No answer came back last time, so it may already be on ${x ? 'X' : 'LinkedIn'}: check your feed first, or it could show twice. ` : ''}“${words.length > 160 ? `${words.slice(0, 160)}…` : words}” ${
+        x
+          ? `It goes out from your X app, which is charged about $${cost.toFixed(3).replace(/0$/, '')} for it.`
+          : 'It goes out on LinkedIn as you.'
+      }`,
+      action: again ? 'Post again' : 'Post now'
+    })
+    if (!sure) return
+    try {
+      await busy(target, async () =>
+        update(
+          app,
+          await studioApi.notebook(id, 'campaign', {
+            action: 'post',
+            item: target.dataset.item,
+            words,
+            ...(again ? { again: true } : {})
+          })
+        )
+      )
+    } catch (reason) {
+      // What the post's row now says (it may have gone out) shows at once;
+      // the post's own error is the one said.
+      if (app.snapshot?.project.id === id)
+        await api
+          .load(id)
+          .then((snapshot) => update(app, snapshot))
+          .catch(() => {})
+      throw reason
+    }
+  }
+
+  // A publish time is chosen, never filled in: with one, YouTube keeps it
+  // private until then, so the privacy choice steps aside (review 6).
+  if (action === 'use-release-date') {
+    const form = target.closest('form')
+    const field = form?.querySelector<HTMLInputElement>('[name="publishAt"]')
+    if (field) field.value = target.dataset.at || ''
+    syncPublishForm(form)
+    return
+  }
+  if (action === 'draft-posts')
+    await busy(target, async () =>
+      update(app, await studioApi.notebook(id, 'posts'))
+    )
+  // A flagged post kept as it is (review 8).
+  if (action === 'keep-post-check' && target.dataset.channel)
+    await busy(target, async () =>
+      update(
+        app,
+        await studioApi.notebook(id, 'release', {
+          keepCheck: target.dataset.channel
+        })
+      )
+    )
+}
+
+export const submitRelease = async (
+  app: AppContext,
+  form: HTMLFormElement,
+  values: FormData
+) => {
+  if (!app.snapshot) return
+  const id = app.snapshot.project.id
+  if (form.id === 'teaser-form') {
+    const [channel, aspect] = String(values.get('cut') || '').split(' ')
+    const moment = String(values.get('moment') || '').trim()
+    update(
+      app,
+      await studioApi.notebook(id, 'teasers', {
+        channel,
+        aspect,
+        ...(moment ? { moment: Number(moment) } : {})
+      })
+    )
+  }
+  if (form.id === 'youtube-publish-form') {
+    const at = String(values.get('publishAt') || '')
+    const privacy = String(values.get('privacy') || 'private')
+    const sure = await confirmAction({
+      title: 'Upload to YouTube?',
+      detail: at
+        ? `It goes up private, and YouTube publishes it at ${new Date(at).toLocaleString()}.`
+        : `It goes up ${privacy} on your channel.`,
+      action: 'Upload'
+    })
+    if (!sure) return
+    update(
+      app,
+      await studioApi.notebook(id, 'youtube', {
+        privacy,
+        ...(at ? { publishAt: new Date(at).toISOString() } : {})
+      })
+    )
+  }
+  if (form.matches('.campaign-edit')) {
+    const time = values.get('time')
+    const offsetDays = Number(values.get('offsetDays'))
+    // A launch post moving with the release goes on doing so unless its day
+    // or time was changed here (review 8).
+    const kept =
+      form.dataset.follows !== undefined &&
+      time === form.dataset.time &&
+      String(offsetDays) === form.dataset.days
+    update(
+      app,
+      await studioApi.notebook(id, 'campaign', {
+        action: 'change',
+        item: form.dataset.item,
+        words: values.get('words'),
+        ...(kept ? {} : { time, offsetDays })
+      })
+    )
+  }
+  if (form.id === 'posts-form')
+    update(
+      app,
+      await studioApi.notebook(id, 'release', {
+        posts: {
+          x: values.get('x'),
+          linkedin: values.get('linkedin'),
+          youtube: values.get('youtube')
+        }
+      })
+    )
+  if (form.id === 'release-form') {
+    const at = String(values.get('at') || '')
+    update(
+      app,
+      await studioApi.notebook(id, 'release', {
+        at: at ? new Date(at).toISOString() : null
+      })
+    )
+  }
+}

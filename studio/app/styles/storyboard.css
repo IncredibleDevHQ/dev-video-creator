@@ -1,0 +1,354 @@
+/* A storyboard video's page, laid out like the Wireframe page: the scenes in
+   the rail, the chosen scene on the stage, its frames in a strip. The rail,
+   stage, strip and recording styles are the Video page's own. */
+.video-workspace.storyboard-workspace {
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+/* The rail stays in view while the scene's page scrolls. */
+.storyboard-workspace > .scene-rail {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: start;
+}
+.storyboard-workspace > .stage-area {
+  max-width: 900px;
+  justify-self: center;
+  align-self: start;
+  padding: 22px 25px 36px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+.sb-band {
+  display: grid;
+  gap: 4px;
+}
+.sb-band h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.sb-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.3px;
+}
+.sb-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sb-alert {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #8a1c1c;
+  font-size: 13px;
+}
+.sb-alert p {
+  margin: 0;
+}
+.sb-alert details {
+  margin-top: 6px;
+}
+.sb-alert summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.sb-alert details p {
+  margin-top: 4px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.sb-stage > video,
+.sb-stage > img.sb-shot {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  display: block;
+}
+.sb-stage > img.sb-shot {
+  background: var(--panel);
+}
+.video-stage.presenter-layout-beside-slide > img.sb-shot {
+  position: absolute;
+  left: var(--content-x);
+  top: var(--content-y);
+  width: var(--content-width);
+  height: var(--content-height);
+}
+.sb-stage-note {
+  font-size: 13px;
+  color: var(--muted);
+}
+.sb-stage .presenter-preview video[data-sb-take] {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+.sb-prompter > small {
+  display: block;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.sb-scene-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.sb-scene-line strong {
+  font-size: 15px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-scene-number,
+.sb-scene-time {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sb-build select,
+.sb-build.is-fixed {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--selected);
+  color: var(--accent);
+}
+.sb-reason {
+  margin: -8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+/* Each frame keeps a title you can read; a scene of many frames scrolls
+   sideways instead of cutting them to "One …" (the Jev series run). */
+.sb-strip .moment-strip {
+  position: relative;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
+}
+.sb-strip .moment-item {
+  flex: 1 0 128px;
+}
+.sb-strip .moment-item > .moment {
+  padding-right: 10px;
+}
+/* How the next frame enters, between two frames; between two scenes the
+   rail's transition button says it in words. */
+.sb-strip .sb-transition {
+  flex: none;
+  align-self: center;
+  min-width: 22px;
+  height: 22px;
+  margin: 0 -3px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  z-index: 1;
+}
+.sb-strip .sb-transition:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sb-strip .sb-transition:disabled {
+  cursor: default;
+}
+.scene-rail .sb-scene-change {
+  align-self: center;
+  margin: -12px 0;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 11px;
+  opacity: 0.8;
+}
+.scene-rail .sb-scene-change:hover:not(:disabled) {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sb-playhead {
+  position: absolute;
+  top: 6px;
+  bottom: 4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.sb-frame-detail {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+}
+.sb-line {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.sb-line.is-silent,
+.sb-frame-detail dt {
+  color: var(--muted);
+}
+.sb-frame-detail dl {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.sb-frame-detail dd {
+  margin: 0;
+}
+.sb-problem {
+  margin: 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+.sb-rail-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.sb-rail-state.is-take {
+  color: var(--warn);
+}
+.sb-rail-state.is-working {
+  color: var(--muted);
+  font-weight: 500;
+}
+.sb-change {
+  display: grid;
+  gap: 8px;
+}
+.sb-change label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.sb-change textarea {
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  resize: vertical;
+}
+.dialog-body .length-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+.dialog-body .length-choice legend {
+  width: 100%;
+}
+.dialog-body .length-choice .length-range {
+  flex: 1 1 100%;
+}
+/* Stills: each frame posed at its key moment before anything is made. The
+   rail shows a scene's first still, the strip each frame's own, small; a
+   blank holds a still's place while it is posed. */
+.thumbnail > div > img.sb-rail-still {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sb-strip .moment .sb-thumb {
+  display: block;
+  width: 100%;
+  max-width: 128px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 4px;
+  background: var(--line);
+}
+.sb-strip .moment .sb-thumb.is-empty {
+  background: var(--selected);
+  border: 1px dashed var(--line);
+}
+.sb-posing {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--panel);
+  box-shadow: 0 2px 8px #15201920;
+}
+.sb-posing .sb-rail-state {
+  padding-top: 0;
+}
+.sb-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+/* On a phone the page is one column: the rail runs across the top (the
+   shared narrow rules), and the frame strip scrolls inside itself. */
+@media (max-width: 800px) {
+  .video-workspace.storyboard-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .storyboard-workspace > .scene-rail {
+    position: static;
+    height: auto;
+  }
+  .storyboard-workspace > .stage-area {
+    padding: 20px 16px 10px;
+  }
+  .sb-strip .moment-strip {
+    overflow-x: auto;
+  }
+  .sb-frame-detail dl {
+    grid-template-columns: 1fr;
+  }
+}
+.sb-take-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.sb-voice-take {
+  height: 32px;
+  margin-right: auto;
+}
+/* Record and Upload in the take's place, under its outline. */
+.take-placeholder .sb-take-actions {
+  justify-content: center;
+  margin-top: 0;
+}
+.take-placeholder .sb-take-actions button:not(.primary) {
+  border-color: var(--line);
+}

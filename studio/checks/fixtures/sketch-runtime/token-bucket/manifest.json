@@ -1,0 +1,232 @@
+{
+	"version": 1,
+	"scene": "video-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05",
+	"plan": {
+		"record": "plan-treatment-50664953-a9e3-4b93-b289-7a37f3871be5",
+		"revision": 2
+	},
+	"composition": {
+		"id": "sketch-6ac46d89-16e6-4de1-9d1e-744f52c89237-s05-r2",
+		"width": 1920,
+		"height": 1080,
+		"fps": 30,
+		"duration": 24
+	},
+	"runtime": { "hyperframes": "0.7.106" },
+	"moments": [
+		{
+			"id": "m1",
+			"title": "Open the limiter",
+			"start": 0,
+			"end": 4,
+			"estimated": true
+		},
+		{
+			"id": "m2",
+			"title": "One request, one token",
+			"start": 4,
+			"end": 7,
+			"estimated": true
+		},
+		{
+			"id": "m3",
+			"title": "A burst drains it",
+			"start": 7,
+			"end": 10.5,
+			"estimated": true
+		},
+		{
+			"id": "m4",
+			"title": "Refused",
+			"start": 10.5,
+			"end": 13.5,
+			"estimated": true
+		},
+		{
+			"id": "m5",
+			"title": "Hold on the refill",
+			"start": 13.5,
+			"end": 16.5,
+			"estimated": true
+		},
+		{
+			"id": "m6",
+			"title": "Name the rate",
+			"start": 16.5,
+			"end": 20,
+			"estimated": true
+		},
+		{
+			"id": "m7",
+			"title": "Every bucket, in Redis",
+			"start": 20,
+			"end": 24,
+			"estimated": true
+		}
+	],
+	"layers": [
+		{
+			"id": "background",
+			"kind": "background",
+			"label": "Solid theme background (#0e0c17)",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "camera",
+			"kind": "camera",
+			"label": "World camera: holds on the bucket, centre-left, from m1 to m6; one decelerating pull-back (scale 1 → 0.45) in m7 reveals the Redis store. No zoom-in anywhere",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "request-rate-limiter",
+			"kind": "object",
+			"label": "Request rate limiter glyph that grows in place into the token bucket (card-morph-anchor), then hands over to it",
+			"moments": ["m1"],
+			"asset": {
+				"libraryKey": "cast-be8d129feaa5af3270de",
+				"path": "assets/request-rate-limiter.svg"
+			}
+		},
+		{
+			"id": "token-bucket",
+			"kind": "object",
+			"label": "One user's token bucket: the page's trapezoid and level, recoloured to primary; three tokens rigged as separate objects that leave with requests (accent while taken) and return as drops land; the level follows the count",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"asset": {
+				"libraryKey": "cast-9fa5e36e9ae63d7d1885",
+				"path": "assets/token-bucket.svg"
+			},
+			"placeholder": "Sketch redraw of the page bucket's geometry in primary, with native circle tokens. The planned adapted, re-rigged bucket asset does not exist yet"
+		},
+		{
+			"id": "drip",
+			"kind": "object",
+			"label": "Inlet drop: swells slowly during the burst without falling, then falls and becomes a token twice in m5 and once in m7",
+			"moments": ["m1", "m3", "m5", "m6", "m7"],
+			"asset": {
+				"libraryKey": "cast-e402bea443366ccd2f0d",
+				"path": "assets/drip.svg"
+			},
+			"placeholder": "Sketch recolour of the page's drop to primary. The planned swell-and-fall rig does not exist yet"
+		},
+		{
+			"id": "user",
+			"kind": "object",
+			"label": "User chip that pops in and docks at the bucket's left rim; the source of every request",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"asset": {
+				"libraryKey": "cast-4e8f7fd4476d20bcfb21",
+				"path": "assets/user.svg"
+			}
+		},
+		{
+			"id": "request",
+			"kind": "object",
+			"label": "Requests A–E on one fixed route (user → over the bucket → API); B and C closer together; D stops at the empty rim, turns accent and recoils",
+			"moments": ["m2", "m3", "m4", "m6"],
+			"asset": {
+				"libraryKey": "cast-7e5a78d981cbff2953de",
+				"path": "assets/request.svg"
+			}
+		},
+		{
+			"id": "route-guide",
+			"kind": "object",
+			"label": "Faint dashed line along the requests' route (a sketch reading aid)",
+			"moments": ["m2", "m3", "m4", "m5", "m6"],
+			"placeholder": "Sketch aid only; the plan does not ask for a drawn route"
+		},
+		{
+			"id": "api",
+			"kind": "object",
+			"label": "API endpoint on the right edge that receives A, B, C and E",
+			"moments": ["m2", "m3", "m4", "m5", "m6", "m7"],
+			"placeholder": "Native rounded box labelled 'API', as the plan specifies"
+		},
+		{
+			"id": "http-429",
+			"kind": "object",
+			"label": "429 badge that pops onto request D at the moment of refusal and travels back with it",
+			"moments": ["m4"],
+			"asset": {
+				"libraryKey": "cast-c637a420e8125820e51c",
+				"path": "assets/http-429.svg"
+			},
+			"placeholder": "Sketch recolour of the page's 429 mark to accent, set in a pill badge. The planned adapted badge asset does not exist yet"
+		},
+		{
+			"id": "token-count",
+			"kind": "text",
+			"label": "Mono 'tokens: n' vertical ticker beside the bucket, always equal to the ledger: 3 → 2 → 1 → 0 → 1 → 2 → 1 → 2",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"]
+		},
+		{
+			"id": "term",
+			"kind": "text",
+			"label": "token bucket · one per user",
+			"moments": ["m1"]
+		},
+		{
+			"id": "http-429-label",
+			"kind": "text",
+			"label": "429 Too Many Requests",
+			"moments": ["m4"]
+		},
+		{
+			"id": "refill-label",
+			"kind": "text",
+			"label": "refill: N tokens / second (N in accent, the symbol shared with the request rate limiter)",
+			"moments": ["m6", "m7"]
+		},
+		{
+			"id": "redis",
+			"kind": "object",
+			"label": "Redis store panel in the secondary colour, headed by the page's Redis icon, which pulses once",
+			"moments": ["m7"],
+			"asset": {
+				"libraryKey": "cast-a1847d19888736efd5ec",
+				"path": "assets/redis.svg"
+			}
+		},
+		{
+			"id": "redis-label",
+			"kind": "text",
+			"label": "Redis · every user's bucket",
+			"moments": ["m7"]
+		},
+		{
+			"id": "other-buckets",
+			"kind": "object",
+			"label": "Four dimmed copies of the bucket settling into the row, each with its own count (3, 1, 0, 2, illustrative)",
+			"moments": ["m7"],
+			"placeholder": "Native simplified buckets; their counts are illustrative"
+		},
+		{
+			"id": "presenter",
+			"kind": "presenter",
+			"label": "Presenter slot at the right edge, shown only where the plan leaves it undecided (the open and the wide Redis view)",
+			"moments": ["m1", "m7"],
+			"placeholder": "Stand-in: a framed silhouette. Presenter visibility is undecided and no take is recorded"
+		},
+		{
+			"id": "sketch-annotations",
+			"kind": "caption",
+			"label": "Sketch-only strips: the moment tag at top left and the draft narration guide at the bottom, as a timing aid",
+			"moments": ["m1", "m2", "m3", "m4", "m5", "m6", "m7"],
+			"placeholder": "Not planned on-screen text: the plan says narration does not appear on screen"
+		}
+	],
+	"provisional": [
+		"Timing is estimated from the plan (about 24 s) — no voice or take exists yet",
+		"Presenter is a stand-in: visibility is undecided and no take is recorded",
+		"The bucket, drop and 429 badge are sketch recolours and re-rigs of the page artwork; the planned adapted assets do not exist yet",
+		"The API endpoint and the other users' buckets are native placeholders; the other buckets' counts are illustrative",
+		"The route is approximated with eased straight segments because only GSAP core is loaded; the plan's MotionPath technique is left for construction to verify",
+		"token-hand-off and refusal-recoil are rough stand-ins for adapted recipes that no catalogue entry covers",
+		"Capacity 3, requests A–E and the drop count are illustrative values from the plan; N stays symbolic",
+		"The bottom strip shows the draft narration only as a timing aid; the plan puts no narration on screen",
+		"Type uses generic system-ui and ui-monospace faces, since the theme names no families and the sketch ships no font files",
+		"The dashed route line is a sketch reading aid, not part of the plan",
+		"No audio is included; the plan defers any refill tick until delivery is decided"
+	]
+}

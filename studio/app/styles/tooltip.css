@@ -1,0 +1,62 @@
+/* The studio's one tooltip: small, quick, beside its control, with the
+   shortcut set apart. Both appearances. */
+.tooltip {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 300px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: #1b1e22;
+  color: #f2f4f5;
+  font-size: 12px;
+  line-height: 1.35;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  animation: tooltip-in 0.12s ease-out;
+}
+.tooltip[hidden] {
+  display: none;
+}
+/* A press gives a little under the finger: buttons, never what is placed
+   by a transform (cards, pins, cursors). */
+:is(
+    .primary,
+    .quiet,
+    .icon-button,
+    .map-toolpill button,
+    .map-zoom button
+  ):active:not(:disabled) {
+  transform: translateY(1px);
+}
+:is(.primary, .quiet, .icon-button, .map-toolpill button, .map-zoom button) {
+  transition: transform 0.1s var(--ease-out);
+}
+.tooltip kbd {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  font: inherit;
+  font-size: 11px;
+}
+:root[data-theme='dark'] .tooltip {
+  background: #f2f4f5;
+  color: #16181b;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme='dark'] .tooltip kbd {
+  background: rgba(0, 0, 0, 0.08);
+}
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    animation: none;
+  }
+}

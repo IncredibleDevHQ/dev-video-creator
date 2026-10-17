@@ -1,0 +1,795 @@
+/* Linked repos: the link dialog, a request the agent answers, provenance. */
+.repo-form {
+  display: grid;
+  gap: 8px;
+}
+.repo-form label small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.repo-path {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.repo-ask,
+.repo-asking {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.repo-ask button {
+  padding: 3px 8px;
+  font-size: 12.5px;
+}
+.repo-failed {
+  margin-right: 8px;
+  color: var(--danger, #b91c1c);
+}
+.evidence-given.from-repo {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0;
+}
+.evidence-given.from-repo p {
+  margin: 0;
+}
+.provenance {
+  font-size: 12px;
+}
+.provenance code {
+  margin-right: 4px;
+  font-size: 11.5px;
+}
+.ask-again {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.ask-again input {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+
+/* A series: its row on the home page (its content map and episodes
+   together), its page, the switch to start one. */
+.start .saved-series {
+  margin-top: 28px;
+}
+.series-rows {
+  display: grid;
+  gap: 18px;
+}
+.series-row {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  text-align: left;
+}
+.series-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.series-row-title {
+  padding: 0;
+  white-space: normal;
+  text-align: left;
+  font-size: 17px;
+  font-weight: 600;
+}
+.series-row-title:hover {
+  background: none;
+  color: var(--accent);
+}
+.series-row-head small {
+  flex: none;
+}
+.series-row ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+}
+.series-row li button {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  gap: 5px;
+  padding: 12px;
+  text-align: left;
+  white-space: normal;
+  background: var(--panel);
+}
+.series-row small {
+  color: var(--muted);
+}
+/* Waiting on a drawing that stopped: the line, then Try again and Cancel,
+   below it when the row is narrow. */
+.series-row.is-stopped .series-row-head {
+  flex-wrap: wrap;
+}
+.series-row.is-stopped .series-row-head small {
+  flex: 1 1 12em;
+}
+.series-row-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+.series-form,
+.episode-form,
+.threads-form,
+.led-form {
+  display: grid;
+  gap: 8px;
+}
+.series-form small,
+.threads-form small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+/* Who presents it on the series' page, as at its start, in a dialog or not. */
+.led-form legend {
+  font-size: 13px;
+  font-weight: 600;
+}
+.led-form .series-led label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  margin: 6px 0;
+  font-size: 13px;
+}
+.led-form .series-led input {
+  width: auto;
+  margin: 0;
+}
+.led-form .series-led small {
+  flex-basis: 100%;
+  margin-left: 21px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.series-growth,
+.series-led {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0;
+  padding: 0;
+  border: 0;
+}
+/* The start asks more in one view (review 8): its sections sit closer, the
+ * form's gap between them, how it grows beside who presents it, and the
+ * repo beside its branch, in a laptop's window whatever is chosen. */
+dialog:has(#series-form) {
+  width: 640px;
+}
+.dialog-body .series-form fieldset {
+  margin: 8px 0;
+}
+.series-choices,
+.series-code-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  column-gap: 24px;
+}
+.dialog-body .series-form textarea {
+  height: auto;
+  padding: 10px 12px;
+}
+/* The notebooks a series can start from, in a short list (review 8): five
+ * rows in sight, the rest a scroll away. */
+.series-from > div {
+  display: grid;
+  gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+.dialog-body .series-from label {
+  margin: 0;
+  padding: 5px 2px;
+  font-size: 13px;
+}
+.dialog-body .series-from label.is-waiting {
+  color: var(--muted);
+}
+.dialog-body .series-from small {
+  flex-basis: auto;
+  margin-left: auto;
+}
+.dialog-body .series-from p {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+.series-code {
+  margin: 4px 0 12px;
+}
+.series-code summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.series-about {
+  color: var(--muted);
+}
+.series-arc,
+.series-episodes {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+.series-arc p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.series-arc li.is-made b {
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+}
+.series-arc small,
+.series-episodes small {
+  margin-left: 6px;
+  color: var(--muted);
+}
+.series-planning,
+.series-range,
+.series-none {
+  font-size: 13px;
+  color: var(--muted);
+}
+.series-failed {
+  color: var(--danger, #b91c1c);
+}
+.episode-form {
+  margin: 12px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* A page's product demo: the form, the state, the capture. */
+.capture-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.capture-block h3 {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.capture-form {
+  display: grid;
+  gap: 6px;
+}
+.capture-form small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.capture-video {
+  width: 100%;
+  max-width: 480px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #000;
+}
+.capture-state {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.capture-failed {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger, #b91c1c);
+}
+
+/* A made video's release: when, teasers, words, the YouTube bundle. */
+.release-when,
+.teaser-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.release-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.release-section h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.release-section h3 small,
+.posts-form small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.teaser-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.teaser-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+/* At about a phone's width, so its words are judged as they will be read. */
+.teaser-row video {
+  grid-column: 1 / -1;
+  width: 270px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  background: #000;
+}
+.teaser-row .teaser-small {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--danger, #b91c1c);
+}
+/* A draft, its text small: drawn again for its shape, or kept as it is. */
+.teaser-row .teaser-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.teaser-row :is(.teaser-cost, .teaser-note, .teaser-status, .teaser-why) {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+.teaser-row .teaser-actions .teaser-cost {
+  grid-column: auto;
+}
+.posts-form {
+  display: grid;
+  gap: 6px;
+}
+.release-state,
+.release-note {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.release-failed {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger, #b91c1c);
+}
+.release-section a.button {
+  justify-self: start;
+}
+/* The thumbnail at about the size YouTube lists it, and its other choices. */
+.release-cover {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  margin: 0;
+}
+.release-cover img {
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: #000;
+}
+.release-cover figcaption {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+/* Approve it, and set the title over it: the bundle and the upload wait. */
+.cover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.cover-actions .cover-approved {
+  color: var(--muted);
+}
+.cover-actions [data-action='cover-title'][aria-pressed='true'] {
+  border-color: var(--accent, #e11d48);
+}
+.release-section > button:disabled {
+  justify-self: start;
+}
+.cover-choices summary {
+  cursor: pointer;
+  font-size: 13px;
+}
+.cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.cover-choice {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: none;
+}
+.cover-choice[aria-pressed='true'] {
+  border-color: var(--accent, #e11d48);
+}
+.cover-choice img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+  background: #000;
+}
+
+/* Accounts and numbers. */
+.account-row {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.account-row h3,
+.x-prices h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.account-row h3 small,
+.x-prices h3 small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.account-note {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.account-note code {
+  font-size: 11.5px;
+  word-break: break-all;
+}
+.account-warn {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger, #b91c1c);
+}
+.account-app,
+.x-prices,
+.hand-numbers,
+.numbers-video {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.account-app label,
+.x-prices label,
+.hand-numbers label {
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+}
+.x-prices {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.x-prices h3 {
+  flex-basis: 100%;
+}
+.account-actions,
+.numbers-actions {
+  display: flex;
+  gap: 8px;
+}
+.numbers-totals,
+.numbers-drop {
+  margin: 0;
+  font-size: 13px;
+}
+.numbers-drop {
+  font-weight: 600;
+}
+.retention {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+.retention li {
+  display: grid;
+  grid-template-columns: 9em minmax(0, 1fr) 5.5em;
+  align-items: center;
+  gap: 8px;
+}
+.retention i {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    var(--accent, #e11d48) var(--to),
+    color-mix(in srgb, var(--accent, #e11d48) 35%, transparent) var(--to)
+      var(--from),
+    var(--line) var(--from)
+  );
+}
+.retention small {
+  color: var(--muted);
+  text-align: right;
+}
+.numbers-lessons,
+.numbers-posts {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+}
+
+/* The campaign: each item's day, words and what to do with it. */
+.campaign-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.campaign-item {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.campaign-item.is-due {
+  border-color: var(--accent, #e11d48);
+}
+/* Overdue is a warning, never the green of what is ready to post. */
+.campaign-item.is-overdue {
+  border-color: var(--warn-line, #e6c58c);
+}
+.campaign-item.is-dropped {
+  opacity: 0.55;
+}
+.campaign-when,
+.campaign-words {
+  margin: 0;
+  font-size: 13px;
+}
+.campaign-when small {
+  margin-left: 6px;
+  color: var(--accent, #e11d48);
+  font-weight: 600;
+}
+.campaign-when small.campaign-own {
+  color: var(--muted);
+}
+.campaign-when small.campaign-overdue {
+  color: var(--warn, #9a6512);
+}
+.campaign-edit {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+.campaign-edit textarea {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+.campaign-edit button {
+  justify-self: start;
+}
+.campaign-edit input {
+  width: 5.5em;
+}
+.campaign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.youtube-publish-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.youtube-publish-form label {
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+}
+.youtube-publish-form small {
+  color: var(--muted);
+}
+.youtube-publish-form .publish-differs {
+  flex-basis: 100%;
+  color: var(--danger, #b91c1c);
+}
+.link-repo {
+  margin: 0 0 6px;
+  padding: 3px 8px;
+  font-size: 12.5px;
+}
+.capture-form label {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.capture-form input,
+.capture-form textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.capture-form button {
+  justify-self: start;
+}
+
+/* In a dialog, the one-line forms stay on one line. */
+.dialog-body
+  :is(
+    .release-when,
+    .teaser-form,
+    .numbers-video,
+    .hand-numbers,
+    .account-app,
+    .x-prices,
+    .youtube-publish-form
+  )
+  label {
+  margin: 0;
+}
+.dialog-body
+  :is(.release-when, .teaser-form, .numbers-video)
+  :is(input, select) {
+  flex: 1 1 140px;
+  width: auto;
+  margin: 0;
+  padding: 8px 10px;
+}
+.dialog-body
+  :is(.account-app, .x-prices, .hand-numbers, .youtube-publish-form)
+  input {
+  margin-top: 4px;
+  padding: 8px 10px;
+}
+.dialog-body .campaign-edit input {
+  width: 5.5em;
+  margin: 0;
+  padding: 6px 8px;
+}
+.dialog-body
+  :is(.posts-form, .repo-form, .series-form, .episode-form, .threads-form)
+  label {
+  margin: 8px 0 0;
+}
+.dialog-body :is(.campaign-edit, .posts-form, .threads-form) textarea {
+  min-height: 0;
+  height: auto;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.campaign-note {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--danger, #b91c1c);
+}
+.from-repo summary {
+  cursor: pointer;
+}
+.from-repo details[open] summary {
+  margin-bottom: 6px;
+}
+.from-repo pre {
+  margin: 6px 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.notebook-card {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.notebook-card .notebook-tile {
+  width: 100%;
+  height: 100%;
+}
+.notebook-archive {
+  justify-self: end;
+}
+.archived-notebooks ul {
+  list-style: none;
+  padding: 0;
+}
+.archived-notebooks li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+}
+.sb-stale {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.release-section > .primary {
+  justify-self: start;
+}
+.download-status {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
+  max-width: min(440px, calc(100vw - 40px));
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel, #202620);
+  color: inherit;
+  box-shadow: 0 6px 24px #0003;
+}
+
+.dialog-body button.button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.series-episodes button.button {
+  text-align: left;
+}
+
+.series-page {
+  width: min(820px, calc(100% - 40px));
+  margin: 32px auto;
+}
+.series-page .series-episodes button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: left;
+}

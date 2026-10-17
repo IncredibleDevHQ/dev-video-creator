@@ -1,0 +1,318 @@
+/* The quiet chrome around the content map, after Figma, Miro and Flora:
+   the notes as a floating panel that opens on demand, one View menu, a
+   More menu, the interface hidden with ⌘\, and a canvas that shows less
+   fine print the further it is zoomed out, with its names kept readable. */
+
+/* Notes: a panel over the canvas, on every width, closed until asked. */
+.map-body {
+  position: relative;
+}
+.map-rail {
+  display: none;
+}
+.map-page.is-notes-open .map-rail {
+  display: flex;
+  position: absolute;
+  right: 12px;
+  left: auto;
+  top: 10px;
+  bottom: 12px;
+  width: 300px;
+  z-index: 75;
+  border: 1px solid var(--map-pill-line);
+  border-radius: 14px;
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+  backdrop-filter: blur(14px);
+  overflow: hidden;
+  animation: map-panel-in 0.24s var(--ease-out);
+}
+@keyframes map-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+.map-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px 8px 14px;
+}
+.map-rail-close {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--map-label);
+}
+.map-rail-close:hover {
+  background: var(--map-frame-line);
+  color: inherit;
+}
+.map-toolpill,
+.map-zoom {
+  transition: left 0.24s var(--ease-out);
+}
+.map-page.is-notes-open .map-toolpill,
+.map-page.is-notes-open .map-zoom {
+  left: 16px;
+}
+/* The queue steps left of the open panel, never under it. */
+.map-queue {
+  transition: right 0.24s var(--ease-out);
+}
+.map-page.is-notes-open .map-queue {
+  right: 324px;
+}
+/* The toast and the bar centre in the canvas left of the open panel, so the
+   panel never covers them or Undo. */
+.map-dock {
+  transition: left 0.24s var(--ease-out);
+}
+.map-page.is-notes-open .map-dock {
+  left: calc(50% - 162px);
+  max-width: calc(100% - 780px);
+}
+/* Too narrow for that: they rise above the zoom pill and the Queue. */
+@media (max-width: 1240px) {
+  .map-page.is-notes-open .map-dock {
+    max-width: calc(100% - 348px);
+  }
+  .map-page.is-notes-open .map-dock:has(> .map-bar:not([hidden])) {
+    bottom: 62px;
+  }
+}
+/* A phone: the notes are a sheet over the foot of the map, and the toast and
+   the bar sit just above it, as wide as the map (round 1: at 390 px the bar
+   shrank to 42 px under the panel). The canvas's tools wait above. */
+@media (max-width: 640px) {
+  .map-page.is-notes-open .map-rail {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 8px;
+    width: auto;
+    height: min(58%, 480px);
+    animation-name: map-sheet-in;
+  }
+  .map-page.is-notes-open .map-dock,
+  .map-page.is-notes-open .map-dock:has(> .map-bar[hidden]),
+  .map-page.is-notes-open .map-dock:has(> .map-bar:not([hidden])) {
+    left: 50%;
+    bottom: calc(min(58%, 480px) + 18px);
+    max-width: calc(100% - 24px);
+  }
+  .map-page.is-notes-open .map-toolpill {
+    display: none;
+  }
+  .map-page.is-notes-open .map-queue {
+    right: 14px;
+  }
+}
+@keyframes map-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* The header's tools: Notes, View, the next step, More. */
+.map-pill-tools .map-notes-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+.map-notes-toggle b {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--map-frame-line);
+  font-size: 11px;
+  font-weight: 600;
+}
+.map-notes-toggle b:empty {
+  display: none;
+}
+.map-pill-tools .map-notes-toggle[aria-expanded='true'] {
+  background: var(--selected);
+  color: var(--accent);
+}
+.map-note-busy {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: map-pulse 1.4s ease-in-out infinite;
+}
+.map-view-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px 5px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--map-pill-line);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.map-view-button svg {
+  opacity: 0.6;
+}
+.map-view-button.is-filtered {
+  border-color: transparent;
+  background: var(--selected);
+  color: var(--accent);
+}
+.map-more-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--map-label);
+}
+.map-more-button:hover {
+  background: var(--map-frame-line);
+  color: inherit;
+}
+.map-menu.is-more {
+  min-width: 240px;
+}
+.map-more-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 6px 4px 10px;
+  font-size: 13px;
+}
+
+/* ⌘\: only the canvas, and a way back. A call stays in view. */
+.map-page.is-bare .map-header,
+.map-page.is-bare .map-rail,
+.map-page.is-bare .map-toolpill,
+.map-page.is-bare .map-zoom,
+.map-page.is-bare .map-queue,
+.map-page.is-bare .map-voice:not(.is-on) {
+  display: none;
+}
+.map-bare-chip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 80;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--map-pill-line);
+  background: var(--map-pill);
+  box-shadow: var(--map-shadow);
+  font-size: 12.5px;
+  color: var(--map-label);
+  white-space: pre;
+}
+
+/* Zoomed out, the fine print goes and the names stay readable; zoomed in,
+   everything is back. Lines stay at every zoom. What goes is hidden, not
+   only made clear, so the keys and a screen reader never reach a control
+   the eye can't see (review 8): a made episode's Cut, Read, Draft and
+   Watch, Group by topic and the series' + Episode go too, the header
+   offering + Episode at every zoom (round 2). */
+.map-bridge,
+.map-segue,
+.map-gap p,
+.map-block-head p,
+.map-card-meta,
+.map-segue-s,
+.map-lane-win,
+.map-carries,
+.map-series-hint,
+.map-brief-row,
+.map-lines,
+.map-answer,
+.map-gap-acts,
+.map-node-label,
+.map-card-title,
+.map-lane-acts,
+.map-derived,
+.map-group-act,
+.map-series-add {
+  transition:
+    opacity 0.2s var(--ease-out),
+    visibility 0.2s;
+}
+.map-canvas.is-far .map-bridge,
+.map-canvas.is-far .map-card-meta,
+.map-canvas.is-far .map-segue-s,
+.map-canvas.is-far .map-lane-win,
+.map-canvas.is-far .map-carries,
+.map-canvas.is-far .map-series-hint,
+.map-canvas.is-far .map-brief-row,
+.map-canvas.is-far .map-lines,
+.map-canvas.is-far .map-answer,
+.map-canvas.is-far .map-gap-acts,
+.map-canvas.is-far .map-segue,
+.map-canvas.is-far .map-gap p,
+.map-canvas.is-far .map-block-head p,
+.map-canvas.is-far .map-derived,
+.map-canvas.is-far .map-group-act,
+.map-canvas.is-far .map-series-add {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.map-canvas.is-far .map-lane-head,
+.map-canvas.is-far .map-series-title h2,
+.map-canvas.is-far .map-block-head h2 {
+  font-size: 150%;
+}
+/* The series keeps its automation's state, Organise new cards, in view at
+   every zoom, as large as its name; its length and Plan again wait for a
+   closer look, or for its bar. */
+.map-canvas.is-far .map-series-acts > button {
+  display: none;
+}
+.map-canvas.is-far .map-organize {
+  font-size: 18px;
+}
+.map-canvas.is-farthest .map-node-label,
+.map-canvas.is-farthest .map-card-title,
+.map-canvas.is-farthest .map-segue-k {
+  opacity: 0;
+  visibility: hidden;
+}
+/* Farthest out, an episode's Make video is too small to press: its bar
+   offers it (round 1). */
+.map-canvas.is-farthest .map-lane-acts {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.map-canvas.is-farthest .map-lane-head,
+.map-canvas.is-farthest .map-series-title h2,
+.map-canvas.is-farthest .map-block-head h2 {
+  font-size: 220%;
+}
+.map-canvas.is-farthest .map-organize {
+  font-size: 26.4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-page.is-notes-open .map-rail {
+    animation: none;
+  }
+  .map-toolpill,
+  .map-zoom,
+  .map-queue,
+  .map-dock {
+    transition: none;
+  }
+}

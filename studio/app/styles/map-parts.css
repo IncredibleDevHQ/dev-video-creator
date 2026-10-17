@@ -1,0 +1,196 @@
+/* The content map's smaller parts: a selected episode's open segues, the
+   buttons placed where the eye already is, and the header's stages. */
+/* A selected episode's segues open up to their whole text (review 6). */
+.map-segue.is-open {
+  z-index: 6;
+  height: auto !important;
+  min-height: 176px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.map-segue.is-open .map-segue-s {
+  -webkit-line-clamp: unset;
+}
+.map-bridge.is-open {
+  z-index: 6;
+  height: auto !important;
+  -webkit-line-clamp: unset;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+.map-group-act {
+  margin-left: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.map-block-head .map-block-alert {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin-top: 0;
+}
+.map-block-alert .map-group-act {
+  flex: none;
+  padding: 0 9px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.map-group-error {
+  min-width: 0;
+  overflow: hidden;
+  /* One line, cut short: the whole reason is in its tooltip. */
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--danger, #b91c1c);
+  font-weight: 600;
+  cursor: help;
+}
+.map-series-add {
+  margin-top: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+/* The series' next step in the header, at one size whatever the zoom: Plan
+   the series with the length it plans for, + Episode beside it, quieter. */
+.map-tools .map-tool {
+  padding: 5px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.map-tools .map-next {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.map-next small {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.82;
+}
+.map-tool-error {
+  color: var(--danger, #b91c1c);
+  font-size: 13px;
+  cursor: help;
+}
+.map-header .map-brand img {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+.map-stages {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  flex: none;
+}
+.map-stages button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 5px;
+}
+.map-stages button[aria-current='page'] {
+  background: var(--selected);
+  color: var(--accent);
+  font-weight: 600;
+}
+/* Narrow, the stages give way to one way back (review 6: only the logo,
+   to all notebooks, was left). */
+.map-back {
+  display: none;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+@media (max-width: 1100px) {
+  .map-stages {
+    display: none;
+  }
+  .map-back {
+    display: inline-flex;
+  }
+}
+
+/* A line still past the creator's words after one rewrite (review 8): a
+   chip while the card is closed; its note and the two answers once open. */
+.map-check {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--warn, #b7791f);
+  border: 1px solid currentColor;
+}
+.map-segue-check {
+  display: none;
+  margin-top: 8px;
+  font-size: 12px;
+  font-style: normal;
+  text-align: left;
+}
+.map-segue.is-open .map-segue-check,
+.map-bridge.is-open .map-segue-check {
+  display: block;
+}
+.map-segue-check small {
+  display: block;
+  color: var(--muted);
+}
+.map-segue-check span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.map-segue-check button {
+  padding: 3px 8px;
+  font-size: 11px;
+}
+
+/* A selected gap opens up to its whole text, as a selected episode's
+   segues do: why it matters, and the words and title of a card that may
+   say it (review 8). */
+.map-gap.is-selected {
+  z-index: 6;
+  height: auto !important;
+  min-height: 176px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.map-gap.is-selected p {
+  flex-shrink: 0;
+  -webkit-line-clamp: unset;
+}
+.map-gap-says b {
+  display: block;
+  margin-top: 2px;
+  font-weight: 600;
+  color: var(--map-gap);
+}
+/* The card a selected gap may be covered by, and its copies. */
+.map-card.is-covering {
+  border-color: var(--map-gap);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--map-gap) 28%, transparent);
+}
+/* A covered gap's bar: what is missing, then the card's words and title. */
+.map-info.is-two {
+  white-space: normal;
+  max-width: 560px;
+}
+.map-info.is-two small {
+  margin-left: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Notes to moments · Prototype</title>
+    <link rel="stylesheet" href="./notes-to-moments.css" />
+  </head>
+  <body>
+    <svg class="icon-defs" aria-hidden="true">
+      <defs>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+        <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
+        <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></symbol>
+        <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="19" cy="12" r="1.4" /></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path d="m7 7 10 10M7 17 17 7" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" /></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" /></symbol>
+        <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z" /></symbol>
+        <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3.5 13.8 9l5.7 1.9-5.7 1.9L12 18.5l-1.8-5.7L4.5 11l5.7-2z" /></symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5" /></symbol>
+        <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 13a9 9 0 0 1-9.5-9.5A9 9 0 1 0 20.5 13Z" /></symbol>
+        <symbol id="i-notes" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 9h8M8 13h8M8 17h5" /></symbol>
+        <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="7" r="1.2" /><circle cx="15" cy="7" r="1.2" /><circle cx="9" cy="12" r="1.2" /><circle cx="15" cy="12" r="1.2" /><circle cx="9" cy="17" r="1.2" /><circle cx="15" cy="17" r="1.2" /></symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h13M13 7l5 5-5 5" /></symbol>
+      </defs>
+    </svg>
+
+    <div class="app">
+      <header class="app-header">
+        <div class="identity">
+          <strong>Agents in production</strong>
+          <span class="proto-label">Prototype · sample data</span>
+        </div>
+        <nav class="seg" aria-label="Views">
+          <button type="button" data-view="canvas" aria-pressed="true">Project canvas</button>
+          <button type="button" data-view="moments" aria-pressed="false">Moment strip</button>
+        </nav>
+        <div class="header-actions">
+          <button type="button" class="pill" id="catchup" aria-haspopup="dialog">Catch-up <b>5</b></button>
+          <button type="button" class="pill is-accent" id="ask" aria-haspopup="dialog">
+            <svg><use href="#i-sparkle" /></svg>Ask
+          </button>
+          <div class="theme-control" role="group" aria-label="Appearance">
+            <button type="button" data-theme-choice="light" aria-label="Light theme" title="Light theme"><svg><use href="#i-sun" /></svg></button>
+            <button type="button" data-theme-choice="dark" aria-label="Dark theme" title="Dark theme"><svg><use href="#i-moon" /></svg></button>
+          </div>
+        </div>
+      </header>
+
+      <main class="views">
+        <section class="canvas-view" id="canvas-view" aria-label="Project canvas">
+          <aside class="rail" id="rail" aria-label="Notes"></aside>
+          <div class="stage">
+            <div class="canvas-tools">
+              <button type="button" class="tool notes-toggle" id="notes-toggle" aria-expanded="false" aria-controls="rail">
+                <svg><use href="#i-notes" /></svg>Notes
+              </button>
+              <div class="zoom" role="group" aria-label="Zoom">
+                <button type="button" class="tool" data-zoom="out" aria-label="Zoom out"><svg><use href="#i-minus" /></svg></button>
+                <span id="zoom-level">100%</span>
+                <button type="button" class="tool" data-zoom="in" aria-label="Zoom in"><svg><use href="#i-plus" /></svg></button>
+                <button type="button" class="tool" data-zoom="fit" aria-label="Fit everything"><svg><use href="#i-fit" /></svg></button>
+              </div>
+            </div>
+            <div class="canvas" id="canvas">
+              <div class="world" id="world"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="moments-view" id="moments-view" aria-label="Moment strip" hidden>
+          <div class="production-bar" id="production-bar"></div>
+          <div class="moments-body">
+            <div class="lanes" id="lanes"></div>
+            <aside class="detail" id="detail" aria-label="Selected moment"></aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="popover" id="popover" role="dialog" hidden></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./notes-to-moments.js"></script>
+  </body>
+</html>

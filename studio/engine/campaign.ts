@@ -1,0 +1,305 @@
+// The campaign, kept with the release: planned from the release date, each
+// item approved, changed or dropped by the creator, and posted only when
+// they click. X and LinkedIn cannot schedule, so an approved item whose time
+// has come waits as a reminder; YouTube's goes out with the upload.
+import {
+  LAUNCH_AFTER,
+  LINK,
+  campaignPlan,
+  clockOf,
+  markYouTubeUp,
+  timed,
+  withUtm,
+  type Lost
+} from '../shared/campaign'
+import { emptyRelease, type CampaignItem } from '../shared/release'
+import { needsShapeCut, shapeName } from '../shared/teaser-shape'
+import { addEvent } from './activity'
+import { readAsset } from './persistence'
+import { postToLinkedIn, postToX } from './posting'
+import { CHANNEL_LIMITS, xLength } from './release'
+import { changeProject, loadProject } from './projects'
+import { Refusal } from './refusal'
+import { UncertainPost } from './posting'
+import { loadSeries } from './series'
+
+/** Whether a plan made now closes a run: the episode is the last of its
+ * series' arc. The one place this is decided, for the plan and for what the
+ * page asks before it. */
+const planOptions = async (id: string) => {
+  const snapshot = await loadProject(id)
+  if (!snapshot) throw new Refusal('Notebook not found')
+  if (!snapshot.project.release?.at)
+    throw new Refusal('Set when it goes out first')
+  const episode = snapshot.project.episode
+  const series = episode ? await loadSeries(episode.series) : null
+  const lastOfRun = Boolean(
+    series?.arc && episode && episode.number >= series.arc.parts.length
+  )
+  return { project: snapshot.project, lastOfRun }
+}
+
+/** What planning again now would leave out of what the creator made, as
+ * the plan itself reckons it: the page asks this before it plans, and says
+ * it (review 8, round 3: the page guessed the run's end from a recap, so a
+ * series grown since never asked, and every click was refused). */
+export const campaignLoss = async (id: string): Promise<{ lost: Lost[] }> => {
+  const { project, lastOfRun } = await planOptions(id)
+  return { lost: campaignPlan(project, { lastOfRun }).lost }
+}
+
+/** Plans (or re-plans) the campaign; posted items stay as they went out,
+ * and the rest keep what the creator made of them. A plan that would leave
+ * out a step the creator approved, wrote or timed waits for their yes
+ * (review 8, round 2: Plan again dropped them without a word). */
+export const planCampaignFor = async (id: string, raw: unknown = {}) => {
+  const sure = (raw as { confirmed?: unknown })?.confirmed === true
+  const { lastOfRun } = await planOptions(id)
+  return changeProject(id, (current) => {
+    const release = current.project.release || emptyRelease()
+    // Planned today: what has gone by is moved closer or left out, and said.
+    const plan = campaignPlan(current.project, { lastOfRun })
+    if (plan.lost.length && !sure)
+      throw new Refusal(
+        `Planning again leaves out ${plan.lost.length === 1 ? 'a step' : `${plan.lost.length} steps`} you changed: say yes to it first`
+      )
+    release.campaign = plan.items
+    release.launchesFollow = true
+    if (plan.note) release.campaignNote = plan.note
+    else delete release.campaignNote
+    current.project.release = release
+  })
+}
+
+/** The creator's change to one item: words, day, time, or its state. */
+export const changeItem = (id: string, raw: unknown) => {
+  const value = (raw ?? {}) as Record<string, unknown>
+  return changeProject(id, (current) => {
+    const when = timed(current.project.release)
+    const item = current.project.release?.campaign.find(
+      (entry) => entry.id === value.item
+    )
+    if (!item) throw new Refusal('That item is not in the campaign')
+    // "It is up" said too soon: "Not up yet" takes it back to what it was,
+    // as Unapprove and Restore do (review 8, round 3).
+    if (item.state === 'posted' && item.saidUp && value.state === 'draft') {
+      item.state = item.saidUp
+      delete item.saidUp
+      delete item.postedAt
+      delete item.postUrl
+      return
+    }
+    if (item.state === 'posted') throw new Refusal('It has gone out already')
+    if (item.state === 'posting') throw new Refusal('It is being posted now')
+    // Words the creator wrote are theirs: a new plan keeps them.
+    if (typeof value.words === 'string') {
+      const words = value.words.slice(0, 5000)
+      if (words !== item.words) item.edited = true
+      item.words = words
+    }
+    // Approved with nothing to say, it could only be refused when posted:
+    // neither approved so, nor emptied once approved.
+    if (
+      (value.state === 'approved' ||
+        (value.state === undefined && item.state === 'approved')) &&
+      !item.words.trim()
+    )
+      throw new Refusal('Write the post’s words first')
+    const days =
+      value.offsetDays === undefined
+        ? item.offsetDays
+        : Number(value.offsetDays)
+    if (!Number.isInteger(days) || Math.abs(days) > 60)
+      throw new Refusal('Keep it within 60 days of the release')
+    if (
+      typeof value.time === 'string' &&
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(value.time)
+    )
+      throw new Refusal('Give the time as HH:MM')
+    // A launch post moves with the release until the creator gives it a day
+    // or a time of its own, and goes back with it on "follow" (review 8).
+    const shown =
+      item.afterRelease !== undefined && when ? clockOf(when, item) : item.time
+    const time = typeof value.time === 'string' ? value.time : shown
+    if (value.follow === true && item.kind === 'launch') {
+      item.afterRelease = LAUNCH_AFTER[item.channel]
+      item.offsetDays = 0
+      delete item.timed
+    } else if (days !== item.offsetDays || time !== shown) {
+      delete item.afterRelease
+      item.offsetDays = days
+      item.time = time
+      // The creator's own day or time: a new plan keeps it.
+      item.timed = true
+    }
+    if (item.afterRelease !== undefined && when) item.time = clockOf(when, item)
+    if (['draft', 'approved', 'dropped'].includes(String(value.state)))
+      item.state = value.state as CampaignItem['state']
+    // Seen in the feed: it went out after all.
+    if (value.state === 'posted' && item.state === 'unknown') {
+      item.state = 'posted'
+      delete item.note
+    }
+    // YouTube's launch is up, uploaded by hand: the creator says so
+    // (review 8, round 2: it stayed overdue for good). Said with no link to
+    // show for it, it can be taken back (round 3).
+    if (
+      value.state === 'posted' &&
+      item.channel === 'youtube' &&
+      item.kind === 'launch'
+    ) {
+      const was = item.state
+      const videoId = current.project.release?.youtube?.videoId
+      markYouTubeUp([item], videoId, new Date().toISOString())
+      if (
+        !videoId &&
+        (was === 'draft' || was === 'approved' || was === 'dropped')
+      )
+        item.saidUp = was
+    }
+  })
+}
+
+/** The item's words with its link filled in and tagged. */
+export const itemWords = (
+  project: import('../shared/model').Project,
+  item: CampaignItem
+) => {
+  if (!item.words.includes(LINK)) return item.words
+  const videoId = project.release?.youtube?.videoId
+  if (!videoId)
+    throw new Refusal(
+      'Add the video’s YouTube link first: the post links to it'
+    )
+  return item.words.replaceAll(
+    LINK,
+    withUtm(`https://www.youtube.com/watch?v=${videoId}`, project, item)
+  )
+}
+
+/** The teaser an item shows: its own, else one cut for its channel since. */
+const teaserOf = (
+  release: NonNullable<import('../shared/model').Project['release']>,
+  item: CampaignItem
+) => {
+  if (item.asset === 'episode' || item.asset === 'quote') return null
+  // A draft (its text small, neither drawn again nor kept) never goes out.
+  const ready = release.teasers.filter(
+    (entry) => entry.state === 'ready' && !needsShapeCut(entry)
+  )
+  return (
+    ready.find((entry) => entry.id === item.asset) ||
+    ready.find((entry) => entry.channel === item.channel) ||
+    ready[0] ||
+    null
+  )
+}
+
+/**
+ * Posts one item, now, because the creator clicked: with its teaser when
+ * it shows one. The item is claimed inside the notebook's queue first, so
+ * a second click while it uploads is refused, never posted (and charged)
+ * twice. Returns the notebook with the item posted.
+ */
+export const postItem = async (id: string, raw: unknown) => {
+  const itemId = String((raw as { item?: unknown })?.item || '')
+  // The words on screen are the ones that go out, and they are saved first,
+  // on their own: a post refused before it is sent (too long, no link or
+  // teaser yet) keeps what the creator typed (review 6: Post now sent the
+  // last kept words, and a refusal lost the edit).
+  const edited = (raw as { words?: unknown })?.words
+  // An emptied box is not the old words: nothing goes out.
+  if (typeof edited === 'string' && !edited.trim())
+    throw new Refusal('Write the post’s words first')
+  if (typeof edited === 'string')
+    await changeProject(id, (current) => {
+      const found = current.project.release?.campaign.find(
+        (entry) => entry.id === itemId
+      )
+      const words = edited.trim().slice(0, 5000)
+      if (found && found.state !== 'posted' && found.state !== 'posting') {
+        if (words !== found.words) found.edited = true
+        found.words = words
+      }
+    })
+  let item: CampaignItem | undefined
+  let words = ''
+  let videoKey: string | undefined
+  let title = ''
+  let before: CampaignItem['state'] = 'approved'
+  await changeProject(id, (current) => {
+    const release = current.project.release
+    const found = release?.campaign.find((entry) => entry.id === itemId)
+    if (!release || !found)
+      throw new Refusal('That item is not in the campaign')
+    if (found.state === 'posted') throw new Refusal('It has gone out already')
+    if (found.state === 'posting') throw new Refusal('It is being posted now')
+    if (found.state === 'dropped') throw new Refusal('Restore it first')
+    // No answer came back last time: post again only when the creator says
+    // it did not go out.
+    if (found.state === 'unknown' && !(raw as { again?: unknown })?.again)
+      throw new Refusal('Check your feed first: it may have gone out')
+    if (found.channel === 'youtube')
+      throw new Refusal(
+        'YouTube’s goes out with the upload: use the bundle, or publish'
+      )
+    words = itemWords(current.project, found)
+    const length = found.channel === 'x' ? xLength(words) : words.length
+    if (length > CHANNEL_LIMITS[found.channel])
+      throw new Refusal(
+        `It is ${length} characters; ${found.channel === 'x' ? 'X takes 280, a link counting as 23' : 'LinkedIn takes 3000'}`
+      )
+    const teaser = teaserOf(release, found)
+    if (found.kind === 'teaser' && !teaser)
+      throw new Refusal(
+        release.teasers.some(needsShapeCut)
+          ? `Its teaser needs a ${shapeName(release.teasers.find(needsShapeCut)!.aspect)} cut: rebuild it, or keep it as it is, first`
+          : 'Cut a teaser for it first'
+      )
+    videoKey = teaser?.objectKey
+    title = current.project.title
+    before = found.state
+    found.state = 'posting'
+    delete found.note
+    item = { ...found }
+  })
+  const posting = item!
+  try {
+    const video = videoKey ? await readAsset(videoKey) : undefined
+    const url =
+      posting.channel === 'x'
+        ? await postToX(words, video)
+        : await postToLinkedIn(words, video, title)
+    return await changeProject(id, (current) => {
+      const kept = current.project.release?.campaign.find(
+        (entry) => entry.id === itemId
+      )
+      if (!kept) return
+      kept.state = 'posted'
+      kept.postedAt = new Date().toISOString()
+      kept.postUrl = url
+      addEvent(
+        current,
+        'video',
+        `Posted on ${posting.channel === 'x' ? 'X' : 'LinkedIn'}`
+      )
+    })
+  } catch (error) {
+    await changeProject(id, (current) => {
+      const kept = current.project.release?.campaign.find(
+        (entry) => entry.id === itemId
+      )
+      if (!kept || kept.state !== 'posting') return
+      if (error instanceof UncertainPost) {
+        kept.state = 'unknown'
+        kept.note =
+          'No answer came back: it may have gone out. Check your feed before posting it again.'
+      } else {
+        kept.state = before
+        kept.note =
+          error instanceof Refusal ? error.message : 'It did not go out'
+      }
+    }).catch(() => {})
+    throw error
+  }
+}

@@ -1,0 +1,658 @@
+// A storyboard video's page, laid out like the Wireframe page: the scenes in
+// a rail on the left, the chosen scene on the stage, its frames in a strip
+// under it and the chosen frame's line below. Once the plan is approved each
+// frame is posed as a still: the stage shows the chosen frame's, the strip
+// and the rail show them small, and the creator approves the stills or
+// changes one with a note. A camera scene records in place, the way scenes
+// always have: camera on beside its page, a countdown, one line at a time on
+// the prompter, then the take to review.
+import type { Snapshot } from '../shared/api'
+import type { Moment } from '../shared/model'
+import { fitOf } from '../shared/length'
+import { videoDisplay } from '../shared/state'
+import { presenterLayoutStyle } from '../shared/presenter-layout'
+import {
+  BUILD_LABELS,
+  BUILD_TYPES,
+  SCENE_CHANGE_SECONDS,
+  STAGE_LABELS,
+  STOPPED_BY_YOU,
+  TAKE_TYPES,
+  TRANSITION_LABELS,
+  frameCount,
+  frameId,
+  framesDone,
+  framesPosed,
+  stoppedLine,
+  type FrameSummary,
+  type SceneSummary,
+  type Storyboard
+} from '../shared/storyboard'
+import { cameraCue, takePlaceholder } from './camera-cue'
+import type { Recording } from './recording'
+import {
+  countdownOverlay,
+  recordActions,
+  recordLight,
+  recordTitle
+} from './record-view'
+import { button, escape } from './ui'
+
+/** Which scene and frame the page shows, for one notebook. */
+export type StoryboardView = {
+  projectId: string
+  scene: number
+  frame: number | null
+}
+
+const TYPE_LABELS: Record<string, string> = {
+  hook: 'Hook',
+  pain_point: 'Why it matters',
+  product_intro: 'Names the idea',
+  feature_showcase: 'Step',
+  benefit_highlight: 'So what',
+  social_proof: 'Evidence',
+  branding: 'Takeaway',
+  cta: 'The ask'
+}
+
+const seconds = (value: number) =>
+  value >= 60
+    ? `${Math.floor(value / 60)}:${String(Math.round(value % 60)).padStart(2, '0')}`
+    : `${Math.round(value * 10) / 10} s`
+
+const sceneSeconds = (scene: SceneSummary) =>
+  scene.frames.reduce((total, frame) => total + frame.duration, 0)
+
+/** Where each scene and frame starts in the made episode, in seconds. */
+export const episodeClock = (storyboard: Storyboard) => {
+  let at = 0
+  return (storyboard.plan?.scenes || []).map((scene) => ({
+    pageId: scene.pageId,
+    start: at,
+    frames: scene.frames.map((frame) => {
+      const start = at
+      at += frame.duration
+      return { number: frame.number, start, end: at }
+    }),
+    end: at
+  }))
+}
+
+// The length against what was asked: "43 s · aim 25 s–1:00", the plan's
+// estimate until the voice times it, then the made video's own.
+const lengthLine = (storyboard: Storyboard) => {
+  const total =
+    storyboard.produced?.duration ||
+    (storyboard.plan?.scenes || []).reduce(
+      (sum, scene) => sum + sceneSeconds(scene),
+      0
+    )
+  const goal = storyboard.length
+  const asked = goal
+    ? `${goal.strict ? 'must fit' : 'aim'} ${seconds(goal.min)}–${seconds(goal.max)}`
+    : ''
+  const fit = goal && total ? fitOf(total, goal) : 'within'
+  const runs = total
+    ? `${seconds(total)}${fit === 'long' ? ', too long' : fit === 'short' ? ', too short' : ''}`
+    : ''
+  return [runs, asked].filter(Boolean).join(' · ')
+}
+
+const structureLabel = (structure: string) =>
+  structure.charAt(0).toUpperCase() + structure.slice(1).replace(/-/g, ' ')
+
+/** Frames waiting to be posed again with the creator's note. */
+const noted = (storyboard: Storyboard) =>
+  Object.keys(storyboard.frameNotes || {}).map(Number)
+
+const statusLine = (storyboard: Storyboard) => {
+  if (storyboard.stale)
+    return storyboard.produced
+      ? 'Changed since build'
+      : 'Changed since the plan'
+  if (storyboard.stopping) return 'Stopping…'
+  if (storyboard.replan && storyboard.status === 'waiting')
+    return 'The wireframes changed: plan again'
+  const total = frameCount(storyboard)
+  const done = framesDone(storyboard)
+  const posed = framesPosed(storyboard)
+  if (storyboard.status === 'failed') return 'Stopped'
+  if (storyboard.status === 'done') return 'Made'
+  if (storyboard.status === 'waiting')
+    return storyboard.waitingFor === 'takes'
+      ? 'Waiting for your takes'
+      : storyboard.stage === 'board'
+        ? 'The stills are ready: approve them, or change one'
+        : 'The plan is ready for you'
+  if (storyboard.stage === 'stills' && total) {
+    const again = noted(storyboard)
+    return posed === total && again.length
+      ? `Posing again: frame${again.length === 1 ? '' : 's'} ${again.join(', ')}`
+      : `${STAGE_LABELS.stills} · ${posed} of ${total}`
+  }
+  return storyboard.stage === 'frames' && total
+    ? `${STAGE_LABELS.frames} · ${done} of ${total}`
+    : STAGE_LABELS[storyboard.stage]
+}
+
+/** The creator's go is asked for: the plan, or the stills. */
+const awaiting = (storyboard: Storyboard) =>
+  storyboard.status === 'waiting' &&
+  !storyboard.stale &&
+  !storyboard.replan &&
+  (storyboard.stage === 'review' || storyboard.stage === 'board')
+
+/** The stills are being posed or looked at: nothing is made from them yet. */
+const boarding = (storyboard: Storyboard) =>
+  storyboard.stage === 'stills' || storyboard.stage === 'board'
+
+/** A frame's still, once posed; its version keeps a new pose from caching. */
+const stillSrc = (projectId: string, frame: FrameSummary) =>
+  `/api/projects/${escape(projectId)}/storyboard/frames/${escape(frameId(frame))}/still?v=${encodeURIComponent(frame.still || '')}`
+
+/** The still is being posed now: for the first time, or again with a note. */
+const posing = (storyboard: Storyboard, frame: FrameSummary) =>
+  storyboard.stage === 'stills' &&
+  storyboard.status === 'working' &&
+  (!frame.still || noted(storyboard).includes(frame.number))
+
+const building = (storyboard: Storyboard) =>
+  ['shots', 'frames', 'assemble', 'render'].includes(storyboard.stage) &&
+  storyboard.status === 'working'
+
+/** A scene's frames as the moments a take is recorded across: on camera
+ * for a camera scene, the voice alone for one the creator only speaks
+ * (review 7: the camera came on with nothing to show). */
+export const takeMoments = (scene: SceneSummary): Moment[] => {
+  const voiced = scene.frames.filter((frame) => frame.voiceover.trim())
+  // A camera scene with nothing to say is still taken, whole, for its
+  // picture: the engine asks for its take, and Record refused it.
+  const frames =
+    voiced.length || scene.build !== 'camera' ? voiced : scene.frames
+  return frames.map(
+    (frame) =>
+      ({
+        id: frameId(frame),
+        recordingKey: `${scene.pageId}:${frame.number}`,
+        title: frame.title,
+        camera: scene.build === 'camera' ? 'full' : 'none',
+        layout: 'beside-slide',
+        start: 0,
+        end: frame.duration
+      }) as unknown as Moment
+  )
+}
+
+/** Why the production stopped, in a line; what the check found behind
+ * Details. */
+const stopAlert = (error: string) => {
+  const [line, ...more] = error.split('\n')
+  return `<div class="sb-alert" role="alert"><p>${escape(line)}</p>${more.length ? `<details><summary>Details</summary><p>${escape(more.join('\n'))}</p></details>` : ''}</div>`
+}
+
+/** Why a stale production needs remaking: a made video's cut is old; one
+ * still being made was planned from the old wireframes (review 8 F04). */
+const staleNote = (storyboard: Storyboard) =>
+  !storyboard.stale
+    ? '<p class="sb-stale" role="status"><strong>The wireframes changed.</strong> They changed after this plan was made. Plan again to use them.</p>'
+    : storyboard.produced
+      ? '<p class="sb-stale" role="status"><strong>Changed since build.</strong> These wireframes changed after this video was made. Remake the video before exporting; the preview is the previous cut.</p>'
+      : '<p class="sb-stale" role="status"><strong>Changed since the plan.</strong> These wireframes changed after the plan was approved. Remake the video to use them.</p>'
+
+const working = (label: string) =>
+  `<span class="sb-rail-state is-working"><span class="activity-orbit" aria-hidden="true"></span>${label}</span>`
+
+const railState = (storyboard: Storyboard, scene: SceneSummary) => {
+  if (storyboard.stale)
+    return `<span class="sb-rail-state">${storyboard.produced ? 'Changed since build' : 'Changed since the plan'}</span>`
+  if (scene.frames.some((frame) => posing(storyboard, frame)))
+    return working('Posing')
+  if (scene.take === null)
+    return '<span class="sb-rail-state is-take">Your take</span>'
+  if (scene.frames.every((frame) => frame.status === 'animated'))
+    return '<span class="sb-rail-state is-built">Built</span>'
+  return building(storyboard) || storyboard.stage === 'voice'
+    ? working('Building')
+    : ''
+}
+
+const rail = (
+  snapshot: Snapshot,
+  storyboard: Storyboard,
+  chosen: number,
+  focused: boolean
+) => {
+  const scenes = storyboard.plan?.scenes || []
+  const total = scenes.reduce((sum, scene) => sum + sceneSeconds(scene), 0)
+  const pages = scenes.length
+    ? scenes.map((scene) => scene.pageId)
+    : storyboard.pages
+  return `<aside class="rail scene-rail" ${focused ? 'inert' : ''} aria-label="Scenes">
+<div class="rail-heading"><strong>Scenes</strong><small>${pages.length} ${pages.length === 1 ? 'scene' : 'scenes'}${total ? ` · ${seconds(total)}` : ''}</small></div>
+${pages
+  .map((pageId, index) => {
+    const page = snapshot.project.slides.find((slide) => slide.id === pageId)
+    const scene = scenes[index]
+    const first = scene?.frames[0]
+    return `<div class="scene-card"><button type="button" class="thumbnail ${index === chosen ? 'selected' : ''}" data-action="sb-scene" data-index="${index}" aria-label="Scene ${index + 1}: ${escape(page?.title || '')}">
+<span class="thumb-number">${index + 1}</span>
+<div>${first?.still ? `<img class="sb-rail-still" src="${stillSrc(snapshot.project.id, first)}" alt="">` : page?.svg || '<span>Blank wireframe</span>'}</div>
+<span class="scene-meta"><span>${scene ? seconds(sceneSeconds(scene)) : ''}</span>${scene ? `<b>${escape(BUILD_LABELS[scene.build])}</b>` : ''}</span>${scene ? railState(storyboard, scene) : ''}
+</button></div>${
+      scenes[index + 1]?.frames[0]
+        ? transitionMark(
+            scenes[index + 1].frames[0],
+            true,
+            canChange(storyboard) && !focused,
+            `Between scenes ${index + 1} and ${index + 2}`
+          )
+        : ''
+    }`
+  })
+  .join('')}</aside>`
+}
+
+// The episode above the stage: the whole proposal while it is reviewed,
+// then the message and one line.
+const band = (storyboard: Storyboard) => {
+  const plan = storyboard.plan
+  const reviewing =
+    storyboard.stage === 'review' && storyboard.status === 'waiting'
+  const length = lengthLine(storyboard)
+  return `<div class="sb-band">
+<p class="sb-kicker" role="status">${escape(statusLine(storyboard))}</p>
+${
+  !plan
+    ? '<h2>Planning the episode</h2><p class="sb-meta">The message, its structure and every frame’s job come first; you approve them before anything is built.</p>'
+    : reviewing
+      ? `<h2>${escape(plan.message)}</h2>
+<p class="sb-meta">For ${escape(plan.audience)} · ${escape(structureLabel(plan.structure))} · opens with ${escape(plan.hook.toLowerCase())}${length ? ` · ${escape(length)}` : ''}</p>${plan.continuity ? `<p class="sb-meta">${escape(plan.continuity)}</p>` : ''}`
+      : `<h2>${escape(plan.message)}</h2>
+<p class="sb-meta">${escape(structureLabel(plan.structure))}${length ? ` · ${escape(length)}` : ''}</p>`
+}
+</div>`
+}
+
+/** A spoken scene's take, to hear it back: a camera scene's plays on the
+ * stage (review 7: a voice-only take had no player). One under review plays
+ * from the recording, before it is saved. */
+const voiceTake = (scene: SceneSummary | undefined, review?: string) =>
+  !scene || scene.build === 'camera'
+    ? ''
+    : review
+      ? `<audio class="sb-voice-take" data-sb-take src="${escape(review)}" controls></audio>`
+      : scene.take
+        ? `<audio class="sb-voice-take" controls preload="metadata" src="/objects/${escape(scene.take.objectKey)}"></audio>`
+        : ''
+
+/** The files the take picker offers: those the engine takes, a camera
+ * scene's videos or a spoken scene's sound (review 7: it offered any). */
+const takeAccept = (scene: SceneSummary | undefined) =>
+  Object.keys(TAKE_TYPES)
+    .filter((type) =>
+      type.startsWith(scene?.build === 'camera' ? 'video/' : 'audio/')
+    )
+    .join(',')
+
+/** A camera scene with no take yet, shown as its page: the stage keeps the
+ * take's place, with Record and Upload in it (review 7). */
+const takeSlot = (
+  storyboard: Storyboard,
+  scene: SceneSummary | undefined,
+  frame: FrameSummary | undefined
+) =>
+  scene?.build === 'camera' &&
+  !scene.take &&
+  !storyboard.produced &&
+  frame?.status !== 'animated' &&
+  !frame?.still
+
+/** What the stage shows: the made episode, a built frame, or the page, with
+ * the camera beside it while a take is recorded or reviewed. */
+const stage = (
+  snapshot: Snapshot,
+  storyboard: Storyboard,
+  scene: SceneSummary | undefined,
+  frame: FrameSummary | undefined,
+  capture: Recording,
+  recording: boolean
+) => {
+  const page = snapshot.project.slides.find(
+    (slide) => slide.id === (scene?.pageId || storyboard.pages[0])
+  )
+  const camera = scene?.build === 'camera'
+  const live =
+    recording &&
+    ['preparing', 'ready', 'countdown', 'recording'].includes(capture.phase)
+  const reviewing =
+    recording && ['reviewing', 'uploading'].includes(capture.phase)
+  if (storyboard.produced && !recording) {
+    const key = storyboard.posterKey || storyboard.produced.posterKey
+    const fallback =
+      page?.svg ||
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="1280" height="720" fill="#15251e"/><text x="640" y="360" fill="white" text-anchor="middle" font-size="48">Video ready — press Play</text></svg>'
+    const poster = key
+      ? `/objects/${key}`
+      : `data:image/svg+xml,${encodeURIComponent(fallback)}`
+    return `<div class="stage video-stage sb-stage"><video class="sb-player" data-sb-player src="/objects/${escape(storyboard.produced.objectKey)}" poster="${escape(poster)}" controls playsinline preload="metadata"></video></div>`
+  }
+  const picture =
+    !recording && frame?.status === 'animated'
+      ? `<img class="sb-shot" src="/api/projects/${escape(snapshot.project.id)}/storyboard/frames/${escape(frameId(frame))}/snapshot?v=${encodeURIComponent(storyboard.updatedAt)}" alt="Frame ${frame.number}, as built">`
+      : !recording && frame?.still
+        ? `<img class="sb-shot" src="${stillSrc(snapshot.project.id, frame)}" alt="Frame ${frame.number}, its still">`
+        : page?.svg ||
+          '<span class="sb-stage-note">The page is being drawn</span>'
+  // A frame shown as made (its still or its build) carries its own layout.
+  const shown =
+    !recording && (frame?.status === 'animated' || Boolean(frame?.still))
+  const chip =
+    !recording && frame && posing(storyboard, frame)
+      ? `<span class="sb-posing">${working(frame.still ? 'Posing this still again' : 'Posing this still')}</span>`
+      : ''
+  const presenter = !camera
+    ? ''
+    : live
+      ? '<div class="presenter-preview beside-slide"><video data-camera autoplay muted playsinline></video></div>'
+      : reviewing && capture.url
+        ? `<div class="presenter-preview beside-slide"><video class="take-player" data-sb-take src="${escape(capture.url)}" controls playsinline></video></div>`
+        : scene?.take
+          ? `<div class="presenter-preview beside-slide"><video data-sb-take src="/objects/${escape(scene.take.objectKey)}" controls playsinline preload="metadata"></video></div>`
+          : `<div class="presenter-preview beside-slide">${takePlaceholder(`<div class="sb-take-actions">${actions(storyboard, scene, frame, capture, false, true)}</div>`)}</div>`
+  return `<div class="stage video-stage sb-stage ${camera && !shown ? 'presenter-layout-beside-slide' : ''}" style="${camera && !shown ? presenterLayoutStyle('beside-slide') : ''}">${camera && shown ? picture : `${picture}${presenter}`}${chip}${recording ? countdownOverlay(capture) : ''}</div>`
+}
+
+/** The line to read, large, while a take is set up and recorded. */
+const prompter = (
+  scene: SceneSummary,
+  capture: Recording,
+  recording: boolean
+) => {
+  if (
+    !recording ||
+    !['ready', 'countdown', 'recording'].includes(capture.phase)
+  )
+    return ''
+  const lines = scene.frames.filter((frame) => frame.voiceover.trim())
+  const at = Math.min(capture.current, lines.length - 1)
+  const line = lines[at]
+  const next = lines[at + 1]
+  const more = lines.length > 1
+  const label =
+    capture.phase === 'ready'
+      ? 'Get ready · this is your first line'
+      : capture.phase === 'countdown'
+        ? `Ready in ${capture.countdown}`
+        : `Recording · ${more ? 'Enter for the next line · ' : ''}Esc to stop`
+  return `<div class="practice-cue recording-script sb-prompter"><strong>${escape(label)}</strong><span data-prompter>${escape(line?.voiceover || '')}</span>${next ? `<small>Then: ${escape(next.voiceover)}</small>` : ''}</div>`
+}
+
+const sceneLine = (
+  storyboard: Storyboard,
+  scene: SceneSummary,
+  index: number,
+  title: string,
+  hasCapture = false
+) => {
+  const choosing =
+    (storyboard.stage === 'review' && storyboard.status === 'waiting') ||
+    (storyboard.stage === 'plan' && storyboard.status === 'failed')
+  // After a failed plan, the build the creator chose, not the last plan's.
+  const chosen =
+    (storyboard.status === 'failed' && storyboard.builds?.[scene.pageId]) ||
+    scene.build
+  const build = choosing
+    ? `<label class="sb-build"><span class="sr">Built as</span><select data-sb-build data-page="${escape(scene.pageId)}">${BUILD_TYPES.filter(
+        (type) => type !== 'screen' || hasCapture
+      )
+        .map(
+          (type) =>
+            `<option value="${type}" ${type === chosen ? 'selected' : ''}>${BUILD_LABELS[type]}</option>`
+        )
+        .join('')}</select></label>`
+    : `<span class="sb-build is-fixed">${BUILD_LABELS[scene.build]}</span>`
+  return `<div class="sb-scene-line"><span class="sb-scene-number">Scene ${index + 1} of ${storyboard.plan!.scenes.length}</span><strong>${escape(title)}</strong>${build}<span class="sb-scene-time">${seconds(sceneSeconds(scene))}</span></div>
+<p class="sb-reason">${escape(scene.buildReason)}</p>`
+}
+
+// A built frame says nothing: its scene says "Built" once, in the rail.
+const frameState = (storyboard: Storyboard, frame: FrameSummary) =>
+  frame.status === 'animated'
+    ? ''
+    : frame.status === 'failed'
+      ? 'Stopped'
+      : posing(storyboard, frame)
+        ? frame.still
+          ? 'Posing again'
+          : 'Posing'
+        : seconds(frame.duration)
+
+/** How a frame enters, in words: a crossfade into a new scene runs longer. */
+export const transitionWords = (frame: FrameSummary, opensScene: boolean) =>
+  `${TRANSITION_LABELS[frame.transition] || frame.transition}${
+    opensScene && /crossfade$/.test(frame.transition)
+      ? ` · ${SCENE_CHANGE_SECONDS} s`
+      : ''
+  }`
+
+/** A transition can change while nothing is being made. */
+const canChange = (storyboard: Storyboard) =>
+  storyboard.status !== 'working' && Boolean(storyboard.plan)
+
+/** The mark between two frames (or two scenes) for how the next one enters. */
+const transitionMark = (
+  frame: FrameSummary,
+  opensScene: boolean,
+  enabled: boolean,
+  between: string
+) =>
+  frame.transition
+    ? `<button type="button" class="${opensScene ? 'transition-control sb-scene-change' : 'sb-transition'}" data-action="sb-transition" data-number="${frame.number}" title="${escape(`${between}: ${transitionWords(frame, opensScene)}`)}" aria-label="${escape(`${between}: ${transitionWords(frame, opensScene)}`)}" ${enabled ? '' : 'disabled'}>${escape(transitionWords(frame, opensScene))}</button>`
+    : ''
+
+/** The scene's frames, sized by how long each runs; the chosen one lit.
+ * Once stills are posed, each shows its own, small. */
+const strip = (
+  snapshot: Snapshot,
+  storyboard: Storyboard,
+  scene: SceneSummary,
+  current: number | undefined,
+  locked: boolean
+) =>
+  `<div class="moment-timeline sb-strip"><div class="moment-strip" aria-label="Frames">${scene.frames
+    .map(
+      (frame, index) =>
+        `${index ? transitionMark(frame, false, canChange(storyboard) && !locked, `Into frame ${frame.number}`) : ''}<div class="moment-item" style="flex-grow:${Math.max(0.1, frame.duration)}">
+<button type="button" class="moment ${frame.number === current ? 'current' : ''}" data-action="sb-frame" data-number="${frame.number}" ${locked ? 'disabled' : ''}>
+${frame.still ? `<img class="sb-thumb" src="${stillSrc(snapshot.project.id, frame)}" alt="">` : boarding(storyboard) ? '<span class="sb-thumb is-empty" aria-hidden="true"></span>' : ''}
+<span class="moment-head"><b class="moment-number">${frame.number}</b>${scene.build === 'camera' ? cameraCue('full') : ''}</span>
+<span class="moment-name" title="${escape(frame.title)}">${escape(frame.title)}</span>
+<small>${escape([TYPE_LABELS[frame.type] || frame.type, frameState(storyboard, frame), frame.claim ? 'check its words' : ''].filter(Boolean).join(' · '))}</small>
+</button></div>`
+    )
+    .join(
+      ''
+    )}<span class="sb-playhead" aria-hidden="true" hidden></span></div></div>`
+
+const frameDetail = (
+  storyboard: Storyboard,
+  frame: FrameSummary,
+  opensScene: boolean
+) => `<section class="sb-frame-detail" aria-label="Frame ${frame.number}">
+${frame.voiceover ? `<p class="sb-line">“${escape(frame.voiceover)}”</p>` : '<p class="sb-line is-silent">No words: the picture carries it.</p>'}
+${storyboard.frameNotes?.[frame.number] ? `<p class="sb-note">Your note: “${escape(storyboard.frameNotes[frame.number])}”</p>` : ''}
+<dl><dt>Why</dt><dd>${escape(frame.narrativeRole)}</dd><dt>On screen</dt><dd>${escape(frame.scene)}</dd>${frame.transition ? `<dt>Enters with</dt><dd>${escape(transitionWords(frame, opensScene))}${frame.transitionWhy ? ` · ${escape(frame.transitionWhy)}` : ''}</dd>` : ''}</dl>
+${frame.problem ? `<p class="sb-problem">${escape(frame.problem)}</p>` : ''}
+${frame.claim ? claimLine(storyboard, frame) : ''}
+</section>`
+
+/** Its own words still promise past the creator's after one rewrite: what
+ * to check, and the two answers. Written again while the plan or the stills
+ * wait for approval, as a change to the plan (review 8). */
+const claimLine = (storyboard: Storyboard, frame: FrameSummary) =>
+  `<p class="page-check">Check these words <small>${escape(frame.claim || '')}</small> ${
+    awaiting(storyboard) && ['review', 'board'].includes(storyboard.stage)
+      ? `<button type="button" class="quiet" data-action="sb-claim-again" data-number="${frame.number}">Write it again</button>`
+      : ''
+  }<button type="button" class="quiet" data-action="sb-claim-keep" data-number="${frame.number}">Keep it</button></p>`
+
+const actions = (
+  storyboard: Storyboard,
+  scene: SceneSummary | undefined,
+  frame: FrameSummary | undefined,
+  capture: Recording,
+  recording: boolean,
+  takesOnly = false
+) => {
+  if (
+    recording &&
+    ['preparing', 'ready', 'countdown', 'recording'].includes(capture.phase)
+  )
+    return recordActions(capture, 'line')
+  if (recording && capture.phase === 'reviewing')
+    return `${button('Discard', 'discard-take')}${button('Retake', 'retake-recording')}${button('Save take', 'save-take', true)}`
+  if (recording && capture.phase === 'uploading')
+    return button('Saving…', 'save-take', true, true)
+  const reviewing =
+    storyboard.stage === 'review' && storyboard.status === 'waiting'
+  const take = (() => {
+    if (!scene || scene.take === undefined) return ''
+    const locked = Boolean(scene.take) && building(storyboard)
+    const lead =
+      Boolean(storyboard.approved) &&
+      !scene.take &&
+      !awaiting(storyboard) &&
+      !boarding(storyboard)
+    const control = (label: string, action: string, primary: boolean) =>
+      `<button type="button" data-action="${action}" data-page="${escape(scene.pageId)}" ${primary ? 'class="primary"' : ''} ${locked ? 'disabled title="Wait until this step finishes to replace a take"' : ''}>${label}</button>`
+    return `${control('Upload', 'sb-upload', false)}${control(scene.take ? 'Record again' : 'Record', 'sb-record', lead)}`
+  })()
+  // A posed still can be changed until the stills are approved.
+  const still =
+    frame?.still &&
+    !posing(storyboard, frame) &&
+    ((storyboard.stage === 'board' && awaiting(storyboard)) ||
+      (storyboard.stage === 'stills' && storyboard.status === 'working'))
+      ? `<button type="button" data-action="sb-still" data-number="${frame.number}">Change this still</button>`
+      : ''
+  const approve = awaiting(storyboard)
+    ? `${button('Change the plan', 'sb-change')}${button(reviewing ? 'Approve the plan' : 'Approve the stills', 'sb-approve', true)}`
+    : ''
+  if (takesOnly) return take
+  // A stale production is remade, never carried on (review 8: both showed).
+  return `${still}${approve}${storyboard.status === 'failed' && !storyboard.stale ? button('Try again', 'sb-retry', true) : ''}`
+}
+
+/**
+ * The header's one action for a storyboard: its next step, enabled, so the
+ * page never reads as busy while it waits for the creator (review 7: a
+ * greyed “Making the video” hid “Approve the plan” below the fold).
+ */
+export const storyboardHeader = (
+  snapshot: Snapshot,
+  storyboard: Storyboard,
+  release = ''
+) => {
+  // Remake is always offered on a stale production: one still at work stops
+  // first, or can be stopped as it is (review 8 F04: Remake was disabled
+  // while it worked).
+  if (storyboard.stale)
+    return `${storyboard.status === 'working' ? button(storyboard.stopping ? 'Stopping…' : 'Stop', 'sb-stop', false, storyboard.stopping) : ''}${button('Remake video', 'sb-remake', true, storyboard.stopping)}`
+  // A plan whose wireframes changed is planned again before it is approved.
+  if (storyboard.replan && storyboard.status === 'waiting')
+    return button('Plan again', 'sb-replan', true)
+  if (storyboard.status === 'failed')
+    return button('Try again', 'sb-retry', true)
+  // The same test as the page's own Approve, so the two always agree.
+  if (awaiting(storyboard))
+    return button(
+      storyboard.stage === 'board' ? 'Approve the stills' : 'Approve the plan',
+      'sb-approve',
+      true
+    )
+  if (storyboard.waitingFor === 'takes') {
+    const page = storyboard.plan?.scenes.find(
+      (scene) => scene.take === null
+    )?.pageId
+    return `<button type="button" class="primary" data-action="sb-record" data-page="${escape(page || '')}" ${page ? '' : 'disabled'}>Record your take</button>`
+  }
+  // Being made again (a transition changed), the last cut is not offered as
+  // the video: the header says what is happening until the new one is made.
+  if (storyboard.produced && storyboard.status !== 'working')
+    return `${release}${button('Export MP4', 'produce-video', true)}`
+  const status = `<span class="header-video-status" role="status">${escape(videoDisplay(snapshot).label)}</span>`
+  // A production at work can be stopped, as the wireframes can (review 8
+  // F11: the stills had no Stop); what is made stays.
+  return storyboard.status === 'working'
+    ? `${status}${button(storyboard.stopping ? 'Stopping…' : 'Stop', 'sb-stop', false, storyboard.stopping)}`
+    : status
+}
+
+export const storyboardScreen = (
+  snapshot: Snapshot,
+  view: StoryboardView | null,
+  capture: Recording,
+  recordPage: string | null
+) => {
+  const storyboard = snapshot.project.video!.storyboard!
+  const plan = storyboard.plan
+  const scenes = plan?.scenes || []
+  const chosen =
+    view?.projectId === snapshot.project.id
+      ? Math.min(view.scene, Math.max(0, scenes.length - 1))
+      : 0
+  const scene = scenes[chosen]
+  const recording = Boolean(
+    scene && recordPage === scene.pageId && capture.phase !== 'idle'
+  )
+  const focused = recording
+  const picked =
+    view?.projectId === snapshot.project.id && view.frame !== null
+      ? scene?.frames.find((frame) => frame.number === view.frame)
+      : undefined
+  const lines = scene?.frames.filter((frame) => frame.voiceover.trim()) || []
+  const frame = recording
+    ? lines[Math.min(capture.current, lines.length - 1)]
+    : picked || scene?.frames[0]
+  const page = snapshot.project.slides.find(
+    (slide) => slide.id === scene?.pageId
+  )
+  const missing = scenes.filter((entry) => entry.take === null)
+  const reviewingTake =
+    recording && ['reviewing', 'uploading'].includes(capture.phase)
+  // Under the stage when the stage has no place for the take (a still, a
+  // build, or a take already made).
+  const takes =
+    focused || takeSlot(storyboard, scene, frame)
+      ? ''
+      : actions(storyboard, scene, frame, capture, false, true)
+  // A voice-only take under review plays where a saved one does.
+  const heard =
+    reviewingTake && capture.url ? voiceTake(scene, capture.url) : ''
+  return `<section class="video-workspace storyboard-workspace ${focused ? 'is-focused' : ''}" data-capture-phase="${capture.phase}" aria-label="Storyboard">
+${rail(snapshot, storyboard, chosen, focused)}
+<div class="stage-area" ${focused ? 'role="dialog" aria-modal="true" aria-label="Presenter studio"' : ''}>
+${
+  focused
+    ? `<div class="focus-heading"><div><strong>${reviewingTake ? 'Review your take' : recordTitle(capture)}</strong><span>Scene ${chosen + 1} · ${reviewingTake ? `${lines.length} ${lines.length === 1 ? 'line' : 'lines'}` : `Frame ${frame?.number ?? 1}${lines.length > 1 ? ` · ${Math.min(capture.current, lines.length - 1) + 1} of ${lines.length}` : ''}`}</span>${recordLight(capture)}</div></div>`
+    : band(storyboard)
+}
+${storyboard.stale || (storyboard.replan && storyboard.status === 'waiting') ? staleNote(storyboard) : ''}
+${storyboard.status === 'failed' && storyboard.error && !storyboard.stale ? stopAlert(storyboard.error === STOPPED_BY_YOU ? stoppedLine(storyboard) : storyboard.error) : ''}
+${stage(snapshot, storyboard, scene, frame, capture, recording)}
+${takes || heard ? `<div class="sb-take-actions">${heard || voiceTake(scene)}${takes}</div>` : ''}
+${scene ? prompter(scene, capture, recording) : ''}
+${scene && !focused ? sceneLine(storyboard, scene, chosen, page?.title || scene.pageId, Boolean(page?.capture?.objectKey || page?.capture?.last?.objectKey)) : ''}
+${scene ? strip(snapshot, storyboard, scene, frame?.number, focused) : ''}
+${frame && !focused ? frameDetail(storyboard, frame, chosen > 0 && scene?.frames[0]?.number === frame.number) : ''}
+${
+  !focused && storyboard.approved && !boarding(storyboard) && missing.length
+    ? `<div class="recording-nudge"><strong>Your turn</strong><span>${missing.length === 1 ? 'One scene waits' : `${missing.length} scenes wait`} for your take: record it on camera, or upload one. ${storyboard.waitingFor === 'takes' ? 'Everything else is made.' : 'Everything else is being made meanwhile.'}</span></div>`
+    : ''
+}
+<div class="video-actions"><div></div><div>${actions(storyboard, scene, frame, capture, recording)}</div></div>
+</div>
+<input type="file" data-sb-take-file accept="${takeAccept(scene)}" hidden>
+</section>`
+}

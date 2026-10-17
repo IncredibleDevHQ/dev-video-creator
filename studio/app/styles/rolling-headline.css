@@ -1,0 +1,102 @@
+.start.has-story > .rolling-headline {
+  --headline-logo-size: 0.8em;
+  position: relative;
+  width: min(1040px, 100%);
+  height: auto;
+  margin: 0 auto 22px;
+  font-size: clamp(2rem, 1.3rem + 2vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.14;
+  letter-spacing: -0.04em;
+  text-align: center;
+  white-space: normal;
+}
+.headline-track {
+  display: grid;
+  position: relative;
+  width: 100%;
+  padding-block: 0.15em 0.3em;
+}
+.headline-line {
+  grid-area: 1 / 1;
+  align-self: center;
+  padding-inline: calc(var(--headline-logo-size) + 12px);
+  opacity: 0;
+  text-wrap: balance;
+}
+.headline-line:first-child {
+  opacity: 1;
+}
+.headline-line:nth-child(2) {
+  color: var(--accent);
+}
+.headline-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+.headline-letter {
+  display: inline-block;
+}
+.headline-letter.is-emphasized {
+  background: linear-gradient(var(--accent), var(--accent)) left bottom / 100%
+    0.055em no-repeat;
+}
+.headline-logo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--headline-logo-size);
+  height: var(--headline-logo-size);
+  will-change: transform;
+}
+.headline-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.headline-logo::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: -7px;
+  height: 3px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  filter: blur(2px);
+}
+.headline-static {
+  display: none;
+}
+.start.has-story > #source {
+  width: min(760px, 100%);
+  margin-inline: auto;
+}
+@media (max-width: 600px) {
+  .start.has-story > .rolling-headline {
+    margin-bottom: 18px;
+  }
+  .headline-line {
+    padding-inline: calc(var(--headline-logo-size) + 10px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .headline-track {
+    display: none;
+  }
+  .headline-static,
+  .headline-static > span {
+    display: block;
+  }
+  .headline-static > span + span {
+    margin-top: 0.12em;
+  }
+  .headline-static > span:nth-child(2) {
+    color: var(--accent);
+  }
+  .headline-static em {
+    font-style: normal;
+    text-decoration: underline var(--accent) 0.055em;
+    text-underline-offset: 0.15em;
+  }
+}

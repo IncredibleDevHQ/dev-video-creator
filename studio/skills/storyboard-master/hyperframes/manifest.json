@@ -1,0 +1,1069 @@
+{
+  "upstream": "https://github.com/heygen-com/hyperframes",
+  "tag": "v0.8.143",
+  "commit": "3aa68869f7d4cec8b37cdfcb9cd539389b63abed",
+  "license": "Apache-2.0 (LICENSE, verbatim)",
+  "vendoredAt": "2026-10-15",
+  "files": [
+    {
+      "path": "LICENSE",
+      "blob": "ae06b37e1c5116ccfaa615ac25ec1aabf5658d8c",
+      "bytes": 10763
+    },
+    {
+      "path": "skills/faceless-explainer/SKILL.md",
+      "blob": "2697f22147df2a67e82ed4673268bd496ae4e4a3",
+      "bytes": 30999
+    },
+    {
+      "path": "skills/faceless-explainer/references/cut-catalog.md",
+      "blob": "10dd44122c1b3d7d5a65ed53d13a574baa7d7694",
+      "bytes": 12764
+    },
+    {
+      "path": "skills/faceless-explainer/references/motion-language.md",
+      "blob": "75a9e4e85e714e77e1cdf8b9a359c7591402d064",
+      "bytes": 15781
+    },
+    {
+      "path": "skills/faceless-explainer/references/story-design.md",
+      "blob": "29fd26c419a9538979a7bff7cc03b97ccc9f6e98",
+      "bytes": 20967
+    },
+    {
+      "path": "skills/faceless-explainer/references/visual-design.md",
+      "blob": "d16e98afb83dbcf2c17810f6e94386d963400e6e",
+      "bytes": 20704
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/assemble-index.mjs",
+      "blob": "fb7e14b1e61929edfaeaa2b6806eed294b248ee4",
+      "bytes": 26752
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/audio.mjs",
+      "blob": "5e33feb45d1ee343d61dc82c9b8ac41be0fa3d27",
+      "bytes": 15326
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/build-frame.mjs",
+      "blob": "54de67417793d797a9a2d4b97c5b5a7d2c6d661c",
+      "bytes": 27290
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/captions.mjs",
+      "blob": "b2e2fa0168ff6f93df116a70d3ec91809c84081e",
+      "bytes": 25341
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/frame-packets.mjs",
+      "blob": "4b86e2d73897403434b6d40b29cfb88103a836fc",
+      "bytes": 1070
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/assets.mjs",
+      "blob": "3515bf7c7463d3f1eddef711e6c900d1219763c0",
+      "bytes": 2214
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/bgm-volume.mjs",
+      "blob": "52ea0ced7d23a597cc35c2b79f711b27977b1a3a",
+      "bytes": 236
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/captured-fonts.mjs",
+      "blob": "c798346f6a6864e93250045093684ebdc6c7eade",
+      "bytes": 2628
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/dimensions.mjs",
+      "blob": "a6be70bcfa46f67a4e24f3ff04954ee8153f6ddf",
+      "bytes": 2279
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/frame-packets-core.mjs",
+      "blob": "d165088ff876c10a101d959b84ebb4b4cc0817c7",
+      "bytes": 7408
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/host-audio.mjs",
+      "blob": "fa45826a82ad6416cd7cfa81c306efa247cbe36b",
+      "bytes": 1470
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/pad-frame-duration.mjs",
+      "blob": "91471151fc044b926ff7d58c08a6f8d04289b95b",
+      "bytes": 1628
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/storyboard.mjs",
+      "blob": "225fb21da99f191d8b2eed760338818e5fbc709c",
+      "bytes": 8244
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/tokens.mjs",
+      "blob": "c2f33212947f1b310f09f70f831ed286e8829b82",
+      "bytes": 9883
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/transition-registry.mjs",
+      "blob": "a0451793a65447f76fd05dd0a726f0d47f33198b",
+      "bytes": 1588
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/lib/transitions.json",
+      "blob": "86ae5eca693a88e8e4b682c653bbf0f8e2064b46",
+      "bytes": 3941
+    },
+    {
+      "path": "skills/faceless-explainer/scripts/transitions.mjs",
+      "blob": "c5d91fdacef146f7f9a431503de65ac2007fd2c3",
+      "bytes": 15927
+    },
+    {
+      "path": "skills/faceless-explainer/sub-agents/frame-worker.md",
+      "blob": "e8e86d276adaa577c1fa7aba804bd160d970161e",
+      "bytes": 2028
+    },
+    {
+      "path": "skills/hyperframes-animation/SKILL.md",
+      "blob": "e5299de70e3c7339fcc4b8870f195b6f2e0069af",
+      "bytes": 8471
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints-index.md",
+      "blob": "864a68b7555998de0bbc5f47df8565d29701d1b7",
+      "bytes": 26512
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/agent-progress-theater.md",
+      "blob": "90501e4b6f15a1c46481c4836855287c4a843ecd",
+      "bytes": 16091
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/camera-journey.md",
+      "blob": "e1e4e62d0c59c3f1f116235a575a9b0566c2ec51",
+      "bytes": 13648
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/comparison-split.md",
+      "blob": "625cf89d2e640d535bb3ca127fdbe86869ebaf54",
+      "bytes": 3316
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/constellation-hub.md",
+      "blob": "1234152fd2897bb3b624d34ce92cba278e7afc94",
+      "bytes": 7144
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/cta-morph-press.md",
+      "blob": "cc791c9348677d8bff63e27f2d400767ef5395a0",
+      "bytes": 6407
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/cursor-ui-demo.md",
+      "blob": "d47a66779c1acdc857992865c9551cb94505d9ac",
+      "bytes": 20276
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/dataviz-countup.md",
+      "blob": "2cea2a1cd78020c92873fb300c5ea9f2a7d858e3",
+      "bytes": 14611
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/device-surface-showcase.md",
+      "blob": "408ce700d62290a474180bb5022682c1e67afdea",
+      "bytes": 17151
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/fixed-anchor-cycle.md",
+      "blob": "1752ee4540f2868595210a2ba29683c289584eee",
+      "bytes": 9089
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/grid-card-assemble.md",
+      "blob": "e7588d447e58ee12076f1d768dc6eb05d6987151",
+      "bytes": 15594
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/kinetic-type-beats.md",
+      "blob": "4d992335175fc688ae3de3f7efe5f7e1f3ed69f4",
+      "bytes": 29151
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/logo-assemble-lockup.md",
+      "blob": "554e175ab5cae93607007b81aa443ea0d65e2481",
+      "bytes": 26609
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/overwhelm-surround.md",
+      "blob": "751d143984013d5d50cdd2514eb6ea62b22374bd",
+      "bytes": 6140
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/panel-edit-live-sync.md",
+      "blob": "2eb2fd2f0e1a3c940b2fcb011c8a919931fcb6c1",
+      "bytes": 13394
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/prompt-type-submit-generate.md",
+      "blob": "57fd27e8aadb9c5eaa4ffe7afeb9ecd3925e0380",
+      "bytes": 18636
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/spatial-pan-stations.md",
+      "blob": "d3f172e4bc11e466ddacd32109a01073f76a709b",
+      "bytes": 4868
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/ticker-takeover.md",
+      "blob": "f4e0984685f3f3a76017a9cafc08bea524796863",
+      "bytes": 3052
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/titlecard-reveal.md",
+      "blob": "8fa752b44372bf73a0b0330227e4e2f27ea7f330",
+      "bytes": 7441
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/transcript-scroll-artifact-reveal.md",
+      "blob": "c7cc88d4b3190cad5138feabac13a51791add0fc",
+      "bytes": 11666
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/typewriter-reveal.md",
+      "blob": "23b1cbaf91d0914365f160323e869a997f3fd98c",
+      "bytes": 6276
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/video-text-pivot.md",
+      "blob": "40f75fcb792a48938f2267761d0657b99b8fc25d",
+      "bytes": 3281
+    },
+    {
+      "path": "skills/hyperframes-animation/blueprints/zoom-out-workspace-reveal.md",
+      "blob": "38467542024a00eaba44f1e3258dac37088aed5e",
+      "bytes": 14714
+    },
+    {
+      "path": "skills/hyperframes-animation/rules-index.md",
+      "blob": "6c4adc6d04bfebea9908f4fd6212ee235ff79aa2",
+      "bytes": 21484
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/3d-camera-flight.md",
+      "blob": "08ac4895b81030042022f39273d3f3ad6ac85597",
+      "bytes": 18137
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/3d-page-scroll.md",
+      "blob": "e3a8f86350862068d719aed7312998e04e50ebe7",
+      "bytes": 7406
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/3d-text-depth-layers.md",
+      "blob": "5ca2641b068a358188bb922a35ef32271067d67b",
+      "bytes": 6708
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/ai-tracking-box.md",
+      "blob": "0ae63af7e598367da6737be778d0611af47b5913",
+      "bytes": 6562
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/ambient-glow-bloom.md",
+      "blob": "e1807bdd92e1f0b4465a3f046f414c8feee3db36",
+      "bytes": 9840
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/anchored-layout-expand.md",
+      "blob": "040e9766d6bcad3b24e3929018014d31c63b2b9d",
+      "bytes": 10313
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/asr-keyword-glow.md",
+      "blob": "8a0eb9019f431da239941a52bfb63dfb1286d062",
+      "bytes": 6762
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/avatar-cloud-network.md",
+      "blob": "7d47ebc9dd91262b1d9505e2e3b15d1a49963921",
+      "bytes": 6578
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/camera-cursor-tracking.md",
+      "blob": "b979bade937bcf312ce63950275848c094073a12",
+      "bytes": 7911
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/card-morph-anchor.md",
+      "blob": "3ae8ae1cb7501061e84a0daa110bddea8f3a98f4",
+      "bytes": 7411
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/center-outward-expansion.md",
+      "blob": "0b6c1063807493b65e6ac64ccc80dffb0769bdeb",
+      "bytes": 4263
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/chart-scrub-readout.md",
+      "blob": "527878f1765ffbfa558f6644fc88e8255198a037",
+      "bytes": 10348
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/chromatic-glitch.md",
+      "blob": "c35713a92b72f4147e0f9a4b73c3a4cdd6fa691b",
+      "bytes": 10339
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/context-sensitive-cursor.md",
+      "blob": "a75f6da5459d5a6c6840311b9f1e36b3415b2fce",
+      "bytes": 6938
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/control-target-sync.md",
+      "blob": "d521589c961e57ee825940f5a09b4ad442e175ab",
+      "bytes": 10276
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/coordinate-target-zoom.md",
+      "blob": "a28e80fa6fb9292acff3854d0274157c3ee907f3",
+      "bytes": 7607
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/counting-dynamic-scale.md",
+      "blob": "5d9da5f3072e4ee2990b44dde6c9c37a302429c0",
+      "bytes": 5977
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/css-marker-patterns.md",
+      "blob": "97ba6c4a039ec1adff8d47ad97d12316a68970b1",
+      "bytes": 5702
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/cursor-click-ripple.md",
+      "blob": "727e1411eb88f2e4164274c0625a320bcdd09022",
+      "bytes": 6397
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/cursor-drag.md",
+      "blob": "e2495915994fae112de73037fd3d93ab450fdea9",
+      "bytes": 10215
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/depth-of-field-blur.md",
+      "blob": "e1b974a8f2f4c9ac40c23f5fc65e86646f9f83f7",
+      "bytes": 8876
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/depth-scatter-assemble.md",
+      "blob": "8d1968088a6f5a7567eafeec1790e01c88e4ee96",
+      "bytes": 7054
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/discrete-text-sequence.md",
+      "blob": "2d3ba111cb68e0da64aa9b0eb11615cfa5731d7d",
+      "bytes": 6454
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/dynamic-content-sequencing.md",
+      "blob": "4f281af7cdc732196b2e9e4921b73f795541c80c",
+      "bytes": 8558
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/gradient-text-sweep.md",
+      "blob": "e633dad56b20dae13c220baca7d34626b17b09db",
+      "bytes": 8751
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/gsap-effects.md",
+      "blob": "0dcf6954f2523429f22cc05227baef32a74af6fe",
+      "bytes": 6912
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/hacker-flip-3d.md",
+      "blob": "e6db1e4eb914d0d41dccb3985563f55b7dafe8b8",
+      "bytes": 5586
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/kinetic-beat-slam.md",
+      "blob": "ad6562c6925a6958b207165e4b085063dddddedf",
+      "bytes": 6445
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/motion-blur-streak.md",
+      "blob": "aec5699284271314901c3b21f770faddfa1bda11",
+      "bytes": 16190
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/multi-cursor-choreography.md",
+      "blob": "bd5895557bd7512b640580394209764052a6607e",
+      "bytes": 10520
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/multi-phase-camera.md",
+      "blob": "9b03ce7cf24c13143ba3c57bb8c82e3b49ae7c2e",
+      "bytes": 7773
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/nudge-curve.md",
+      "blob": "25e552618d5ce65abf4dd7eef6590e3cc9e66aa6",
+      "bytes": 2689
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/orbit-3d-entry.md",
+      "blob": "ef46b771c38a2b30d038d3631a08a4b640c2c7e8",
+      "bytes": 6628
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/particle-burst.md",
+      "blob": "01a96e4a8a040e23f4e577ecd893d6a27469d428",
+      "bytes": 9956
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/physics-press-reaction.md",
+      "blob": "9fec017088384a1893e214f988a06227001e6559",
+      "bytes": 6687
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/press-release-spring.md",
+      "blob": "3c6eac9671ce61e9307abf5bb068beea59f74e4a",
+      "bytes": 7041
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/reactive-displacement.md",
+      "blob": "ae4b84f9acabd6337faa7601ff793684ddda8996",
+      "bytes": 6539
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/scale-swap-transition.md",
+      "blob": "cc350543577bd640f035cca1f7e27acdbc2bbb92",
+      "bytes": 5517
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/sine-wave-loop.md",
+      "blob": "6619603b75febc427b49c0b21def8e9727bd461e",
+      "bytes": 6163
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/split-tilt-cards.md",
+      "blob": "def415a99b833199d84c4e93b562c3951dd7602c",
+      "bytes": 5669
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/spring-pop-entrance.md",
+      "blob": "2debc1eee003dd25f6c163f856aa8a0f7922466c",
+      "bytes": 6533
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/stat-bars-and-fills.md",
+      "blob": "58679e72cbe9c8f532317ce6804db086f8cfe192",
+      "bytes": 5486
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/svg-icon-enrichment.md",
+      "blob": "073d0fd0bb81296548bf3e56b860630e41fa6c01",
+      "bytes": 7621
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/svg-path-draw.md",
+      "blob": "6cf1199878846201788d159125c873669d5f835d",
+      "bytes": 5646
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/theme-crossfade-morph.md",
+      "blob": "0621633e2bdf9e2d3c98c15764212852f720858e",
+      "bytes": 9404
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/vertical-spring-ticker.md",
+      "blob": "9c2c8feb2dcd503b3f4a19fb0207d9396613ece3",
+      "bytes": 5495
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/viewport-change.md",
+      "blob": "fe6faac8f23ea9896eead3162deec3cc1ee0917b",
+      "bytes": 8974
+    },
+    {
+      "path": "skills/hyperframes-animation/rules/waterfall-entry.md",
+      "blob": "e19322bf3b4bb067ffb713c0ff73ca87f0517605",
+      "bytes": 4582
+    },
+    {
+      "path": "skills/hyperframes-animation/techniques.md",
+      "blob": "ba6d6a11ac1703a8b8431884f5b7025c0a914643",
+      "bytes": 17428
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/TRANSITION-REGISTRY.md",
+      "blob": "68fafca86c06c9d8f999d48e1b5d70e921606863",
+      "bytes": 8171
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/catalog.md",
+      "blob": "3d40b9db5c520fc642fafe5b0e2f351ce2e12e1e",
+      "bytes": 6679
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-3d.md",
+      "blob": "b86b52012b41d8da60f9fb396da3a4dab8d7e985",
+      "bytes": 421
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-blur.md",
+      "blob": "2698ba90ece6a581d0482e89c244cf2cf0c5651e",
+      "bytes": 1787
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-cover.md",
+      "blob": "6ec60b80cec571776134265053b2ef1a322b4077",
+      "bytes": 1448
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-destruction.md",
+      "blob": "5db9b97385d7ff1650cadcb427b29d3031a50326",
+      "bytes": 4484
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-dissolve.md",
+      "blob": "3966fa9aa5b6dcb36f5215c5c2cba53cb177736e",
+      "bytes": 2462
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-distortion.md",
+      "blob": "44627f7c276a2dac3cec216b5aabd2fffaec1a79",
+      "bytes": 1803
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-grid.md",
+      "blob": "ee16700684216e80e81d60d8c28a1079173e6f44",
+      "bytes": 370
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-light.md",
+      "blob": "08d4d5293eff3412695e0df81bf140f687bd5671",
+      "bytes": 2376
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-mechanical.md",
+      "blob": "fa119e7de2a02db264c43fe2e65eb68d1de85884",
+      "bytes": 1613
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-other.md",
+      "blob": "698368a3879d0e28a4b9b83e1e49c25e60e47dc4",
+      "bytes": 838
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-push.md",
+      "blob": "be258f7b1e8acc7f4ca73587fb3bdb6ffaf99ee7",
+      "bytes": 1243
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-radial.md",
+      "blob": "040dad2f130fbe74b508255b81e6a0d812b8861e",
+      "bytes": 1060
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/css-scale.md",
+      "blob": "b16e26469d6b813c730567fa931adb753b42797f",
+      "bytes": 715
+    },
+    {
+      "path": "skills/hyperframes-animation/transitions/overview.md",
+      "blob": "425a13e256e9322759f02e9261be282123b028f8",
+      "bytes": 13857
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/biennale-yellow/FRAME.md",
+      "blob": "c082ea2fefdd47bd2679d72d6a50a3a41aa99eaf",
+      "bytes": 17789
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/biennale-yellow/caption-skin.html",
+      "blob": "8ca668456354e2bf252452c0af04c1599a123f12",
+      "bytes": 8258
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/biennale-yellow/frame-showcase.html",
+      "blob": "186f8252ad7aeaa18d1fbed1680e4227f0a9ac23",
+      "bytes": 34908
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/blockframe/FRAME.md",
+      "blob": "00e4d88318288c8c138716d266b13dcb31350d57",
+      "bytes": 16292
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/blockframe/caption-skin.html",
+      "blob": "f0cdb26fd0a8a5b816ac82d9de8b1c92ad180798",
+      "bytes": 8472
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/blockframe/frame-showcase.html",
+      "blob": "3f5a165072f67559e2c10bbd12d5cbb8bae820e5",
+      "bytes": 38856
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/blue-professional/FRAME.md",
+      "blob": "e821dee2dccc8e424ac160ca6714d561027cce46",
+      "bytes": 17202
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/blue-professional/caption-skin.html",
+      "blob": "5a599c2703c2453e50cf263cb31bcb6f5b576872",
+      "bytes": 8384
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/blue-professional/frame-showcase.html",
+      "blob": "ff00e7be733ca18714a5b48c4f49669b68d17f5f",
+      "bytes": 39108
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/bold-poster/FRAME.md",
+      "blob": "c9f31256cd127913c3ff2457811f8467639da539",
+      "bytes": 15984
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/bold-poster/caption-skin.html",
+      "blob": "ee1d4bfb6871de5dcf32c970d8d5b39b663d7f51",
+      "bytes": 8847
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/bold-poster/frame-showcase.html",
+      "blob": "a8f91897faa3b5b4c74108a6424fcf9290325cd6",
+      "bytes": 32385
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/broadside/FRAME.md",
+      "blob": "4dff52def23bb5492844cbbc25a25c19909c6fc4",
+      "bytes": 16303
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/broadside/caption-skin.html",
+      "blob": "00f4b6f8db1791833dabc8e163e15845f1e45810",
+      "bytes": 8558
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/broadside/frame-showcase.html",
+      "blob": "0d2a6cd15266207ca6feed354cadd2b8eaa21670",
+      "bytes": 33899
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/capsule/FRAME.md",
+      "blob": "a37f828c847c031f1603406ce1440a8fc2b4f803",
+      "bytes": 17214
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/capsule/caption-skin.html",
+      "blob": "0742a0532170739e8dfd6a2b2b0dc60ddf7566aa",
+      "bytes": 8501
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/capsule/frame-showcase.html",
+      "blob": "65b4e196dbf09cd76208df59daaf77b142bd1dba",
+      "bytes": 43052
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/cartesian/FRAME.md",
+      "blob": "a00c21d9250ace9886fc835834993b9d63f64b3f",
+      "bytes": 17294
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/cartesian/caption-skin.html",
+      "blob": "135fa971929954b52a5b4f0f7964de8dddd624ae",
+      "bytes": 8442
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/cartesian/frame-showcase.html",
+      "blob": "7918b04e9ddb4bfb924668f24470a24e1d4b9e71",
+      "bytes": 35340
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/cobalt-grid/FRAME.md",
+      "blob": "af52eec8f3cd86880530f4c0169c9cf422e31e4e",
+      "bytes": 17286
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/cobalt-grid/caption-skin.html",
+      "blob": "e604347cf7f5b5e94186c202a1e83d1ea3d512ee",
+      "bytes": 8952
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/cobalt-grid/frame-showcase.html",
+      "blob": "d9449880f1a7b21ff30976dcdbd1d8a385cf3386",
+      "bytes": 47020
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/FRAME.md",
+      "blob": "aa15b65eab5c50e8b4c861b525f7365f9f6c925f",
+      "bytes": 20600
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/caption-skin.html",
+      "blob": "18c7a33421fddcd27fe4b789e2d4d6754fb52f04",
+      "bytes": 8469
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/EBGaramond-400.woff2",
+      "blob": "ffed311d3ecff2090519c97c2e7149ccd96305b2",
+      "bytes": 21704
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/EBGaramond-700.woff2",
+      "blob": "85d520902feaa6f8646f036bf1dbe6b901106e8f",
+      "bytes": 23076
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/Inter-400.woff2",
+      "blob": "f15b025d666269fb07daf0263e54231481e4289c",
+      "bytes": 23664
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/Inter-700.woff2",
+      "blob": "a68fb101cd9224aa7bb6ca80356b5132c40c6f3f",
+      "bytes": 24356
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/JetBrainsMono-400.woff2",
+      "blob": "585887339efd032b6b715466ae72d86e306bec79",
+      "bytes": 21168
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/JetBrainsMono-700.woff2",
+      "blob": "3a4e333fc9316f9989e16af6788bf1fc788c7084",
+      "bytes": 21908
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/OFL-eb-garamond.txt",
+      "blob": "da3ca89595df81b16855b86a4d0d370f34a908fa",
+      "bytes": 4519
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/OFL-inter.txt",
+      "blob": "40589daa9de8bc96606292ea0be712ff0f0626eb",
+      "bytes": 4477
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/fonts/OFL-jetbrains-mono.txt",
+      "blob": "8f7ed671137e7a27c646ead86f45d5cb4875f459",
+      "bytes": 4524
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/code-editorial/frame-showcase.html",
+      "blob": "e0a70eab89b1e20dc131153f04f0424d44b2acc1",
+      "bytes": 43711
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/coral/FRAME.md",
+      "blob": "0c73b04acba1d4b86e5285daa90273b5e346a3c9",
+      "bytes": 18950
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/coral/caption-skin.html",
+      "blob": "41f2a59603e4a7949230ed270cf38d47aede492c",
+      "bytes": 8457
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/coral/frame-showcase.html",
+      "blob": "ae87659f3b61426694e9e522f6573b28b1d6c4e7",
+      "bytes": 36472
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/creative-mode/FRAME.md",
+      "blob": "e00e6fed67b6a1a1f366119714d548238427d752",
+      "bytes": 19605
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/creative-mode/caption-skin.html",
+      "blob": "231e39bf048db4c6049e76b2a007abdfaddf6ff0",
+      "bytes": 8516
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/creative-mode/frame-showcase.html",
+      "blob": "e540e40a39733abced1ea3d249f692c0eca32832",
+      "bytes": 38750
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/daisy-days/FRAME.md",
+      "blob": "ed3ebf49e0a0f78cb5ac543e5c175d8da4c07541",
+      "bytes": 17445
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/daisy-days/caption-skin.html",
+      "blob": "6431baaa6cd6129f22085436cc9d7889abee6d99",
+      "bytes": 8643
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/daisy-days/frame-showcase.html",
+      "blob": "c577bdbab3a1f023139349f3a63f2e5ff875b274",
+      "bytes": 42293
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/editorial-forest/FRAME.md",
+      "blob": "83e2594f6301b54d98569ad478417d6fbb0d95ed",
+      "bytes": 17019
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/editorial-forest/caption-skin.html",
+      "blob": "b3d28986797c7643674ba93e120f8b104fc29d80",
+      "bytes": 8483
+    },
+    {
+      "path": "skills/hyperframes-creative/frame-presets/editorial-forest/frame-showcase.html",
+      "blob": "c5c08718fef48120a17ee7d7858e3bfe592c63e7",
+      "bytes": 36847
+    },
+    {
+      "path": "skills/hyperframes-creative/references/audio-reactive.md",
+      "blob": "69549bbebac1a16b5696c58e8b715949e7e675d1",
+      "bytes": 3062
+    },
+    {
+      "path": "skills/hyperframes-creative/references/beat-direction.md",
+      "blob": "b1d436a5b9b371452e2186c9489cf1c7ee78616c",
+      "bytes": 13640
+    },
+    {
+      "path": "skills/hyperframes-creative/references/composition-patterns.md",
+      "blob": "ef999f91eea66b094c8f0eddf7668d11658f478f",
+      "bytes": 5717
+    },
+    {
+      "path": "skills/hyperframes-creative/references/data-in-motion.md",
+      "blob": "0578cd155a7bbc1c3af7e31d1a6ce7f6416e86f3",
+      "bytes": 1274
+    },
+    {
+      "path": "skills/hyperframes-creative/references/design-adherence.md",
+      "blob": "130d469df25aed5f057c81e507b22226417da43b",
+      "bytes": 1423
+    },
+    {
+      "path": "skills/hyperframes-creative/references/design-picker.md",
+      "blob": "b0a9019226c9885fb6a385a93c94f51bbcd6b9c8",
+      "bytes": 12221
+    },
+    {
+      "path": "skills/hyperframes-creative/references/design-spec.md",
+      "blob": "696f91d95fac415a6afdc1fd7a5e8df5cd21fe8b",
+      "bytes": 10498
+    },
+    {
+      "path": "skills/hyperframes-creative/references/house-style.md",
+      "blob": "2455737525af4413e1c0855c6041107746b57cc6",
+      "bytes": 5025
+    },
+    {
+      "path": "skills/hyperframes-creative/references/motion-principles.md",
+      "blob": "44a4604a6ed49a6fb3d9ab883d8a48a056676093",
+      "bytes": 9335
+    },
+    {
+      "path": "skills/hyperframes-creative/references/narration.md",
+      "blob": "c28fff2ee65ec0620db9033a62834c6aa580384e",
+      "bytes": 3482
+    },
+    {
+      "path": "skills/hyperframes-creative/references/prompt-expansion.md",
+      "blob": "ef6450d46c289e1027250a87e857835f9b68c75f",
+      "bytes": 5707
+    },
+    {
+      "path": "skills/hyperframes-creative/references/story-spine.md",
+      "blob": "f87cd872a8a8c60846e0259c6dc2d90a45f120ad",
+      "bytes": 4154
+    },
+    {
+      "path": "skills/hyperframes-creative/references/storyboard-recipe.md",
+      "blob": "23d0eb795ae03d313446f8c2c177626d66bc2601",
+      "bytes": 7455
+    },
+    {
+      "path": "skills/hyperframes-creative/references/typography.md",
+      "blob": "ccd2a6388cba0885ce29e81acd3b2748671319ce",
+      "bytes": 14481
+    },
+    {
+      "path": "skills/hyperframes-creative/references/video-composition.md",
+      "blob": "fb2a19320a30e10a9801b93e2053f30dde737aa6",
+      "bytes": 4298
+    },
+    {
+      "path": "skills/hyperframes-creative/references/visual-styles.md",
+      "blob": "621ff9e6bfd4f0fd4b2e8c0e2a121939082bf3ea",
+      "bytes": 11967
+    },
+    {
+      "path": "skills/hyperframes/references/brief-contract.md",
+      "blob": "eec0e03f44ee9c80a25041c0fb795eb16f8926f9",
+      "bytes": 11906
+    },
+    {
+      "path": "skills/hyperframes/references/brief-format.md",
+      "blob": "04d0972617916d0cff68d3e9297472a9d2dcfce9",
+      "bytes": 7090
+    },
+    {
+      "path": "skills/hyperframes/references/capability-menu.md",
+      "blob": "1bf663e4d3e93a0e4217126fd2cee498e21d6682",
+      "bytes": 15611
+    },
+    {
+      "path": "skills/hyperframes/references/frame-worker-core.md",
+      "blob": "f789fd892aa2756f56c1ff9e6de5758760547342",
+      "bytes": 16832
+    },
+    {
+      "path": "skills/hyperframes/references/intent-interview.md",
+      "blob": "a89b4b9055769b38eb9d0df915c166252b312a62",
+      "bytes": 14143
+    },
+    {
+      "path": "skills/hyperframes/references/pitch-round.md",
+      "blob": "5cffa19199fe9d97d9d776051221ab17298a8e51",
+      "bytes": 5550
+    },
+    {
+      "path": "skills/hyperframes/references/review-loop.md",
+      "blob": "030dca4284e0affc579dbf942f00228ada89f7d3",
+      "bytes": 6448
+    },
+    {
+      "path": "skills/hyperframes/references/script-format.md",
+      "blob": "94bfe04483d9e7cfd5fe6b19855301eb259272e7",
+      "bytes": 2778
+    },
+    {
+      "path": "skills/hyperframes/references/storyboard-format.md",
+      "blob": "7d84f4cbf7e2b48e1ced8d88224245b43f39e776",
+      "bytes": 5781
+    },
+    {
+      "path": "skills/hyperframes/scripts/lib/frame-packets-core.mjs",
+      "blob": "d165088ff876c10a101d959b84ebb4b4cc0817c7",
+      "bytes": 7408
+    },
+    {
+      "path": "skills/motion-graphics/SKILL.md",
+      "blob": "3405c60009309598f38c494a80a518eaa4312fa6",
+      "bytes": 16013
+    },
+    {
+      "path": "skills/motion-graphics/catalog-map.md",
+      "blob": "b0da00bd08e21bbf1d2ac71c080a531476238542",
+      "bytes": 10641
+    },
+    {
+      "path": "skills/motion-graphics/references/builder-contract.md",
+      "blob": "5230e9d332264e25077f42aaa6f0556d11a44f4f",
+      "bytes": 2818
+    },
+    {
+      "path": "skills/motion-graphics/references/motion-vocabulary.md",
+      "blob": "71779a3ecef034a5fa42b214354ec8180edacfcd",
+      "bytes": 3978
+    },
+    {
+      "path": "skills/motion-graphics/references/shot-plan-ir.md",
+      "blob": "5a847af7d6314432d7d61d2099a6cf56f86ca099",
+      "bytes": 2616
+    },
+    {
+      "path": "skills/talking-head-recut/SKILL.md",
+      "blob": "9af74497bd1b7755b5946773b8d1a3eacbd2912a",
+      "bytes": 65485
+    },
+    {
+      "path": "skills/talking-head-recut/references/DESIGN_INDEX.md",
+      "blob": "393bbd1430d473311653c49a5efc0a173167e48d",
+      "bytes": 10171
+    },
+    {
+      "path": "skills/talking-head-recut/references/frames/clean.html",
+      "blob": "b87f3c9e1f1a0cdd83de2cb07d71625edcd96713",
+      "bytes": 2626
+    },
+    {
+      "path": "skills/talking-head-recut/references/frames/hairline.html",
+      "blob": "ee831d2d6f4a62d17c729fb7c4e8746c9d0b61b4",
+      "bytes": 5921
+    },
+    {
+      "path": "skills/talking-head-recut/references/frames/polaroid.html",
+      "blob": "582c0475f0793164b6d2d3cd2bb481f85c40616a",
+      "bytes": 5349
+    },
+    {
+      "path": "skills/talking-head-recut/references/layouts/overlay.html",
+      "blob": "6a5f0b24a49d69b5965fc73da0a36190165aadbc",
+      "bytes": 5463
+    },
+    {
+      "path": "skills/talking-head-recut/references/layouts/pip.html",
+      "blob": "ee1a30be4531605927bbf09871f94062d340fe03",
+      "bytes": 4650
+    },
+    {
+      "path": "skills/talking-head-recut/references/layouts/split.html",
+      "blob": "a93719bf8251ab14a545fb36fff6d6fcf7a538ee",
+      "bytes": 3805
+    },
+    {
+      "path": "skills/talking-head-recut/references/layouts/stack.html",
+      "blob": "06e8b2316bd37a4ff241f6cb2cb5350f371b356e",
+      "bytes": 3458
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/academic.html",
+      "blob": "71f91a0b384391114484154566e747004e12a176",
+      "bytes": 6043
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/audit.html",
+      "blob": "13c090c58d9170d66a7a9a265dff5f4c654cf7c3",
+      "bytes": 6182
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/editorial.html",
+      "blob": "8652e88a36d46b11318c4f02f0b93f036698147d",
+      "bytes": 6586
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/geom.html",
+      "blob": "b498b08be883ad07b4b639dd7835f65aff91fb51",
+      "bytes": 5776
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/minimal.html",
+      "blob": "25375498fe824a6cd9f722e3a591b4f1e9f6f784",
+      "bytes": 4142
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/spotlight.html",
+      "blob": "4e00702550135ee2a56d166889033dd2007c9c8a",
+      "bytes": 4941
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/swiss.html",
+      "blob": "e8dd89a035a38e87fa8d68e641bf3cf750536899",
+      "bytes": 6053
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/terminal.html",
+      "blob": "e5b9f6130f294c2f4b692281541b700b70871764",
+      "bytes": 6957
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/whiteboard.html",
+      "blob": "90d6fb44c16d47db004fa47620bc5e344456a8db",
+      "bytes": 5829
+    },
+    {
+      "path": "skills/talking-head-recut/references/styles/xhs.html",
+      "blob": "dd2deb5703363779e6ee22fbf4eb865f5468a40b",
+      "bytes": 7210
+    }
+  ]
+}
