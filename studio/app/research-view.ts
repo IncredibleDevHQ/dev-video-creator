@@ -1,3 +1,4 @@
+import { projectLink } from './project-links'
 import { html } from '../shared/html'
 import type {
   ResearchProjectView,
@@ -98,6 +99,9 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
   const n =
     s.project.notebooks.find((n) => n.id === s.notebook) ||
     s.project.notebooks[0]
+  const output = s.project.snapshots.find((item) => item.project.id === n.id)
+  const wireframes =
+    output?.project.slides.filter((slide) => slide.svg).length || 0
   return html`<section
     class="research-notes ${compact ? 'compact' : ''}"
     id="research-notes-panel"
@@ -119,6 +123,9 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
         )}
       </div>
     </div>
+    ${wireframes
+      ? `<div class="project-notebook-outputs"><span>${wireframes} wireframes from these notes</span><a href="${projectLink(s.project.id, { ...s, notebook: n.id }, { detail: '1', notebook: n.id, view: 'presentation' })}">Open wireframes →</a></div>`
+      : ''}
     <div class="research-note-scroll">
       ${n.blocks.length
         ? n.blocks

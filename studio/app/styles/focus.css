@@ -2,7 +2,7 @@
 body:has(.is-focused) {
   overflow: hidden;
 }
-body:has(.is-focused) > #app > header {
+body:has(.is-focused) :is(#app, .project-tool-root) > header {
   pointer-events: none;
   filter: blur(7px);
   opacity: 0.3;

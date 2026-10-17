@@ -1,3 +1,4 @@
+import { projectLink } from './project-links'
 import { html } from '../shared/html'
 import type { ResearchViewState } from './research-view'
 import { escape } from './ui'
@@ -15,7 +16,6 @@ export const projectContent = (s: ResearchViewState) =>
         <h2>Your ideas, connected</h2>
         <p>Follow what you learn from notes to a story worth sharing.</p>
       </div>
-      <button data-research-action="close-content">Back to chat</button>
     </div>
     <div class="project-content-scroll">
       <section class="project-series-card">
@@ -33,8 +33,11 @@ export const projectContent = (s: ResearchViewState) =>
         ${s.project.canvasId
           ? html`<a
               class="research-primary"
-              href="/?map=${s.project.canvasId}&space=${s.project.id}&detail=1"
-              >Open project canvas ↗</a
+              href="${projectLink(s.project.id, s, {
+                map: s.project.canvasId,
+                detail: '1'
+              })}"
+              >Open project canvas</a
             >`
           : html`<button
               class="research-primary"
@@ -68,7 +71,11 @@ export const projectContent = (s: ResearchViewState) =>
             )
             const slides = snapshot?.project.slides || []
             const completed = slides.filter((slide) => Boolean(slide.svg))
-            const url = `/?notebook=${n.id}&space=${s.project.id}&detail=1`
+            const url = projectLink(
+              s.project.id,
+              { ...s, notebook: n.id },
+              { notebook: n.id, detail: '1' }
+            )
             const origins = [
               ...new Set(
                 n.blocks.flatMap((b) => (b.origin ? [b.origin.nodeId] : []))
@@ -175,7 +182,7 @@ export const projectContent = (s: ResearchViewState) =>
                               )}</small
                             >`}`
                     : html`<div class="project-content-links">
-                        <a href="${url}&view=presentation">Open wireframes ↗</a
+                        <a href="${url}&view=presentation">Open wireframes</a
                         >${snapshot && videoOpens(snapshot)
                           ? html`<a href="${url}&view=video"
                               >${snapshot.project.video

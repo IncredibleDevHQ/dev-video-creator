@@ -423,15 +423,15 @@ header nav .stage-status.is-processing .stage-caption {
   display: flex;
   flex-direction: column;
 }
-#app > .workspace-header {
+:is(#app, .project-tool-root) > .workspace-header {
   flex-shrink: 0;
 }
-#app > .workspace-presentation {
+:is(#app, .project-tool-root) > .workspace-presentation {
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
-#app > .workspace-presentation > .slides {
+:is(#app, .project-tool-root) > .workspace-presentation > .slides {
   height: 100%;
   min-height: 0;
 }
@@ -440,7 +440,7 @@ header nav .stage-status.is-processing .stage-caption {
   overflow-y: auto;
 }
 @media (max-width: 800px) {
-  #app > .workspace-presentation > .slides {
+  :is(#app, .project-tool-root) > .workspace-presentation > .slides {
     height: auto;
     min-height: 100%;
   }

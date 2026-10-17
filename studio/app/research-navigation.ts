@@ -38,6 +38,10 @@ export const toggleProjectPanel = (
     s.sidebarOpen = false
     s.documentExpanded = false
     s.contentOpen = action === 'open-content'
+    if (action === 'close-content' && window.innerWidth <= 700) {
+      workbench.state.notesOpen = false
+      workbench.state.graphOpen = false
+    }
   } else if (action === 'open-notebook' || action === 'toggle-graph') {
     if (s.contentOpen || s.documentExpanded) {
       if (action === 'open-notebook') workbench.state.notesOpen = false

@@ -7,7 +7,12 @@ import { researchWorkspaceView, type ResearchViewState } from './research-view'
 import { researchGraph } from './research-graph'
 import { ResearchWorkbench } from './research-workbench'
 import { researchDraftKey } from './research-layout'
-import { renderResearch } from './research-render'
+import {
+  renderResearch,
+  researchScroll,
+  restoreResearchScroll,
+  ResearchReturn
+} from './research-render'
 import { captureResearchSelection } from './research-selection'
 import { researchHome, researchProjectCards } from './research-home'
 import { researchNameDialog } from './research-dialog'
@@ -38,8 +43,12 @@ export class ResearchWorkspace {
   private settingsSave: Promise<void> = Promise.resolve()
   private settingsVersion = 0
   private settingsPending = false
+  private returning = new ResearchReturn()
   private composerKeys: Record<string, string> = {}
-  constructor(private root: HTMLElement) {
+  constructor(
+    private root: HTMLElement,
+    onHistory: () => void
+  ) {
     this.workbench = new ResearchWorkbench(root, () => this.render())
     root.addEventListener('click', (event) => {
       if (!this.isOpen) return
@@ -139,22 +148,18 @@ export class ResearchWorkspace {
           .querySelectorAll('.research-compose-tools details[open]')
           .forEach((menu) => menu.removeAttribute('open'))
     })
-    window.addEventListener('popstate', () => {
-      const url = new URL(location.href)
-      if (url.searchParams.has('detail')) {
-        location.reload()
-        return
-      }
-      const id = url.searchParams.get('space')
-      if (id) void this.open(id).catch((e) => this.error(e))
-      else if (
-        !url.searchParams.has('notebook') &&
-        !url.searchParams.has('legacy')
-      )
-        void this.home()
-      else location.reload()
-    })
+    window.addEventListener('popstate', onHistory)
   }
+  suspend() {
+    if (this.isOpen) this.returning.save(this.root, this.state)
+    this.isOpen = false
+    ++this.revision
+    if (this.timer) clearTimeout(this.timer)
+  }
+  async command(button: HTMLElement) {
+    await this.click(button)
+  }
+
   private draftKey(field: string) {
     return researchDraftKey(
       field,
@@ -259,7 +264,13 @@ export class ResearchWorkspace {
       this.workbench.state.graphOpen = false
       this.workbench.state.notesOpen = true
     }
+    if (tab === 'research' && matchMedia('(max-width: 700px)').matches) {
+      this.workbench.state.notesOpen = false
+      this.workbench.state.graphOpen = false
+    }
     this.render()
+    if (tab === 'research') this.showSelectedTurn()
+    this.returning.restore(this.root, this.state)
     this.poll(revision)
   }
   private poll(revision: number) {
@@ -319,11 +330,7 @@ export class ResearchWorkspace {
       active instanceof HTMLTextAreaElement
         ? [active.selectionStart, active.selectionEnd]
         : null
-    const scroll = [
-      ...this.root.querySelectorAll<HTMLElement>(
-        '.research-transcript,.research-note-scroll,.research-graph-scroll,.project-content-scroll'
-      )
-    ].map((e) => [e.className, e.scrollTop, e.scrollLeft] as const)
+    const scroll = researchScroll(this.root)
     const nearEnd = this.root.querySelector('.research-transcript')
     const follow = nearEnd
       ? nearEnd.scrollHeight - nearEnd.scrollTop - nearEnd.clientHeight < 60
@@ -353,15 +360,7 @@ export class ResearchWorkspace {
       const value = this.drafts[this.draftKey(field.id)]
       if (value !== undefined) field.value = value
     }
-    for (const [cls, top, left] of scroll) {
-      const element = this.root.querySelector<HTMLElement>(
-        `.${cls.split(' ').join('.')}`
-      )
-      if (element) {
-        element.scrollTop = top
-        element.scrollLeft = left
-      }
-    }
+    restoreResearchScroll(this.root, scroll)
     const transcript = this.root.querySelector('.research-transcript')
     if (transcript && follow) transcript.scrollTop = transcript.scrollHeight
     if (focus) {
@@ -594,6 +593,9 @@ export class ResearchWorkspace {
     }
     if (button.dataset.selectNotebook) {
       s.notebook = button.dataset.selectNotebook
+      s.documentExpanded = Boolean(
+        button.closest('.project-sidebar') || s.contentOpen
+      )
       s.contentOpen = false
       s.sidebarOpen = false
       if (!this.workbench.state.notesOpen || this.workbench.state.expanded) {

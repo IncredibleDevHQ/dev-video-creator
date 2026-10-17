@@ -1,3 +1,4 @@
+import { projectContext, projectLink } from './project-links'
 import { themeControl } from './appearance'
 import { agentNames, foundAgent } from './agent-setup'
 import type { Snapshot } from '../shared/api'
@@ -113,9 +114,23 @@ export const workspaceHeader = (
   snapshot: Snapshot,
   stage: string,
   liveConnected: boolean,
-  pending = false
+  pending = false,
+  projectNotes?: string
 ) => {
   const { project, status } = snapshot
+  const context =
+    typeof location === 'undefined'
+      ? {}
+      : projectContext(new URL(location.href))
+  const notes =
+    projectNotes ||
+    (project.researchProjectId
+      ? projectLink(
+          project.researchProjectId,
+          { ...context, notebook: project.id },
+          { projectView: 'notes' }
+        )
+      : '')
   const title = project.title.replace(/ \| [^|]+$/, '')
   return `<header class="workspace-header">
 <a class="brand" href="${project.researchProjectId ? `/?space=${encodeURIComponent(project.researchProjectId)}` : '/'}" aria-label="${project.researchProjectId ? 'Back to project' : 'Incredible Studio: all notebooks'}" title="${project.researchProjectId ? 'Back to project' : 'All notebooks'}">
@@ -125,10 +140,12 @@ export const workspaceHeader = (
   )}" title="${escape(title)}">${escape(title)}</a></div>
 <nav aria-label="Stages">${(['notebook', 'presentation', 'video'] as const)
     .map((name) => {
+      if (name === 'notebook' && project.researchProjectId)
+        return `<a class="project-stage-link" href="${notes}">Notes</a>`
       const locked = lockedReason(snapshot, name)
       return `<button data-stage="${name}" ${locked ? `disabled title="${escape(locked)}"` : ''} aria-current="${
         stage === name ? 'page' : 'false'
-      }">${name === 'presentation' ? 'Wireframe' : name[0].toUpperCase() + name.slice(1)}${stageStatus(
+      }">${name === 'presentation' ? (project.researchProjectId ? 'Wireframes' : 'Wireframe') : name[0].toUpperCase() + name.slice(1)}${stageStatus(
         snapshot!,
         name,
         liveConnected

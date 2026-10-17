@@ -7,6 +7,7 @@ import { Settings } from './settings'
 
 // Shared navigation/session state. Controllers own screen behavior; main composes them.
 export interface AppContext {
+  projectShell: import('./project-shell').ProjectShell
   researchWorkspace: import('./research-workspace').ResearchWorkspace
   root: HTMLDivElement
   syncMediaRecovery: () => void

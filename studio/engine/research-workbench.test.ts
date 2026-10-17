@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { parseHTML } from 'linkedom'
 import { normalizeResearchLayout } from '../app/research-layout'
-import { renderResearch } from '../app/research-render'
+import { renderResearch, ResearchReturn } from '../app/research-render'
 import { ResearchWorkbench } from '../app/research-workbench'
 import { toggleProjectPanel } from '../app/research-navigation'
 import type { ResearchViewState } from '../app/research-view'
@@ -245,4 +245,38 @@ it('keeps the notebook tree collapsed across background rendering', () => {
   root.querySelector('details')!.removeAttribute('open')
   renderResearch(root, tree, {}, {})
   expect(root.querySelector('details')!.hasAttribute('open')).toBe(false)
+})
+
+it('Back to chat reveals the conversation on a phone instead of leaving the notebook over it', () => {
+  const { workbench, changed } = setup(390)
+  const state = {
+    contentOpen: true,
+    documentExpanded: true
+  } as ResearchViewState
+  workbench.state.notesOpen = true
+  toggleProjectPanel('close-content', state, workbench, changed)
+  expect(state.contentOpen).toBe(false)
+  expect(state.documentExpanded).toBe(false)
+  expect(workbench.state.notesOpen).toBe(false)
+  expect(workbench.state.graphOpen).toBe(false)
+})
+it('restores reading position only for the same project, branch and notebook', () => {
+  const { root } = setup()
+  root.innerHTML = '<div class="research-transcript"></div>'
+  const transcript = root.querySelector<HTMLElement>('.research-transcript')!
+  transcript.scrollTop = 412
+  transcript.scrollLeft = 0
+  const state = {
+    project: { id: 'project' },
+    chat: 'chat',
+    node: 'question',
+    notebook: 'book'
+  } as ResearchViewState
+  const returning = new ResearchReturn()
+  returning.save(root, state)
+  transcript.scrollTop = 0
+  returning.restore(root, { ...state, node: 'another-question' })
+  expect(transcript.scrollTop).toBe(0)
+  returning.restore(root, state)
+  expect(transcript.scrollTop).toBe(412)
 })

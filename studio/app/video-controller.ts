@@ -438,12 +438,18 @@ ${button('Try again', 'video-settings', true)}`
       app.stage = 'video'
       app.render()
     } else {
+      const notebookId = app.snapshot.project.id
       const onWireframe = app.stage === 'presentation'
       // An episode starts as its series is presented (review 8).
       const [settings, led] = await Promise.all([
         api.settings(),
         episodeLed(app.snapshot)
       ])
+      if (
+        app.researchWorkspace?.isOpen ||
+        app.snapshot?.project.id !== notebookId
+      )
+        return
       app.showDialog(
         makeVideoDialog(
           settings,

@@ -112,6 +112,7 @@ ${notebookOpeningView(app.opening.state)}`,
     return
   }
   const { project } = app.snapshot
+  app.projectShell?.sync(app.snapshot)
   if (notesOnly(app.snapshot)) app.stage = 'notebook'
   // An outline scene that has since been drawn opens as its wireframe.
   if (app.selectedPlan) {
@@ -163,7 +164,8 @@ ${notebookOpeningView(app.opening.state)}`,
       app.snapshot,
       app.stage,
       app.liveConnected,
-      app.pending
+      app.pending,
+      app.projectShell?.notesLink(project.id)
     )}<main class="workspace workspace-${app.stage}">
 ${
   app.stage !== 'notebook'

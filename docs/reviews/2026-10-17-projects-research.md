@@ -198,3 +198,69 @@ See the [annotated connected-workspace evidence](projects-research-evidence/conn
 ![The real K3 research connects to its notebook and all ten generated wireframes](projects-research-evidence/connected-k3-content-flow.jpg)
 
 ![Completed K3 wireframe editor](projects-research-evidence/connected-k3-wireframes.jpg)
+
+
+## One coherent project workspace
+
+The content-to-editor handoff previously discarded project navigation. A generated
+notebook also exposed a second, read-only “Notebook” page, and the wireframe Map
+button opened that notebook's individual map rather than the shared project map.
+These paths now use the same project shell, sidebar and contextual navigation.
+The original Incredible logo is retained.
+
+- Chat, notebook, wireframe and canvas links carry the project, notebook, chat and
+  selected question. Internal handoffs keep the controller roots mounted.
+- Notes have one destination: the project's notebook. Historical engine source
+  links resolve to the notebook, or all project content for the aggregated source.
+- Notebook reading exposes its generated wireframes directly. Project sidebar
+  notebook selection opens a focused document, while saved-answer links can keep
+  the notebook beside the conversation.
+- The Map action opens the shared project canvas. Wireframes and video remain
+  inside project navigation. New chat from the output sidebar opens the existing
+  project/notebook/repository/agent setup flow.
+- Returning to research preserves the unsent draft and exact reading position.
+  Navigation stops obsolete subscriptions and ignores late notebook/project loads.
+  Active recordings cannot be abandoned by a project-navigation click.
+- At phone width, Back to chat reveals the conversation instead of leaving the
+  notebook over it. The drawer works from the output editor, and the video action
+  is readable without horizontal page overflow.
+
+### Visible-browser proof
+
+[Annotated screenshots](projects-research-evidence/coherent-workspace-annotated.html)
+show the actual UI on the parallel 4291/4391 stack. The 4187 stack was not used.
+
+1. Opened the exact aggregated-source URL from the user's report; it resolved to
+   the project content view instead of a disconnected notebook reader.
+2. Clicked notebook → wireframes → project canvas → Back to chat. The shared
+   canvas had the existing 14 generated cards from all five notebooks.
+3. Typed an unsent test question, scrolled the transcript, opened wireframes and
+   returned. The draft was unchanged, and scrollTop was **787 px before and
+   after**. The temporary draft was cleared after verification.
+4. Opened the video stage and its Make the video dialog; scene, voice, template
+   and length choices loaded. No new video generation was submitted.
+5. At **390 × 844**, opened the editor drawer and New chat setup, cancelled, and
+   tested notebook → wireframes → Back to chat. The composer became visible;
+   document width equalled viewport width (390 px). Reset the viewport afterward.
+
+The screenshots use the existing real **kimi-code/k3** research and ten generated
+Connected learning wireframes from the preceding validation. This pass did not
+claim new AI generation, a finished video, channel publishing, or multiplayer
+collaboration.
+
+### Validation for this change
+
+- `yarn test --maxWorkers=2`: **232 files / 1,528 tests passed**. The first full
+  run caught a changed legacy stage label; the standalone label was restored,
+  and the final complete run passed.
+- `yarn build`: passed (TypeScript and Vite). The existing bundle-size advisory
+  remains; it is not a build failure.
+- Formatting, 800-line/500-character source limits and `git diff --check`: passed.
+- New regression coverage exercises context links, canonical notebook routing,
+  persistent controller roots, late-load cancellation, active-recording protection,
+  mobile return to chat and branch-specific reading position.
+- Storage code and schemas are unchanged in this pass; the preceding storage
+  validation remains documented above.
+
+This change is committed locally on `codex/projects-research`, with Karthic Rao
+`<kartronics85@gmail.com>` as author and committer. It has not been pushed.

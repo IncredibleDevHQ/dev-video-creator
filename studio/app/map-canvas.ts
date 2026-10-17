@@ -54,6 +54,7 @@ export type MapClip =
   | { mode: 'move'; copy: string; from: string }
   | null
 type Hooks = {
+  project?: (snapshot: Snapshot) => void
   close: () => void
   openEpisode: (id: string) => void
   /** Opens a notebook's Wireframe stage at one of its pages. */
@@ -181,6 +182,7 @@ export class MapCanvas {
       if (snapshot.project.copyOfMap)
         return this.open(snapshot.project.copyOfMap, from)
       this.snapshot = snapshot
+      this.hooks.project?.(snapshot)
       if (snapshot.project.researchProjectId) {
         const back = this.root.querySelector<HTMLAnchorElement>('.map-brand')
         if (back) {

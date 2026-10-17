@@ -4,7 +4,17 @@ import type { ResearchViewState } from './research-view'
 import { escape } from './ui'
 import incredibleLogo from './assets/incredible-logo.svg'
 
-export const projectSidebar = (s: ResearchViewState) =>
+export const projectSidebar = (
+  s: Pick<
+    ResearchViewState,
+    | 'project'
+    | 'notebook'
+    | 'chat'
+    | 'contentOpen'
+    | 'documentExpanded'
+    | 'layout'
+  >
+) =>
   html`<aside class="project-sidebar" aria-label="Project workspace">
     <a
       href="/"
@@ -30,7 +40,9 @@ export const projectSidebar = (s: ResearchViewState) =>
           (c) =>
             html`<button
               data-select-chat="${c.id}"
-              aria-current="${s.chat === c.id && !s.contentOpen
+              aria-current="${s.chat === c.id &&
+              !s.contentOpen &&
+              !s.documentExpanded
                 ? 'page'
                 : 'false'}"
               title="${escape(c.title)}"
@@ -71,8 +83,8 @@ export const projectSidebar = (s: ResearchViewState) =>
         aria-pressed="${Boolean(s.contentOpen)}"
       >
         <span aria-hidden="true">▧</span> Content
-        <small>Notes → stories → videos</small></button
-      ><a href="/?legacy=1">Studio tools ↗</a>
+        <small>Notes → stories → videos</small>
+      </button>
     </div>
   </aside>`
 
@@ -92,15 +104,20 @@ export const chatSwitcher = (s: ResearchViewState) => {
       <h1>
         ${s.contentOpen
           ? `${escape(s.project.title)} / Content`
-          : current
-            ? `# ${escape(current.title)}`
-            : 'Your workspace'}
+          : s.documentExpanded
+            ? escape(notebook?.title || 'Notebook')
+            : current
+              ? `# ${escape(current.title)}`
+              : 'Your workspace'}
       </h1>
-      <button data-research-action="open-notebook">
-        Notes in ${escape(notebook?.title || 'your notebook')} <span>↗</span>
-      </button>
+      ${s.contentOpen || s.documentExpanded
+        ? `<span class="project-tool-origin">${escape(s.project.title)}${s.documentExpanded ? ' · Notebook' : ''}</span>`
+        : `<button data-research-action="open-notebook">Notes in ${escape(notebook?.title || 'your notebook')} <span>↗</span></button>`}
     </div>
     <div class="project-chat-actions">
+      ${s.contentOpen || s.documentExpanded
+        ? '<button data-research-action="close-content">Back to chat</button>'
+        : `
       <button
         data-research-action="toggle-graph"
         aria-pressed="${Boolean(
@@ -119,9 +136,12 @@ export const chatSwitcher = (s: ResearchViewState) => {
       >
         Notes
       </button>
-      ${current
-        ? '<button data-research-action="rename-chat" aria-label="Chat details" title="Chat details">···</button>'
-        : ''}
+      ${
+        current
+          ? '<button data-research-action="rename-chat" aria-label="Chat details" title="Chat details">···</button>'
+          : ''
+      }
+      `}
     </div>
   </header>`
 }

@@ -1,3 +1,4 @@
+import { ProjectShell } from './project-shell'
 import { ResearchWorkspace } from './research-workspace'
 import { showSeries } from './series-controller'
 import { dialogContent } from './dialog-content'
@@ -60,8 +61,19 @@ import { clickVideo } from './video-controller'
 installAppearance()
 installTooltips()
 const app = {} as AppContext
-app.root = document.querySelector<HTMLDivElement>('#app')!
-app.researchWorkspace = new ResearchWorkspace(app.root)
+app.projectShell = new ProjectShell(
+  app,
+  document.querySelector<HTMLDivElement>('#app')!
+)
+app.root = app.projectShell.editorRoot
+app.researchWorkspace = new ResearchWorkspace(
+  app.projectShell.researchRoot,
+  () => {
+    if (new URL(location.href).searchParams.has('space') || !location.search)
+      void app.projectShell.go(new URL(location.href), false).catch(app.error)
+    else location.reload()
+  }
+)
 app.syncMediaRecovery = savedMediaRecovery(app.root)
 app.snapshot = null
 app.notebooks = []
@@ -192,6 +204,7 @@ app.mapCanvas = new MapCanvas(app.root, {
       })
       .catch(app.error)
   },
+  project: (snapshot) => app.projectShell.sync(snapshot, true),
   error: showError
 })
 app.pendingChats = new Set<string>()
@@ -294,8 +307,8 @@ app.render()
 app.parameters = new URLSearchParams(location.search)
 app.saved = app.parameters.get('notebook') || app.parameters.get('project')
 const mapParameter = app.parameters.get('map')
-if (app.parameters.get('space') && !app.parameters.has('detail'))
-  void app.researchWorkspace.open(app.parameters.get('space')!).catch(app.error)
+if (app.parameters.get('space'))
+  void app.projectShell.go(new URL(location.href), false).catch(app.error)
 else if (
   !mapParameter &&
   !app.saved &&
@@ -303,11 +316,19 @@ else if (
   !app.parameters.has('legacy')
 )
   void app.researchWorkspace.home()
-else if (mapParameter) void app.mapCanvas.open(mapParameter)
-else if (app.parameters.get('series'))
+else if (mapParameter) {
+  app.projectShell.showStandalone()
+  void app.mapCanvas.open(mapParameter)
+} else if (app.parameters.get('series')) {
+  app.projectShell.showStandalone()
   void showSeries(app, app.parameters.get('series')!, true).catch(app.error)
-else if (app.saved) void app.openNotebook(app.saved)
-else void app.refreshNotebooks().catch(app.error)
+} else if (app.saved) {
+  app.projectShell.showStandalone()
+  void app.openNotebook(app.saved)
+} else {
+  app.projectShell.showStandalone()
+  void app.refreshNotebooks().catch(app.error)
+}
 window.addEventListener('pagehide', () => {
   app.stopPractice()
   app.capture.dispose()
