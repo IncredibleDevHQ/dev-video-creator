@@ -577,6 +577,10 @@ const buildSlides = async (id: string) => {
   void import('./map-notes')
     .then(({ sortWaitingNotes }) => sortWaitingNotes(id))
     .catch(() => {})
+  // A series asked for while the map was drawn starts now (review 8).
+  void import('./series-start')
+    .then(({ startWaitingSeries }) => startWaitingSeries(id))
+    .catch(() => {})
   // Jev, when set up, reads which beat each page carries.
   if ((await loadProject(id))?.project.narrative)
     void import('./template-suggest')
@@ -772,7 +776,13 @@ export const listNotebooks = async (): Promise<
         site: siteOf(saved.project.sourceUrl),
         preview:
           saved.project.slides.find((slide) => drawn(slide.svg))?.svg ?? null,
-        slides: saved.project.slides.length
+        slides: saved.project.slides.length,
+        ...(saved.project.waitingSeries
+          ? {
+              waitingSeries:
+                saved.project.waitingSeries.title || saved.project.title
+            }
+          : {})
       })
   }
   // Every notebook: home shows the latest few and "Show all" the rest.

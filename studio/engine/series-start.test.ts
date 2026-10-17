@@ -3,22 +3,34 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
 import type { Snapshot } from '../shared/api'
-import { ledBy } from '../shared/series'
-// Starting a series from home (review 8, F03). The planner is a stand-in
-// that stops once asked: these checks prove which series starts and that
-// its plan is asked for, with the creator's words, not what a model plans.
-const { stage } = vi.hoisted(() => ({ stage: vi.fn() }))
+import { ledBy, type Series } from '../shared/series'
+// Starting a series from home (review 8, F03). The planner and the drawing
+// are stand-ins: the planner stops once asked, the drawing finishes when the
+// check says. These checks prove which series starts, when, and that its
+// plan is asked for with the creator's words, not what a model plans.
+const { stage, pages } = vi.hoisted(() => ({ stage: vi.fn(), pages: vi.fn() }))
 vi.mock('./creative/stage', () => ({ runValidatedJsonStage: stage }))
-vi.mock('./notebook-intake', () => ({
+vi.mock('./creative/pages', () => ({ prepareCreativePages: pages }))
+vi.mock('./slide-changes', async (original) => ({
+  ...(await original<typeof import('./slide-changes')>()),
+  scheduleChanges: vi.fn()
+}))
+vi.mock('./notebook-intake', async (original) => ({
+  ...(await original<typeof import('./notebook-intake')>()),
   detectedHarness: async () => ({ adapter: 'kimi' })
 }))
 const root = await mkdtemp(join(tmpdir(), 'minimal-series-start-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = join(root, 'data')
 const { writeRow } = await import('./persistence')
-const { loadProject } = await import('./projects')
+const { listNotebooks, loadProject, scheduleSlides } =
+  await import('./projects')
 const { loadSeries } = await import('./series')
 const { settledSeriesPlan } = await import('./series-plan')
-const { startSeries } = await import('./series-start')
+const series = await import('./series-start')
+const { settleInterruptedWork } = await import('./studio-recovery')
+/** The series started, when it starts now. */
+const startSeries = async (body: Record<string, unknown>) =>
+  (await series.startSeries(body)) as Series
 afterAll(() => rm(root, { recursive: true, force: true }))
 beforeEach(() => {
   stage.mockReset()
@@ -145,11 +157,121 @@ it('home’s Start the series reaches the notebook through the route', async () 
   expect(reply).toMatchObject({ status: 200, value: { map: 'routed' } })
 })
 
-it('refuses a notebook still drawn, or one that is not the creator’s', async () => {
-  await notes('drawing', 'building')
+const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Page</text></svg>'
+/** A notebook whose wireframes are being drawn: one page, by a stand-in. */
+const drawing = async (id: string, more = {}) => {
+  await writeRow('projects', id, {
+    project: {
+      id,
+      title: 'Payments',
+      source: 'Payments retry safely.',
+      slides: [],
+      video: null,
+      harness: { adapter: 'claude-code' },
+      ...more
+    },
+    status: 'building',
+    error: null,
+    events: []
+  } as Snapshot)
+  await writeRow('outlines', id, {
+    source: { title: 'Payments', text: 'Payments retry safely.' },
+    outline: {
+      title: 'Payments',
+      scenes: [{ title: 'One', narration: 'One.', idea: 'One', source: [] }]
+    },
+    brand: {},
+    slideIds: [`${id}-one`]
+  })
+  await writeRow('sources', id, {
+    title: 'Payments',
+    text: 'Payments retry safely.'
+  })
+}
+
+it('keeps the series asked of a notebook being drawn, and starts it once drawn', async () => {
+  await drawing('drawing')
+  let finish!: (value: string[]) => void
+  pages.mockImplementationOnce(
+    () => new Promise<string[]>((resolve) => (finish = resolve))
+  )
+  scheduleSlides('drawing')
+  await vi.waitFor(() => expect(finish).toBeTypeOf('function'))
+  expect(
+    await series.startSeries({
+      from: 'drawing',
+      title: '',
+      about,
+      growth: 'arc',
+      led: 'presenter'
+    })
+  ).toEqual({ waiting: 'drawing' })
+  const kept = (await loadProject('drawing'))!
+  expect(kept.project.waitingSeries).toMatchObject({
+    about,
+    growth: 'arc',
+    led: 'presenter'
+  })
+  expect(kept.project.mapSeries).toBeUndefined()
+  expect(kept.events.at(-1)?.message).toBe(
+    'The series starts once the wireframes are drawn'
+  )
+  // Home lists it as a series that waits, by its title.
+  expect(
+    (await listNotebooks()).find((item) => item.id === 'drawing')?.waitingSeries
+  ).toBe('Payments')
+  expect(asked()).toHaveLength(0)
+  finish([svg])
+  await vi.waitFor(async () =>
+    expect((await loadProject('drawing'))?.project.mapSeries).toBeTruthy()
+  )
+  const drawn = (await loadProject('drawing'))!
+  expect(drawn.project.waitingSeries).toBeUndefined()
+  const started = (await loadSeries(drawn.project.mapSeries!))!
+  expect(started).toMatchObject({ map: 'drawing', about, led: 'presenter' })
+  // Its plan is asked for, as the creator asked, once.
+  await settledSeriesPlan(started.id)
+  expect(asked()).toHaveLength(1)
+  await series.startWaitingSeries('drawing')
+  expect(asked()).toHaveLength(1)
+})
+
+it('a series that waited for wireframes drawn before a restart starts then', async () => {
+  await drawing('restarted', {
+    waitingSeries: {
+      title: 'Retries, from my log',
+      about,
+      growth: 'one',
+      at: '2026-10-17T00:00:00.000Z'
+    }
+  })
+  // Still drawn at the restart: it waits on.
+  await series.startWaitingSeries('restarted')
+  expect((await loadProject('restarted'))?.project.mapSeries).toBeUndefined()
+  await writeRow('projects', 'restarted', {
+    ...(await loadProject('restarted'))!,
+    status: 'ready',
+    project: {
+      ...(await loadProject('restarted'))!.project,
+      slides: [{ id: 'restarted-one', title: 'One', svg }]
+    }
+  })
+  await settleInterruptedWork()
+  const after = (await loadProject('restarted'))!
+  expect(after.project.waitingSeries).toBeUndefined()
+  expect(await loadSeries(after.project.mapSeries!)).toMatchObject({
+    title: 'Retries, from my log',
+    growth: 'one'
+  })
+  expect(asked()).toHaveLength(0)
+})
+
+it('refuses notes with no wireframes coming, or a notebook not the creator’s', async () => {
+  await notes('draft', 'draft')
   await expect(
-    startSeries({ from: 'drawing', about, growth: 'arc' })
+    startSeries({ from: 'draft', about, growth: 'arc' })
   ).rejects.toThrow('Start a series once the wireframes are drawn')
+  expect((await loadProject('draft'))?.project.waitingSeries).toBeUndefined()
   await expect(
     startSeries({ from: '../projects', about, growth: 'arc' })
   ).rejects.toThrow('Choose one of your notebooks')

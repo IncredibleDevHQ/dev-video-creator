@@ -7,6 +7,7 @@ import type { Series } from '../shared/series'
 import { listRows, readRow, writeRow } from './persistence'
 import { changeProject, loadProject } from './projects'
 import { sortWaitingNotes } from './map-notes'
+import { startWaitingSeries } from './series-start'
 
 export const RESTARTED = 'The studio restarted before this finished. Try again.'
 
@@ -120,7 +121,8 @@ export const settleInterruptedWork = async () => {
     const series = await readRow<Series>('series', id)
     if (series && settleSeries(series)) await writeRow('series', id, series)
   }
-  // Notes that waited for a map drawn before the restart are sorted now.
+  // Notes that waited for a map drawn before the restart are sorted now,
+  // and a series that waited for it starts (review 8).
   for (const id of await listRows('projects')) {
     const saved = await loadProject(id)
     if (
@@ -128,5 +130,7 @@ export const settleInterruptedWork = async () => {
       saved.project.notes?.some((note) => note.state === 'waiting')
     )
       await sortWaitingNotes(id)
+    if (saved?.status === 'ready' && saved.project.waitingSeries)
+      await startWaitingSeries(id).catch(() => {})
   }
 }

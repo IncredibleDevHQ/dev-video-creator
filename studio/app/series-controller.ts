@@ -1,10 +1,12 @@
 // Starting a series, its page, the arc, and adding the next episode.
-import type { Snapshot } from '../shared/api'
+import type { NotebookSummary, Snapshot } from '../shared/api'
 import { ledBy, type Series, type SeriesSummary } from '../shared/series'
+import { api } from './api'
 import type { AppContext } from './app-context'
 import {
   looseNotebooks,
   newSeriesDialog,
+  refreshSeriesFrom,
   seriesPageView,
   type SeriesPageData
 } from './series-view'
@@ -15,8 +17,9 @@ import { saveBeforeLeaving } from './notebook-editor'
 export const seriesApi = {
   list: () => studioApi.request<SeriesSummary[]>('/series'),
   page: (id: string) => studioApi.request<SeriesPageData>(`/series/${id}`),
+  /** A series, or, from a notebook still being drawn, that it waits. */
   create: (body: unknown) =>
-    studioApi.request<Series | SeriesPageData>('/series', 'POST', body),
+    studioApi.request<Series | { waiting: string }>('/series', 'POST', body),
   update: (id: string, body: unknown) =>
     studioApi.request<SeriesPageData>(`/series/${id}`, 'POST', body),
   planArc: (id: string) =>
@@ -80,13 +83,45 @@ const watchSeries = (app: AppContext, id: string) => {
   }, 3000)
 }
 
+/** The notebooks and series as they are now; as last read when they cannot
+ * be read. */
+const freshHome = async (app: AppContext) => {
+  ;[app.notebooks, app.series] = await Promise.all([
+    api.notebooks().catch(() => app.notebooks),
+    seriesApi.list().catch(() => app.series)
+  ])
+  return looseNotebooks(app.notebooks, app.series)
+}
+const statesOf = (notebooks: NotebookSummary[]) =>
+  notebooks.map((item) => `${item.id}:${item.status}`).join()
+
+let following: ReturnType<typeof setTimeout> | null = null
+/** While the start is open and a notebook in it is being drawn, its list
+ * follows the drawing, in place. */
+const followStart = (app: AppContext, shown: NotebookSummary[]) => {
+  if (following) clearTimeout(following)
+  following = null
+  if (!shown.some((item) => item.status === 'building')) return
+  following = setTimeout(async () => {
+    following = null
+    if (!app.dialog.open || !app.dialog.querySelector('#series-form')) return
+    const now = await freshHome(app)
+    if (!app.dialog.open || !app.dialog.querySelector('#series-form')) return
+    if (statesOf(now) !== statesOf(shown)) refreshSeriesFrom(app.dialog, now)
+    followStart(app, now)
+  }, 3000)
+}
+
 export const clickSeries = async (
   app: AppContext,
   target: HTMLButtonElement,
   action: string | undefined
 ) => {
   if (action === 'new-series') {
-    app.showDialog(newSeriesDialog(looseNotebooks(app.notebooks, app.series)))
+    // Opened again, it shows the notebooks as they stand now.
+    const notebooks = await freshHome(app)
+    app.showDialog(newSeriesDialog(notebooks))
+    followStart(app, notebooks)
     return true
   }
   if (
@@ -115,7 +150,7 @@ export const submitSeries = async (
     const from = String(values.get('from') || '')
     const path = String(values.get('path') || '').trim()
     const branch = String(values.get('branch') || '').trim()
-    const created = (await busy(form.querySelector('button.primary')!, () =>
+    const created = await busy(form.querySelector('button.primary')!, () =>
       seriesApi.create({
         title: values.get('title'),
         about: values.get('about'),
@@ -125,17 +160,20 @@ export const submitSeries = async (
           ? { from }
           : { repos: path ? [{ path, ...(branch ? { branch } : {}) }] : [] })
       })
-    )) as Series
-    app.series = await seriesApi.list()
+    )
+    await freshHome(app)
     if (from) {
-      // Its map shows the series, and the episodes as they are planned.
+      // Its map shows the series, and the episodes as they are planned; a
+      // map still being drawn says when its series starts.
       app.dialog.close()
-      void app.mapCanvas.open(from)
+      await app.mapCanvas.open(from)
+      if ('waiting' in created)
+        app.mapCanvas.toast('The series starts once the wireframes are drawn.')
       return
     }
     // The home page behind the dialog shows the new series' tile.
     app.render()
-    await showSeries(app, created.id)
+    if ('id' in created) await showSeries(app, created.id)
   }
   if (form.id === 'episode-form' && form.dataset.series) {
     // The new episode opens in place of the notes on show: they are saved

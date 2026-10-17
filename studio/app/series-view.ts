@@ -42,17 +42,27 @@ const seriesRow = (item: SeriesSummary, notebooks: NotebookSummary[]) => {
   return `<article class="series-row"><div class="series-row-head"><button type="button" class="series-row-title" ${item.map ? `data-action="open-map-of" data-map="${escape(item.map)}"` : `data-action="open-series-page" data-series="${escape(item.id)}"`}>${escape(item.title)}</button><small>${count}</small></div>${map || episodes ? `<ol>${map}${episodes}</ol>` : ''}</article>`
 }
 
-/** The creator's series, under their notebooks. */
+/** A series asked for from a notebook still being drawn: its notebook, and
+ * that it starts once the wireframes are drawn. */
+const waitingRow = (item: NotebookSummary, notebooks: NotebookSummary[]) =>
+  `<article class="series-row is-waiting"><div class="series-row-head"><button type="button" class="series-row-title" data-action="open-map-of" data-map="${escape(item.id)}">${escape(item.waitingSeries || item.title)}</button><small>Starts once its wireframes are drawn</small></div><ol>${seriesEntry(notebooks, item.id, 'Content map', true)}</ol></article>`
+
+/** The creator's series, under their notebooks, the ones waiting for their
+ * wireframes first. */
 export const seriesSection = (
   list: SeriesSummary[],
   notebooks: NotebookSummary[] = []
-) =>
-  list.length
-    ? `<section class="saved-notebooks saved-series" aria-labelledby="series-heading"><div class="saved-notebooks-heading"><h2 id="series-heading">Your series</h2></div><div class="series-rows">${list.map((item) => seriesRow(item, notebooks)).join('')}</div></section>`
+) => {
+  const waiting = notebooks.filter(
+    (item) => item.waitingSeries && !item.archived
+  )
+  return list.length || waiting.length
+    ? `<section class="saved-notebooks saved-series" aria-labelledby="series-heading"><div class="saved-notebooks-heading"><h2 id="series-heading">Your series</h2></div><div class="series-rows">${waiting.map((item) => waitingRow(item, notebooks)).join('')}${list.map((item) => seriesRow(item, notebooks)).join('')}</div></section>`
     : ''
+}
 
-/** The notebooks no series uses yet, newest first: home's loose tiles, and
- * the notes a new series can start from. */
+/** The notebooks no series uses yet, nor waits for, newest first: home's
+ * loose tiles, and the notes a new series can start from. */
 export const looseNotebooks = (
   notebooks: NotebookSummary[],
   series: SeriesSummary[]
@@ -65,38 +75,44 @@ export const looseNotebooks = (
       ].filter(Boolean)
     )
   )
-  return notebooks.filter((item) => !item.archived && !grouped.has(item.id))
+  return notebooks.filter(
+    (item) => !item.archived && !item.waitingSeries && !grouped.has(item.id)
+  )
 }
 
-/** A notebook starts a series once its wireframes are drawn, as its map's
- * own Start asks. */
-const startsSeries = (item: NotebookSummary) =>
+/** Its wireframes drawn, as its map's own Start asks: the series starts
+ * now. Being drawn: it starts once they are. */
+const drawn = (item: NotebookSummary) =>
   item.status === 'ready' && Boolean(item.preview)
+const drawing = (item: NotebookSummary) => item.status === 'building'
 
-/** The creator's notebooks to start from; the one just made is chosen once
- * it is drawn. */
+/** The creator's notebooks to start from: the one just made is chosen,
+ * drawn or still being drawn (review 8). */
 const seriesFrom = (notebooks: NotebookSummary[], chosen: string) => {
   if (!notebooks.length) return ''
   const rows = notebooks
     .map((item) => {
-      const ready = startsSeries(item)
-      return `<label${ready ? '' : ' class="is-waiting"'}><input type="radio" name="from" value="${escape(item.id)}" data-title="${escape(item.title)}"${item.id === chosen ? ' checked' : ''}${ready ? '' : ' disabled'}> ${escape(item.title)}${ready ? '' : ` <small>${escape(notebookState(item))}</small>`}</label>`
+      const open = drawn(item) || drawing(item)
+      return `<label${open ? '' : ' class="is-waiting"'}><input type="radio" name="from" value="${escape(item.id)}" data-title="${escape(item.title)}"${drawing(item) ? ' data-drawing' : ''}${item.id === chosen ? ' checked' : ''}${open ? '' : ' disabled'}> ${escape(item.title)}${drawn(item) ? '' : ` <small>${escape(notebookState(item))}</small>`}</label>`
     })
     .join('')
-  return `<fieldset class="series-from"><legend>From your notes</legend><div>${rows}<label><input type="radio" name="from" value=""${chosen ? '' : ' checked'}> Nothing yet</label></div>${
-    notebooks.every(startsSeries)
-      ? ''
-      : '<p>A notebook can start a series once its wireframes are drawn.</p>'
-  }</fieldset>`
+  const later = notebooks.some((item) => item.id === chosen && drawing(item))
+  return `<fieldset class="series-from"><legend>From your notes</legend><div>${rows}<label><input type="radio" name="from" value=""${chosen ? '' : ' checked'}> Nothing yet</label></div><p class="series-later"${later ? '' : ' hidden'}>The series starts once its wireframes are drawn.</p></fieldset>`
 }
+
+/** The notes the start chooses: the newest notebook, drawn or being drawn,
+ * else nothing yet. */
+const firstChoice = (notebooks: NotebookSummary[]) =>
+  notebooks[0] && (drawn(notebooks[0]) || drawing(notebooks[0]))
+    ? notebooks[0]
+    : undefined
 
 /** The switch at the start: what the series is about, the notes it starts
  * from, how it grows and who presents it, asked once for every episode; a
  * repo only for a series that follows code (review 8: the form asked for
  * structure and a repo first, and each episode for camera and voice). */
 export const newSeriesDialog = (notebooks: NotebookSummary[] = []) => {
-  const chosen =
-    notebooks[0] && startsSeries(notebooks[0]) ? notebooks[0] : undefined
+  const chosen = firstChoice(notebooks)
   return `<h2>Start a series</h2>
 <form id="series-form" class="series-form">
 <label for="series-about">What it is about</label>
@@ -104,6 +120,7 @@ export const newSeriesDialog = (notebooks: NotebookSummary[] = []) => {
 ${seriesFrom(notebooks, chosen?.id ?? '')}
 <label for="series-title">Title</label>
 <input id="series-title" name="title" maxlength="120" autocomplete="off"${chosen ? ` placeholder="${escape(chosen.title)}"` : ' required'}>
+<div class="series-choices">
 <fieldset class="series-growth"><legend>How it grows</legend>
 <label><input type="radio" name="growth" value="arc" checked> The studio plans the episodes <small>From your notes or what it is about; nothing is fixed.</small></label>
 <label><input type="radio" name="growth" value="one"> One episode at a time <small>You add each one as you go.</small></label>
@@ -112,18 +129,46 @@ ${seriesFrom(notebooks, chosen?.id ?? '')}
 <label><input type="radio" name="led" value="notes" checked> A generated voice <small>Nothing for you to record.</small></label>
 <label><input type="radio" name="led" value="presenter"> You, on camera <small>You record your camera and voice for each episode.</small></label>
 </fieldset>
+</div>
 <details class="series-code"${chosen ? ' hidden' : ''}><summary>From a code repository</summary>
+<div class="series-code-fields"><div>
 <label for="series-repo">Repo <small>its folder on this computer</small></label>
 <input id="series-repo" name="path" placeholder="/Users/you/code/project" autocomplete="off">
+</div><div>
 <label for="series-branch">Branch <small>the episodes start from it</small></label>
 <input id="series-branch" name="branch" placeholder="The repo’s current branch" autocomplete="off">
+</div></div>
 </details>
 <div class="dialog-actions"><button type="button" class="quiet" data-action="close">Cancel</button><button class="primary">Start the series</button></div>
 </form>`
 }
 
+/** The notes listed again as they stand now, the creator's choice kept
+ * while it can still be made: a notebook drawn meanwhile says so in place
+ * (review 8: the dialog never changed as the drawing finished). */
+export const refreshSeriesFrom = (
+  root: ParentNode,
+  notebooks: NotebookSummary[]
+) => {
+  const list = root.querySelector<HTMLElement>('#series-form .series-from')
+  if (!list) return
+  const was = list.querySelector<HTMLInputElement>(
+    'input[name="from"]:checked'
+  )?.value
+  const still = notebooks.find((item) => item.id === was)
+  const chosen =
+    was === ''
+      ? ''
+      : still && (drawn(still) || drawing(still))
+        ? still.id
+        : (firstChoice(notebooks)?.id ?? '')
+  list.outerHTML = seriesFrom(notebooks, chosen)
+  syncSeriesForm(root)
+}
+
 /** Keeps the start in step with the notes chosen: a notebook names the
- * series unless it is given a title, and a repo is for a series from code. */
+ * series unless it is given a title, one still drawn says when the series
+ * starts, and a repo is for a series from code. */
 export const syncSeriesForm = (root: ParentNode) => {
   const form = root.querySelector<HTMLFormElement>('#series-form')
   if (!form) return
@@ -134,6 +179,8 @@ export const syncSeriesForm = (root: ParentNode) => {
   const title = form.querySelector<HTMLInputElement>('#series-title')
   title?.toggleAttribute('required', !from?.value)
   title?.setAttribute('placeholder', named)
+  const later = form.querySelector<HTMLElement>('.series-later')
+  if (later) later.hidden = !from?.hasAttribute('data-drawing')
   const code = form.querySelector<HTMLElement>('.series-code')
   if (code) code.hidden = Boolean(from?.value)
 }

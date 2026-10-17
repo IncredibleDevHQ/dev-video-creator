@@ -1,20 +1,49 @@
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { parseHTML } from 'linkedom'
 import type { NotebookSummary } from '../shared/api'
 import type { SeriesSummary } from '../shared/series'
 // Starting a series from home (review 8, F03): what it is about leads, then
-// the creator's notes; the studio plans the episodes, and a repo is asked
-// for only by a series that follows code. The network is a stand-in.
-const { request } = vi.hoisted(() => ({ request: vi.fn() }))
+// the creator's notes, the notebook just made chosen even while it is drawn;
+// the studio plans the episodes, and a repo is asked for only by a series
+// that follows code. The network is a stand-in.
+const { request, notebooks } = vi.hoisted(() => ({
+  request: vi.fn(),
+  notebooks: vi.fn()
+}))
 vi.mock('../app/studio-api', () => ({ studioApi: { request } }))
-vi.mock('../app/api', () => ({ api: {} }))
+vi.mock('../app/api', () => ({ api: { notebooks } }))
 vi.mock('../app/notebook-editor', () => ({ saveBeforeLeaving: vi.fn() }))
 const { clickSeries, submitSeries } = await import('../app/series-controller')
-const { newSeriesDialog, syncSeriesForm } = await import('../app/series-view')
+const {
+  looseNotebooks,
+  newSeriesDialog,
+  refreshSeriesFrom,
+  seriesSection,
+  syncSeriesForm
+} = await import('../app/series-view')
 const { installAppActions } = await import('../app/app-actions')
+/** The studio as the dialog reads it: these notebooks and series, and what
+ * starting a series answers. */
+const serve = (
+  home: NotebookSummary[],
+  series: SeriesSummary[] = [],
+  answers: Record<string, unknown> = {}
+) => {
+  notebooks.mockResolvedValue(home)
+  request.mockImplementation(async (path: string, method?: string) =>
+    method === 'POST'
+      ? answers[path]
+      : path === '/series'
+        ? series
+        : answers[path]
+  )
+}
+beforeEach(() => serve([]))
 afterEach(() => {
   request.mockReset()
+  notebooks.mockReset()
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 const notebook = (
@@ -38,6 +67,11 @@ const drawing = notebook('n-drawing', 'Learning log: queues', {
   status: 'building',
   preview: null
 })
+const drawn = { ...drawing, status: 'ready' as const, preview: '<svg/>' }
+const draft = notebook('n-draft', 'Queues, not drawn', {
+  status: 'draft',
+  preview: null
+})
 const formOf = (html: string) =>
   parseHTML(`<div>${html}</div>`).document.querySelector('form')!
 const checked = (form: HTMLFormElement, name: string) =>
@@ -46,6 +80,19 @@ const titleOf = (form: HTMLFormElement) =>
   form.querySelector<HTMLInputElement>('#series-title')!
 const codeOf = (form: HTMLFormElement) =>
   form.querySelector<HTMLElement>('details.series-code')!
+const laterOf = (form: ParentNode) =>
+  form.querySelector<HTMLElement>('.series-later')!
+const rows = (form: ParentNode) =>
+  [...form.querySelectorAll<HTMLInputElement>('input[name="from"]')].map(
+    (row) => [row.value, row.hasAttribute('disabled')]
+  )
+const choose = (root: ParentNode, value: string) => {
+  for (const row of root.querySelectorAll<HTMLInputElement>(
+    'input[name="from"]'
+  ))
+    row.toggleAttribute('checked', row.value === value)
+  syncSeriesForm(root)
+}
 
 it('asks what the series is about first, then starts from the notebook just made', () => {
   const form = formOf(newSeriesDialog([learning, older]))
@@ -66,51 +113,77 @@ it('asks what the series is about first, then starts from the notebook just made
   expect(codeOf(form).querySelector('[name="branch"]')).not.toBeNull()
 })
 
-it('a notebook still drawn waits; a code series opens its repo when asked', () => {
-  const form = formOf(newSeriesDialog([drawing, older]))
-  expect(
-    [...form.querySelectorAll<HTMLInputElement>('input[name="from"]')].map(
-      (row) => [row.value, row.hasAttribute('disabled')]
-    )
-  ).toEqual([
-    ['n-drawing', true],
+it('chooses the notebook just made while it is drawn, and says when the series starts', () => {
+  const form = formOf(newSeriesDialog([drawing, draft, older]))
+  expect(rows(form)).toEqual([
+    ['n-drawing', false],
+    ['n-draft', true],
     ['n-old', false],
     ['', false]
   ])
-  // Nothing older is chosen in its place.
-  expect(checked(form, 'from')).toBe('')
-  expect(form.querySelector('.is-waiting small')?.textContent).toBe(
+  // Never nothing yet in its place: the notes come first.
+  expect(checked(form, 'from')).toBe('n-drawing')
+  expect(titleOf(form).getAttribute('placeholder')).toBe(drawing.title)
+  expect(codeOf(form).hidden).toBe(true)
+  expect(laterOf(form).hidden).toBe(false)
+  expect(laterOf(form).textContent).toBe(
+    'The series starts once its wireframes are drawn.'
+  )
+  expect(form.querySelector('label small')?.textContent).toBe(
     'Wireframes in progress'
   )
-  expect(form.querySelector('.series-from p')?.textContent).toBe(
-    'A notebook can start a series once its wireframes are drawn.'
+  expect(form.querySelector('.is-waiting small')?.textContent).toBe(
+    'Ready to create wireframes'
   )
+  // A drawn notebook chosen starts the series now: no such line.
+  expect(laterOf(formOf(newSeriesDialog([older]))).hidden).toBe(true)
+})
+
+it('a series from nothing yet opens its repo when asked', () => {
+  const form = formOf(newSeriesDialog([draft, older]))
+  // Notes with no wireframes coming are not chosen, nor anything older.
+  expect(checked(form, 'from')).toBe('')
   expect(titleOf(form).hasAttribute('required')).toBe(true)
-  // The repo is one choice away, shut until asked for.
   expect(codeOf(form).hidden).toBe(false)
   expect(codeOf(form).hasAttribute('open')).toBe(false)
   // No notebooks at all: no notes to offer.
   expect(formOf(newSeriesDialog()).querySelector('.series-from')).toBeNull()
 })
 
-it('keeps the title and the repo in step with the notes chosen', () => {
-  const { document } = parseHTML(`<div>${newSeriesDialog([learning])}</div>`)
+it('keeps the title, the line and the repo in step with the notes chosen', () => {
+  const { document } = parseHTML(
+    `<div>${newSeriesDialog([learning, drawing])}</div>`
+  )
   const form = document.querySelector('form')!
-  const choose = (value: string) => {
-    for (const row of form.querySelectorAll<HTMLInputElement>(
-      'input[name="from"]'
-    ))
-      row.toggleAttribute('checked', row.value === value)
-    syncSeriesForm(document)
-  }
-  choose('')
+  choose(document, '')
   expect(titleOf(form).hasAttribute('required')).toBe(true)
   expect(titleOf(form).getAttribute('placeholder')).toBe('')
   expect(codeOf(form).hidden).toBe(false)
-  choose('n-new')
+  choose(document, 'n-new')
   expect(titleOf(form).hasAttribute('required')).toBe(false)
   expect(titleOf(form).getAttribute('placeholder')).toBe(learning.title)
   expect(codeOf(form).hidden).toBe(true)
+  expect(laterOf(form).hidden).toBe(true)
+  choose(document, 'n-drawing')
+  expect(laterOf(form).hidden).toBe(false)
+  expect(titleOf(form).getAttribute('placeholder')).toBe(drawing.title)
+})
+
+it('the list follows a notebook drawn meanwhile, in place, the choice kept', () => {
+  const { document } = parseHTML(
+    `<div>${newSeriesDialog([drawing, older])}</div>`
+  )
+  const form = document.querySelector('form')!
+  titleOf(form).value = 'Queues, my way'
+  refreshSeriesFrom(document, [drawn, older])
+  expect(checked(form, 'from')).toBe('n-drawing')
+  expect(form.querySelector('.series-from small')).toBeNull()
+  expect(laterOf(form).hidden).toBe(true)
+  expect(titleOf(form).value).toBe('Queues, my way')
+  // Another notebook the creator chose stays chosen.
+  choose(document, 'n-old')
+  refreshSeriesFrom(document, [drawn, older])
+  expect(checked(form, 'from')).toBe('n-old')
 })
 
 it('the open dialog follows a change of notes as the creator makes it', () => {
@@ -136,15 +209,15 @@ it('the open dialog follows a change of notes as the creator makes it', () => {
   expect(codeOf(form).hidden).toBe(false)
 })
 
-const appWith = (notebooks: NotebookSummary[], series: SeriesSummary[]) => ({
-  notebooks,
+const appWith = (home: NotebookSummary[], series: SeriesSummary[]) => ({
+  notebooks: home,
   series,
   showDialog: vi.fn(),
   dialog: { close: vi.fn(), dataset: {} as Record<string, string> },
-  mapCanvas: { open: vi.fn(async () => {}) },
+  mapCanvas: { open: vi.fn(async () => {}), toast: vi.fn() },
   render: vi.fn()
 })
-const press = (app: ReturnType<typeof appWith>, html = '<button></button>') =>
+const press = (app: object, html = '<button></button>') =>
   clickSeries(
     app as never,
     parseHTML(html).document.querySelector('button') as never,
@@ -153,19 +226,25 @@ const press = (app: ReturnType<typeof appWith>, html = '<button></button>') =>
 
 it('offers only the notebooks no series uses, and opens the map it starts', async () => {
   const episode = notebook('n-ep', 'Episode one')
-  const app = appWith(
-    [learning, older, episode, notebook('n-gone', 'Old', { archived: true })],
-    [
-      {
-        id: 's0',
-        title: 'Earlier',
-        episodes: 1,
-        planned: null,
-        updatedAt: '',
-        members: [{ notebookId: 'n-ep', number: 1 }]
-      }
-    ]
-  )
+  const home = [
+    learning,
+    older,
+    episode,
+    notebook('n-gone', 'Old', { archived: true })
+  ]
+  const series = [
+    {
+      id: 's0',
+      title: 'Earlier',
+      episodes: 1,
+      planned: null,
+      updatedAt: '',
+      members: [{ notebookId: 'n-ep', number: 1 }]
+    }
+  ]
+  // What the page last read is out of date: the dialog reads it again.
+  const app = appWith([], [])
+  serve(home, series, { '/series': { id: 's1' } })
   await press(app)
   const shown = formOf(app.showDialog.mock.calls[0][0])
   expect(
@@ -173,9 +252,6 @@ it('offers only the notebooks no series uses, and opens the map it starts', asyn
       (row) => row.value
     )
   ).toEqual(['n-new', 'n-old', ''])
-  request.mockImplementation(async (path: string, method?: string) =>
-    path === '/series' && method === 'POST' ? { id: 's1' } : []
-  )
   const values = new FormData()
   values.set('about', 'What I learn about retries')
   values.set('from', 'n-new')
@@ -194,6 +270,75 @@ it('offers only the notebooks no series uses, and opens the map it starts', asyn
   })
   expect(app.dialog.close).toHaveBeenCalled()
   expect(app.mapCanvas.open).toHaveBeenCalledWith('n-new')
+  expect(app.mapCanvas.toast).not.toHaveBeenCalled()
+})
+
+it('a start from a notebook being drawn opens its map and says when the series starts', async () => {
+  const app = appWith([drawing], [])
+  serve([{ ...drawing, waitingSeries: drawing.title }], [], {
+    '/series': { waiting: 'n-drawing' }
+  })
+  const values = new FormData()
+  values.set('about', 'What I learn about queues')
+  values.set('from', 'n-drawing')
+  values.set('title', '')
+  values.set('growth', 'arc')
+  values.set('led', 'notes')
+  await submitSeries(
+    app as never,
+    formOf(newSeriesDialog([drawing])) as never,
+    values
+  )
+  expect(app.mapCanvas.open).toHaveBeenCalledWith('n-drawing')
+  expect(app.mapCanvas.toast).toHaveBeenCalledWith(
+    'The series starts once the wireframes are drawn.'
+  )
+  // Home shows the series waiting, and offers its notebook no more.
+  const home = parseHTML(
+    `<div>${seriesSection(app.series, app.notebooks)}</div>`
+  ).document
+  const row = home.querySelector('.series-row.is-waiting')!
+  expect(row.querySelector('.series-row-title')?.textContent).toBe(
+    drawing.title
+  )
+  expect(row.querySelector('.series-row-head small')?.textContent).toBe(
+    'Starts once its wireframes are drawn'
+  )
+  expect(looseNotebooks(app.notebooks, app.series)).toEqual([])
+})
+
+it('the open start follows the drawing; opened again, it shows the notes as they are', async () => {
+  vi.useFakeTimers()
+  const { document } = parseHTML('<html><body><dialog></dialog></body></html>')
+  const dialog = document.querySelector('dialog')!
+  Object.defineProperty(dialog, 'open', { value: true, writable: true })
+  const app = {
+    ...appWith([], []),
+    dialog,
+    showDialog: (html: string) => {
+      dialog.innerHTML = html
+    }
+  }
+  serve([drawing, older])
+  await press(app)
+  expect(checked(dialog.querySelector('form')!, 'from')).toBe('n-drawing')
+  expect(laterOf(dialog).hidden).toBe(false)
+  // The drawing finishes while the dialog is open: it says so in place.
+  serve([drawn, older])
+  await vi.advanceTimersByTimeAsync(3000)
+  expect(checked(dialog.querySelector('form')!, 'from')).toBe('n-drawing')
+  expect(laterOf(dialog).hidden).toBe(true)
+  expect(dialog.querySelector('.series-from small')).toBeNull()
+  // Shut and opened again: what the studio says now, not what home read.
+  dialog.innerHTML = ''
+  serve([drawn, draft, older])
+  await press(app)
+  expect(rows(dialog)).toEqual([
+    ['n-drawing', false],
+    ['n-draft', true],
+    ['n-old', false],
+    ['', false]
+  ])
 })
 
 it('a series from nothing yet sends its repo and opens its page', async () => {
@@ -211,13 +356,7 @@ it('a series from nothing yet sends its repo and opens its page', async () => {
     },
     episodes: []
   }
-  request.mockImplementation(async (path: string, method?: string) =>
-    path === '/series' && method === 'POST'
-      ? page.series
-      : path === '/series/s2'
-        ? page
-        : []
-  )
+  serve([], [], { '/series': page.series, '/series/s2': page })
   const values = new FormData()
   values.set('about', 'How we limit requests')
   values.set('from', '')

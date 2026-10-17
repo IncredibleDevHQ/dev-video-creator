@@ -158,6 +158,14 @@ export const organizes = (series: Pick<Series, 'organize' | 'autoplan'>) =>
 export type SeriesLed = 'notes' | 'presenter'
 export const seriesLed = (value: unknown): SeriesLed | undefined =>
   value === 'notes' || value === 'presenter' ? value : undefined
+/** A series asked for from a notebook still being drawn, as it was asked. */
+export type WaitingSeries = {
+  title: string
+  about: string
+  growth: Series['growth']
+  led?: SeriesLed
+  at: string
+}
 /** Who presents a series' episodes: as the creator said, else a content
  * map's series is told from its notes (review 8). */
 export const ledBy = (series: Pick<Series, 'led' | 'map'>) =>

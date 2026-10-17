@@ -113,6 +113,9 @@ export type NotebookSummary = {
   /** The first drawn slide, as the tile's picture. */
   preview: string | null
   slides: number
+  /** A series waits to start from it once its wireframes are drawn: the
+   * series' title. */
+  waitingSeries?: string
 }
 
 export type HarnessChoice = {

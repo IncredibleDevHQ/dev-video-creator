@@ -219,6 +219,9 @@ export type Project = {
   topics?: string[]
   /** The series whose episodes copy this notebook's wireframes. */
   mapSeries?: string
+  /** A series started from this notebook while its wireframes were drawn:
+   * it starts, as asked, once they are (review 8). */
+  waitingSeries?: import('./series').WaitingSeries
   /** An episode: the map notebook its pages are copies from. */
   copyOfMap?: string
   /** The map's topics being grouped by the agent, or why they were not. */
