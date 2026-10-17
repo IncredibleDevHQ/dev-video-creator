@@ -323,10 +323,16 @@ it('writes a line again once a later note is sorted and brings a limit it goes p
   expect((await loadProject(one))!.project.segueChecks).toBeUndefined()
 })
 
-it('flags, and leaves as it is, a line under a started video when a later note brings a limit it goes past', async () => {
-  replies['Write Segues'] = writer(() => OVER)
-  const { ids, one } = await twoEpisodes('m-made', LOG)
-  // The live run: the storyboard was planned before the note came.
+it('writes a line again in an episode whose plan still waits for approval, and marks the plan to be made again (round 2)', async () => {
+  replies['Write Segues'] = writer((brief) =>
+    (brief.limits as Array<{ says: string }>).some((limit) =>
+      limit.says.startsWith('Do not promise')
+    )
+      ? SCOPED
+      : OVER
+  )
+  const { ids, one } = await twoEpisodes('m-plan', LOG)
+  // The storyboard was planned before the note came: it is not approved.
   await changeProject(one, (current) => {
     current.project.video = {
       settings: { presence: 'off', voice: { kind: 'record' } },
@@ -334,7 +340,45 @@ it('flags, and leaves as it is, a line under a started video when a later note b
       transitions: [],
       inputKey: '',
       produced: null,
-      storyboard: { id: 'sb', pages: [], stage: 'plan', status: 'working' }
+      storyboard: {
+        id: 'sb',
+        pages: current.project.slides.map((slide) => slide.id),
+        stage: 'review',
+        status: 'waiting',
+        waitingFor: 'approval'
+      }
+    } as never
+  })
+  replies['Sort Note'] = () => ({
+    items: [{ kind: 'adds', line: NOTE, page: ids[2] }]
+  })
+  await notes.addNote('m-plan', { text: NOTE })
+  await notes.settledNotes()
+  await segues.settledAllSegues()
+  const snapshot = (await loadProject(one))!
+  expect(snapshot.project.slides.at(-1)!.outro).toBe(SCOPED)
+  expect(snapshot.project.segueChecks).toBeUndefined()
+  expect(snapshot.project.video?.storyboard?.replan).toBe(true)
+})
+
+it('flags, and leaves as it is, a line under an approved video when a later note brings a limit it goes past', async () => {
+  replies['Write Segues'] = writer(() => OVER)
+  const { ids, one } = await twoEpisodes('m-made', LOG)
+  // The live run: the storyboard was approved before the note came.
+  await changeProject(one, (current) => {
+    current.project.video = {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: null,
+      storyboard: {
+        id: 'sb',
+        pages: [],
+        stage: 'stills',
+        status: 'working',
+        approved: true
+      }
     } as never
   })
   replies['Sort Note'] = () => ({

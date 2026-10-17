@@ -6,7 +6,12 @@ import type { Snapshot } from '../shared/api'
 import type { Slide } from '../shared/model'
 import { addEvent } from './activity'
 import { withDeck } from './deck-lock'
-import { composeNarration, planScenes, scheduleAround } from './map-segues'
+import {
+  composeNarration,
+  planScenes,
+  scheduleAround,
+  waitsForCreator
+} from './map-segues'
 import { readRow, writeRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
@@ -75,24 +80,6 @@ export const isMade = (snapshot: Snapshot | null) => {
     video &&
     (video.produced ||
       video.storyboard ||
-      video.scenes.some((scene) => scene.phase !== 'idle' || scene.produced))
-  )
-}
-
-/**
- * An episode the creator approved or made: its copies wait for their Update.
- * One whose storyboard is still a plan follows its cards like one with no
- * video; its plan is then marked to be made again, never stale, and no paid
- * run starts by itself (review 8 F08: any storyboard made every copy wait).
- */
-export const waitsForCreator = (snapshot: Snapshot) => {
-  const video = snapshot.project.video
-  const board = video?.storyboard
-  const planning = board?.stage === 'plan' || board?.stage === 'review'
-  return Boolean(
-    video &&
-    (video.produced ||
-      (board && (board.approved || board.produced || !planning)) ||
       video.scenes.some((scene) => scene.phase !== 'idle' || scene.produced))
   )
 }

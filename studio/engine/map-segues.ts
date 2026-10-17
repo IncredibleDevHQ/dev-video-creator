@@ -225,16 +225,26 @@ const flagsAfter = (
 /** What the creator's activity says about a flagged line. */
 const checkWords = (flag: Flag) =>
   `Check the line ${flag.line === 'outro' ? 'after' : 'before'} “${flag.slide.title}”. ${claimNote(flag.claim)}`
-/** An episode whose video has started, as series-apply's isMade reads it:
- * its scenes keep their script, so a line is flagged there, not rewritten
- * for a note. */
-const started = (video: Project['video']) =>
-  Boolean(
+/**
+ * An episode the creator approved or made: its copies wait for their Update,
+ * and a line past a new limit is flagged there, not rewritten. One whose
+ * storyboard is still a plan follows its cards like one with no video; its
+ * plan is then marked to be made again, never stale, and no paid run starts
+ * by itself (review 8 F08: any storyboard made every copy wait).
+ */
+export const waitsForCreator = (snapshot: {
+  project: Pick<Project, 'video'>
+}) => {
+  const video = snapshot.project.video
+  const board = video?.storyboard
+  const planning = board?.stage === 'plan' || board?.stage === 'review'
+  return Boolean(
     video &&
     (video.produced ||
-      video.storyboard ||
+      (board && (board.approved || board.produced || !planning)) ||
       video.scenes.some((scene) => scene.phase !== 'idle' || scene.produced))
   )
+}
 
 const writeSegues = async (id: string) => {
   const snapshot = await loadProject(id)
@@ -305,7 +315,7 @@ const writeSegues = async (id: string) => {
   // since) is written again, once, while the video hasn't started; under a
   // started video it is flagged instead. A line flagged already stays.
   const checks = snapshot.project.segueChecks || {}
-  const made = started(snapshot.project.video)
+  const made = waitsForCreator(snapshot)
   const flagNow: Flag[] = []
   const recheck = (slide: Slide, line: Line) => {
     const text = slide[line]
