@@ -160,17 +160,37 @@ export const directionLines = async (
 
 /** The most a plan waits for the map's cards being drawn or changed. */
 const DRAWING_WAIT_MS = 5 * 60_000
-/** The map once the cards being drawn or changed have landed: a note's new
- * card drawn a moment after the plan began was missed, and named as a gap
- * (review 8, round 2's live run). */
+/** Work on the map that is under way and will land: the map being drawn, a
+ * card being drawn or changed (a queued one runs once the map is drawn), a
+ * note being sorted, or waiting on a drawn map to be. A failed change waits
+ * for the creator, not for the plan: counted, it held every plan five
+ * minutes, saying nothing (review 8, round 2's audit). */
+export const mapAtWork = (map: Snapshot) => {
+  const drawn = map.status === 'ready'
+  return (
+    map.status === 'building' ||
+    Boolean(
+      map.changes?.some(
+        (change) =>
+          change.state === 'working' || (drawn && change.state === 'queued')
+      )
+    ) ||
+    Boolean(
+      map.project.notes?.some(
+        (note) =>
+          note.state === 'sorting' || (drawn && note.state === 'waiting')
+      )
+    )
+  )
+}
+/** The map once the work under way on it has landed: a note's new card
+ * drawn a moment after the plan began was missed, and named as a gap
+ * (review 8, round 2's live run), and a note sorted as the map was drawn
+ * had no card yet when the plan read it (round 2's audit). */
 const settledMap = async (id: string) => {
   const until = Date.now() + DRAWING_WAIT_MS
   let map = await loadProject(id)
-  while (
-    map &&
-    (map.changes?.length || map.status === 'building') &&
-    Date.now() < until
-  ) {
+  while (map && mapAtWork(map) && Date.now() < until) {
     await new Promise((resolve) => setTimeout(resolve, 1000))
     map = await loadProject(id)
   }

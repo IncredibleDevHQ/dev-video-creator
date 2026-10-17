@@ -188,9 +188,10 @@ it('plans a series once the cards being drawn on its map have landed', async () 
         id: 'c-outbox',
         slideId: 'w-4',
         instruction: 'Draw it',
+        state: 'queued',
         at: '2026-10-17T00:00:00.000Z'
       }
-    ] as never
+    ]
   })
   const series = await episodes.startMapSeries('w', {})
   const one = await episodes.addMapEpisode(series.id, {
@@ -221,3 +222,90 @@ it('plans a series once the cards being drawn on its map have landed', async () 
   await settledSeriesPlan(series.id)
   expect(pages.map((page) => page.id)).toContain('w-4')
 })
+
+/** The two episodes the stand-in plan names, on a map. */
+const seriesOn = async (id: string, ids: string[]) => {
+  const series = await episodes.startMapSeries(id, {})
+  const one = await episodes.addMapEpisode(series.id, {
+    title: 'One',
+    slides: [ids[0]]
+  })
+  const two = await episodes.addMapEpisode(series.id, {
+    title: 'Two',
+    slides: [ids[1], ids[2]]
+  })
+  await segues.settledAllSegues()
+  return { series, one: one.notebook.project.id, two: two.notebook.project.id }
+}
+const planned = () =>
+  stage.mock.calls.some(([input]) => input.route === 'Plan Series')
+
+// Round 2's audit: a failed change stays until its wireframe gets a new
+// request, and a restart fails a working one; counted as work, either held
+// every plan five minutes, saying nothing.
+it('plans at once past a failed change, which waits for the creator, not the plan', async () => {
+  const ids = await drawnMap('f')
+  const { series, one, two } = await seriesOn('f', ids)
+  await changeProject('f', (snapshot) => {
+    snapshot.changes = [
+      {
+        id: 'c-failed',
+        slideId: 'f-2',
+        instruction: 'Show the stored result',
+        state: 'failed',
+        message:
+          'The studio restarted before this change finished. Send it again.',
+        at: '2026-10-17T00:00:00.000Z'
+      }
+    ]
+  })
+  stage.mockClear()
+  replies['Plan Series'] = () => outline(ids, one, two)
+  await planSeries(series.id, {})
+  const done = await Promise.race([
+    settledSeriesPlan(series.id).then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 3000))
+  ])
+  expect(done).toBe(true)
+  expect(planned()).toBe(true)
+})
+
+// Round 2's audit: once the map is drawn, the notes written meanwhile are
+// sorted as the waiting series starts; the plan read the map before the
+// note's card was there.
+it('plans once the notes waiting on the drawn map are sorted and their cards are in', async () => {
+  const ids = await drawnMap('n')
+  const { series, one, two } = await seriesOn('n', ids)
+  const note = {
+    id: 'n-outbox',
+    at: '2026-10-17T00:00:00.000Z',
+    text: 'The transactional outbox writes the order and its event together.'
+  }
+  await changeProject('n', (snapshot) => {
+    snapshot.project.notes = [{ ...note, state: 'waiting' }]
+  })
+  stage.mockClear()
+  let pages: Array<Record<string, unknown>> = []
+  replies['Plan Series'] = (input) => {
+    pages = packetOf(input, 'PAGES.json')
+    return outline(ids, one, two)
+  }
+  await planSeries(series.id, {})
+  await new Promise((resolve) => setTimeout(resolve, 1200))
+  expect(planned()).toBe(false)
+  // Being sorted: the plan still waits.
+  await changeProject('n', (snapshot) => {
+    snapshot.project.notes = [{ ...note, state: 'sorting' }]
+  })
+  await new Promise((resolve) => setTimeout(resolve, 1200))
+  expect(planned()).toBe(false)
+  // Sorted into a new card, drawn: the plan reads it.
+  await changeProject('n', (snapshot) => {
+    snapshot.project.slides.push(
+      card('n-4', 'The transactional outbox', note.text)
+    )
+    snapshot.project.notes = [{ ...note, state: 'sorted', results: [] }]
+  })
+  await settledSeriesPlan(series.id)
+  expect(pages.map((page) => page.id)).toContain('n-4')
+}, 15_000)
