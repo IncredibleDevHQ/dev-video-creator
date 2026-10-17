@@ -64,8 +64,9 @@ export type Snapshot = {
    * they were, from the content map: as they stood, with their scenes and
    * the storyboard's flags, so the map's Undo puts them back. */
   updatedCopies?: {
-    /** Each copy as it was, and what it is as the change left it. */
-    copies: Array<{ slide: Slide; scene?: Scene; left: string }>
+    /** Each copy as it was, and what it is as the change left it; an
+     * Update's scene as it was, and what was made in it as it left it. */
+    copies: Array<{ slide: Slide; scene?: Scene; left: string; work?: string }>
     board?: { id: string; sources: string; stale?: boolean; replan?: boolean }
   }
 }

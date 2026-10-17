@@ -274,8 +274,15 @@ export const changeCopies = async (id: string, raw: unknown) => {
       : [String(value.slide || '')]
     if (!ids.length || (action === 'keep' && ids.length > 1))
       throw new Refusal('Choose a page of this episode')
-    const changed = await updateCopies(id, mapId, ids, action === 'keep')
-    return action === 'keep' ? { kept: true } : { updated: changed }
+    const { changed, edited } = await updateCopies(
+      id,
+      mapId,
+      ids,
+      action === 'keep'
+    )
+    return action === 'keep'
+      ? { kept: true }
+      : { updated: changed, ...(edited ? { edited } : {}) }
   }
   if (action === 'undo-update') return undoUpdate(id)
   const slideId = String(value.slide || '')

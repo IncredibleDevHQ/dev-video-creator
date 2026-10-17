@@ -489,3 +489,202 @@ it('updates all of an approved episode’s waiting copies in one go, and Undo pu
   ).rejects.toThrow('That page has changed since: nothing was undone')
   expect((await copyIn('made5')).base).toBe('My own words.')
 })
+
+// Round 3 of the audit: an Undo of Keep or Update never puts a scene back
+// over work done in it since; the lines around an undone update come back
+// before the plan's flags are settled; Update all leaves the creator's
+// edited copies to them.
+const settings = { presence: 'off', voice: { kind: 'ai', id: 'default' } }
+const sceneOf = async (id: string, index: number) =>
+  (await loadProject(id))!.project.video!.scenes[index]
+
+it('leaves a scene made after a Keep, or worked on after an Update, when either is undone; one caught mid-render waits to be made again', async () => {
+  const pages = ['k1', 'k2', 'k3'].map((id) => ({ ...card, id, title: id }))
+  await write('map7', { mapSeries: 's7', slides: pages })
+  await writeRow('series', 's7', {
+    id: 's7',
+    title: 'Payments',
+    mapNotebook: 'map7',
+    episodes: [{ notebookId: 'made7' }]
+  })
+  const copies = pages.map((page) => copyOf('map7', page))
+  await write('made7', {
+    copyOfMap: 'map7',
+    episode: { series: 's7', number: 1 },
+    slides: copies
+  })
+  const { changeProject } = await import('./projects')
+  const { reconcileVideo } = await import('./scene-model')
+  const { changeCopies } = await import('./map-episodes')
+  // Every scene is being rendered.
+  await changeProject('made7', (current) => {
+    current.project.video = {
+      settings,
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: null
+    } as unknown as Snapshot['project']['video']
+    reconcileVideo(current.project, current, new Set())
+    for (const scene of current.project.video!.scenes) scene.phase = 'producing'
+  })
+  await changeProject('map7', (current) => {
+    for (const slide of current.project.slides)
+      slide.narration = `${slide.id}, newer.`
+  })
+  // Keep while its scene renders; the render lands; Undo leaves it made.
+  await changeCopies('made7', { action: 'keep', slide: copies[0].id })
+  await changeProject('made7', (current) => {
+    const scene = current.project.video!.scenes[0]
+    scene.phase = 'produced'
+    scene.produced = { inputKey: scene.inputKey, objectKey: 'k1.mp4' }
+  })
+  await changeCopies('made7', { action: 'undo-update' })
+  expect(await sceneOf('made7', 0)).toMatchObject({
+    phase: 'produced',
+    produced: { objectKey: 'k1.mp4' }
+  })
+  expect((await copyIn('made7')).copyOf).toEqual(copies[0].copyOf)
+  // Updated mid-render, then undone: its render went with the update, so
+  // it waits to be made again rather than stand rendering for ever.
+  await changeCopies('made7', { action: 'update', slide: copies[1].id })
+  await changeCopies('made7', { action: 'undo-update' })
+  expect((await sceneOf('made7', 1)).phase).toBe('waiting')
+  // Updated, then the creator chose its shot: Undo keeps the scene as it
+  // is now, and says so.
+  await changeCopies('made7', { action: 'update', slide: copies[2].id })
+  await changeProject('made7', (current) => {
+    current.project.video!.scenes[2].shot = 'close-up'
+  })
+  expect(await changeCopies('made7', { action: 'undo-update' })).toEqual({
+    undone: true,
+    kept: 1
+  })
+  const made = (await loadProject('made7'))!
+  expect(made.project.slides[2]).toEqual(copies[2])
+  expect(made.project.video!.scenes[2].shot).toBe('close-up')
+  expect(made.events.map((event) => event.message)).toContain(
+    'Put “k3” back as it was; its scene was worked on since, so it stays as it is'
+  )
+})
+
+it('puts back the lines around an undone update before it settles the plan, so an approved plan is as it was', async () => {
+  const pages = ['r1', 'r2'].map((id) => ({
+    ...card,
+    id,
+    title: id,
+    narration: `${id} says.`
+  }))
+  await write('map6', { mapSeries: 's6', slides: pages })
+  await writeRow('series', 's6', {
+    id: 's6',
+    title: 'Payments',
+    mapNotebook: 'map6',
+    episodes: [{ notebookId: 'approved6' }]
+  })
+  const copies = pages.map((page) => copyOf('map6', page))
+  await write('approved6', {
+    copyOfMap: 'map6',
+    episode: { series: 's6', number: 1 },
+    slides: copies
+  })
+  const { changeProject } = await import('./projects')
+  const { changeCopies } = await import('./map-episodes')
+  const { scheduleSegues } = await import('./map-segues')
+  // Each run words its lines anew, so a line put back is told apart.
+  let take = 0
+  segues.mockImplementation(async (input: Record<string, unknown>) => {
+    const brief = JSON.parse(
+      (input.packet as Record<string, string>)['packet/EPISODE.json']
+    )
+    take++
+    return {
+      pages: brief.pages.map((page: { id: string; title: string }) => ({
+        id: page.id,
+        bridge: `Take ${take}: into ${page.title}.`
+      })),
+      outro: 'That is all.'
+    }
+  })
+  try {
+    scheduleSegues('approved6')
+    await settledAllSegues()
+    await changeProject('approved6', (current) => {
+      current.project.video = {
+        settings,
+        scenes: [],
+        transitions: [],
+        inputKey: 'v',
+        produced: null,
+        storyboard: {
+          id: 'sb6',
+          pages: current.project.slides.map((slide) => slide.id),
+          stage: 'stills',
+          status: 'working',
+          approved: true,
+          updatedAt: '2026-10-17T00:00:00.000Z'
+        }
+      } as unknown as Snapshot['project']['video']
+    })
+    const before = (await loadProject('approved6'))!.project.slides
+    await changeProject('map6', (current) => {
+      current.project.slides[0].narration = 'r1, newer.'
+    })
+    await changeCopies('approved6', { action: 'update', slide: copies[0].id })
+    await settledAllSegues()
+    let episode = (await loadProject('approved6'))!.project
+    // The page after it had its line in written again for it.
+    expect(episode.slides[1].bridge).not.toBe(before[1].bridge)
+    expect(episode.video!.storyboard!.stale).toBe(true)
+    const asked = segues.mock.calls.length
+    await changeCopies('approved6', { action: 'undo-update' })
+    episode = (await loadProject('approved6'))!.project
+    expect(episode.slides).toEqual(before)
+    expect(episode.video!.storyboard!.stale).toBeUndefined()
+    await settledAllSegues()
+    expect(segues.mock.calls.length).toBe(asked)
+    expect(
+      (await loadProject('approved6'))!.project.video!.storyboard!.stale
+    ).toBeUndefined()
+  } finally {
+    segues.mockReset()
+    segues.mockRejectedValue(new Error('No stand-in for segues here'))
+  }
+})
+
+it('leaves a copy the creator edited to them when Update all brings the others up to their cards', async () => {
+  const pages = ['u1', 'u2'].map((id) => ({ ...card, id, title: id }))
+  await write('map9', { mapSeries: 's9', slides: pages })
+  await writeRow('series', 's9', {
+    id: 's9',
+    title: 'Payments',
+    mapNotebook: 'map9',
+    episodes: [{ notebookId: 'ep9' }]
+  })
+  const copies = [
+    copyOf('map9', pages[0]),
+    { ...copyOf('map9', pages[1]), base: 'My own words.' }
+  ]
+  await write('ep9', {
+    copyOfMap: 'map9',
+    episode: { series: 's9', number: 1 },
+    slides: copies
+  })
+  const { changeProject } = await import('./projects')
+  const { changeCopies } = await import('./map-episodes')
+  await changeProject('map9', (current) => {
+    for (const slide of current.project.slides)
+      slide.narration = `${slide.id}, newer.`
+  })
+  const all = copies.map((copy) => copy.id)
+  expect(await changeCopies('ep9', { action: 'update', slides: all })).toEqual({
+    updated: 1,
+    edited: 1
+  })
+  const bases = async () =>
+    (await loadProject('ep9'))!.project.slides.map((slide) => slide.base)
+  expect(await bases()).toEqual(['u1, newer.', 'My own words.'])
+  // Its own Update is the creator's choice: it brings it up.
+  await changeCopies('ep9', { action: 'update', slide: copies[1].id })
+  expect(await bases()).toEqual(['u1, newer.', 'u2, newer.'])
+})

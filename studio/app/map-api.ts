@@ -90,6 +90,10 @@ export const mapApi = {
       cut?: boolean
       rewriting?: boolean
       updated?: number
+      /** Copies the creator edited that Update all left as theirs. */
+      edited?: number
+      /** Scenes an Undo left as they are, worked on since. */
+      kept?: number
     }>(`/projects/${episode}/copies`, 'POST', body),
   renameEpisode: (episode: string, title: string) =>
     request<Snapshot>(`/projects/${episode}/episode-title`, 'POST', { title }),

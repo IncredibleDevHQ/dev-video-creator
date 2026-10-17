@@ -40,17 +40,33 @@ type Update = {
   episode: string
   keep: boolean
   copies: string[]
+  /** How many it changed, when Update all left some as the creator's. */
+  changed?: number
 }
 export type MapEdit = Order | Move | Removal | Update
 type Step = { work: () => Promise<unknown>; said: string | (() => string) }
 
-/** What an Update or a Keep says, done or done again. */
-const updateSaid = (edit: Update, n = edit.copies.length) =>
-  edit.keep
-    ? 'This episode keeps its version'
-    : n === 1
-      ? 'Copy updated from the map'
-      : `${n} cards updated from the map`
+/** What an Update or a Keep says, done or done again: Update all says
+ * how many copies the creator edited it left as theirs. */
+const updateSaid = (edit: Update, n = edit.copies.length, edited = 0) => {
+  const mine = edited
+    ? `${edited} you edited ${edited === 1 ? 'is' : 'are'} left as yours`
+    : ''
+  if (edit.keep) return 'This episode keeps its version'
+  if (!n) return `${mine}: update ${edited === 1 ? 'it' : 'each'} on its own`
+  return `${n === 1 ? 'Copy updated from the map' : `${n} cards updated from the map`}${mine ? `; ${mine}` : ''}`
+}
+/** An Undo of an Update, with the scenes it left as they are. */
+const undoneSaid = (n: number, kept = 0) => {
+  const back =
+    n === 1 ? 'Put back as it was' : `${n} cards put back as they were`
+  if (!kept) return back
+  const scenes =
+    kept > 1
+      ? `${kept} scenes, worked on since, stay as they are`
+      : `${n === 1 ? 'its' : '1'} scene, worked on since, stays as it is`
+  return `${back}; ${scenes}`
+}
 
 /**
  * The map's Update for an episode's copies (one, or Update all of those
@@ -64,6 +80,7 @@ export const updateCopies = async (
   keep = false
 ) => {
   let changed = 0
+  let edited = 0
   const done = await map.run(
     async () => {
       const [slide] = copies
@@ -76,14 +93,24 @@ export const updateCopies = async (
             : { action: 'update', slides: copies }
       )
       changed = keep ? 1 : (result.updated ?? copies.length)
+      edited = result.edited ?? 0
     },
     undefined,
     true
   )
   if (!done) return false
-  const edit: Update = { kind: 'update', episode, keep, copies }
-  if (changed) map.history.record(edit, updateSaid(edit, changed))
-  else map.toast('They match the map already')
+  const edit: Update = {
+    kind: 'update',
+    episode,
+    keep,
+    copies,
+    ...(edited ? { changed } : {})
+  }
+  if (changed) map.history.record(edit, updateSaid(edit, changed, edited))
+  else
+    map.toast(
+      edited ? updateSaid(edit, 0, edited) : 'They match the map already'
+    )
   return true
 }
 
@@ -190,27 +217,30 @@ export class MapHistory {
       lane?.copies.find((copy) => keyOf(copy) === key)
     if (edit.kind === 'update') {
       const lane = episode(edit.episode)
-      const n = edit.copies.length
+      const n = edit.changed ?? edit.copies.length
       if (!edit.copies.every((id) => lane?.copies.some((c) => c.id === id)))
         return null
+      let answer: { updated?: number; edited?: number; kept?: number } = {}
       if (!back)
         return {
-          work: () =>
-            mapApi.copies(
+          work: async () => {
+            answer = await mapApi.copies(
               edit.episode,
               edit.keep
                 ? { action: 'keep', slide: edit.copies[0] }
                 : { action: 'update', slides: edit.copies }
-            ),
-          said: updateSaid(edit)
+            )
+          },
+          said: () => updateSaid(edit, answer.updated ?? n, answer.edited)
         }
       return {
-        work: () => mapApi.copies(edit.episode, { action: 'undo-update' }),
-        said: edit.keep
-          ? 'It waits for your Update again'
-          : n === 1
-            ? 'Put back as it was'
-            : `${n} cards put back as they were`
+        work: async () => {
+          answer = await mapApi.copies(edit.episode, { action: 'undo-update' })
+        },
+        said: () =>
+          edit.keep
+            ? 'It waits for your Update again'
+            : undoneSaid(n, answer.kept)
       }
     }
     if (edit.kind === 'order') {

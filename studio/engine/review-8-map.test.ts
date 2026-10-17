@@ -1095,6 +1095,50 @@ describe('an episode’s cards changed on the map (round 1)', () => {
     expect(toast()[0]).toBe('Put back as it was')
     expect(lane.copies[0].stale).toBe(true)
   })
+
+  it('says how many edited copies Update all left as the creator’s, and a scene its Undo left as it is (round 3)', async () => {
+    const shown = view()
+    shown.episodes[0].copies[0].stale = true
+    shown.episodes[0].copies[2].stale = true
+    const { map } = await openMap(shown)
+    vi.mocked(mapApi.copies).mockImplementation(async (_episode, body) => {
+      const { action } = body as { action: string }
+      return action === 'update'
+        ? { updated: 1, edited: 1 }
+        : action === 'undo-update'
+          ? { kept: 1 }
+          : {}
+    })
+    const toast = () => map.slot('toast')!.querySelector('span')?.textContent
+    const all = () =>
+      click(map.slot('bar')!.querySelector('[data-map="update-all:e1"]'))
+    map.select({ t: 'lane', id: 'e1' })
+    all()
+    await settle()
+    expect(toast()).toBe(
+      'Copy updated from the map; 1 you edited is left as yours'
+    )
+    click(map.slot('toast')!.querySelector('button'))
+    await settle()
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'undo-update'
+    })
+    expect(toast()).toBe(
+      'Put back as it was; its scene, worked on since, stays as it is'
+    )
+    // Only edited ones to bring up: said, with nothing to undo.
+    vi.mocked(mapApi.copies).mockImplementation(async () => ({
+      updated: 0,
+      edited: 2
+    }))
+    map.select({ t: 'lane', id: 'e1' })
+    all()
+    await settle()
+    expect(toast()).toBe(
+      '2 you edited are left as yours: update each on its own'
+    )
+    expect(map.slot('toast')!.querySelector('button')).toBeNull()
+  })
 })
 
 describe('the content map, round 2 of the audit', () => {
