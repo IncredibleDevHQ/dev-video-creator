@@ -26,8 +26,9 @@ Every episode later becomes one storyboard (Plan Episode).
      episode's win and teachings, and its `gaps`, each with what the creator
      did with it (`state`: open, explained or ignored).
 2. `packet/PAGES.json`: every drawn card, in the map's order. Each has its id,
-   title, idea, `evidence` (lines from the source), `opens` (how its script
-   begins), topic and `seconds` (about how long it runs when spoken).
+   title, idea, `script` (all it says when spoken), `evidence` (lines from the
+   source), `shows` (the words drawn on it), `answers` (what the creator
+   supplied for it), topic and `seconds` (about how long it runs when spoken).
 3. `packet/SOURCE.md`: the source the map came from, with every note added
    since.
 4. `hyperframes/skills/hyperframes-creative/references/story-spine.md` (value
@@ -73,11 +74,16 @@ Every episode later becomes one storyboard (Plan Episode).
    - Open episodes you may move, rename and re-card freely.
    - New episodes have no `episode`.
 6. **Gaps.** List what the series needs that no card covers: a prerequisite
-   the cards assume, a step they skip, a payoff they promise. Each gap has:
+   the cards assume, a step they skip, a payoff they promise. Before you name
+   one, check every card's `idea`, whole `script`, `evidence`, `shows` and
+   `answers`, not its title alone: what a card already says is not missing.
+   When a card says part of it, name only the part no card says. Each gap
+   has:
    - an `id`;
-   - what is `missing`;
+   - what is `missing`: exactly the part no card says;
    - the `episode` number that needs it;
-   - `why` it matters;
+   - `why` it matters; when a card comes close, quote its words and say what
+     they leave out;
    - `ask`: the question that would fill it, put to the creator.
 
    Never invent material to cover a gap. Up to eight gaps.
@@ -157,5 +163,7 @@ directory. The studio checks it and puts it into the episodes:
 - every card once, or left with why;
 - each need from an earlier episode or a gap;
 - every gap of the last plan kept, or resolved with why;
+- each gap against the cards: one a card already says is marked with that
+  card's words, for the creator to close;
 - every direction answered;
 - the length.

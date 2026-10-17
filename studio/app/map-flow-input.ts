@@ -520,17 +520,24 @@ export const flowAction = async (
       return true
     case 'gap-explain':
     case 'gap-ignore':
+    case 'gap-covered':
       if (series)
         await map.run(
           () =>
             mapApi.gap(
               series.id,
               arg,
-              name === 'gap-explain' ? 'explained' : 'ignored'
+              name === 'gap-explain'
+                ? 'explained'
+                : name === 'gap-covered'
+                  ? 'covered'
+                  : 'ignored'
             ),
           name === 'gap-explain'
             ? 'The episode explains it in a line'
-            : 'Gap set aside'
+            : name === 'gap-covered'
+              ? 'Closed: that card covers it'
+              : 'Gap set aside'
         )
       return true
     case 'undo-organize':

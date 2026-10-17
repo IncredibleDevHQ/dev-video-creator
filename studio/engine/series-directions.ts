@@ -5,8 +5,9 @@
 import { randomUUID } from 'node:crypto'
 import type { Snapshot } from '../shared/api'
 import type { Direction, Series, SeriesGap } from '../shared/series'
+import { loadProject } from './projects'
 import { Refusal } from './refusal'
-import { changeSeries } from './series'
+import { changeSeries, loadSeries } from './series'
 import { validLength } from './video'
 
 const words = (value: unknown, limit: number) =>
@@ -143,16 +144,32 @@ export const updateBrief = (seriesId: string, raw: unknown) => {
   })
 }
 
-/** What to do about a gap: an episode explains it, it doesn't matter, or it
- * is open again. A card closes a gap when it is placed against it. */
-export const setGap = (seriesId: string, raw: unknown) => {
+/** What to do about a gap: an episode explains it, it doesn't matter, the
+ * card that may say it does (covered), or it is open again. A card closes a
+ * gap when it is placed against it. */
+export const setGap = async (seriesId: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
-  const state = String(value.state || '') as SeriesGap['state']
-  if (!['explained', 'ignored', 'open'].includes(state))
-    throw new Refusal('Choose explained, ignored or open')
+  const state = String(value.state || '') as SeriesGap['state'] | 'covered'
+  if (!['explained', 'ignored', 'open', 'covered'].includes(state))
+    throw new Refusal('Choose explained, ignored, covered or open')
+  // The card that may say it, while it is still drawn on the map.
+  const before = await loadSeries(seriesId)
+  const map = before?.map ? await loadProject(before.map) : null
+  const drawn = new Set(
+    (map?.project.slides || []).filter((s) => s.svg).map((s) => s.id)
+  )
   return changeSeries(seriesId, (series) => {
     const gap = series.gaps?.find((item) => item.id === String(value.id))
     if (!gap) throw new Refusal('That gap is gone')
+    if (state === 'covered') {
+      if (!gap.covered) throw new Refusal('No card says this yet')
+      if (!drawn.has(gap.covered.page))
+        throw new Refusal('That card is no longer on the map')
+      // Closed by that card, as a card placed against it closes a gap.
+      gap.state = 'closed'
+      gap.closedBy = gap.covered.page
+      return
+    }
     gap.state = state
     if (state === 'open') delete gap.closedBy
   })

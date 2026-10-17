@@ -51,6 +51,9 @@ export type SeriesGap = {
   closedBy?: string
   /** Why a later plan no longer needed it, when no card closed it. */
   resolved?: string
+  /** A card that may already say it, with its words: the creator closes
+   * the gap with that card, or keeps it open. */
+  covered?: { page: string; says: string }
 }
 
 /** The creator's guidance for the plan, as a note on the canvas: about the

@@ -44,6 +44,9 @@ export type OutlinePlan = {
     episode?: number
     why: string
     ask: string
+    /** A card that may already say it: the studio's check after planning
+     * (series-gaps.ts), never the agent's. */
+    covered?: import('../shared/series').SeriesGap['covered']
   }>
   overlaps: Array<{ pages: string[]; note: string }>
   left: Array<{ page: string; why: string }>

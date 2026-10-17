@@ -234,7 +234,8 @@ const mergeGaps = (
       ask: gap.ask,
       state: kept ? was.state : 'open',
       ...(kept && was.closedBy ? { closedBy: was.closedBy } : {}),
-      ...(kept && was.resolved ? { resolved: was.resolved } : {})
+      ...(kept && was.resolved ? { resolved: was.resolved } : {}),
+      ...(gap.covered ? { covered: gap.covered } : {})
     }
   })
   const kept = before

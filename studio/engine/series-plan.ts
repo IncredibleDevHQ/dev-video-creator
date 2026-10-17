@@ -8,6 +8,7 @@
 import type { Snapshot } from '../shared/api'
 import { DEFAULT_LENGTH, SEGUE, episodesFor } from '../shared/length'
 import type { Direction, Series } from '../shared/series'
+import { drawnWords } from './card-words'
 import { runValidatedJsonStage } from './creative/stage'
 import { detectedHarness } from './notebook-intake'
 import { fingerprintOf } from './planning/fingerprint'
@@ -16,6 +17,7 @@ import { Refusal } from './refusal'
 import { changeSeries, loadSeries } from './series'
 import { applyOutline, isMade, pagesOf } from './series-apply'
 import { directionsOf, scopeOf } from './series-directions'
+import { markCovered } from './series-gaps'
 import { validateOutline, type OutlinePlan } from './series-outline'
 import { pageScript } from './storyboard/plan'
 import { cardSeconds } from './storyboard/plan-check'
@@ -81,24 +83,42 @@ export const settledSeriesPlan = async (seriesId: string) => {
 }
 export const isPlanning = (seriesId: string) => planning.has(seriesId)
 
-/** Every drawn card of the map, as the planner reads it: what it says and
- * the evidence under it, not only its title. */
+/** Every drawn card of the map, as the planner reads it: all it says (its
+ * idea, its whole script, the evidence under it, the words drawn on it and
+ * the creator's answers), not only its title or how its script begins: a
+ * gap named from the first 300 characters asked for what the rest said
+ * (review 8). */
 export const cardsOf = (map: Snapshot) =>
   map.project.slides
     .filter((slide) => slide.svg && !slide.aside)
-    .map((slide) => ({
-      id: slide.id,
-      title: slide.title,
-      ...(slide.idea ? { idea: slide.idea } : {}),
-      ...(slide.evidence?.length
-        ? {
-            evidence: slide.evidence.slice(0, 3).map((line) => words(line, 220))
-          }
-        : {}),
-      opens: words(pageScript(slide), 300),
-      ...(slide.topic ? { topic: slide.topic } : {}),
-      seconds: cardSeconds(pageScript(slide))
-    }))
+    .map((slide) => {
+      const shows = drawnWords(slide.svg)
+        .slice(0, 40)
+        .map((line) => words(line, 160))
+      return {
+        id: slide.id,
+        title: slide.title,
+        ...(slide.idea ? { idea: slide.idea } : {}),
+        script: words(pageScript(slide), 2400),
+        ...(slide.evidence?.length
+          ? {
+              evidence: slide.evidence
+                .slice(0, 8)
+                .map((line) => words(line, 300))
+            }
+          : {}),
+        ...(shows.length ? { shows } : {}),
+        ...(slide.answers?.length
+          ? {
+              answers: slide.answers
+                .slice(0, 6)
+                .map((item) => words(`${item.what}: ${item.answer}`, 400))
+            }
+          : {}),
+        ...(slide.topic ? { topic: slide.topic } : {}),
+        seconds: cardSeconds(pageScript(slide))
+      }
+    })
 
 /** The episodes that exist, in order, with whether each is made. */
 export const existingOf = async (series: Series) => {
@@ -237,7 +257,13 @@ const runPlan = async (seriesId: string) => {
         lastGaps
       })
   })
-  await applyOutline(seriesId, plan, { map, series, existing })
+  // A gap a card already says is marked with that card, for the creator to
+  // close with it; it stays open until they do.
+  await applyOutline(
+    seriesId,
+    { ...plan, gaps: markCovered(plan.gaps, pages) },
+    { map, series, existing }
+  )
 }
 
 /** New cards drawn later: placed into the episodes by Place Pages, when the

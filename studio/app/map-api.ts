@@ -53,8 +53,11 @@ export const mapApi = {
       length?: { min: number; max: number; strict: boolean }
     }
   ) => request<Series>(`/series/${series}/brief`, 'POST', body),
-  gap: (series: string, id: string, state: 'explained' | 'ignored' | 'open') =>
-    request<Series>(`/series/${series}/gap`, 'POST', { id, state }),
+  gap: (
+    series: string,
+    id: string,
+    state: 'explained' | 'ignored' | 'open' | 'covered'
+  ) => request<Series>(`/series/${series}/gap`, 'POST', { id, state }),
   undoOrganize: (series: string, run: string) =>
     request<Series>(`/series/${series}/organize-undo`, 'POST', { run }),
   /** Organises the cards not placed yet, again. */

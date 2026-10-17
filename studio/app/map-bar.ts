@@ -31,7 +31,15 @@ const content = (map: MapCanvas) => {
   if (sel?.t === 'gap' && view?.series) {
     const gap = view.series.gaps.find((g) => g.id === sel.id)
     if (!gap) return ''
-    return `<div class="map-info"><b>Missing</b> · ${escape(gap.missing)}<small>${escape(gap.ask)}</small></div>${act(`gap-note:${gap.id}`, 'Add a note', '', true)}${act(`gap-explain:${gap.id}`, 'Explain here')}${act(`gap-ignore:${gap.id}`, 'Ignore')}`
+    // A card that may already say it: its words first (the gap's card says
+    // what is missing), and closing the gap with it.
+    const card = gap.covered
+      ? snapshot.project.slides.find((s) => s.id === gap.covered!.page)
+      : undefined
+    const info = card
+      ? `<b>A card may say it</b> · “${escape(gap.covered!.says)}”<small>${escape(card.title)}</small>`
+      : `<b>Missing</b> · ${escape(gap.missing)}<small>${escape(gap.ask)}</small>`
+    return `<div class="map-info">${info}</div>${act(`gap-note:${gap.id}`, 'Add a note', '', true)}${card ? act(`gap-covered:${gap.id}`, 'Covered') : ''}${act(`gap-explain:${gap.id}`, 'Explain here')}${act(`gap-ignore:${gap.id}`, 'Ignore')}`
   }
   if (sel?.t === 'direction' && view?.series) {
     const direction = view.series.directions.find((d) => d.id === sel.id)

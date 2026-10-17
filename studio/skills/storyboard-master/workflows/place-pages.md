@@ -21,9 +21,9 @@ episode. Everything else stays as it is.
    - its `win` and what it `teaches`;
    - its cards (`pages`, each with id and title);
    - `seconds`, about how long it runs.
-3. `packet/NEW.json`: the new cards. Each has its id, title, idea,
-   `evidence`, `opens` (how its script begins) and `seconds`. A card with
-   `fills` came from a note that answers that open gap.
+3. `packet/NEW.json`: the new cards. Each has its id, title, idea, `script`
+   (all it says), `evidence`, `shows` (the words drawn on it), `answers` and
+   `seconds`. A card with `fills` came from a note that answers that open gap.
 
 ## Decide
 

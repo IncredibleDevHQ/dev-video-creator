@@ -116,11 +116,26 @@ export const directionCard = (
 }
 
 /** A gap: what the episode needs that no card covers, the question that
- * would fill it, and what to do about it. */
+ * would fill it, and what to do about it. One a card may already say shows
+ * that card's words and closes with it. */
 export const gapCard = (gap: SeriesGap) => {
   const act = (name: string, cls: string, label: string, title: string) =>
     `<button type="button" class="${cls}" data-map="${name}:${escape(gap.id)}" title="${escape(title)}">${label}</button>`
-  return `<div class="map-node-label"><b>Missing</b></div><strong>${escape(gap.missing)}</strong><p>${escape(gap.why)}</p><div class="map-gap-acts">${act('gap-note', 'primary', 'Add a note', gap.ask)}${act('gap-explain', 'quiet', 'Explain here', 'The episode explains it in a line')}${act('gap-ignore', 'quiet', 'Ignore', 'It doesn’t matter for this series')}</div>`
+  const covered = gap.covered
+  const close = covered
+    ? act(
+        'gap-covered',
+        'quiet',
+        'Covered',
+        `“${covered.says}”: close the gap with that card`
+      )
+    : act(
+        'gap-explain',
+        'quiet',
+        'Explain here',
+        'The episode explains it in a line'
+      )
+  return `<div class="map-node-label"><b>Missing</b>${covered ? '<span>a card may say it</span>' : ''}</div><strong>${escape(gap.missing)}</strong><p>${escape(covered ? `“${covered.says}”` : gap.why)}</p><div class="map-gap-acts">${act('gap-note', 'primary', 'Add a note', gap.ask)}${close}${act('gap-ignore', 'quiet', 'Ignore', 'It doesn’t matter for this series')}</div>`
 }
 
 /** What the agent is doing now, for the Queue. */
