@@ -206,7 +206,8 @@
 .map-answer,
 .map-gap-acts,
 .map-node-label,
-.map-card-title {
+.map-card-title,
+.map-lane-acts {
   transition:
     opacity 0.2s var(--ease-out),
     visibility 0.2s;
@@ -247,6 +248,13 @@
 .map-canvas.is-farthest .map-segue-k {
   opacity: 0;
   visibility: hidden;
+}
+/* Farthest out, an episode's Make video is too small to press: its bar
+   offers it (round 1). */
+.map-canvas.is-farthest .map-lane-acts {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 .map-canvas.is-farthest .map-lane-head,
 .map-canvas.is-farthest .map-series-title h2,

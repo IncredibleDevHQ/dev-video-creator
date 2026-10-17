@@ -125,19 +125,20 @@ afterAll(async () => {
   if (dir) await rm(dir, { recursive: true, force: true })
 })
 
-/** Each control Tab reaches in the canvas, from the series on: what it is
- * and whether it can be seen. */
-const tabThrough = async (tab: Page) => {
+/** Each control Tab reaches in the canvas, from the series on: what it is,
+ * whether it can be seen, and how large its words are on screen. */
+const tabThrough = async (tab: Page, k: number) => {
   await tab.focus('[data-k="B:series"]')
   const seen: Array<{
     what: string
     opacity: number
     visibility: string
     size: number
+    px: number | null
   }> = []
   for (let i = 0; i < 40; i++) {
     await tab.keyboard.press('Tab')
-    const at = await tab.evaluate(() => {
+    const at = await tab.evaluate((k) => {
       const el = document.activeElement as HTMLElement | null
       if (!el?.closest('[data-map-canvas]')) return null
       let opacity = 1
@@ -151,9 +152,13 @@ const tabThrough = async (tab: Page) => {
           (el.matches('[data-map-organize]') ? 'organize' : el.tagName),
         opacity,
         visibility: getComputedStyle(el).visibility,
-        size: r.width * r.height
+        size: r.width * r.height,
+        // A block is seen whole; a button or a box is read by its words.
+        px: el.classList.contains('map-el')
+          ? null
+          : parseFloat(getComputedStyle(el).fontSize) * k
       }
-    })
+    }, k)
     if (!at) break
     seen.push(at)
   }
@@ -173,7 +178,7 @@ it('never tabs to a control the eye can’t see, and keeps Organise new cards in
       `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${style}"></head><body>${await painted(k)}</body></html>`
     )
     await tab.goto(`file://${file}`, { waitUntil: 'load' })
-    const seen = await tabThrough(tab)
+    const seen = await tabThrough(tab, k)
     const where = `at ${k * 100}%`
     expect
       .soft(seen.length, `${where}: Tab reaches the canvas`)
@@ -182,7 +187,26 @@ it('never tabs to a control the eye can’t see, and keeps Organise new cards in
       expect.soft(at.visibility, `${where}: ${at.what}`).toBe('visible')
       expect.soft(at.opacity, `${where}: ${at.what}`).toBeGreaterThan(0.9)
       expect.soft(at.size, `${where}: ${at.what}`).toBeGreaterThan(0)
+      // No control Tab reaches is too small to read (round 1: an episode's
+      // Make video stayed 12 px, about 5 px on screen at 41%).
+      if (at.px !== null)
+        expect.soft(at.px, `${where}: ${at.what}, on screen`).toBeGreaterThan(7)
     }
+    // Farthest out, an episode's Make video is in its bar, not its lane.
+    if (k < 0.36)
+      expect
+        .soft(
+          seen.filter((at) => at.what.startsWith('open:')),
+          `${where}: Make video in a lane`
+        )
+        .toEqual([])
+    else
+      expect
+        .soft(
+          seen.some((at) => at.what === 'open:e1'),
+          `${where}: Make video reached`
+        )
+        .toBe(true)
     // The series' automation, reached right after the series, and shown.
     const organize = seen.findIndex((at) => at.what === 'organize')
     expect
