@@ -329,6 +329,18 @@
   height: 1.1em;
   margin: 0;
 }
+/* What it covers, under it at the row's end, in two short lines at most:
+   the brief before it gives way first (review 8 F08). */
+.map-organize-says {
+  flex: 0 1 42ch;
+  min-width: 24ch;
+  margin-left: auto;
+  align-self: center;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: right;
+  color: var(--map-label);
+}
 .map-gap-count {
   color: var(--map-gap);
   font-weight: 600;

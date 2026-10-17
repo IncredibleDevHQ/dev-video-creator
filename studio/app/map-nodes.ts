@@ -38,9 +38,10 @@ export const lengthWords = (length: LengthGoal) =>
 export const lengthChip = (length: LengthGoal = DEFAULT_LENGTH) =>
   `<button type="button" class="quiet map-length" data-map="length" data-popover="series-length" title="How long each episode runs">${lengthWords(length)}</button>`
 
-/** What Organise new cards does, and what follows its card either way. */
+/** What Organise new cards covers, and what follows its card either way
+ * (review 8 F08): said once under it in the series' head. */
 export const ORGANIZE_SAYS =
-  'New cards find their episode; copies you haven’t edited follow their card either way.'
+  'New cards only; unedited copies follow their card until their episode is approved.'
 
 /** A plan has been made once it named the lines through the series. */
 export const seriesPlanned = (series: NonNullable<MapView['series']>) =>
@@ -77,8 +78,10 @@ export const seriesHead = (view: MapView) => {
   const again = planned
     ? `${lengthChip(series.length)}${planning ? '' : '<button type="button" class="quiet" data-map="plan-series">Plan again</button>'}`
     : ''
-  const organize = `<label class="map-organize" title="${ORGANIZE_SAYS}"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label>`
-  return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${again}${organize}</span></div><div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}</div>${
+  // What it covers, in words under it rather than a tooltip (review 8 F08).
+  const organize = `<label class="map-organize"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label>`
+  const says = `<small class="map-organize-says">${ORGANIZE_SAYS}</small>`
+  return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${again}${organize}</span></div><div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}${says}</div>${
     planned
       ? lines
       : '<p class="map-series-hint">The plan reads every card, finds the lines through them, orders episodes so each builds on the last, and names what the cards don’t cover.</p>'
