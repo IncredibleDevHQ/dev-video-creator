@@ -158,9 +158,28 @@ export const directionLines = async (
     about: scopeOf(direction, map, existing)
   }))
 
+/** The most a plan waits for the map's cards being drawn or changed. */
+const DRAWING_WAIT_MS = 5 * 60_000
+/** The map once the cards being drawn or changed have landed: a note's new
+ * card drawn a moment after the plan began was missed, and named as a gap
+ * (review 8, round 2's live run). */
+const settledMap = async (id: string) => {
+  const until = Date.now() + DRAWING_WAIT_MS
+  let map = await loadProject(id)
+  while (
+    map &&
+    (map.changes?.length || map.status === 'building') &&
+    Date.now() < until
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    map = await loadProject(id)
+  }
+  return map
+}
+
 const runPlan = async (seriesId: string) => {
   const series = (await loadSeries(seriesId))!
-  const map = await loadProject(series.map!)
+  const map = await settledMap(series.map!)
   if (!map) throw new Error('The map was not found')
   const pages = cardsOf(map)
   const total = pages.reduce((sum, page) => sum + page.seconds, 0)
