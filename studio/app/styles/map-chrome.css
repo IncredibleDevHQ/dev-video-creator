@@ -224,7 +224,9 @@
 /* Zoomed out, the fine print goes and the names stay readable; zoomed in,
    everything is back. Lines stay at every zoom. What goes is hidden, not
    only made clear, so the keys and a screen reader never reach a control
-   the eye can't see (review 8). */
+   the eye can't see (review 8): a made episode's Cut, Read, Draft and
+   Watch, Group by topic and the series' + Episode go too, the header
+   offering + Episode at every zoom (round 2). */
 .map-bridge,
 .map-segue,
 .map-gap p,
@@ -240,7 +242,10 @@
 .map-gap-acts,
 .map-node-label,
 .map-card-title,
-.map-lane-acts {
+.map-lane-acts,
+.map-derived,
+.map-group-act,
+.map-series-add {
   transition:
     opacity 0.2s var(--ease-out),
     visibility 0.2s;
@@ -257,7 +262,10 @@
 .map-canvas.is-far .map-gap-acts,
 .map-canvas.is-far .map-segue,
 .map-canvas.is-far .map-gap p,
-.map-canvas.is-far .map-block-head p {
+.map-canvas.is-far .map-block-head p,
+.map-canvas.is-far .map-derived,
+.map-canvas.is-far .map-group-act,
+.map-canvas.is-far .map-series-add {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;

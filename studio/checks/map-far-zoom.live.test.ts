@@ -18,10 +18,12 @@ const { mapApi } = await import('../app/map-api')
 const { MapCanvas } = await import('../app/map-canvas')
 
 // The map zoomed out, in a real browser with the studio's own stylesheet
-// (review 8, F12): Tab from the series never lands on a control the eye
+// (review 8, F12): Tab through the canvas never lands on a control the eye
 // can't see (at 45% it reached a hidden Organise new cards, and Space turned
-// organising off unseen), and the series' organise setting stays in view at
-// every zoom. The canvas is painted by the real map code, network stubbed.
+// organising off unseen; round 2: a made episode's Cut, Read, Draft and
+// Watch stayed 6 px Tab stops), and the series' organise setting stays in
+// view at every zoom. The canvas is painted by the real map code, network
+// stubbed.
 const style = fileURLToPath(new URL('../app/style.css', import.meta.url))
 const slide = (id: string) => ({ id, title: `Page ${id}`, svg: '<svg/>' })
 const snapshot = (): Snapshot => ({
@@ -46,8 +48,9 @@ const copy = (id: string, page: string) => ({
 })
 const episode = (notebook: string, number: number, pages: string[]) =>
   ({
-    made: false,
-    video: null,
+    made: true,
+    // Made: its place among the socials, with what each offers.
+    video: { scenes: pages.length, made: pages.length, joined: true },
     teasers: [],
     posts: null,
     notebook,
@@ -56,7 +59,24 @@ const episode = (notebook: string, number: number, pages: string[]) =>
     status: 'ready',
     copies: pages.map((page) => copy(`${notebook}-${page}`, page))
   }) as MapEpisode
-const view = (): MapView => ({
+/** The first episode's teaser cut and posts drafted (Watch, Read); the
+ * second's still to make (Cut, Draft). */
+const episodes = () => {
+  const [one, two] = [episode('e1', 1, ['a', 'b']), episode('e2', 2, ['c'])]
+  one.teasers = [
+    {
+      id: 't1',
+      channel: 'x',
+      aspect: '9:16',
+      state: 'ready',
+      objectKey: 'teasers/t1.mp4'
+    }
+  ]
+  one.posts = { x: 'Post', linkedin: 'Post', youtube: 'Post' }
+  return [one, two]
+}
+/** The series planned; with no episode yet, it offers + Episode itself. */
+const view = (empty = false): MapView => ({
   notebook: 'map',
   title: 'APIs that survive retries',
   series: {
@@ -81,12 +101,13 @@ const view = (): MapView => ({
     left: [],
     held: []
   },
-  episodes: [episode('e1', 1, ['a', 'b']), episode('e2', 2, ['c'])],
-  usage: { a: ['e1'], b: ['e1'], c: ['e2'] }
+  episodes: empty ? [] : episodes(),
+  usage: empty ? {} : { a: ['e1'], b: ['e1'], c: ['e2'] }
 })
 
-/** The map as the studio paints it, its camera at a zoom. */
-const painted = async (k: number) => {
+/** The map as the studio paints it, its camera at a zoom: its cards by
+ * topic, none grouped yet (Group by topic). */
+const painted = async (k: number, empty = false) => {
   const win = parseHTML('<html><body><div id="app"></div></body></html>')
   vi.stubGlobal('document', win.document)
   vi.stubGlobal('window', win)
@@ -102,7 +123,8 @@ const painted = async (k: number) => {
     error() {}
   } as never)
   vi.mocked(api.load).mockImplementation(async () => snapshot())
-  vi.mocked(mapApi.view).mockImplementation(async () => view())
+  vi.mocked(mapApi.view).mockImplementation(async () => view(empty))
+  map.mode = 'topic'
   await map.open('map')
   // Where the camera's zoom leaves the canvas, as the map sets it.
   map.camera = { x: 20, y: 20, k }
@@ -125,10 +147,15 @@ afterAll(async () => {
   if (dir) await rm(dir, { recursive: true, force: true })
 })
 
-/** Each control Tab reaches in the canvas, from the series on: what it is,
+/** Each control Tab reaches in the canvas, from its start on: what it is,
  * whether it can be seen, and how large its words are on screen. */
 const tabThrough = async (tab: Page, k: number) => {
-  await tab.focus('[data-k="B:series"]')
+  await tab.evaluate(() => {
+    const start = document.createElement('i')
+    start.tabIndex = 0
+    document.querySelector('[data-map-world]')!.prepend(start)
+    start.focus()
+  })
   const seen: Array<{
     what: string
     opacity: number
@@ -136,7 +163,7 @@ const tabThrough = async (tab: Page, k: number) => {
     size: number
     px: number | null
   }> = []
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 80; i++) {
     await tab.keyboard.press('Tab')
     const at = await tab.evaluate((k) => {
       const el = document.activeElement as HTMLElement | null
@@ -149,7 +176,11 @@ const tabThrough = async (tab: Page, k: number) => {
         what:
           el.dataset.k ||
           el.dataset.map ||
-          (el.matches('[data-map-organize]') ? 'organize' : el.tagName),
+          (el.matches('[data-map-organize]')
+            ? 'organize'
+            : el.matches('a')
+              ? 'watch'
+              : el.tagName),
         opacity,
         visibility: getComputedStyle(el).visibility,
         size: r.width * r.height,
@@ -171,18 +202,36 @@ it('never tabs to a control the eye can’t see, and keeps Organise new cards in
   await tab.emulateMediaFeatures([
     { name: 'prefers-reduced-motion', value: 'reduce' }
   ])
-  for (const k of [1, 0.45, 0.3]) {
-    const file = join(dir, `map-${k}.html`)
+  // Two episodes made, or the series planned with none yet.
+  for (const [empty, k] of [false, true].flatMap((empty) =>
+    [1, 0.45, 0.3].map((k) => [empty, k] as const)
+  )) {
+    const file = join(dir, `map-${empty}-${k}.html`)
     await writeFile(
       file,
-      `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${style}"></head><body>${await painted(k)}</body></html>`
+      `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${style}"></head><body>${await painted(k, empty)}</body></html>`
     )
     await tab.goto(`file://${file}`, { waitUntil: 'load' })
     const seen = await tabThrough(tab, k)
-    const where = `at ${k * 100}%`
+    const where = `${empty ? 'no episode' : 'made'} at ${k * 100}%`
     expect
       .soft(seen.length, `${where}: Tab reaches the canvas`)
       .toBeGreaterThan(3)
+    // Close up, the small controls are there to reach: zoomed out, the
+    // checks above and below hold for them too.
+    if (k === 1)
+      expect
+        .soft(
+          seen.map((at) => at.what),
+          `${where}: what is reached close up`
+        )
+        .toEqual(
+          expect.arrayContaining(
+            empty
+              ? ['group', 'new-episode']
+              : ['group', 'teaser:e2', 'posts:e2', 'read-posts:e1', 'watch']
+          )
+        )
     for (const at of seen) {
       expect.soft(at.visibility, `${where}: ${at.what}`).toBe('visible')
       expect.soft(at.opacity, `${where}: ${at.what}`).toBeGreaterThan(0.9)
@@ -193,7 +242,8 @@ it('never tabs to a control the eye can’t see, and keeps Organise new cards in
         expect.soft(at.px, `${where}: ${at.what}, on screen`).toBeGreaterThan(7)
     }
     // Farthest out, an episode's Make video is in its bar, not its lane.
-    if (k < 0.36)
+    if (empty) void 0
+    else if (k < 0.36)
       expect
         .soft(
           seen.filter((at) => at.what.startsWith('open:')),

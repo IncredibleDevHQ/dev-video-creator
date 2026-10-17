@@ -24,12 +24,13 @@ export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
     }
     still()
     requestAnimationFrame(still)
-    // A block reached by key, or a box to type in on one: Add → Direction
-    // focused its box at the series' head, off screen (review 8, round 2).
+    // A block reached by key, a control on one (a lane's Make video, a
+    // gap's choices), or a box to type in on one: Add → Direction focused
+    // its box at the series' head, off screen (review 8, round 2). A click
+    // on a button leaves the camera where it is.
     const node = el.closest<HTMLElement>('.map-el')
     const typing = el.matches('input, textarea, select')
-    if (!node || !(typing || (node === el && el.matches(':focus-visible'))))
-      return
+    if (!node || !(typing || el.matches(':focus-visible'))) return
     const at = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(
       node.style.transform
     )

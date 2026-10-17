@@ -1042,3 +1042,27 @@ describe('an episode’s cards changed on the map (round 1)', () => {
     expect(lane.copies[0].stale).toBe(true)
   })
 })
+
+describe('the content map, round 2 of the audit', () => {
+  it('brings a block into view when the keys reach a button on it, never when it is clicked (F12)', async () => {
+    const { map, root } = await openMap()
+    map.canvas!.getBoundingClientRect = () => rect(0, 0, 1200, 800)
+    const lane = map.layout!.lanes.e1
+    const node = map.els.get('L:e1')!
+    Object.assign(node, { offsetWidth: lane.w, offsetHeight: lane.h })
+    // The episode is far off to the left; its Make video gets focus.
+    const button = root.querySelector<HTMLElement>('[data-map="open:e1"]')!
+    let keyboard = false
+    const matches = button.matches.bind(button)
+    button.matches = (selector: string) =>
+      selector === ':focus-visible' ? keyboard : matches(selector)
+    map.camera = { x: -5000, y: 100 - lane.y, k: 1 }
+    fire(button, 'focusin')
+    expect(map.camera.x).toBe(-5000)
+    keyboard = true
+    fire(button, 'focusin')
+    const left = map.camera.x + lane.x * map.camera.k
+    expect(left).toBeGreaterThanOrEqual(40)
+    expect(left + lane.w).toBeLessThanOrEqual(1200 - 40)
+  })
+})
