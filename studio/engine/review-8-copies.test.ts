@@ -11,14 +11,36 @@ import type { Slide } from '../shared/model'
 // edited or kept; an edited copy, a kept one, or one in an episode being
 // made waits for the creator. The agents are stand-ins: these checks prove
 // the plumbing, never what a model writes.
-const { revise, draw, segues } = vi.hoisted(() => ({
+const { revise, draw, segues, hold } = vi.hoisted(() => ({
   revise: vi.fn(),
   draw: vi.fn(),
-  segues: vi.fn()
+  segues: vi.fn(),
+  hold: {
+    series: '',
+    gate: null as Promise<void> | null,
+    reached: () => {}
+  }
 }))
 vi.mock('./creative/slide-revision', () => ({
   prepareCreativeSlideRevision: revise
 }))
+// A catch-up held once, after it has read the card, while another change
+// to that card lands.
+vi.mock('./series', async (importOriginal) => {
+  const real = await importOriginal<typeof import('./series')>()
+  return {
+    ...real,
+    loadSeries: async (id: string) => {
+      const gate = id === hold.series ? hold.gate : null
+      if (gate) {
+        hold.gate = null
+        hold.reached()
+        await gate
+      }
+      return real.loadSeries(id)
+    }
+  }
+})
 vi.mock('./creative/pages', () => ({ prepareCreativePages: draw }))
 vi.mock('./creative/stage', () => ({ runValidatedJsonStage: segues }))
 const root = await mkdtemp(join(tmpdir(), 'studio-review-8-copies-'))
@@ -26,7 +48,8 @@ process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
 const { chatSlide, settledChanges } = await import('./slide-changes')
-const { copyOf, pageHash } = await import('./map-copy')
+const { catchUpCopies, copyOf, pageHash, settledFollowing } =
+  await import('./map-copy')
 const { settledAllSegues } = await import('./map-segues')
 const { readSourceNarrative } = await import('./source-document')
 const { pageBrandFrom } = await import('./source-page')
@@ -256,9 +279,49 @@ it('keeps a followed copy’s capture, leaves an episode with any storyboard, an
   } finally {
     server.close()
   }
+  await settledFollowing()
   const captured = await copyIn('captured')
   expect(captured.base).toBe('Keep a key as long as clients may retry.')
   expect(captured.capture).toEqual(capture)
   // A plan waits there: its copy waits for the creator's Update.
   expect((await copyIn('planning')).base).toBe(card.narration)
+})
+
+it('leaves no copy on the older card when two changes to it overlap', async () => {
+  const third: Slide = { ...card, id: 'expiry', title: 'When a key expires' }
+  await write('map3', { mapSeries: 's3', slides: [third] })
+  await writeRow('series', 's3', {
+    id: 's3',
+    title: 'Payments',
+    mapNotebook: 'map3',
+    organize: true,
+    episodes: [{ notebookId: 'follows' }]
+  })
+  await write('follows', {
+    copyOfMap: 'map3',
+    episode: { series: 's3', number: 1 },
+    slides: [copyOf('map3', third)]
+  })
+  const { editSlide } = await import('./projects')
+  const say = (narration: string) =>
+    editSlide('map3', { action: 'script', slideId: 'expiry', narration })
+  // The first change's copies start to follow it, and stop once they have
+  // read the card...
+  let release!: () => void
+  hold.series = 's3'
+  hold.gate = new Promise((done) => (release = done))
+  const reached = new Promise<void>((done) => (hold.reached = done))
+  await say('Keep a key for a day.')
+  const first = catchUpCopies('map3', 'expiry')
+  await reached
+  // ...while a second change lands and its copies follow it.
+  await say('Keep a key for as long as clients may retry.')
+  const second = catchUpCopies('map3', 'expiry')
+  await Promise.race([second, new Promise((done) => setTimeout(done, 100))])
+  release()
+  await Promise.all([first, second])
+  // The copy ends on the card as it is, never the older one.
+  expect((await copyIn('follows')).base).toBe(
+    'Keep a key for as long as clients may retry.'
+  )
 })

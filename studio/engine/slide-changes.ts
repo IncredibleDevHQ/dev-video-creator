@@ -21,6 +21,7 @@ import { changeProject, loadProject } from './projects'
 import { reconcileVideo } from './scene-model'
 import { composeNarration, planScenes, scheduleSegues } from './map-segues'
 import { catchUpCopies } from './map-copy'
+import { withDeck } from './deck-lock'
 import type { readSourceNarrative } from './source-document'
 import {
   outlineSchema,
@@ -107,28 +108,7 @@ export const answerEvidence = async (id: string, raw: unknown) => {
   })
 }
 
-const decks = new Map<string, Promise<void>>()
-/**
- * One deck-changing step at a time per notebook: a page being redrawn, or a
- * note's new pages going in. A note waits for the redraw instead of moving
- * the pages under it, which would fail that change.
- */
-export const withDeck = async <T>(id: string, work: () => Promise<T>) => {
-  const before = decks.get(id) || Promise.resolve()
-  let release!: () => void
-  const mine = new Promise<void>((done) => {
-    release = done
-  })
-  const chained = before.then(() => mine)
-  decks.set(id, chained)
-  await before
-  try {
-    return await work()
-  } finally {
-    release()
-    if (decks.get(id) === chained) decks.delete(id)
-  }
-}
+export { withDeck } from './deck-lock'
 
 const working = new Map<string, Promise<void>>()
 /** Start the notebook's queue unless it is running; drawing must finish first. */
@@ -165,6 +145,9 @@ const processChanges = async (id: string) => {
     })
     try {
       await withDeck(id, () => reviseSlide(id, next))
+      // A map's card changed: the copies that follow it do, once the deck
+      // is free again, from the card as it is then (review 8).
+      await catchUpCopies(id, next.slideId)
     } catch (error) {
       await changeProject(id, (current) => {
         const message = changeFailure(error, current)
@@ -376,8 +359,6 @@ const reviseSlide = async (id: string, change: SlideChange) => {
   // A redrawn page invalidated its scene: plan it again, if there is a video.
   await planScenes(id)
   if (snapshot.project.copyOfMap) scheduleSegues(id)
-  // A map's card changed: the episodes' untouched copies follow it.
-  if (snapshot.project.mapSeries) await catchUpCopies(id, change.slideId)
 }
 
 /** Without an agent, the writing model revises the scene and the studio draws it. */

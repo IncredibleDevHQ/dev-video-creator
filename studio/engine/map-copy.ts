@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import type { Snapshot } from '../shared/api'
 import type { Slide } from '../shared/model'
 import { addEvent } from './activity'
+import { withDeck } from './deck-lock'
 import { composeNarration, planScenes, scheduleAround } from './map-segues'
 import { readRow, writeRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
@@ -113,34 +114,57 @@ export const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
  * 8 F08: each copy needed its own Update after every note).
  */
 export const catchUpCopies = async (mapId: string, slideId: string) => {
-  const map = await loadProject(mapId)
-  const original = map?.project.slides.find((slide) => slide.id === slideId)
-  const series = map?.project.mapSeries
-    ? await loadSeries(map.project.mapSeries)
-    : null
-  if (!original?.svg || !series) return
-  for (const { notebookId } of series.episodes) {
-    // An episode whose video has started keeps its copies until the
-    // creator updates them: following would plan its video again.
-    const episode = await loadProject(notebookId)
-    if (!episode || isMade(episode)) continue
-    let updated = false
-    await changeProject(notebookId, (current) => {
-      current.project.slides = current.project.slides.map((slide) => {
-        const fresh =
-          slide.copyOf?.slide === slideId && !slide.copyOf.kept
-            ? caughtUp(mapId, slide, original)
-            : null
-        if (!fresh) return slide
-        updated = true
-        return fresh
+  // Under the map's deck lock, the card read inside it: a hand edit and a
+  // redraw close together follow one after the other, so neither leaves a
+  // copy on the older card (review 8).
+  const followed = await withDeck(mapId, async () => {
+    const map = await loadProject(mapId)
+    const original = map?.project.slides.find((slide) => slide.id === slideId)
+    const series = map?.project.mapSeries
+      ? await loadSeries(map.project.mapSeries)
+      : null
+    const episodes: string[] = []
+    if (!original?.svg || !series) return episodes
+    for (const { notebookId } of series.episodes) {
+      // An episode whose video has started keeps its copies until the
+      // creator updates them: following would plan its video again.
+      const episode = await loadProject(notebookId)
+      if (!episode || isMade(episode)) continue
+      let updated = false
+      await changeProject(notebookId, (current) => {
+        current.project.slides = current.project.slides.map((slide) => {
+          const fresh =
+            slide.copyOf?.slide === slideId && !slide.copyOf.kept
+              ? caughtUp(mapId, slide, original)
+              : null
+          if (!fresh) return slide
+          updated = true
+          return fresh
+        })
+        if (!updated) return
+        reconcileVideo(current.project, current, new Set())
+        addEvent(current, 'slide', `Updated “${original.title}” from the map`)
       })
-      if (!updated) return
-      reconcileVideo(current.project, current, new Set())
-      addEvent(current, 'slide', `Updated “${original.title}” from the map`)
-    })
-    if (!updated) continue
+      if (updated) episodes.push(notebookId)
+    }
+    return episodes
+  })
+  for (const notebookId of followed) {
     await planScenes(notebookId)
     await scheduleAround(notebookId)
   }
+}
+
+const following = new Set<Promise<void>>()
+/** A card's script edited by hand: its copies follow in the background,
+ * once the deck is free (a redraw running holds it for minutes). */
+export const followCard = (mapId: string, slideId: string) => {
+  const job: Promise<void> = catchUpCopies(mapId, slideId)
+    .catch(() => {})
+    .finally(() => following.delete(job))
+  following.add(job)
+}
+/** Resolves when the copies following a hand edit have (tests and checks). */
+export const settledFollowing = async () => {
+  while (following.size) await Promise.all([...following])
 }
