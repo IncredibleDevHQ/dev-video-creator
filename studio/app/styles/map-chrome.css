@@ -85,6 +85,39 @@
     bottom: 62px;
   }
 }
+/* A phone: the notes are a sheet over the foot of the map, and the toast and
+   the bar sit just above it, as wide as the map (round 1: at 390 px the bar
+   shrank to 42 px under the panel). The canvas's tools wait above. */
+@media (max-width: 640px) {
+  .map-page.is-notes-open .map-rail {
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: 8px;
+    width: auto;
+    height: min(58%, 480px);
+    animation-name: map-sheet-in;
+  }
+  .map-page.is-notes-open .map-dock,
+  .map-page.is-notes-open .map-dock:has(> .map-bar[hidden]),
+  .map-page.is-notes-open .map-dock:has(> .map-bar:not([hidden])) {
+    left: 50%;
+    bottom: calc(min(58%, 480px) + 18px);
+    max-width: calc(100% - 24px);
+  }
+  .map-page.is-notes-open .map-toolpill {
+    display: none;
+  }
+  .map-page.is-notes-open .map-queue {
+    right: 14px;
+  }
+}
+@keyframes map-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
 
 /* The header's tools: Notes, View, the next step, More. */
 .map-pill-tools .map-notes-toggle {

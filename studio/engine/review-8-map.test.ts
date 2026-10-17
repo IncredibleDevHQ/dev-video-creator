@@ -763,3 +763,30 @@ describe('heard as well as seen (round 1)', () => {
     expect(menu.querySelector('[role]')).toBeNull()
   })
 })
+
+describe('a phone with the notes open (round 1)', () => {
+  it('fits the map above the sheet of notes, across the whole width, and looks past a panel that leaves no room', async () => {
+    const { map, root } = await openMap()
+    map.canvas!.getBoundingClientRect = () => rect(0, 0, 390, 690)
+    click(root.querySelector('.map-notes-toggle'))
+    const rail = root.querySelector('.map-rail')!
+    // The sheet, 8 px in, over the foot of the canvas.
+    rail.getBoundingClientRect = () => rect(8, 282, 374, 400)
+    map.camera = { x: 0, y: 0, k: 1 }
+    map.fit()
+    const box = extent(map.layout!)
+    const { x, y, k } = map.camera
+    expect(k).toBeLessThan(1)
+    // From the left edge (the tools wait while the sheet is open).
+    expect(x + box.x * k).toBeCloseTo(16, 5)
+    // Clear of the sheet, with room for the bar just over it.
+    expect(y + (box.y + box.h) * k).toBeLessThanOrEqual(282 - 70 + 0.5)
+    // A panel beside the map that would leave it too little: fitted as if
+    // shut, never not at all.
+    rail.getBoundingClientRect = () => rect(78, 10, 300, 670)
+    map.camera = { x: 0, y: 0, k: 1 }
+    map.fit()
+    expect(map.camera.k).toBeLessThan(1)
+    expect(map.camera.x + (box.x + box.w) * map.camera.k).toBeGreaterThan(78)
+  })
+})

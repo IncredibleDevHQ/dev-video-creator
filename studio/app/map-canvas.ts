@@ -323,23 +323,32 @@ export class MapCanvas {
       ?.style.setProperty('--k', String(this.camera.k))
     for (const follow of this.onCamera) follow(animate)
   }
-  /** How far the open Notes panel reaches over the canvas from its right
-   * edge, as it floats over it (0 with it shut): what is fitted, or brought
-   * into view from the keyboard, keeps clear of it (review 8). */
-  covered(rect: { right: number }) {
+  /** What the open Notes panel covers of the canvas, floating over it: its
+   * right side (a panel), or its foot (a phone's sheet); nothing with it
+   * shut. What is fitted, or brought into view from the keyboard, keeps
+   * clear of it (review 8); a panel that would leave too little beside it
+   * is looked past. */
+  covered(rect: DOMRect) {
     const rail = this.root.querySelector('.map-page.is-notes-open .map-rail')
     const box = rail?.getBoundingClientRect()
-    return box?.width ? Math.max(0, rect.right - box.left) : 0
+    const none = { right: 0, bottom: 0 }
+    if (!box?.width) return none
+    if (box.width >= rect.width * 0.8)
+      return { right: 0, bottom: Math.max(0, rect.bottom - box.top) }
+    const right = Math.max(0, rect.right - box.left)
+    return rect.width - right >= 300 ? { right, bottom: 0 } : none
   }
   fit(focus?: Box) {
     if (!this.layout || !this.canvas) return
     const box = extent(this.layout, focus)
     const rect = this.canvas.getBoundingClientRect()
     // The tool bar floats on the left: what is fitted starts past it, and
-    // ends before an open Notes panel.
-    const left = 72
-    const width = rect.width - left - 16 - this.covered(rect)
-    const height = rect.height - 90
+    // ends before an open Notes panel; above a phone's sheet of notes there
+    // is room for the bar over it (the tools wait while it is open).
+    const cover = this.covered(rect)
+    const left = cover.bottom ? 16 : 72
+    const width = rect.width - left - 16 - cover.right
+    const height = rect.height - (cover.bottom ? 16 + cover.bottom + 70 : 90)
     if (width <= 0 || height <= 0) return
     const k = Math.max(0.2, Math.min(width / box.w, height / box.h, 1))
     // Too big even at the smallest zoom, it shows from its top left.

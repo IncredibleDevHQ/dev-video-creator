@@ -32,6 +32,7 @@ export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
     if (!at) return
     const { k } = map.camera
     const rect = canvas.getBoundingClientRect()
+    const cover = map.covered(rect)
     // Too big to show whole, it shows its start; else it is nudged in.
     const nudge = (
       start: number,
@@ -52,14 +53,14 @@ export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
     const dx = nudge(
       map.camera.x + Number(at[1]) * k,
       el.offsetWidth * k,
-      rect.width - map.covered(rect),
+      rect.width - cover.right,
       40,
       40
     )
     const dy = nudge(
       map.camera.y + Number(at[2]) * k,
       el.offsetHeight * k,
-      rect.height,
+      rect.height - cover.bottom,
       60,
       110
     )
