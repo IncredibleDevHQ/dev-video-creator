@@ -134,24 +134,45 @@ it('keeps an open gap’s card as it was: its reason, and Explain here', () => {
   expect(html).not.toContain('a card may say it')
 })
 
-it('shows the words of the card that may cover a gap, and closes the gap with that card', async () => {
+it('keeps a covered gap’s reason and Explain here, and adds the card’s words and title, whole once selected', async () => {
   const { map, root } = await openMap(view())
   const node = root.querySelector('[data-k="g:same-key"]')!
   expect(node.textContent).toContain('a card may say it')
-  expect(node.textContent).toContain(`“${SAYS}”`)
+  expect(node.querySelector('p')!.textContent).toBe(
+    'The card idea does not show it'
+  )
+  expect(node.querySelector('.map-gap-says')!.textContent).toBe(
+    `“${SAYS}”First tool: an idempotency key`
+  )
   expect(actions(node)).toEqual([
     'gap-note:same-key',
     'gap-covered:same-key',
+    'gap-explain:same-key',
     'gap-ignore:same-key'
   ])
   fire(node, 'pointerdown', { button: 0, clientX: 10, clientY: 10 })
   fire(node, 'pointerup', { button: 0, clientX: 10, clientY: 10 })
   expect(map.sel).toEqual({ t: 'gap', id: 'same-key' })
-  // The bar quotes the card first and names it (the gap's own card says
-  // what is missing), with closing the gap beside a note.
+  // Selected, it opens to its whole text; the card it may be covered by,
+  // and that card's copy in an episode, are lit.
+  expect(root.querySelector('[data-k="g:same-key"]')!.className).toContain(
+    'is-selected'
+  )
+  expect(root.querySelector('[data-k="m:b"]')!.className).toContain(
+    'is-covering'
+  )
+  expect(root.querySelector('[data-k="c:e2-c"]')!.className).toContain(
+    'is-covering'
+  )
+  expect(root.querySelector('[data-k="m:a"]')!.className).not.toContain(
+    'is-covering'
+  )
+  // The bar: what is missing, then the card's words whole and its title.
   const bar = map.slot('bar')!
-  expect(bar.querySelector('.map-info')!.textContent).toBe(
-    `A card may say it · “${SAYS}”First tool: an idempotency key`
+  const info = bar.querySelector('.map-info')!
+  expect(info.className).toBe('map-info is-two')
+  expect(info.textContent).toBe(
+    `Missing · What the server does when the same key arrives with a different order“${SAYS}” · First tool: an idempotency key`
   )
   expect(actions(bar)).toEqual([
     'gap-note:same-key',
@@ -159,11 +180,10 @@ it('shows the words of the card that may cover a gap, and closes the gap with th
     'gap-explain:same-key',
     'gap-ignore:same-key'
   ])
-  click(bar.querySelector('[data-map="gap-covered:same-key"]'))
-  await settle()
-  expect(mapApi.gap).toHaveBeenCalledWith('s', 'same-key', 'covered')
-  // The card's own button does the same.
-  vi.mocked(mapApi.gap).mockClear()
+})
+
+it('closes a covered gap with Undo in its toast, and reopens it from the card that closed it', async () => {
+  const { map, root } = await openMap(view())
   click(
     root.querySelector(
       '[data-k="g:same-key"] [data-map="gap-covered:same-key"]'
@@ -171,4 +191,39 @@ it('shows the words of the card that may cover a gap, and closes the gap with th
   )
   await settle()
   expect(mapApi.gap).toHaveBeenCalledWith('s', 'same-key', 'covered')
+  const toast = map.slot('toast')!
+  expect(toast.hidden).toBe(false)
+  expect(toast.textContent).toBe('Closed: that card covers itUndo')
+  click(toast.querySelector('[data-map="gap-reopen:same-key"]'))
+  await settle()
+  expect(mapApi.gap).toHaveBeenLastCalledWith('s', 'same-key', 'open')
+  // Later: the card that closed it offers to open it again.
+  const closed = view()
+  closed.series!.gaps[0] = {
+    ...closed.series!.gaps[0],
+    state: 'closed',
+    closedBy: 'b'
+  }
+  const again = await openMap(closed)
+  again.map.select({ t: 'page', id: 'b' })
+  const reopen = again.map
+    .slot('bar')!
+    .querySelector('[data-map="gap-reopen:same-key"]')!
+  expect(reopen.textContent).toBe('Reopen gap')
+  expect(reopen.getAttribute('title')).toBe(
+    'It closed “What the server does when the same key arrives with a different order”'
+  )
+  vi.mocked(mapApi.gap).mockClear()
+  click(reopen)
+  await settle()
+  expect(mapApi.gap).toHaveBeenCalledWith('s', 'same-key', 'open')
+  // Its copy in an episode offers the same.
+  again.map.select({ t: 'copy', id: 'e2-c' })
+  expect(
+    again.map.slot('bar')!.querySelector('[data-map="gap-reopen:same-key"]')
+  ).not.toBeNull()
+  again.map.select({ t: 'page', id: 'a' })
+  expect(
+    again.map.slot('bar')!.querySelector('[data-map^="gap-reopen"]')
+  ).toBeNull()
 })

@@ -156,3 +156,41 @@
   padding: 3px 8px;
   font-size: 11px;
 }
+
+/* A selected gap opens up to its whole text, as a selected episode's
+   segues do: why it matters, and the words and title of a card that may
+   say it (review 8). */
+.map-gap.is-selected {
+  z-index: 6;
+  height: auto !important;
+  min-height: 176px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.map-gap.is-selected p {
+  flex-shrink: 0;
+  -webkit-line-clamp: unset;
+}
+.map-gap-says b {
+  display: block;
+  margin-top: 2px;
+  font-weight: 600;
+  color: var(--map-gap);
+}
+/* The card a selected gap may be covered by, and its copies. */
+.map-card.is-covering {
+  border-color: var(--map-gap);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--map-gap) 28%, transparent);
+}
+/* A covered gap's bar: what is missing, then the card's words and title. */
+.map-info.is-two {
+  white-space: normal;
+  max-width: 560px;
+}
+.map-info.is-two small {
+  margin-left: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

@@ -515,24 +515,35 @@ export const flowAction = async (
       return true
     case 'gap-explain':
     case 'gap-ignore':
-    case 'gap-covered':
       if (series)
         await map.run(
           () =>
             mapApi.gap(
               series.id,
               arg,
-              name === 'gap-explain'
-                ? 'explained'
-                : name === 'gap-covered'
-                  ? 'covered'
-                  : 'ignored'
+              name === 'gap-explain' ? 'explained' : 'ignored'
             ),
           name === 'gap-explain'
             ? 'The episode explains it in a line'
-            : name === 'gap-covered'
-              ? 'Closed: that card covers it'
-              : 'Gap set aside'
+            : 'Gap set aside'
+        )
+      return true
+    // Closed with the card that says it, with Undo; and open again.
+    case 'gap-covered':
+      if (
+        series &&
+        (await map.run(() => mapApi.gap(series.id, arg, 'covered')))
+      )
+        map.toast('Closed: that card covers it', {
+          map: `gap-reopen:${arg}`,
+          label: 'Undo'
+        })
+      return true
+    case 'gap-reopen':
+      if (series)
+        await map.run(
+          () => mapApi.gap(series.id, arg, 'open'),
+          'The gap is open again'
         )
       return true
     // A line still past the creator's words: written again, or kept.

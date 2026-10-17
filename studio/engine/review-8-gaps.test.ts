@@ -73,8 +73,7 @@ const cards = (id: string) => [
     'Two copies of the same order hit the database at once, and a check-then-insert lets both through.'
   )
 ]
-const drawnMap = async (id: string) => {
-  const slides = cards(id)
+const drawnMap = async (id: string, slides = cards(id)) => {
   const snapshot: Snapshot = {
     project: {
       id,
@@ -292,4 +291,50 @@ it('refuses to close a gap with a card that left the map', async () => {
     (await loadSeries(series.id))!.gaps!.find((item) => item.id === 'same-key')!
       .state
   ).toBe('open')
+})
+
+it('marks a gap with the covering card in its own episode or before, over one that comes later', async () => {
+  // The same words on a recap card, first on the map but in a later episode.
+  const id = 'm-prefer'
+  const ids = await drawnMap(id, [
+    card(`${id}-0`, 'Recap', KEY_SCRIPT),
+    ...cards(id)
+  ])
+  const series = await episodes.startMapSeries(id, {})
+  await segues.settledAllSegues()
+  const episode = (title: string, pages: string[]) => ({
+    title,
+    about: title,
+    win: `Win of ${title}`,
+    teaches: [title],
+    needs: [],
+    carries: 'Hands on',
+    lines: ['latte'],
+    pages
+  })
+  replies['Plan Series'] = () => ({
+    outcome: 'Make an order API safe to retry',
+    audience: 'Developers building their first production API',
+    lines: [{ id: 'latte', name: 'One latte', line: 'One click, one latte' }],
+    episodes: [
+      episode('Give the latte a name', [ids[2], ids[1]]),
+      episode('Looking back', [ids[0], ids[3]])
+    ],
+    gaps: [
+      {
+        id: 'same-key',
+        missing: SAME_KEY,
+        episode: 1,
+        why: 'Episode 1 needs it',
+        ask: 'What should the server do with a reused key?'
+      }
+    ],
+    directions: [],
+    flags: []
+  })
+  await planSeries(series.id, {})
+  await settledSeriesPlan(series.id)
+  const planned = (await loadSeries(series.id))!
+  expect(planned.planning).toBeUndefined()
+  expect(planned.gaps![0].covered?.page).toBe(ids[2])
 })

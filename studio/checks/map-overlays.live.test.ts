@@ -19,7 +19,7 @@ const BARS: Record<string, string | null> = {
   episode: `<div class="map-info"><b>Ep 3</b> · Can you trust ninety percent?<small>6 pages</small></div>${button('Make video', 'primary')}${button('Rename')}${button('⋯', 'quiet map-more')}`,
   page: `<div class="map-info"><b>Ep 3</b> · 2 of 6 · An independent calibration audit<small>from page 9 · also in Ep 2</small></div>${button('Change')}${button('Remove')}${button('⋯', 'quiet map-more')}`,
   gap: `<div class="map-info"><b>Missing</b> · Checking calibration<small>How do you check that a model’s confidence is honest?</small></div>${button('Add a note', 'primary')}${button('Explain here')}${button('Ignore')}`,
-  covered: `<div class="map-info"><b>A card may say it</b> · “the same key carrying a different order is rejected”<small>First tool: an idempotency key</small></div>${button('Add a note', 'primary')}${button('Covered')}${button('Explain here')}${button('Ignore')}`,
+  covered: `<div class="map-info is-two"><b>Missing</b> · What the server does when the same key arrives with a different order<small>“the same key carrying a different order is rejected” · First tool: an idempotency key</small></div>${button('Add a note', 'primary')}${button('Covered')}${button('Explain here')}${button('Ignore')}`,
   note: `<form class="map-ask"><label>Fill the gap · How do you check that a model’s confidence is honest?<textarea name="note" rows="2"></textarea></label><button type="submit" class="primary">Add</button>${button('Cancel')}</form>`
 }
 const TOAST = `<span>Removed from the episode. The map keeps the page.</span>${button('Undo')}`

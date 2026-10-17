@@ -19,6 +19,16 @@ const noteLabel = (map: MapCanvas) =>
     : 'A note: it joins the map once the wireframes are drawn'
 const SEP = '<i class="map-sep"></i>'
 
+/** A gap this card closed as covered: open it again from the card. */
+const reopen = (map: MapCanvas, page?: string) => {
+  const gap = map.view?.series?.gaps.find(
+    (item) => item.state === 'closed' && page && item.closedBy === page
+  )
+  return gap
+    ? `<button type="button" class="quiet" data-map="gap-reopen:${escape(gap.id)}" title="${escape(`It closed “${gap.missing}”`)}">Reopen gap</button>`
+    : ''
+}
+
 const content = (map: MapCanvas) => {
   const { snapshot, view, sel, clip } = map
   if (!snapshot) return ''
@@ -36,15 +46,15 @@ const content = (map: MapCanvas) => {
   if (sel?.t === 'gap' && view?.series) {
     const gap = view.series.gaps.find((g) => g.id === sel.id)
     if (!gap) return ''
-    // A card that may already say it: its words first (the gap's card says
-    // what is missing), and closing the gap with it.
+    // A card that may already say it: its words whole and its title, on a
+    // second line, and closing the gap with it (review 8).
     const card = gap.covered
       ? snapshot.project.slides.find((s) => s.id === gap.covered!.page)
       : undefined
     const info = card
-      ? `<b>A card may say it</b> · “${escape(gap.covered!.says)}”<small>${escape(card.title)}</small>`
-      : `<b>Missing</b> · ${escape(gap.missing)}<small>${escape(gap.ask)}</small>`
-    return `<div class="map-info">${info}</div>${act(`gap-note:${gap.id}`, 'Add a note', '', true)}${card ? act(`gap-covered:${gap.id}`, 'Covered') : ''}${act(`gap-explain:${gap.id}`, 'Explain here')}${act(`gap-ignore:${gap.id}`, 'Ignore')}`
+      ? `<div class="map-info is-two"><b>Missing</b> · ${escape(gap.missing)}<small>“${escape(gap.covered!.says)}” · ${escape(card.title)}</small></div>`
+      : `<div class="map-info"><b>Missing</b> · ${escape(gap.missing)}<small>${escape(gap.ask)}</small></div>`
+    return `${info}${act(`gap-note:${gap.id}`, 'Add a note', '', true)}${card ? act(`gap-covered:${gap.id}`, 'Covered') : ''}${act(`gap-explain:${gap.id}`, 'Explain here')}${act(`gap-ignore:${gap.id}`, 'Ignore')}`
   }
   if (sel?.t === 'direction' && view?.series) {
     const direction = view.series.directions.find((d) => d.id === sel.id)
@@ -113,7 +123,7 @@ const content = (map: MapCanvas) => {
     )
     return `<div class="map-info"><b>Page ${index + 1}</b> · ${escape(slide.title || 'Untitled')}<small>${failed ? escape(failed.message || 'its change failed') : where}</small>${clipped}</div>${
       failed ? act('resend', 'Send again', '', true) : ''
-    }${series && slide.svg ? act('menu:copy-to', 'Copy to…') : ''}${act('change', 'Change…')}${more('page')}`
+    }${series && slide.svg ? act('menu:copy-to', 'Copy to…') : ''}${act('change', 'Change…')}${reopen(map, slide.id)}${more('page')}`
   }
   if (sel?.t === 'copy' && view) {
     const episode = map.episodeOf(sel.id)
@@ -147,7 +157,7 @@ const content = (map: MapCanvas) => {
           act('keep', 'Keep this version') +
           SEP
         : ''
-    }${act('menu:move-to', 'Move to…')}${act('remove', 'Remove', '⌫')}${more('copy')}`
+    }${act('menu:move-to', 'Move to…')}${act('remove', 'Remove', '⌫')}${reopen(map, copy.copyOf?.slide)}${more('copy')}`
   }
   if (sel?.t === 'lane' && view) {
     const episode = view.episodes.find((e) => e.notebook === sel.id)

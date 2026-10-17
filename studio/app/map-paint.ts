@@ -147,6 +147,11 @@ export const paintWorld = (map: MapCanvas) => {
   })
   if (picked && view)
     map.world!.style.setProperty('--sel', colorOf(view, picked.notebook))
+  // A selected gap a card may cover lights that card and its copies.
+  const covering =
+    sel?.t === 'gap'
+      ? view?.series?.gaps.find((gap) => gap.id === sel.id)?.covered?.page
+      : undefined
   const failedHere = failedUnderHeading(snapshot, layout.groups, map.mode)
   items.push({
     key: 'B:map',
@@ -187,6 +192,7 @@ export const paintWorld = (map: MapCanvas) => {
     const planned = page.state === 'planned' || page.state === 'drawing'
     if (planned) cls += ' is-planned'
     if (sources.has(page.id)) cls += ' is-source'
+    if (covering === page.id) cls += ' is-covering'
     const state = pageState(snapshot, page.id)
     if (state) cls += ` ${state}`
     if (map.filter === 'unused' && unused && !unused.has(page.id))
@@ -244,7 +250,10 @@ export const paintWorld = (map: MapCanvas) => {
         key: `g:${gap.id}`,
         cls: `map-gap${chosen === `g:${gap.id}` ? ' is-selected' : ''}`,
         box: gap,
-        html: gapCard(found),
+        html: gapCard(
+          found,
+          pages.find((slide) => slide.id === found.covered?.page)?.title
+        ),
         title: found.ask,
         label: `Missing: ${found.missing}`
       })
@@ -277,7 +286,7 @@ export const paintWorld = (map: MapCanvas) => {
       episode.copies.forEach((copy, index) => {
         items.push({
           key: `c:${copy.id}`,
-          cls: `map-card map-copy${chosen === `c:${copy.id}` ? ' is-selected' : ''}${copy.orphan ? ' is-failed' : copy.stale ? ' is-stale' : ''}`,
+          cls: `map-card map-copy${chosen === `c:${copy.id}` ? ' is-selected' : ''}${copy.orphan ? ' is-failed' : copy.stale ? ' is-stale' : ''}${covering && copy.copyOf?.slide === covering ? ' is-covering' : ''}`,
           box: layout.copies[copy.id],
           html: copyCard(
             view,

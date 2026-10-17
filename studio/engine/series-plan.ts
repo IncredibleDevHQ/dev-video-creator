@@ -259,9 +259,14 @@ const runPlan = async (seriesId: string) => {
   })
   // A gap a card already says is marked with that card, for the creator to
   // close with it; it stays open until they do.
+  const episodeOf = new Map(
+    plan.episodes.flatMap((episode, index) =>
+      episode.pages.map((page) => [page, index + 1] as const)
+    )
+  )
   await applyOutline(
     seriesId,
-    { ...plan, gaps: markCovered(plan.gaps, pages) },
+    { ...plan, gaps: markCovered(plan.gaps, pages, episodeOf) },
     { map, series, existing }
   )
 }
