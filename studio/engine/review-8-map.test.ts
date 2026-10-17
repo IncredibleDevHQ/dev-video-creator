@@ -685,3 +685,81 @@ describe('focus as a bar menu closes (round 1)', () => {
     expect([menu.hidden, opener()]).toEqual([true, 'menu:move-to'])
   })
 })
+
+describe('heard as well as seen (round 1)', () => {
+  it('says the toast aloud, and what a direction guides with its name', async () => {
+    const shown = view()
+    const { map } = await openMap(shown)
+    const toast = map.slot('toast')!
+    expect([
+      toast.getAttribute('role'),
+      toast.getAttribute('aria-live')
+    ]).toEqual(['status', 'polite'])
+    const label = () => map.els.get('d:d1')!.getAttribute('aria-label')
+    expect(label()).toBe('Direction for the series: Lead with the crash')
+    shown.series!.directions[0].to = { episode: 'e2' }
+    await map.refresh()
+    expect(label()).toBe('Direction for Ep 2: Lead with the crash')
+    shown.series!.directions[0].to = { pages: ['a', 'c'] }
+    await map.refresh()
+    expect(label()).toBe('Direction for cards 1, 3: Lead with the crash')
+  })
+
+  it('offers Apply to… as a menu of radio and check choices, moved through with the arrows', async () => {
+    const shown = view()
+    shown.series!.directions[0].to = { pages: ['b'] }
+    const { map } = await openMap(shown)
+    let focused: Element | null = null
+    patch(win.HTMLElement.prototype, 'focus', function (this: Element) {
+      focused = this
+    })
+    Object.defineProperty(win.document, 'activeElement', {
+      get: () => focused,
+      configurable: true
+    })
+    map.select({ t: 'direction', id: 'd1' })
+    const opener = map.slot('bar')!.querySelector('[data-map="menu:apply-to"]')!
+    expect(opener.getAttribute('aria-haspopup')).toBe('menu')
+    click(opener)
+    await settle()
+    const menu = map.slot('menu')!
+    expect([
+      menu.getAttribute('role'),
+      menu.getAttribute('aria-label')
+    ]).toEqual(['menu', 'Apply to'])
+    const items = [...menu.querySelectorAll<HTMLElement>('button')]
+    expect(
+      items.map(
+        (b) => `${b.getAttribute('role')} ${b.getAttribute('aria-checked')}`
+      )
+    ).toEqual([
+      'menuitemradio false',
+      'menuitemradio false',
+      'menuitemradio false',
+      'menuitemcheckbox false',
+      'menuitemcheckbox true',
+      'menuitemcheckbox false',
+      'menuitemcheckbox false'
+    ])
+    // Its choice now is where the keys start; the arrows go round.
+    const at = () => items.indexOf(focused as HTMLElement)
+    expect(at()).toBe(4)
+    const press = (key: string) => fire(focused!, 'keydown', { key })
+    press('ArrowDown')
+    expect(at()).toBe(5)
+    press('Home')
+    expect(at()).toBe(0)
+    press('ArrowUp')
+    expect(at()).toBe(6)
+    press('End')
+    expect(at()).toBe(6)
+    press('ArrowDown')
+    expect(at()).toBe(0)
+    // Another menu in the same place is a plain one again.
+    map.select({ t: 'copy', id: 'x' })
+    click(map.slot('bar')!.querySelector('[data-map="menu:move-to"]'))
+    await settle()
+    expect(menu.getAttribute('role')).toBeNull()
+    expect(menu.querySelector('[role]')).toBeNull()
+  })
+})

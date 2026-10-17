@@ -89,11 +89,11 @@ const ANSWERS = {
 
 /** A direction note: the creator's words for the plan, what it is wired
  * to, and how the last plan took it. */
-export const directionCard = (
+/** What a direction guides, as its card and its label say it. */
+export const directionAbout = (
   view: MapView,
   snapshot: Snapshot,
-  direction: Direction,
-  editing: boolean
+  direction: Direction
 ) => {
   const episode = direction.to?.episode
     ? view.episodes.find((e) => e.notebook === direction.to!.episode)
@@ -101,11 +101,20 @@ export const directionCard = (
   const pages = (direction.to?.pages || [])
     .map((id) => snapshot.project.slides.findIndex((s) => s.id === id) + 1)
     .filter(Boolean)
-  const about = episode
+  return episode
     ? `Ep ${episode.number}`
     : pages.length
       ? `card${pages.length === 1 ? '' : 's'} ${pages.join(', ')}`
       : 'the series'
+}
+
+export const directionCard = (
+  view: MapView,
+  snapshot: Snapshot,
+  direction: Direction,
+  editing: boolean
+) => {
+  const about = directionAbout(view, snapshot, direction)
   const answer = direction.answer
   const body = editing
     ? `<form class="map-direction-form" data-map-form="direction" data-direction="${escape(direction.id)}"><textarea name="text" rows="3" maxlength="600" placeholder="An idea for the episodes: what to lead with, what to pair, what to cut…">${escape(direction.text)}</textarea><div><button type="submit" class="primary">Save</button><button type="button" class="quiet" data-map="direction-cancel">Cancel</button></div></form>`

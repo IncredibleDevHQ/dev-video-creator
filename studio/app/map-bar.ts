@@ -58,7 +58,7 @@ const content = (map: MapCanvas) => {
       ? `${answer.state === 'followed' ? 'Followed' : answer.state === 'partly' ? 'Partly followed' : 'Not followed'}: ${answer.why}`
       : 'The next plan answers it'
     // What it guides, chosen here as well as by dragging its handle.
-    return `<div class="map-info"><b>Direction</b> · ${escape(text)}<small>${escape(said)}</small></div>${act(`direction-edit:${direction.id}`, 'Edit')}${act('menu:apply-to', 'Apply to…')}${act(`direction-delete:${direction.id}`, 'Remove')}`
+    return `<div class="map-info"><b>Direction</b> · ${escape(text)}<small>${escape(said)}</small></div>${act(`direction-edit:${direction.id}`, 'Edit')}<button type="button" class="quiet" data-map="menu:apply-to" aria-haspopup="menu">Apply to…</button>${act(`direction-delete:${direction.id}`, 'Remove')}`
   }
   if (map.naming) {
     const chosen = map.naming.slides.length
@@ -211,6 +211,10 @@ export type MenuItem = {
   danger?: boolean
   /** A line above it, to set it apart. */
   sep?: boolean
+  /** In a menu of choices: one of a kind (radio) or one of many (check),
+   * and whether it is chosen. */
+  role?: 'menuitemradio' | 'menuitemcheckbox'
+  checked?: boolean
 }
 /** Opens above the anchor when there is room, else below; inside the stage. */
 export const place = (
@@ -234,10 +238,17 @@ export const showMenu = (
   if (!menu || !stage) return
   menu.className = 'map-menu'
   menu.dataset.for = anchor.dataset.map || ''
+  // Menus take turns in one slot: what the last one set goes.
+  menu.removeAttribute('role')
+  menu.removeAttribute('aria-label')
+  const role = (item: MenuItem) =>
+    item.role
+      ? ` role="${item.role}" aria-checked="${Boolean(item.checked)}"`
+      : ''
   menu.innerHTML = items
     .map(
       (item) =>
-        `${item.sep ? '<hr>' : ''}<button type="button" data-map="${item.action}"${item.disabled ? ' disabled' : ''}${item.danger ? ' class="is-danger"' : ''}>${item.color ? `<i style="--ep:${item.color}"></i>` : ''}<span>${escape(item.label)}</span>${item.note ? `<small>${escape(item.note)}</small>` : ''}</button>`
+        `${item.sep ? '<hr>' : ''}<button type="button" data-map="${item.action}"${role(item)}${item.disabled ? ' disabled' : ''}${item.danger ? ' class="is-danger"' : ''}>${item.color ? `<i style="--ep:${item.color}"></i>` : ''}<span>${escape(item.label)}</span>${item.note ? `<small${item.role ? ' aria-hidden="true"' : ''}>${escape(item.note)}</small>` : ''}</button>`
     )
     .join('')
   menu.hidden = false

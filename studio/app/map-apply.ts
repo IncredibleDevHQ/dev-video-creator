@@ -15,15 +15,20 @@ const selected = (map: MapCanvas) => {
     : undefined
 }
 
-/** The series, each episode, then each card, the ones it guides ticked; a
- * ticked card chosen again is taken off. */
+/** The series, each episode, then each card, the ones it guides ticked: a
+ * menu of one-of-a-kind choices (the series, an episode) and checks (the
+ * cards; a ticked card chosen again is taken off). */
 export const applyChoices = (
   map: MapCanvas,
   direction: Direction
 ): MenuItem[] => {
   const view = map.view
   if (!view) return []
-  const tick = (yes: boolean) => (yes ? { note: '✓' } : {})
+  const tick = (yes: boolean, role: MenuItem['role'] = 'menuitemradio') => ({
+    role,
+    checked: yes,
+    ...(yes ? { note: '✓' } : {})
+  })
   const pages = direction.to?.pages || []
   return [
     {
@@ -41,9 +46,29 @@ export const applyChoices = (
       action: `apply-to:card:${slide.id}`,
       label: `Card ${index + 1} · ${slide.title || 'Untitled'}`,
       ...(index ? {} : { sep: true }),
-      ...tick(pages.includes(slide.id))
+      ...tick(pages.includes(slide.id), 'menuitemcheckbox')
     }))
   ]
+}
+
+/** The arrows, Home and End move through the chooser's choices, as in any
+ * menu (the slot is shared: other menus are left alone). */
+const arrowed = new WeakSet<HTMLElement>()
+const arrows = (event: KeyboardEvent) => {
+  const menu = event.currentTarget as HTMLElement
+  if (!menu.classList.contains('is-apply')) return
+  const items = [...menu.querySelectorAll<HTMLElement>('[role^="menuitem"]')]
+  const at = items.indexOf(document.activeElement as HTMLElement)
+  const keys: Record<string, number> = {
+    ArrowDown: at + 1,
+    ArrowUp: at - 1,
+    Home: 0,
+    End: items.length - 1
+  }
+  const to = keys[event.key]
+  if (to === undefined || !items.length) return
+  event.preventDefault()
+  items[(to + items.length) % items.length].focus()
 }
 
 /** Opens the chooser above the bar, its current choice focused, so the
@@ -56,8 +81,14 @@ export const showApply = (map: MapCanvas, anchor: HTMLElement) => {
   const choices = applyChoices(map, direction)
   showMenu(map, anchor, choices)
   menu.classList.add('is-apply')
+  menu.setAttribute('role', 'menu')
+  menu.setAttribute('aria-label', 'Apply to')
+  if (!arrowed.has(menu)) {
+    arrowed.add(menu)
+    menu.addEventListener('keydown', arrows)
+  }
   place(menu, anchor, stage)
-  const now = choices.find((choice) => choice.note) || choices[0]
+  const now = choices.find((choice) => choice.checked) || choices[0]
   menu.querySelector<HTMLElement>(`[data-map="${now.action}"]`)?.focus()
 }
 

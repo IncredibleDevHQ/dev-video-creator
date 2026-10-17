@@ -24,7 +24,13 @@ import {
   segueCard,
   socialsHead
 } from './map-view'
-import { directionCard, gapCard, seriesHead, seriesPlanned } from './map-nodes'
+import {
+  directionAbout,
+  directionCard,
+  gapCard,
+  seriesHead,
+  seriesPlanned
+} from './map-nodes'
 import { escape } from './ui'
 
 type Item = {
@@ -224,7 +230,8 @@ export const paintWorld = (map: MapCanvas) => {
         box: editing ? { ...box, h: box.h + 40 } : box,
         html: directionCard(view, snapshot, direction, editing),
         data: { direction: direction.id },
-        label: `Direction: ${direction.text}`
+        // What it guides is heard with it, as its card shows (review 8).
+        label: `Direction for ${directionAbout(view, snapshot, direction)}: ${direction.text}`
       })
     }
     for (const gap of layout.gaps) {
