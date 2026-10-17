@@ -125,9 +125,17 @@ export type Release = {
   launchesFollow?: boolean
   /** What the last plan left out or moved, planned close to the release. */
   campaignNote?: string
-  /** The thumbnail the creator chose: a storyboard frame's still, or a
-   * second of the made video (shared/release-cover.ts). */
-  cover?: { frame?: number; at?: number }
+  /** The thumbnail the creator chose: a storyboard frame's still, a second
+   * of the made video, or its poster; the title set over it; and what the
+   * creator approved, which the bundle and the upload wait for
+   * (shared/release-cover.ts). */
+  cover?: {
+    frame?: number
+    at?: number
+    poster?: boolean
+    titled?: boolean
+    approved?: string
+  }
   youtube?: YouTubeUpload
   numbers?: NumbersSnapshot[]
 }

@@ -181,10 +181,27 @@ export const clickRelease = async (
     update(
       app,
       await studioApi.notebook(id, 'release', {
-        cover:
-          target.dataset.frame === undefined
+        cover: target.dataset.poster
+          ? { poster: true }
+          : target.dataset.frame === undefined
             ? { at: Number(target.dataset.at) }
             : { frame: Number(target.dataset.frame) }
+      })
+    )
+  // The title set over it, or taken off (review 8, round 2).
+  if (action === 'cover-title')
+    update(
+      app,
+      await studioApi.notebook(id, 'release', {
+        coverTitle: target.getAttribute('aria-pressed') !== 'true'
+      })
+    )
+  // The thumbnail approved as shown: the bundle and the upload carry it.
+  if (action === 'approve-cover')
+    update(
+      app,
+      await studioApi.notebook(id, 'release', {
+        approveCover: target.dataset.stamp
       })
     )
   // An overdue item moved to the soonest day it can still go out.

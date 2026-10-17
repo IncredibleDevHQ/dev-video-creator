@@ -20,7 +20,8 @@ const { publishToYouTube } = await import('./youtube-publish')
 const { saveSetting, storeAsset, writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
 const { productionDir } = await import('./storyboard/workspace')
-const { coverChoices, chosenCover } = await import('../shared/release-cover')
+const { coverChoices, chosenCover, coverStamp } =
+  await import('../shared/release-cover')
 const { youtubeSection } = await import('../app/release-view')
 const { clickRelease } = await import('../app/release-controller')
 afterAll(() => rm(root, { recursive: true, force: true }))
@@ -209,6 +210,9 @@ const save = (value: Project) =>
     events: []
   } satisfies Snapshot)
 const thumbnailOf = async (id: string) => {
+  // The thumbnail approved as shown (round 2): the bundle waits for it.
+  const stamp = coverStamp((await loadProject(id))!.project)
+  if (stamp) await updateRelease(id, { approveCover: stamp })
   const bundle = await uploadBundle(id)
   const zip = join(work, `${id}.zip`)
   await writeFile(zip, bundle.bytes)
@@ -261,7 +265,9 @@ it('bundles the hook’s still as the thumbnail, at 1280×720, and the frame the
 
 it('uploads with the same thumbnail and the series and episode in the title (F19)', async () => {
   await pose('cover-up')
-  await save(episode('cover-up'))
+  const approved = episode('cover-up')
+  approved.release!.cover = { approved: coverStamp(approved)! }
+  await save(approved)
   const expected = await coverImage(episode('cover-up'))
   await saveSetting('account-google', {
     access: 'g',
@@ -334,7 +340,9 @@ it('shows the thumbnail before the bundle, with the other frames to choose from 
   ])
   // Reviewed before it is downloaded or uploaded.
   const html = page.querySelector('section')!.innerHTML
-  expect(html.indexOf('release-cover')).toBeLessThan(html.indexOf('/bundle'))
+  expect(html.indexOf('release-cover')).toBeLessThan(
+    html.indexOf('Download the upload bundle')
+  )
   // Picking one asks for it.
   const app = {
     snapshot: snapshot(value),

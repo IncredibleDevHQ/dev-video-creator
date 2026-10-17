@@ -35,7 +35,8 @@ process.env.MINIMAL_STUDIO_DATA_DIR = root
 process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY = '1'
 const shape = await import('../shared/teaser-shape')
 const { keepTeaser, rebuildTeaser } = await import('./teaser-portrait')
-const { uploadBundle } = await import('./release')
+const { updateRelease, uploadBundle } = await import('./release')
+const { coverStamp } = await import('../shared/release-cover')
 const { postItem } = await import('./campaign')
 const { readAsset, storeAsset, writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
@@ -482,6 +483,10 @@ beforeAll(async () => {
 const current = async () =>
   (await loadProject('rb'))!.project.release!.teasers[0]
 const zipNames = async () => {
+  // The thumbnail approved as shown (round 2): the bundle waits for it.
+  await updateRelease('rb', {
+    approveCover: coverStamp((await loadProject('rb'))!.project)
+  })
   const zip = join(work, `bundle-${Math.random()}.zip`)
   await writeFile(zip, (await uploadBundle('rb')).bytes)
   return execFileSync('unzip', ['-Z1', zip]).toString().trim().split('\n')

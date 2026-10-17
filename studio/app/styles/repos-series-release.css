@@ -394,6 +394,22 @@ dialog:has(#series-form) {
   font-size: 12.5px;
   color: var(--muted);
 }
+/* Approve it, and set the title over it: the bundle and the upload wait. */
+.cover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.cover-actions .cover-approved {
+  color: var(--muted);
+}
+.cover-actions [data-action='cover-title'][aria-pressed='true'] {
+  border-color: var(--accent, #e11d48);
+}
+.release-section > button:disabled {
+  justify-self: start;
+}
 .cover-choices summary {
   cursor: pointer;
   font-size: 13px;

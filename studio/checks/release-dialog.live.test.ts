@@ -116,6 +116,8 @@ const measure = async <T>(
           '.campaign-item.is-overdue',
           '.campaign-item.is-overdue [data-action="campaign-move"]',
           '.release-cover img',
+          '[data-action="approve-cover"]',
+          '[data-action="cover-title"]',
           '[name="publishAt"]',
           '.publish-differs',
           '#youtube-publish-form',
@@ -177,12 +179,14 @@ it('keeps an overdue step’s Move inside its row, and the dialog no wider than 
   }
 }, 60_000)
 
-it('shows the thumbnail at about the size YouTube lists it, its choices and the publisher’s note inside the dialog (F19, F17)', async () => {
+it('shows the thumbnail at about the size YouTube lists it, its approval, its choices and the publisher’s note inside the dialog (F19, F17)', async () => {
   const seen = await measure(
     releaseDialog(snapshot, campaignSection(snapshot, TODAY)),
     (box) => ({
       body: box('.dialog-body'),
       cover: box('.release-cover img'),
+      approve: box('[data-action="approve-cover"]'),
+      title: box('[data-action="cover-title"]'),
       tiles: box('.cover-choice') as unknown as Box[],
       input: box('[name="publishAt"]'),
       note: box('.publish-differs'),
@@ -199,6 +203,12 @@ it('shows the thumbnail at about the size YouTube lists it, its choices and the 
       9 / 16,
       2
     )
+    // Approve it and set the title over it, under the picture, inside the
+    // dialog (round 2).
+    for (const control of [at.approve, at.title]) {
+      expect(control.top).toBeGreaterThanOrEqual(at.cover.bottom)
+      expect(control.right).toBeLessThanOrEqual(at.body.right)
+    }
     // Every choice inside the dialog, two or more to a row.
     expect(at.tiles).toHaveLength(7)
     for (const tile of at.tiles) {

@@ -13,8 +13,12 @@ import {
 import { chapters } from '../shared/release-plan'
 import {
   chosenCover,
+  coverApproved,
   coverChoices,
+  coverCleared,
   coverSrc,
+  coverStamp,
+  coverTitled,
   type CoverChoice
 } from '../shared/release-cover'
 import {
@@ -185,17 +189,24 @@ const uploadState = (snapshot: Snapshot) => {
 }
 
 /** The thumbnail the bundle and the upload carry, at about the size YouTube
- * lists it, and the other pictures it can be (review 8: the bundle's was a
- * frame mid-animation, under half a caption, and nothing showed it). */
+ * lists it, the title over it or not, and the other pictures it can be;
+ * nothing carries it until the creator approves it (review 8: the bundle's
+ * was a frame mid-animation, under half a caption, and nothing showed it;
+ * round 2: it went out unseen). */
 const thumbnailPicker = (snapshot: Snapshot) => {
   const { project } = snapshot
   const chosen = chosenCover(project)
   if (!chosen) return ''
   const choices = coverChoices(project)
+  const titled = coverTitled(project)
   const tile = (choice: CoverChoice) =>
-    `<button type="button" class="cover-choice" data-action="choose-cover" ${choice.at === undefined ? `data-frame="${choice.frame}"` : `data-at="${choice.at}"`} aria-pressed="${choice.key === chosen.key}" title="${escape(choice.label)}">` +
+    `<button type="button" class="cover-choice" data-action="choose-cover" ${choice.poster ? 'data-poster="1"' : choice.at === undefined ? `data-frame="${choice.frame}"` : `data-at="${choice.at}"`} aria-pressed="${choice.key === chosen.key}" title="${escape(choice.label)}">` +
     `<img src="${coverSrc(project.id, choice)}" alt="${escape(choice.label)}" loading="lazy"></button>`
-  return `<figure class="release-cover"><img src="${coverSrc(project.id, chosen)}" alt="The thumbnail, ${escape(chosen.label)}" width="240" height="135"><figcaption>Thumbnail · ${escape(chosen.label)}</figcaption></figure>
+  const approve = coverApproved(project)
+    ? '<small class="cover-approved">Approved</small>'
+    : `<button type="button" class="primary" data-action="approve-cover" data-stamp="${escape(coverStamp(project) || '')}">Approve the thumbnail</button>`
+  return `<figure class="release-cover"><img src="${coverSrc(project.id, chosen, titled)}" alt="The thumbnail, ${escape(chosen.label)}${titled ? ', with the title' : ''}" width="240" height="135"><figcaption>Thumbnail · ${escape(chosen.label)}</figcaption></figure>
+<div class="cover-actions">${approve}<button type="button" class="quiet" data-action="cover-title" aria-pressed="${titled}">Title on it</button></div>
 ${choices.length > 1 ? `<details class="cover-choices"><summary>Choose another thumbnail</summary><div class="cover-grid">${choices.map(tile).join('')}</div></details>` : ''}`
 }
 
@@ -207,11 +218,17 @@ export const youtubeSection = (snapshot: Snapshot) => {
   // gave it its own (review 8: the campaign said 08:00, the release 18:00).
   const launch = youtubeLaunch(snapshot.project.release)
   const launchAt = launch ? localTime(launch.at.toISOString()) : ''
+  // The bundle and the upload wait for the thumbnail's approval.
+  const cleared = coverCleared(snapshot.project)
   return `<section class="release-section"><h3>YouTube</h3>
 <p class="release-state">${marks.length ? `${marks.length} chapters from the beats` : 'No chapters: YouTube needs three or more, ten seconds each'}</p>
 ${thumbnailPicker(snapshot)}
-<a class="button" href="/api/projects/${encodeURIComponent(snapshot.project.id)}/bundle" download>Download the upload bundle</a>
-<p class="release-note">The video, title, description with chapters, thumbnail${snapshot.project.episode ? ' and playlist' : ''}, to upload in YouTube Studio.</p>
+${
+  cleared
+    ? `<a class="button" href="/api/projects/${encodeURIComponent(snapshot.project.id)}/bundle" download>Download the upload bundle</a>`
+    : '<button type="button" disabled>Download the upload bundle</button>'
+}
+<p class="release-note">${cleared ? '' : 'Approve the thumbnail first. '}The video, title, description with chapters, thumbnail${snapshot.project.episode ? ' and playlist' : ''}, to upload in YouTube Studio.</p>
 ${uploadState(snapshot)}
 ${
   upload?.state === 'uploading' || upload?.state === 'uploaded'
@@ -225,7 +242,7 @@ ${
           : ''
       }</span></label>
 ${launch ? `<p class="release-note publish-differs" hidden>The campaign launches it ${escape(dayAndTime(launch.at))}.</p>` : ''}
-<button>Upload to YouTube</button></form>
+<button${cleared ? '' : ' disabled'}>Upload to YouTube</button></form>
 <p class="release-note">Needs YouTube connected (Accounts). Until the studio’s Google project passes verification and YouTube’s audit, YouTube keeps these uploads private.</p></details>`
 }</section>`
 }

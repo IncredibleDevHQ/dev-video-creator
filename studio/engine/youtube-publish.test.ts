@@ -1,8 +1,11 @@
+import { execFileSync } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, afterEach, expect, it, vi } from 'vitest'
 import type { Snapshot } from '../shared/api'
+import type { Project } from '../shared/model'
+import { coverStamp } from '../shared/release-cover'
 // YouTube is a stand-in: these checks prove the plumbing, not an upload.
 const root = await mkdtemp(join(tmpdir(), 'minimal-youtube-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
@@ -20,8 +23,22 @@ const seed = async (id: string) => {
     kind: 'produced-video',
     projectId: id
   })
+  // The video's poster, a real picture: the only thumbnail it offers,
+  // approved by the creator (round 2: nothing goes up unapproved).
   const poster = await storeAsset({
-    body: Buffer.from('poster'),
+    body: execFileSync('ffmpeg', [
+      '-v',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      'color=c=red:s=640x360',
+      '-frames:v',
+      '1',
+      '-f',
+      'mjpeg',
+      'pipe:1'
+    ]),
     contentType: 'image/jpeg',
     extension: '.jpg',
     kind: 'poster',
@@ -37,40 +54,42 @@ const seed = async (id: string) => {
     repos: [],
     threads: []
   })
-  await writeRow('projects', id, {
-    project: {
-      id,
-      title: 'The outage',
-      source: '',
-      slides: [],
-      episode: { series: 'limits', number: 2 },
-      video: {
-        settings: { presence: 'off', voice: { kind: 'record' } },
-        scenes: [],
-        transitions: [],
+  const project: Project = {
+    id,
+    title: 'The outage',
+    source: '',
+    slides: [],
+    episode: { series: 'limits', number: 2 },
+    video: {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: {
         inputKey: '',
-        produced: {
-          inputKey: '',
-          objectKey: video.objectKey,
-          posterKey: poster.objectKey
-        }
-      },
-      release: {
-        teasers: [],
-        campaign: [
-          {
-            id: 'launch-youtube-0',
-            channel: 'youtube',
-            asset: 'episode',
-            kind: 'launch',
-            words: 'Why',
-            offsetDays: 0,
-            time: '08:00',
-            state: 'approved'
-          }
-        ]
+        objectKey: video.objectKey,
+        posterKey: poster.objectKey
       }
     },
+    release: {
+      teasers: [],
+      campaign: [
+        {
+          id: 'launch-youtube-0',
+          channel: 'youtube',
+          asset: 'episode',
+          kind: 'launch',
+          words: 'Why',
+          offsetDays: 0,
+          time: '08:00',
+          state: 'approved'
+        }
+      ]
+    }
+  }
+  project.release!.cover = { approved: coverStamp(project)! }
+  await writeRow('projects', id, {
+    project,
     status: 'ready',
     error: null,
     events: []

@@ -9,7 +9,12 @@ import {
   youtubeDescription,
   youtubeTitle
 } from '../shared/release-plan'
-import { coverChoices } from '../shared/release-cover'
+import {
+  chosenCover,
+  coverChoices,
+  coverCleared,
+  coverStamp
+} from '../shared/release-cover'
 import { needsShapeCut } from '../shared/teaser-shape'
 import {
   CHANNEL_LABELS,
@@ -223,18 +228,50 @@ export const updateRelease = (id: string, raw: unknown) => {
       if (at) release.at = at.toISOString()
       else delete release.at
     }
-    // The thumbnail the creator picked, one of the pictures offered.
+    // The thumbnail the creator picked, one of the pictures offered, with
+    // the title over it or not; either asks for approval again.
     if (value.cover === null) delete release.cover
     else if (value.cover && typeof value.cover === 'object') {
-      const cover = value.cover as { frame?: unknown; at?: unknown }
+      const cover = value.cover as {
+        frame?: unknown
+        at?: unknown
+        poster?: unknown
+      }
       const choice = coverChoices(current.project).find((item) =>
-        cover.frame === undefined
-          ? item.at !== undefined && item.at === Number(cover.at)
-          : item.frame === Number(cover.frame)
+        cover.poster
+          ? item.poster
+          : cover.frame === undefined
+            ? item.at !== undefined && item.at === Number(cover.at)
+            : item.frame === Number(cover.frame)
       )
       if (!choice) throw new Refusal('Choose one of the thumbnails shown')
-      release.cover =
-        choice.frame === undefined ? { at: choice.at } : { frame: choice.frame }
+      release.cover = {
+        ...(choice.poster
+          ? { poster: true }
+          : choice.frame === undefined
+            ? { at: choice.at }
+            : { frame: choice.frame }),
+        ...(release.cover?.titled ? { titled: true } : {})
+      }
+    }
+    if (typeof value.coverTitle === 'boolean') {
+      const picked = { ...release.cover }
+      delete picked.approved
+      delete picked.titled
+      release.cover = {
+        ...picked,
+        ...(value.coverTitle ? { titled: true } : {})
+      }
+    }
+    // Approved as the creator saw it: the bundle and the upload carry it
+    // (review 8, round 2: the bundle's thumbnail went out unseen).
+    if (value.approveCover !== undefined) {
+      const stamp = coverStamp(current.project)
+      if (!stamp) throw new Refusal('The video has no thumbnail to approve')
+      if (value.approveCover !== stamp)
+        throw new Refusal('The thumbnail changed: look at it again')
+      release.cover = { ...release.cover, approved: stamp }
+      addEvent(current, 'video', 'Approved the YouTube thumbnail')
     }
     const posts = value.posts as Partial<Record<Channel, unknown>> | undefined
     if (posts && typeof posts === 'object') {
@@ -279,6 +316,9 @@ export const uploadBundle = async (id: string) => {
       'The wireframes changed. Remake the video before exporting it'
     )
   const project = snapshot.project
+  // Its thumbnail goes out as the creator approved it, never unseen.
+  if (!coverCleared(project))
+    throw new Refusal('Approve the thumbnail first: Release shows it')
   const series = project.episode
     ? await loadSeries(project.episode.series)
     : null
@@ -287,8 +327,11 @@ export const uploadBundle = async (id: string) => {
     project,
     project.release?.posts?.youtube
   )
-  // The thumbnail the dialog shows: a settled picture (review 8).
-  const picture = { name: 'thumbnail.jpg', bytes: await coverImage(project) }
+  // The thumbnail the dialog shows and the creator approved (review 8);
+  // with no picture to offer, YouTube Studio sets one.
+  const picture = chosenCover(project)
+    ? { name: 'thumbnail.jpg', bytes: await coverImage(project) }
+    : null
   // A teaser whose text stays small is a draft: out until drawn again for
   // its shape or kept as it is (review 8, round 1).
   const shorts = (project.release?.teasers || []).filter(
@@ -302,13 +345,15 @@ export const uploadBundle = async (id: string) => {
     'video.mp4': await readAsset(produced.objectKey),
     'title.txt': title,
     'description.txt': description,
-    [picture.name]: picture.bytes,
+    ...(picture ? { [picture.name]: picture.bytes } : {}),
     ...(series ? { 'playlist.txt': series.title } : {}),
     'README.txt': [
       `Upload “${title}” in YouTube Studio (studio.youtube.com → Create → Upload videos).`,
       '1. Choose video.mp4.',
       '2. Paste title.txt and description.txt. The timestamps in the description become chapters.',
-      `3. Set ${picture.name} as the thumbnail.`,
+      picture
+        ? `3. Set ${picture.name} as the thumbnail.`
+        : '3. Choose a thumbnail in YouTube Studio.',
       series
         ? '4. Add it to the playlist named in playlist.txt (create it once).'
         : '',

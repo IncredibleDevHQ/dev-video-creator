@@ -12,6 +12,7 @@ vi.mock('./creative/stage', () => ({ runValidatedJsonStage: stage }))
 const root = await mkdtemp(join(tmpdir(), 'minimal-release-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = join(root, 'data')
 const plan = await import('../shared/release-plan')
+const { coverStamp } = await import('../shared/release-cover')
 const { zipFiles } = await import('./zip')
 const { draftPosts, uploadBundle, updateRelease, validatePosts } =
   await import('./release')
@@ -284,6 +285,10 @@ it.skipIf(!tools)(
     // The bundle: the video, its words and chapters, a thumbnail, the Short.
     await updateRelease('release', {
       posts: { x: 'x', linkedin: 'l', youtube: 'What broke and why.' }
+    })
+    // The thumbnail approved as shown (round 2): the bundle waits for it.
+    await updateRelease('release', {
+      approveCover: coverStamp((await loadProject('release'))!.project)
     })
     const bundle = await uploadBundle('release')
     const zip = join(root, 'bundle.zip')

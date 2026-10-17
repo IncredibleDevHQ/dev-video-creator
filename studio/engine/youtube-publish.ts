@@ -5,6 +5,7 @@
 // passes Google's verification and YouTube's audit, YouTube keeps API
 // uploads private; the studio says so, and the bundle stays the way out.
 import { markYouTubeUp } from '../shared/campaign'
+import { chosenCover, coverCleared } from '../shared/release-cover'
 import { youtubeDescription, youtubeTitle } from '../shared/release-plan'
 import { emptyRelease, type YouTubeUpload } from '../shared/release'
 import { accountFetch, canEditPlaylists } from './accounts'
@@ -124,9 +125,11 @@ export const uploadToYouTube = async (
     notes.push(
       'YouTube kept it private: uploads from the studio stay private until its Google project passes verification and the audit. Change it in YouTube Studio.'
     )
-  // The thumbnail the dialog shows and the bundle carries (review 8: a
-  // storyboard episode's upload had none).
-  const cover = await coverImage(project).catch(() => null)
+  // The thumbnail the dialog shows, the creator approved and the bundle
+  // carries (review 8: a storyboard episode's upload had none).
+  const cover = chosenCover(project)
+    ? await coverImage(project).catch(() => null)
+    : null
   if (cover) {
     const thumb = await accountFetch(
       'google',
@@ -204,6 +207,9 @@ export const publishToYouTube = async (id: string, raw: unknown) => {
       )
     if (!current.project.video?.produced)
       throw new Refusal('Produce the video first')
+    // Its thumbnail goes up as the creator approved it (review 8, round 2).
+    if (!coverCleared(current.project))
+      throw new Refusal('Approve the thumbnail first: Release shows it')
     const release = current.project.release || emptyRelease()
     if (release.youtube?.state === 'uploading')
       throw new Refusal('It is uploading now')
