@@ -50,8 +50,9 @@ it('crops a compact lesson large, keeps a wide one whole, and widens a building 
     ...Object.values(compact.place)
   ])
     expect(value % 2).toBe(0)
-  // A frame that builds: a second block from 2 s, a blend before 0.9 s,
-  // and a little more from 3 s, too little to cut for.
+  // A frame that builds: a blend before 0.9 s, a second block from 3 s
+  // (past its first look), and a little more from 3.5 s, too little to cut
+  // for.
   const scaleOf = (one: ReturnType<typeof box>) =>
     framing.placeCrop(one, SOURCE, PORTRAIT).scale
   const samples = Array.from({ length: 16 }, (_, index) => {
@@ -61,9 +62,9 @@ it('crops a compact lesson large, keeps a wide one whole, and widens a building 
       box:
         t < 0.9
           ? box(0, 0, 1920, 880)
-          : t < 2
+          : t < 3
             ? box(200, 200, 700, 700)
-            : t < 3
+            : t < 3.5
               ? box(200, 200, 1400, 700)
               : box(200, 200, 1420, 700)
     }
@@ -75,21 +76,49 @@ it('crops a compact lesson large, keeps a wide one whole, and widens a building 
   )
   // The blend is never framed; the crop widens half a second ahead.
   expect(stretches.map((stretch) => [stretch.from, stretch.to])).toEqual([
-    [0, 1.5],
-    [1.5, 4]
+    [0, 2.5],
+    [2.5, 4]
   ])
   expect(stretches[0].box).toEqual(box(200, 200, 700, 700))
   expect(stretches[1].box).toEqual(box(200, 200, 1420, 700))
-  // Too short to read: a narrow crop for half a second joins the wider one
-  // after it; a wider one for the last moments widens the one before.
+  // A lone heading first, the rest a moment later: the first crop holds
+  // all of it, never a heading blown up on its own (round 1).
+  const heading = framing.frameStretches(
+    { from: 0, to: 4, enters: 0 },
+    samples.map((sample) => ({
+      ...sample,
+      box: sample.t < 1.25 ? box(860, 100, 1060, 160) : box(100, 100, 1800, 700)
+    })),
+    scaleOf
+  )
+  expect(heading).toEqual([{ from: 0, to: 4, box: box(100, 100, 1800, 700) }])
+  // Too short to read: two widenings a quarter second apart make one cut;
+  // a wider crop for the last moments widens the one before.
+  expect(
+    framing
+      .frameStretches(
+        { from: 0, to: 4, enters: 0 },
+        samples.map((sample) => ({
+          ...sample,
+          box:
+            sample.t < 2.5
+              ? box(200, 200, 700, 700)
+              : sample.t < 2.75
+                ? box(200, 200, 1000, 700)
+                : box(200, 200, 1400, 700)
+        })),
+        scaleOf
+      )
+      .map((stretch) => [stretch.from, stretch.to])
+  ).toEqual([
+    [0, 2],
+    [2, 4]
+  ])
   const twoPhases = (until: number) =>
     samples.map((sample) => ({
       ...sample,
       box: sample.t < until ? box(200, 200, 700, 700) : box(200, 200, 1400, 700)
     }))
-  expect(
-    framing.frameStretches({ from: 0, to: 4, enters: 0 }, twoPhases(1), scaleOf)
-  ).toEqual([{ from: 0, to: 4, box: box(200, 200, 1400, 700) }])
   expect(
     framing.frameStretches(
       { from: 0, to: 3.9, enters: 0 },

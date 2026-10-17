@@ -25,6 +25,9 @@ const ROWS = Math.round(READ.height * BAND_TOP)
 const SAMPLES_PER_SECOND = 4
 /** The crop holds what comes in this far ahead. */
 const AHEAD = 0.5
+/** A frame's first crop holds all it shows this soon: a lone heading is
+ * never blown up just before the rest arrives (review 8, round 1). */
+const FIRST_LOOK = 1.5
 /** A frame's first moments may blend in the frame before it. */
 const ENTRANCE = 0.9
 const SHORTEST = 0.75
@@ -182,7 +185,8 @@ export const placeCrop = (
 /**
  * One frame's stretch of the teaser, cut where its crop must widen: the
  * crop at a moment holds all the frame has shown since it came in, and
- * what comes in half a second later; a new stretch begins only when that
+ * what comes in half a second later (in its first moments, what it shows
+ * in its first second and a half); a new stretch begins only when that
  * would shrink the picture by more than a seventh. The landed still, when
  * the stretch runs to the frame's end, is held too.
  */
@@ -199,6 +203,8 @@ export const frameStretches = (
   const stretches: Array<{ from: number; to: number; box: Box }> = []
   let held: Box | null = null
   let ahead = 0
+  while (ahead < seen.length && seen[ahead].t <= seen[0].t + FIRST_LOOK)
+    held = union(held, seen[ahead++].box)
   for (const sample of seen) {
     while (ahead < seen.length && seen[ahead].t <= sample.t + AHEAD)
       held = union(held, seen[ahead++].box)
@@ -231,6 +237,54 @@ export const frameStretches = (
     stretches.splice(index--, 1)
   }
   return stretches
+}
+
+/** A stretch of one segment and its crop's box; null keeps the fit. */
+export type Planned = { from: number; to: number; box: Box | null }
+
+/**
+ * One segment's frames joined into its stretches. A frame that comes in on
+ * a transition still shows the frame before it at first, so its crop holds
+ * both for the transition's time; and a stretch too short to read joins
+ * its neighbour, across frames too, the crop holding both (review 8, round
+ * 1: a crossfade cut "No an" off at the crop's edge, and a beat opened on a
+ * 33 ms shot of the frame before).
+ */
+export const joinStretches = <T extends Planned>(
+  frames: Array<{
+    from: number
+    /** When the frame comes in, and on what: a cut, or a transition. */
+    start: number
+    cut: boolean
+    stretches: T[]
+  }>
+) => {
+  const planned: T[] = []
+  const both = (one: Box | null, other: Box | null) =>
+    one && other ? union(one, other) : null
+  for (const frame of frames) {
+    const pieces = frame.stretches.map((piece) => ({ ...piece }))
+    const before = planned.at(-1)
+    const first = pieces[0]
+    if (before && first && !frame.cut && frame.from <= frame.start + 0.01) {
+      const end = Math.min(first.to, frame.start + ENTRANCE)
+      const entering = { ...first, to: end, box: both(before.box, first.box) }
+      if (end < first.to) pieces.splice(0, 1, entering, { ...first, from: end })
+      else pieces[0] = entering
+    }
+    planned.push(...pieces)
+  }
+  for (let index = 0; index < planned.length; index++) {
+    const piece = planned[index]
+    if (piece.to - piece.from >= SHORTEST || planned.length === 1) continue
+    const next = planned[index + 1]
+    const kept = next || planned[index - 1]
+    kept.box = both(kept.box, piece.box)
+    if (next) next.from = piece.from
+    else kept.to = piece.to
+    planned.splice(index--, 1)
+  }
+  return planned
 }
 
 /** Pictures from ffmpeg at the reading size, each handed on as it lands:
@@ -360,6 +414,13 @@ export const frameTeaser = async (input: {
   const scaleOf = (box: Box) => placeCrop(box, source, layout).scale
   const shots: Shot[] = []
   for (const segment of input.segments) {
+    // Each frame's stretches, with its background's colour for a fill.
+    const spans: Array<{
+      from: number
+      start: number
+      cut: boolean
+      stretches: Array<Planned & { color?: number[] }>
+    }> = []
     const samples: Array<{ t: number; rgb: Buffer }> = []
     await readPictures(
       input.video,
@@ -399,16 +460,27 @@ export const frameTeaser = async (input: {
               still && to >= frame.to - 0.01 ? boxOf(still) : null
             )
           : []
-      if (!stretches.length) shots.push({ from, to, scale: fit })
-      for (const stretch of stretches) {
-        const patch = patchOf(stretch.box, source)
-        shots.push({
-          from: stretch.from,
-          to: stretch.to,
-          ...placeCrop(stretch.box, source, layout),
-          ...(patch ? { patch } : { color: hex(plain!.color) })
-        })
+      spans.push({
+        from,
+        start: frame.from,
+        cut: frame.cut,
+        stretches: stretches.length
+          ? stretches.map((stretch) => ({ ...stretch, color: plain!.color }))
+          : [{ from, to, box: null }]
+      })
+    }
+    for (const piece of joinStretches(spans)) {
+      if (!piece.box) {
+        shots.push({ from: piece.from, to: piece.to, scale: fit })
+        continue
       }
+      const patch = patchOf(piece.box, source)
+      shots.push({
+        from: piece.from,
+        to: piece.to,
+        ...placeCrop(piece.box, source, layout),
+        ...(patch ? { patch } : { color: hex(piece.color || [255, 255, 255]) })
+      })
     }
   }
   return shots.some((shot) => shot.crop) ? shots : null
