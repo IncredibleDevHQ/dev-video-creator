@@ -146,9 +146,18 @@ const content = (map: MapCanvas) => {
   if (sel?.t === 'lane' && view) {
     const episode = view.episodes.find((e) => e.notebook === sel.id)
     if (!episode) return ''
+    const failed = episode.picking?.state === 'failed'
+    // Its way into making, as on its lane, here where an open Notes panel
+    // never covers it (review 8); a paste or a failed pick leads first.
+    const make = act(
+      `open:${episode.notebook}`,
+      episode.video ? 'Open' : 'Make video',
+      '',
+      !clip && !failed
+    )
     return `<div class="map-info"><b style="color:${colorOf(view, episode.notebook)}">Ep ${episode.number}</b> · ${escape(episode.title)}<small>${episode.copies.length} page${episode.copies.length === 1 ? '' : 's'}${episode.segues === 'failed' ? ' · segues failed' : ''}</small>${clipped}</div>${
       clip ? act('paste', 'Paste', '⌘V', true) : ''
-    }${episode.picking?.state === 'failed' ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${act('rename-episode', 'Rename')}${more('lane')}`
+    }${failed ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${make}${act('rename-episode', 'Rename')}${more('lane')}`
   }
   if (sel?.t === 'series' && view?.series)
     return `<div class="map-info"><b>Series</b> · ${escape(view.series.title)}<small>${view.episodes.length} episode${view.episodes.length === 1 ? '' : 's'}</small></div>${act('rename-series', 'Rename')}`

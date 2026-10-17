@@ -169,7 +169,7 @@ export const installMapInput = (map: MapCanvas) => {
     const dx = nudge(
       map.camera.x + Number(at[1]) * k,
       el.offsetWidth * k,
-      rect.width,
+      rect.width - map.covered(rect),
       40,
       40
     )

@@ -18,6 +18,7 @@ const { api } = await import('../app/api')
 const { mapApi } = await import('../app/map-api')
 const { MapCanvas } = await import('../app/map-canvas')
 const { markRuns } = await import('../app/map-length')
+const { extent } = await import('../app/map-layout')
 // Review 8's live look at the content map, with the network stubbed: these
 // checks drive the real canvas, its header, bar and keys; what the engine
 // and a model do is proved elsewhere.
@@ -125,6 +126,20 @@ const openMap = async (shown = view()) => {
 }
 const click = (target: Element | null) => (target as HTMLElement).click()
 const settle = () => new Promise((resolve) => setTimeout(resolve, 5))
+const fire = (target: EventTarget, type: string, extra: object = {}) => {
+  const event = new win.Event(type, { bubbles: true, cancelable: true })
+  Object.assign(event, extra)
+  target.dispatchEvent(event)
+}
+const rect = (x: number, y: number, w: number, h: number) =>
+  ({
+    left: x,
+    top: y,
+    width: w,
+    height: h,
+    right: x + w,
+    bottom: y + h
+  }) as DOMRect
 const tools = (root: HTMLElement) =>
   root.querySelector<HTMLElement>('[data-map-slot="tools"]')!
 
@@ -181,5 +196,75 @@ describe('the series’ next step in the header (F06)', () => {
       'Plan again'
     )
     expect(series.querySelector('[data-map="length"]')).not.toBeNull()
+  })
+})
+
+describe('the Notes panel and the episode’s next step (F07)', () => {
+  /** The canvas 1200 × 800, and the Notes panel open over its right side,
+   * 300 px wide and 12 px in, as the stylesheet puts it. */
+  const withNotes = async () => {
+    const opened = await openMap()
+    const { map, root } = opened
+    map.canvas!.getBoundingClientRect = () => rect(0, 0, 1200, 800)
+    click(root.querySelector('.map-notes-toggle'))
+    root.querySelector('.map-rail')!.getBoundingClientRect = () =>
+      rect(888, 10, 300, 780)
+    return opened
+  }
+  /** Where a world box lands on screen, left and right. */
+  const onScreen = (map: Canvas, box: { x: number; w: number }) => [
+    map.camera.x + box.x * map.camera.k,
+    map.camera.x + (box.x + box.w) * map.camera.k
+  ]
+
+  it('fits everything, and a block zoomed to, left of the open panel', async () => {
+    const { map, root } = await withNotes()
+    map.fit()
+    const [left, right] = onScreen(map, extent(map.layout!))
+    expect(left).toBeGreaterThanOrEqual(72)
+    expect(right).toBeLessThanOrEqual(888 - 16 + 0.5)
+    // Double-click an episode: it is brought close, still clear of it.
+    const lane = map.layout!.lanes.e1
+    map.fit(lane)
+    expect(onScreen(map, lane)[1]).toBeLessThanOrEqual(888 - 16 + 0.5)
+    // Shut, the whole width is used again.
+    click(root.querySelector('.map-notes-toggle'))
+    map.fit()
+    expect(onScreen(map, extent(map.layout!))[1]).toBeGreaterThan(888)
+  })
+
+  it('brings an episode reached with Tab out from under the open panel', async () => {
+    const { map } = await withNotes()
+    const node = map.els.get('L:e1')!
+    const lane = map.layout!.lanes.e1
+    Object.assign(node, { offsetWidth: lane.w, offsetHeight: lane.h })
+    node.matches = (selector: string) => selector === ':focus-visible'
+    // Its right end, with Make video, sits under the panel.
+    const k = 0.6
+    map.camera = { x: 900 - (lane.x + lane.w) * k, y: 100 - lane.y * k, k }
+    fire(node, 'focusin')
+    expect(onScreen(map, lane)[1]).toBeLessThanOrEqual(888 - 40)
+  })
+
+  it('offers a selected episode’s Make video in the bar, a paste leading when one waits', async () => {
+    const { map, hooks } = await withNotes()
+    map.select({ t: 'lane', id: 'e1' })
+    const bar = map.slot('bar')!
+    const make = bar.querySelector<HTMLElement>('[data-map="open:e1"]')!
+    expect(make.textContent).toBe('Make video')
+    expect(make.className).toBe('primary')
+    click(make)
+    await settle()
+    expect(hooks.openEpisode).toHaveBeenCalledWith('e1')
+    // A page waiting to be pasted leads; making comes second.
+    map.clip = { mode: 'copy', slide: 'd' }
+    map.paint()
+    const buttons = [...bar.querySelectorAll<HTMLElement>('button')]
+    expect(buttons.map((b) => [b.dataset.map, b.className])).toEqual([
+      ['paste', 'primary'],
+      ['open:e1', 'quiet'],
+      ['rename-episode', 'quiet'],
+      ['menu:lane', 'quiet map-more']
+    ])
   })
 })

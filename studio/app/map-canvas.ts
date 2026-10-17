@@ -319,13 +319,22 @@ export class MapCanvas {
       ?.style.setProperty('--k', String(this.camera.k))
     for (const follow of this.onCamera) follow(animate)
   }
+  /** How far the open Notes panel reaches over the canvas from its right
+   * edge, as it floats over it (0 with it shut): what is fitted, or brought
+   * into view from the keyboard, keeps clear of it (review 8). */
+  covered(rect: { right: number }) {
+    const rail = this.root.querySelector('.map-page.is-notes-open .map-rail')
+    const box = rail?.getBoundingClientRect()
+    return box?.width ? Math.max(0, rect.right - box.left) : 0
+  }
   fit(focus?: Box) {
     if (!this.layout || !this.canvas) return
     const box = extent(this.layout, focus)
     const rect = this.canvas.getBoundingClientRect()
-    // The tool bar floats on the left: what is fitted starts past it.
+    // The tool bar floats on the left: what is fitted starts past it, and
+    // ends before an open Notes panel.
     const left = 72
-    const width = rect.width - left - 16
+    const width = rect.width - left - 16 - this.covered(rect)
     const height = rect.height - 90
     if (width <= 0 || height <= 0) return
     const k = Math.max(0.2, Math.min(width / box.w, height / box.h, 1))

@@ -16,7 +16,7 @@ const button = (label: string, kind = 'quiet') =>
   `<button type="button" class="${kind}">${label}</button>`
 const BARS: Record<string, string | null> = {
   none: null,
-  episode: `<div class="map-info"><b>Ep 3</b> · Can you trust ninety percent?<small>6 pages</small></div>${button('Rename')}${button('⋯', 'quiet map-more')}`,
+  episode: `<div class="map-info"><b>Ep 3</b> · Can you trust ninety percent?<small>6 pages</small></div>${button('Make video', 'primary')}${button('Rename')}${button('⋯', 'quiet map-more')}`,
   page: `<div class="map-info"><b>Ep 3</b> · 2 of 6 · An independent calibration audit<small>from page 9 · also in Ep 2</small></div>${button('Change')}${button('Remove')}${button('⋯', 'quiet map-more')}`,
   gap: `<div class="map-info"><b>Missing</b> · Checking calibration<small>How do you check that a model’s confidence is honest?</small></div>${button('Add a note', 'primary')}${button('Explain here')}${button('Ignore')}`,
   covered: `<div class="map-info"><b>A card may say it</b> · “the same key carrying a different order is rejected”<small>First tool: an idempotency key</small></div>${button('Add a note', 'primary')}${button('Covered')}${button('Explain here')}${button('Ignore')}`,
