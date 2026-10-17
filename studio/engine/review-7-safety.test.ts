@@ -624,7 +624,12 @@ describe('CV-6: a gap’s note says which gap', () => {
       return { get: (name: string) => (name === 'note' ? text : null) }
     })
     const run = async (work: () => Promise<unknown>) => (await work(), true)
-    const asked = { mapId: 'map', noteAsk: { text: '', gap: 'gap-1' }, run }
+    // The bar's form, its Add off while the note saves (round 3's audit).
+    const root = { querySelector: () => null }
+    const asked = {
+      ...{ mapId: 'map', noteAsk: { text: '', gap: 'gap-1' }, run },
+      ...{ root, isOpen: true, paint() {} }
+    }
     const form = { dataset: { mapForm: 'flow-note' } }
     expect(await flowSubmit(asked as never, form as never)).toBe(true)
     expect(mapApi.note).toHaveBeenLastCalledWith('map', text, 'gap-1')
