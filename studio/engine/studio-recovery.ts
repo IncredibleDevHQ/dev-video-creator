@@ -41,12 +41,20 @@ export const settleNotebook = (
       changed = true
     }
   const release = snapshot.project.release
-  for (const teaser of release?.teasers || [])
+  for (const teaser of release?.teasers || []) {
     if (teaser.state === 'cutting') {
       teaser.state = 'failed'
       teaser.error = RESTARTED
       changed = true
     }
+    // A teaser's frames being drawn again stop where they were: the frames
+    // already drawn stay on disk, so a new rebuild picks up from them
+    // (review 8, round 2: it said "Drawing…" forever and refused another).
+    if (teaser.rebuild?.state === 'rebuilding') {
+      teaser.rebuild = { ...teaser.rebuild, state: 'failed', error: RESTARTED }
+      changed = true
+    }
+  }
   for (const item of release?.campaign || [])
     if (item.state === 'posting') {
       // It may have gone out before the restart: as a post with no answer,
