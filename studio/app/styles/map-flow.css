@@ -318,10 +318,16 @@
 .map-organize {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.5em;
   font-size: 12px;
   color: var(--map-label);
   white-space: nowrap;
+}
+/* Its box grows with its words when the canvas is zoomed out. */
+.map-organize input {
+  width: 1.1em;
+  height: 1.1em;
+  margin: 0;
 }
 .map-gap-count {
   color: var(--map-gap);

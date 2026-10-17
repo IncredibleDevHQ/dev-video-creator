@@ -189,11 +189,12 @@
 }
 
 /* Zoomed out, the fine print goes and the names stay readable; zoomed in,
-   everything is back. Lines stay at every zoom. */
+   everything is back. Lines stay at every zoom. What goes is hidden, not
+   only made clear, so the keys and a screen reader never reach a control
+   the eye can't see (review 8). */
 .map-bridge,
 .map-segue,
 .map-gap p,
-.map-organize,
 .map-block-head p,
 .map-card-meta,
 .map-segue-s,
@@ -206,7 +207,9 @@
 .map-gap-acts,
 .map-node-label,
 .map-card-title {
-  transition: opacity 0.2s var(--ease-out);
+  transition:
+    opacity 0.2s var(--ease-out),
+    visibility 0.2s;
 }
 .map-canvas.is-far .map-bridge,
 .map-canvas.is-far .map-card-meta,
@@ -217,15 +220,12 @@
 .map-canvas.is-far .map-brief-row,
 .map-canvas.is-far .map-lines,
 .map-canvas.is-far .map-answer,
-.map-canvas.is-far .map-gap-acts {
-  opacity: 0;
-  pointer-events: none;
-}
+.map-canvas.is-far .map-gap-acts,
 .map-canvas.is-far .map-segue,
 .map-canvas.is-far .map-gap p,
-.map-canvas.is-far .map-organize,
 .map-canvas.is-far .map-block-head p {
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
 }
 .map-canvas.is-far .map-lane-head,
@@ -233,15 +233,28 @@
 .map-canvas.is-far .map-block-head h2 {
   font-size: 150%;
 }
+/* The series keeps its automation's state, Organise new cards, in view at
+   every zoom, as large as its name; its length and Plan again wait for a
+   closer look, or for its bar. */
+.map-canvas.is-far .map-series-acts > button {
+  display: none;
+}
+.map-canvas.is-far .map-organize {
+  font-size: 18px;
+}
 .map-canvas.is-farthest .map-node-label,
 .map-canvas.is-farthest .map-card-title,
 .map-canvas.is-farthest .map-segue-k {
   opacity: 0;
+  visibility: hidden;
 }
 .map-canvas.is-farthest .map-lane-head,
 .map-canvas.is-farthest .map-series-title h2,
 .map-canvas.is-farthest .map-block-head h2 {
   font-size: 220%;
+}
+.map-canvas.is-farthest .map-organize {
+  font-size: 26.4px;
 }
 @media (prefers-reduced-motion: reduce) {
   .map-page.is-notes-open .map-rail {

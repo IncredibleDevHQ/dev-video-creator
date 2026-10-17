@@ -230,12 +230,15 @@ export const paintWorld = (map: MapCanvas) => {
     for (const gap of layout.gaps) {
       const found = view.series.gaps.find((item) => item.id === gap.id)
       if (!found) continue
+      // Reached with Tab, and its choices in the bar, at any zoom: its own
+      // buttons go with the fine print zoomed out (review 8).
       items.push({
         key: `g:${gap.id}`,
         cls: `map-gap${chosen === `g:${gap.id}` ? ' is-selected' : ''}`,
         box: gap,
         html: gapCard(found),
-        title: found.ask
+        title: found.ask,
+        label: `Missing: ${found.missing}`
       })
     }
     const pageNo = new Map(pages.map((slide, index) => [slide.id, index + 1]))

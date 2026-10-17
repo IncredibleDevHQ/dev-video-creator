@@ -3,7 +3,7 @@
 // waits behind "More". It also asks for a new episode, a new title, and a
 // change to a page.
 import type { MapCanvas } from './map-canvas'
-import { lengthChip } from './map-nodes'
+import { lengthChip, seriesPlanned } from './map-nodes'
 import { colorOf } from './map-view'
 import { escape } from './ui'
 
@@ -159,8 +159,15 @@ const content = (map: MapCanvas) => {
       clip ? act('paste', 'Paste', '⌘V', true) : ''
     }${failed ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${make}${act('rename-episode', 'Rename')}${more('lane')}`
   }
-  if (sel?.t === 'series' && view?.series)
-    return `<div class="map-info"><b>Series</b> · ${escape(view.series.title)}<small>${view.episodes.length} episode${view.episodes.length === 1 ? '' : 's'}</small></div>${act('rename-series', 'Rename')}`
+  if (sel?.t === 'series' && view?.series) {
+    const series = view.series
+    // Its length and Plan again, at any zoom (review 8); the header asks for
+    // its first plan.
+    const plan = seriesPlanned(series)
+      ? `${lengthChip(series.length)}${series.planning?.state === 'planning' ? '' : act('plan-series', 'Plan again')}`
+      : ''
+    return `<div class="map-info"><b>Series</b> · ${escape(series.title)}<small>${view.episodes.length} episode${view.episodes.length === 1 ? '' : 's'}</small></div>${plan}${act('rename-series', 'Rename')}`
+  }
   if (clip)
     return `<div class="map-info">${clipped.replace(/<\/?small>/g, '')} · select an episode</div>${act('clear-clip', 'Clear')}`
   return ''

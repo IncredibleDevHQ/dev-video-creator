@@ -268,3 +268,56 @@ describe('the Notes panel and the episode’s next step (F07)', () => {
     ])
   })
 })
+
+describe('what the keys reach zoomed out (F12)', () => {
+  it('reaches a gap with Tab and Enter, its choices in the bar, as its own buttons go zoomed out', async () => {
+    const shown = view()
+    shown.series!.gaps = [
+      {
+        id: 'g1',
+        missing: 'How the client sends the key',
+        episode: 'e2',
+        why: 'The episode needs it',
+        ask: 'How does the client send it?',
+        state: 'open'
+      }
+    ]
+    const { map, root } = await openMap(shown)
+    const gap = root.querySelector<HTMLElement>('[data-k="g:g1"]')!
+    // (linkedom reads a tabindex of 0 as -1: the attribute says it.)
+    expect(['tabindex', 'role'].map((name) => gap.getAttribute(name))).toEqual([
+      '0',
+      'button'
+    ])
+    expect(gap.getAttribute('aria-label')).toBe(
+      'Missing: How the client sends the key'
+    )
+    fire(gap, 'keydown', { key: 'Enter' })
+    expect(map.sel).toEqual({ t: 'gap', id: 'g1' })
+    const bar = map.slot('bar')!
+    expect(
+      [...bar.querySelectorAll('button')].map((b) => b.dataset.map)
+    ).toEqual(['gap-note:g1', 'gap-explain:g1', 'gap-ignore:g1'])
+  })
+
+  it('offers the series’ length and Plan again in its bar, as the series shows only its organising zoomed out', async () => {
+    const { map, root } = await openMap()
+    map.select({ t: 'series' })
+    const bar = map.slot('bar')!
+    const acts = () =>
+      [...bar.querySelectorAll<HTMLElement>('button')].map((b) => b.dataset.map)
+    expect(acts()).toEqual(['length', 'plan-series', 'rename-series'])
+    expect(bar.querySelector('[data-map="plan-series"]')?.textContent).toBe(
+      'Plan again'
+    )
+    click(bar.querySelector('[data-map="length"]'))
+    expect(win.document.querySelector('.length-popover')).not.toBeNull()
+    // Before its first plan, the header asks for it: the bar doesn't.
+    vi.mocked(mapApi.view).mockImplementation(async () => view(false))
+    await map.refresh()
+    expect(acts()).toEqual(['rename-series'])
+    expect(
+      root.querySelector('[data-k="B:series"] [data-map-organize]')
+    ).not.toBeNull()
+  })
+})
