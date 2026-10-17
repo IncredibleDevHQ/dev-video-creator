@@ -143,6 +143,8 @@ export const api = {
     request<Snapshot>(`/projects/${id}/storyboard/retry`, 'POST', {}),
   stopStoryboard: (id: string) =>
     request<Snapshot>(`/projects/${id}/storyboard/stop`, 'POST', {}),
+  replanStoryboard: (id: string) =>
+    request<Snapshot>(`/projects/${id}/storyboard/replan`, 'POST', {}),
   setStoryboardTransition: (id: string, frame: number, transition: string) =>
     request<Snapshot>(
       `/projects/${id}/storyboard/frames/${frame}/transition`,

@@ -18,6 +18,7 @@ import { loadProject } from '../projects'
 import { resolveVoice } from '../voice-library'
 import { probeSeconds } from '../voice'
 import { loadSeries, previouslyOf } from '../series'
+import { settledSegues } from '../map-segues'
 import { createWorkspace, productionDir, stageLogo } from './workspace'
 import { blueprintIds, planEpisode, type SeriesContext } from './plan'
 import { prepareEpisodeAudio } from './voice'
@@ -58,6 +59,11 @@ import { afterFrames, needsTake } from './takes'
 const MOST_ROUNDS = 2
 
 const running = new Map<string, Promise<void>>()
+/** What a Stop aborts that is no agent run: the render (review 8 F11). */
+const aborts = new Map<string, AbortController>()
+/** Ends the work in this process that a Stop can end at once. */
+export const abortStoryboard = (projectId: string) =>
+  aborts.get(projectId)?.abort()
 
 /** Runs the production in the background until it waits, fails or is made. */
 export const scheduleStoryboard = (projectId: string) => {
@@ -91,7 +97,11 @@ const SEGUE_WAIT_MS = 5 * 60_000
  * What changed before it starts is in the lines it plans from. */
 const linesToPlan = async (snapshot: Snapshot) => {
   const id = snapshot.project.id
-  let current = snapshot
+  await Promise.race([
+    settledSegues(id),
+    new Promise((resolve) => setTimeout(resolve, SEGUE_WAIT_MS))
+  ])
+  let current = (await loadProject(id)) || snapshot
   const until = Date.now() + SEGUE_WAIT_MS
   while (
     current.project.segues?.state === 'writing' &&
@@ -270,15 +280,14 @@ const planStage = async ({
     current.length = length
     // The wireframes changed while it planned: it plans again with them
     // before a plan of the old lines waits for approval (review 8 F04).
-    if (current.replan) {
-      delete current.replan
+    // The wireframes changed while it planned: it waits with that said, and
+    // the creator plans again when ready (review 8 F04).
+    if (current.replan)
       addEvent(
         ledger,
         'video',
-        'The wireframes changed while planning: planning again with them'
+        'The wireframes changed while planning: plan again to use them'
       )
-      return
-    }
     delete current.note
     current.stage = 'review'
     current.status = 'waiting'
@@ -570,9 +579,16 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
         })
       } catch (error) {
         internal.statuses![frame.number] = 'failed'
-        internal.problems![frame.number] = [
-          error instanceof Error ? error.message : String(error)
-        ]
+        // A run the creator stopped is no finding for the frame's next try.
+        if (
+          (await loadProject(snapshot.project.id))?.project.video?.storyboard
+            ?.stopping
+        )
+          delete internal.problems![frame.number]
+        else
+          internal.problems![frame.number] = [
+            error instanceof Error ? error.message : String(error)
+          ]
         await save()
       }
     }
@@ -686,7 +702,11 @@ const assembleStage = async ({ snapshot, dir, internal }: StageInput) => {
 }
 
 const renderStage = async ({ snapshot, dir, internal }: StageInput) => {
-  const output = await renderEpisode(dir)
+  const stop = new AbortController()
+  aborts.set(snapshot.project.id, stop)
+  const output = await renderEpisode(dir, stop.signal).finally(() =>
+    aborts.delete(snapshot.project.id)
+  )
   const duration = Math.round((await probeSeconds(output)) * 100) / 100
   const stored = await storeAsset({
     body: await readFile(output),

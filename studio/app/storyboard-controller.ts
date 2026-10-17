@@ -47,6 +47,10 @@ const uploadTake = (projectId: string, pageId: string, blob: Blob) => {
 const storyboardOf = (app: AppContext) =>
   app.snapshot?.project.video?.storyboard
 
+/** Whether a snapshot is at least as new as another, by its last event. */
+const newer = (one: Snapshot, other: Snapshot) =>
+  (one.events.at(-1)?.sequence ?? 0) >= (other.events.at(-1)?.sequence ?? 0)
+
 /** The storyboard scene of the video scene the address names, so a reload
  * opens where the creator was (the Jev series run: it opened scene 1). */
 export const storyboardViewAt = (
@@ -246,10 +250,15 @@ export const clickStoryboard = async (
     )
     return true
   }
-  if (action === 'sb-stop') {
+  if (action === 'sb-stop' || action === 'sb-replan') {
     target.disabled = true
-    const saved = await api.stopStoryboard(id)
-    if (app.snapshot?.project.id === id) app.snapshot = saved
+    const saved = await (action === 'sb-stop'
+      ? api.stopStoryboard(id)
+      : api.replanStoryboard(id))
+    // The live stream may already have brought a newer state (the stop
+    // landing): an answer read before it never replaces it (review 8).
+    if (app.snapshot?.project.id === id && newer(saved, app.snapshot))
+      app.snapshot = saved
     app.render()
     return true
   }

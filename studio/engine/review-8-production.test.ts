@@ -8,9 +8,11 @@ import type { EpisodePlan, PlanFrame, Storyboard } from '../shared/storyboard'
 // before a video exists, and a production at work can be stopped. The
 // agents, the voice and Hyperframes are stand-ins: these checks prove the
 // production's plumbing, never what a model plans or builds.
-const { planned, posed } = vi.hoisted(() => ({
+const { planned, posed, built, rendered } = vi.hoisted(() => ({
   planned: vi.fn(),
-  posed: vi.fn()
+  posed: vi.fn(),
+  built: vi.fn(),
+  rendered: vi.fn()
 }))
 vi.mock('./storyboard/plan', async (original) => ({
   ...(await original<typeof import('./storyboard/plan')>()),
@@ -23,7 +25,7 @@ vi.mock('./storyboard/shots', () => ({
   buildFiles: () => []
 }))
 vi.mock('./storyboard/frames', () => ({
-  buildFrame: vi.fn(),
+  buildFrame: built,
   writeFramePackets: async () => []
 }))
 vi.mock('./storyboard/stills-stage', () => ({ stillsStage: posed }))
@@ -32,16 +34,21 @@ vi.mock('./storyboard/assemble', () => ({
   checkEpisode: vi.fn(),
   episodeSheet: async () => null,
   episodePoster: async () => null,
-  renderEpisode: vi.fn()
+  renderEpisode: rendered
 }))
 
 const { writeRow } = await import('./persistence')
 const { changeProject, loadProject } = await import('./projects')
-const { planSummary } = await import('./storyboard/state')
+const { planSummary, writeInternal } = await import('./storyboard/state')
 const { scheduleStoryboard, settledStoryboard, storyboardDir } =
   await import('./storyboard/pipeline')
-const { approveStoryboard, retryStoryboard, stopStoryboard } =
-  await import('./storyboard/actions')
+const {
+  approveStoryboard,
+  remakeStoryboard,
+  replanStoryboard,
+  retryStoryboard,
+  stopStoryboard
+} = await import('./storyboard/actions')
 const { generationStops } = await import('./generation-errors')
 const { runEngineStage } = await import('./harness/runtime')
 const { storyboardHeader, storyboardScreen } =
@@ -165,7 +172,7 @@ beforeEach(() => {
   posed.mockResolvedValue('stop')
 })
 
-it('plans again, never stale, when its lines change while the first plan is made (F04)', async () => {
+it('says when its lines changed while the first plan was made, never stale, and plans again when asked (F04)', async () => {
   await seed('mid-plan', {})
   // The episode's segue lands while the planner works on the old lines.
   planned.mockImplementationOnce(async () => {
@@ -175,27 +182,29 @@ it('plans again, never stale, when its lines change while the first plan is made
   scheduleStoryboard('mid-plan')
   await settledStoryboard('mid-plan')
   const board = await stored('mid-plan')
-  expect(board.stale).toBeFalsy()
-  expect(board.replan).toBeFalsy()
-  expect([board.stage, board.status, board.waitingFor]).toEqual([
+  expect([board.stage, board.status, board.stale, board.replan]).toEqual([
     'review',
     'waiting',
-    'approval'
+    undefined,
+    true
   ])
-  // The plan that waits was made from the new lines.
-  expect(heard()).toEqual(['The first outro.', 'The new outro.'])
-  // The page offers the plan's approval and nothing that calls it stale.
+  // No paid run started by itself: the page says why and offers Plan again.
+  expect(heard()).toEqual(['The first outro.'])
   const page = await screen('mid-plan')
-  expect(page).toContain('Approve the plan')
-  expect(page).not.toMatch(/Changed since|previous cut/)
-  expect(await header('mid-plan')).toContain('Approve the plan')
-  const events = (await loadProject('mid-plan'))!.events.map((e) => e.message)
-  expect(events).toContain(
-    'The wireframes changed while planning: planning again with them'
+  expect(page).toContain('The wireframes changed.')
+  expect(page).not.toMatch(/Approve the plan|Changed since|previous cut/)
+  expect(await header('mid-plan')).toMatch(
+    /data-action="sb-replan"[^>]*>Plan again</
   )
+  await expect(approveStoryboard('mid-plan', {})).rejects.toThrow(/plan again/)
+  await replanStoryboard('mid-plan')
+  await settledStoryboard('mid-plan')
+  expect(heard()).toEqual(['The first outro.', 'The new outro.'])
+  expect((await stored('mid-plan')).replan).toBeUndefined()
+  expect(await header('mid-plan')).toContain('Approve the plan')
 })
 
-it('sends a plan waiting for approval back to planning when its lines change (F04)', async () => {
+it('marks a plan waiting for approval when its lines change, and starts nothing by itself (F04)', async () => {
   await seed('waiting-plan', {
     stage: 'review',
     status: 'waiting',
@@ -204,11 +213,15 @@ it('sends a plan waiting for approval back to planning when its lines change (F0
   })
   const changed = await rewrite('waiting-plan', 'The new outro.')
   const board = changed.project.video!.storyboard!
-  expect([board.stage, board.status, board.stale]).toEqual([
-    'plan',
-    'working',
-    undefined
+  expect([board.stage, board.status, board.stale, board.replan]).toEqual([
+    'review',
+    'waiting',
+    undefined,
+    true
   ])
+  await settledStoryboard('waiting-plan')
+  expect(planned).not.toHaveBeenCalled()
+  await replanStoryboard('waiting-plan')
   await settledStoryboard('waiting-plan')
   expect(heard()).toEqual(['The new outro.'])
   expect((await stored('waiting-plan')).waitingFor).toBe('approval')
@@ -322,4 +335,112 @@ it('refuses a storyboard agent run once the production is stopping (F11)', async
       accept: async () => {}
     })
   ).rejects.toThrow(generationStops.user)
+})
+
+it('clears a stop once the production leaves working, and stops the render at once (F11)', async () => {
+  await seed('render', {
+    stage: 'render',
+    status: 'working',
+    approved: true,
+    plan: planSummary({ plan })
+  })
+  // The render ends when its signal is aborted, as Hyperframes' does.
+  rendered.mockImplementationOnce(
+    (_dir: string, signal: AbortSignal) =>
+      new Promise((_resolve, reject) =>
+        signal.addEventListener('abort', () => reject(new Error('aborted')))
+      )
+  )
+  scheduleStoryboard('render')
+  await vi.waitFor(() => expect(rendered).toHaveBeenCalled())
+  await stopStoryboard('render')
+  await settledStoryboard('render')
+  const board = await stored('render')
+  expect([board.status, board.error, board.stopping]).toEqual([
+    'failed',
+    generationStops.user,
+    undefined
+  ])
+  // A stop that lands as a stage finishes never stays set.
+  await changeProject('render', (snapshot) => {
+    Object.assign(snapshot.project.video!.storyboard!, {
+      status: 'working',
+      stopping: true
+    })
+  })
+  const { update } = await import('./storyboard/run')
+  await update('render', (storyboard) => {
+    storyboard.status = 'done'
+  })
+  expect((await stored('render')).stopping).toBeUndefined()
+})
+
+it('gives a frame stopped by the creator no finding to fix on its next try (F11)', async () => {
+  await seed('frames-stop', {
+    stage: 'frames',
+    status: 'working',
+    approved: true,
+    plan: planSummary({ plan })
+  })
+  // Voiced and shot, ready for its frames to be built.
+  const shot = (number: number) => ({
+    number,
+    blueprint: 'compose',
+    focal: 'The key',
+    roles: 'One focal point',
+    windows: []
+  })
+  await writeInternal(
+    storyboardDir('frames-stop', await stored('frames-stop')),
+    {
+      plan,
+      statuses: {},
+      problems: {},
+      rounds: 0,
+      voiced: ['p1'],
+      durations: { 1: 3, 2: 3 },
+      shots: { 1: shot(1), 2: shot(2) }
+    }
+  )
+  let release = () => {}
+  const stopped = new Promise<void>((resolve) => (release = resolve))
+  built.mockImplementation(async () => {
+    await stopped
+    throw new Error('The engine run was interrupted')
+  })
+  scheduleStoryboard('frames-stop')
+  await vi.waitFor(() => expect(built).toHaveBeenCalled())
+  await stopStoryboard('frames-stop')
+  release()
+  await settledStoryboard('frames-stop')
+  built.mockReset()
+  built.mockResolvedValue(undefined)
+  await retryStoryboard('frames-stop')
+  await settledStoryboard('frames-stop')
+  for (const [input] of built.mock.calls)
+    expect((input as { findings?: string[] }).findings).toBeUndefined()
+})
+
+it('offers Remake, not Try again, on a stopped production that went stale, and Stop beside Remake while it works (F04, F11)', async () => {
+  await seed('stale-stop', {
+    stage: 'stills',
+    status: 'failed',
+    error: generationStops.user,
+    approved: true,
+    plan: planSummary({ plan })
+  })
+  await rewrite('stale-stop', 'The new outro.')
+  const page = await screen('stale-stop')
+  expect(page).toContain('Changed since the plan.')
+  expect(page).not.toMatch(/data-action="sb-retry"|Try again continues/)
+  await changeProject('stale-stop', (snapshot) => {
+    snapshot.project.video!.storyboard!.status = 'working'
+  })
+  const top = await header('stale-stop')
+  expect(top).toMatch(/data-action="sb-stop"[^>]*>Stop</)
+  expect(top).toMatch(/data-action="sb-remake"/)
+  // Remake stops what is at work first, then plans afresh.
+  await remakeStoryboard('stale-stop')
+  await settledStoryboard('stale-stop')
+  expect((await stored('stale-stop')).stale).toBeUndefined()
 })

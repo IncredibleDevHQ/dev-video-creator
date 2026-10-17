@@ -105,14 +105,11 @@ export const changeProject = async (
       const boardId = snapshot.project.video?.storyboard?.id
       const sources = storyboardSources(snapshot.project)
       await update(snapshot)
-      const replanned = sourcesChanged(snapshot, boardId, sources)
+      sourcesChanged(snapshot, boardId, sources)
       snapshot.views = projectViews(snapshot.project, snapshot.events)
       snapshot.views.video.display = videoDisplay(snapshot)
       snapshot.views.presentation = presentationDisplay(snapshot)
       await writeRow('projects', id, snapshot)
-      // A plan waiting for approval that the change sent back runs again.
-      if (replanned)
-        (await import('./storyboard/pipeline')).scheduleStoryboard(id)
       return snapshot
     })
   queues.set(id, next)

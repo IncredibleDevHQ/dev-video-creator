@@ -33,6 +33,7 @@ import {
   missingTakes,
   scheduleStoryboard,
   settledStoryboard,
+  abortStoryboard,
   stopNow,
   storyboardRunning,
   storyboardDir
@@ -82,6 +83,10 @@ export const approveStoryboard = async (projectId: string, raw: unknown) => {
     if (storyboard.stale && !note)
       throw new Refusal(
         'The wireframes changed since: remake the video to use them'
+      )
+    if (storyboard.replan && !note)
+      throw new Refusal(
+        'The wireframes changed after this plan: plan again to use them'
       )
     if (note) {
       storyboard.note = note
@@ -466,9 +471,28 @@ export const stopStoryboard = async (projectId: string) => {
     )
       cancelEngineRun(run.id)
   }
+  abortStoryboard(projectId)
   // Nothing at work in this process: it stops now.
   if (!storyboardRunning(projectId)) await stopNow(projectId)
   return (await loadProject(projectId))!
+}
+
+/** A plan whose wireframes changed while it was made, or since: made again
+ * from them, when the creator asks (review 8 F04). */
+export const replanStoryboard = async (projectId: string) => {
+  const snapshot = await changeProject(projectId, (current) => {
+    const storyboard = storyboardOf(current)
+    if (storyboard.stage !== 'review' || storyboard.status !== 'waiting')
+      throw new Refusal('Only a plan waiting for you can be planned again')
+    storyboard.stage = 'plan'
+    storyboard.status = 'working'
+    delete storyboard.waitingFor
+    delete storyboard.replan
+    storyboard.updatedAt = new Date().toISOString()
+    addEvent(current, 'video', 'Planning again with the current wireframes')
+  })
+  scheduleStoryboard(projectId)
+  return snapshot
 }
 
 /** Replan edited wireframes in a fresh workspace, keeping the creator's takes.

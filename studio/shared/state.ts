@@ -279,31 +279,35 @@ export const videoDisplay = (
         ? storyboard.produced
           ? 'Changed since build'
           : 'Changed since the plan'
-        : storyboard.status === 'working'
-          ? STAGE_LABELS[storyboard.stage]
-          : storyboard.status === 'waiting'
-            ? storyboard.waitingFor === 'takes'
-              ? 'Waiting for your takes'
-              : storyboard.stage === 'board'
-                ? 'Stills ready for you'
-                : 'Plan ready for you'
-            : storyboard.status === 'failed'
-              ? 'Stopped'
-              : 'Made',
+        : storyboard.replan && storyboard.status === 'waiting'
+          ? 'Wireframes changed'
+          : storyboard.status === 'working'
+            ? STAGE_LABELS[storyboard.stage]
+            : storyboard.status === 'waiting'
+              ? storyboard.waitingFor === 'takes'
+                ? 'Waiting for your takes'
+                : storyboard.stage === 'board'
+                  ? 'Stills ready for you'
+                  : 'Plan ready for you'
+              : storyboard.status === 'failed'
+                ? 'Stopped'
+                : 'Made',
       active: storyboard.status === 'working',
       actionLabel: storyboard.stale
         ? 'Remake video'
-        : storyboard.status === 'failed'
-          ? 'Try again'
-          : storyboard.waitingFor === 'approval'
-            ? storyboard.stage === 'board'
-              ? 'Approve the stills'
-              : 'Approve the plan'
-            : storyboard.waitingFor === 'takes'
-              ? 'Record your take'
-              : storyboard.produced
-                ? 'Export MP4'
-                : 'Making the video'
+        : storyboard.replan && storyboard.status === 'waiting'
+          ? 'Plan again'
+          : storyboard.status === 'failed'
+            ? 'Try again'
+            : storyboard.waitingFor === 'approval'
+              ? storyboard.stage === 'board'
+                ? 'Approve the stills'
+                : 'Approve the plan'
+              : storyboard.waitingFor === 'takes'
+                ? 'Record your take'
+                : storyboard.produced
+                  ? 'Export MP4'
+                  : 'Making the video'
     }
   }
   const views =

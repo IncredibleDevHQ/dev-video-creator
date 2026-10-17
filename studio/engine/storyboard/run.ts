@@ -24,6 +24,8 @@ export const update = (
     const storyboard = snapshot.project.video?.storyboard
     if (!storyboard) return
     change(storyboard, snapshot)
+    // A stop only means something while it works (review 8 F11).
+    if (storyboard.status !== 'working') delete storyboard.stopping
     storyboard.updatedAt = new Date().toISOString()
   })
 

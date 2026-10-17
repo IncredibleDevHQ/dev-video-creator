@@ -110,6 +110,8 @@ const statusLine = (storyboard: Storyboard) => {
       ? 'Changed since build'
       : 'Changed since the plan'
   if (storyboard.stopping) return 'Stopping…'
+  if (storyboard.replan && storyboard.status === 'waiting')
+    return 'The wireframes changed: plan again'
   const total = frameCount(storyboard)
   const done = framesDone(storyboard)
   const posed = framesPosed(storyboard)
@@ -136,6 +138,7 @@ const statusLine = (storyboard: Storyboard) => {
 const awaiting = (storyboard: Storyboard) =>
   storyboard.status === 'waiting' &&
   !storyboard.stale &&
+  !storyboard.replan &&
   (storyboard.stage === 'review' || storyboard.stage === 'board')
 
 /** The stills are being posed or looked at: nothing is made from them yet. */
@@ -189,9 +192,11 @@ const stopAlert = (error: string) => {
 /** Why a stale production needs remaking: a made video's cut is old; one
  * still being made was planned from the old wireframes (review 8 F04). */
 const staleNote = (storyboard: Storyboard) =>
-  storyboard.produced
-    ? '<p class="sb-stale" role="status"><strong>Changed since build.</strong> These wireframes changed after this video was made. Remake the video before exporting; the preview is the previous cut.</p>'
-    : '<p class="sb-stale" role="status"><strong>Changed since the plan.</strong> These wireframes changed after the plan was approved. Remake the video to use them.</p>'
+  !storyboard.stale
+    ? '<p class="sb-stale" role="status"><strong>The wireframes changed.</strong> They changed after this plan was made. Plan again to use them.</p>'
+    : storyboard.produced
+      ? '<p class="sb-stale" role="status"><strong>Changed since build.</strong> These wireframes changed after this video was made. Remake the video before exporting; the preview is the previous cut.</p>'
+      : '<p class="sb-stale" role="status"><strong>Changed since the plan.</strong> These wireframes changed after the plan was approved. Remake the video to use them.</p>'
 
 const working = (label: string) =>
   `<span class="sb-rail-state is-working"><span class="activity-orbit" aria-hidden="true"></span>${label}</span>`
@@ -522,7 +527,8 @@ const actions = (
     ? `${button('Change the plan', 'sb-change')}${button(reviewing ? 'Approve the plan' : 'Approve the stills', 'sb-approve', true)}`
     : ''
   if (takesOnly) return take
-  return `${still}${approve}${storyboard.status === 'failed' ? button('Try again', 'sb-retry', true) : ''}`
+  // A stale production is remade, never carried on (review 8: both showed).
+  return `${still}${approve}${storyboard.status === 'failed' && !storyboard.stale ? button('Try again', 'sb-retry', true) : ''}`
 }
 
 /**
@@ -536,9 +542,13 @@ export const storyboardHeader = (
   release = ''
 ) => {
   // Remake is always offered on a stale production: one still at work stops
-  // first (review 8 F04: it was disabled while it worked).
+  // first, or can be stopped as it is (review 8 F04: Remake was disabled
+  // while it worked).
   if (storyboard.stale)
-    return button('Remake video', 'sb-remake', true, storyboard.stopping)
+    return `${storyboard.status === 'working' ? button(storyboard.stopping ? 'Stopping…' : 'Stop', 'sb-stop', false, storyboard.stopping) : ''}${button('Remake video', 'sb-remake', true, storyboard.stopping)}`
+  // A plan whose wireframes changed is planned again before it is approved.
+  if (storyboard.replan && storyboard.status === 'waiting')
+    return button('Plan again', 'sb-replan', true)
   if (storyboard.status === 'failed')
     return button('Try again', 'sb-retry', true)
   // The same test as the page's own Approve, so the two always agree.
@@ -615,8 +625,8 @@ ${
     ? `<div class="focus-heading"><div><strong>${reviewingTake ? 'Review your take' : recordTitle(capture)}</strong><span>Scene ${chosen + 1} · ${reviewingTake ? `${lines.length} ${lines.length === 1 ? 'line' : 'lines'}` : `Frame ${frame?.number ?? 1}${lines.length > 1 ? ` · ${Math.min(capture.current, lines.length - 1) + 1} of ${lines.length}` : ''}`}</span>${recordLight(capture)}</div></div>`
     : band(storyboard)
 }
-${storyboard.stale ? staleNote(storyboard) : ''}
-${storyboard.status === 'failed' && storyboard.error ? stopAlert(storyboard.error) : ''}
+${storyboard.stale || (storyboard.replan && storyboard.status === 'waiting') ? staleNote(storyboard) : ''}
+${storyboard.status === 'failed' && storyboard.error && !storyboard.stale ? stopAlert(storyboard.error) : ''}
 ${stage(snapshot, storyboard, scene, frame, capture, recording)}
 ${takes || heard ? `<div class="sb-take-actions">${heard || voiceTake(scene)}${takes}</div>` : ''}
 ${scene ? prompter(scene, capture, recording) : ''}
