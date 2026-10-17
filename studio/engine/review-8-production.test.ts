@@ -8,12 +8,13 @@ import type { EpisodePlan, PlanFrame, Storyboard } from '../shared/storyboard'
 // before a video exists, and a production at work can be stopped. The
 // agents, the voice and Hyperframes are stand-ins: these checks prove the
 // production's plumbing, never what a model plans or builds.
-const { planned, posed, built, rendered, segued } = vi.hoisted(() => ({
+const { planned, posed, built, rendered, segued, voiced } = vi.hoisted(() => ({
   planned: vi.fn(),
   posed: vi.fn(),
   built: vi.fn(),
   rendered: vi.fn(),
-  segued: vi.fn()
+  segued: vi.fn(),
+  voiced: vi.fn()
 }))
 vi.mock('./map-segues', async (original) => ({
   ...(await original<typeof import('./map-segues')>()),
@@ -24,7 +25,7 @@ vi.mock('./storyboard/plan', async (original) => ({
   planEpisode: planned,
   blueprintIds: () => []
 }))
-vi.mock('./storyboard/voice', () => ({ prepareEpisodeAudio: vi.fn() }))
+vi.mock('./storyboard/voice', () => ({ prepareEpisodeAudio: voiced }))
 vi.mock('./storyboard/shots', () => ({
   designSceneShots: vi.fn(),
   buildFiles: () => []
@@ -382,6 +383,47 @@ it('stops the stills when asked, keeps what is made, and carries on with Try aga
   expect((await stored('stop')).status).toBe('working')
   await settledStoryboard('stop')
   expect(posed).toHaveBeenCalledTimes(2)
+})
+
+it('stops while the voice is recorded, and says so (F11, round 3)', async () => {
+  await seed('voice-stop', {
+    stage: 'voice',
+    status: 'working',
+    approved: true,
+    plan: planSummary({ plan })
+  })
+  await writeInternal(storyboardDir('voice-stop', await stored('voice-stop')), {
+    plan,
+    statuses: {},
+    problems: {},
+    rounds: 0,
+    voiced: []
+  })
+  // The creator presses Stop between two lines.
+  voiced.mockImplementationOnce(
+    async (input: { stopped?: () => Promise<boolean> }) => {
+      await stopStoryboard('voice-stop')
+      if (await input.stopped?.())
+        throw new Error('Stopped while the voice was recorded')
+      // Not told of the stop, the voice would finish every line.
+      return {
+        meta: { bgm: null, bgm_pending: false, voices: [], sfx: [] },
+        durations: { 1: 3, 2: 3 },
+        media: {}
+      }
+    }
+  )
+  scheduleStoryboard('voice-stop')
+  await settledStoryboard('voice-stop')
+  const board = await stored('voice-stop')
+  expect([board.stage, board.status, board.stopping]).toEqual([
+    'voice',
+    'failed',
+    undefined
+  ])
+  expect(await screen('voice-stop')).toContain(
+    'Stopped while the voice was recorded. The stills are kept; Try again records the voice.'
+  )
 })
 
 it('stops at once when nothing is at work, and refuses when nothing is being made (F11)', async () => {

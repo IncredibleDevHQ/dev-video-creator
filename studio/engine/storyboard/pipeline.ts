@@ -398,6 +398,7 @@ const voiceStage = async ({
     voice,
     takes,
     captures,
+    stopped: () => stopAsked(snapshot.project.id),
     previous: {
       voices: internal.voices,
       durations: internal.durations,

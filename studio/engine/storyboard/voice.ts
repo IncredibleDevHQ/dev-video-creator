@@ -140,11 +140,16 @@ const toWav = (input: string, output: string, extra: string[] = []) =>
 const speakFrames = async (
   dir: string,
   frames: EpisodeFrame[],
-  voice: { referenceId?: string; systemVoice?: string }
+  voice: { referenceId?: string; systemVoice?: string },
+  stopped?: () => Promise<boolean>
 ) => {
   const voices: FrameVoice[] = []
   for (const frame of frames) {
     if (!frame.voiceover.trim()) continue
+    // Stop ends the voice between lines, not once every line is spoken
+    // (review 8, round 3: the stop landed in the next stage).
+    if (await stopped?.())
+      throw new Error('Stopped while the voice was recorded')
     const clip = await narrationClock(
       [
         {
@@ -341,6 +346,8 @@ export const prepareEpisodeAudio = async (input: {
   takes: Record<string, string>
   /** A product capture on disk per screen page. */
   captures: Record<string, string>
+  /** Whether the creator pressed Stop: checked between lines. */
+  stopped?: () => Promise<boolean>
   /** What earlier scenes were voiced with. */
   previous?: {
     voices?: FrameVoice[]
@@ -381,7 +388,7 @@ export const prepareEpisodeAudio = async (input: {
       Object.assign(media, cut.media)
     } else spoken.push(...scene)
   }
-  voices.push(...(await speakFrames(dir, spoken, input.voice)))
+  voices.push(...(await speakFrames(dir, spoken, input.voice, input.stopped)))
   voices.sort((a, b) => a.frame - b.frame)
   for (const frame of frames) {
     const entry = voices.find((item) => item.frame === frame.number)
