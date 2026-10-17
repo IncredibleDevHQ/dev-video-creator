@@ -251,7 +251,7 @@ export class MapCanvas {
       mapTools(this.snapshot, this.view, this.mode, this.filter)
     )
     this.fill('stages', mapStages(this.snapshot))
-    this.fill('notes', mapNotes(this.snapshot, this.openNotes))
+    this.fill('notes', mapNotes(this.snapshot, this.openNotes, this.view))
     this.fill('note-count', noteCount(this))
     // Notes pile in any time: while the map forms they are kept, and sorted
     // once it is drawn (review 8 F01: the field was shut while it formed).

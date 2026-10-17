@@ -4,8 +4,13 @@
 import { randomUUID } from 'node:crypto'
 import type { Snapshot } from '../shared/api'
 import type { Slide } from '../shared/model'
+import { addEvent } from './activity'
+import { composeNarration, planScenes, scheduleAround } from './map-segues'
 import { readRow, writeRow } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
+import { changeProject, loadProject } from './projects'
+import { reconcileVideo } from './scene-model'
+import { loadSeries } from './series'
 
 /** A page's version: what a copy of it shows and says. */
 export const pageHash = (slide: Slide) =>
@@ -59,5 +64,75 @@ export const syncEvidence = async (map: string, episode: string) => {
   for (const table of ['sources', 'source-briefs']) {
     const row = await readRow<object>(table, map)
     if (row) await writeRow(table, episode, row)
+  }
+}
+
+/** A copy as it came from the map: nothing in it edited in the episode. */
+export const untouched = (copy: Slide) =>
+  pageHash({ ...copy, narration: copy.base || '' }) === copy.copyOf?.hash
+
+/** The map's card as it is now, for a copy that is behind it and was never
+ * edited nor kept on purpose: same id, the lines written around it kept. */
+export const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
+  const now = pageHash(original)
+  if (
+    now === copy.copyOf?.hash ||
+    now === copy.copyOf?.kept ||
+    !untouched(copy)
+  )
+    return null
+  const fresh: Slide = {
+    ...copyOf(mapId, original),
+    id: copy.id,
+    ...(copy.bridge ? { bridge: copy.bridge } : {}),
+    ...(copy.outro ? { outro: copy.outro } : {})
+  }
+  fresh.narration = composeNarration(fresh)
+  return fresh
+}
+
+/**
+ * A map card changed (a note added to it, say): the episodes not yet in
+ * production follow it in every copy no one edited or kept, and their segues
+ * are written again around it. An edited or kept copy, or one in an episode
+ * whose video is being made, waits for the creator's Update or Keep (review
+ * 8 F08: each copy needed its own Update after every note).
+ */
+export const catchUpCopies = async (mapId: string, slideId: string) => {
+  const map = await loadProject(mapId)
+  const original = map?.project.slides.find((slide) => slide.id === slideId)
+  const series = map?.project.mapSeries
+    ? await loadSeries(map.project.mapSeries)
+    : null
+  if (!original?.svg || !series) return
+  for (const { notebookId } of series.episodes) {
+    const episode = await loadProject(notebookId)
+    const video = episode?.project.video
+    const producing = Boolean(
+      video &&
+      (video.produced ||
+        video.storyboard?.approved ||
+        video.storyboard?.produced ||
+        video.scenes.some((scene) => scene.produced))
+    )
+    if (!episode || producing) continue
+    let updated = false
+    await changeProject(notebookId, (current) => {
+      current.project.slides = current.project.slides.map((slide) => {
+        const fresh =
+          slide.copyOf?.slide === slideId && !slide.copyOf.kept
+            ? caughtUp(mapId, slide, original)
+            : null
+        if (!fresh) return slide
+        updated = true
+        return fresh
+      })
+      if (!updated) return
+      reconcileVideo(current.project, current, new Set())
+      addEvent(current, 'slide', `Updated “${original.title}” from the map`)
+    })
+    if (!updated) continue
+    await planScenes(notebookId)
+    await scheduleAround(notebookId)
   }
 }

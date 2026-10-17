@@ -20,6 +20,7 @@ import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { reconcileVideo } from './scene-model'
 import { composeNarration, planScenes, scheduleSegues } from './map-segues'
+import { catchUpCopies } from './map-copy'
 import type { readSourceNarrative } from './source-document'
 import {
   outlineSchema,
@@ -375,6 +376,8 @@ const reviseSlide = async (id: string, change: SlideChange) => {
   // A redrawn page invalidated its scene: plan it again, if there is a video.
   await planScenes(id)
   if (snapshot.project.copyOfMap) scheduleSegues(id)
+  // A map's card changed: the episodes' untouched copies follow it.
+  if (snapshot.project.mapSeries) await catchUpCopies(id, change.slideId)
 }
 
 /** Without an agent, the writing model revises the scene and the studio draws it. */

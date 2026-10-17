@@ -159,7 +159,11 @@ const kindLabel = {
 } as const
 /** The notes rail: each note and what it became in the map; a long note
  * opens with More. */
-export const mapNotes = (snapshot: Snapshot, open: Set<string> = new Set()) => {
+export const mapNotes = (
+  snapshot: Snapshot,
+  open: Set<string> = new Set(),
+  view: MapView | null = null
+) => {
   const notes = snapshot.project.notes || []
   if (!notes.length)
     return snapshot.status === 'ready'
@@ -167,13 +171,21 @@ export const mapNotes = (snapshot: Snapshot, open: Set<string> = new Set()) => {
       : `<p class="map-hint">Add notes here any time. They are kept, and sorted into the map once the wireframes are drawn.</p>`
   const page = (id: string) =>
     snapshot.project.slides.findIndex((slide) => slide.id === id) + 1
+  // The episodes an addition reaches, through their copies (review 8 F08).
+  const reaches = (id: string) => {
+    const numbers = (view?.usage[id] || [])
+      .map((notebook) => view?.episodes.find((e) => e.notebook === notebook))
+      .filter(Boolean)
+      .map((episode) => `Ep ${episode!.number}`)
+    return numbers.length ? ` · in ${numbers.join(', ')}` : ''
+  }
   return notes
     .map((note) => {
       // Each result shows its page on the map, while the page is there.
       const results = (note.results || [])
         .map((result) => {
           const at = page(result.slideId)
-          const said = `<b>${kindLabel[result.kind]}</b><span>${at ? `p.${at} · ` : ''}${escape(result.title)}</span>`
+          const said = `<b>${kindLabel[result.kind]}</b><span>${at ? `p.${at} · ` : ''}${escape(result.title)}${result.kind === 'adds' ? reaches(result.slideId) : ''}</span>`
           return `<li class="is-${result.kind}">${at ? `<button type="button" class="map-reveal" data-map="reveal:${result.slideId}" title="${escape(result.line ? `“${result.line}” · show the page` : 'Show the page')}">${said}</button>` : said}</li>`
         })
         .join('')

@@ -9,13 +9,8 @@ import type { Slide } from '../shared/model'
 import type { Series, SeriesGap } from '../shared/series'
 import { addEvent } from './activity'
 import { addMapEpisode } from './map-episodes'
-import { copyOf, pageHash, syncEvidence } from './map-copy'
-import {
-  composeNarration,
-  planScenes,
-  scheduleSegues,
-  settledSegues
-} from './map-segues'
+import { caughtUp, copyOf, syncEvidence, untouched } from './map-copy'
+import { planScenes, scheduleSegues, settledSegues } from './map-segues'
 import { deleteRow } from './persistence'
 import { changeProject, loadProject } from './projects'
 import { reconcileVideo } from './scene-model'
@@ -40,29 +35,7 @@ export const pagesOf = (snapshot: Snapshot) =>
     .map((slide) => slide.copyOf?.slide || '')
     .filter(Boolean)
 
-/** A copy as it came from the map: nothing in it edited in the episode. */
-export const untouched = (copy: Slide) =>
-  pageHash({ ...copy, narration: copy.base || '' }) === copy.copyOf?.hash
-
-/** The map's card as it is now, for a copy that is behind it and was never
- * edited nor kept on purpose: same id, the lines written around it kept. */
-const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
-  const now = pageHash(original)
-  if (
-    now === copy.copyOf?.hash ||
-    now === copy.copyOf?.kept ||
-    !untouched(copy)
-  )
-    return null
-  const fresh: Slide = {
-    ...copyOf(mapId, original),
-    id: copy.id,
-    ...(copy.bridge ? { bridge: copy.bridge } : {}),
-    ...(copy.outro ? { outro: copy.outro } : {})
-  }
-  fresh.narration = composeNarration(fresh)
-  return fresh
-}
+export { untouched } from './map-copy'
 
 /**
  * Gives an open episode exactly these cards of the map, in this order. A card
