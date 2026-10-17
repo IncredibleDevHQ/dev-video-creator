@@ -17,7 +17,8 @@ const root = await mkdtemp(join(tmpdir(), 'minimal-review-8-cover-2-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { parseHTML } = await import('linkedom')
 const { uploadBundle, updateRelease } = await import('./release')
-const { coverFor, coverImage } = await import('./release-cover')
+const { coverFor, coverImage, coverLook } = await import('./release-cover')
+const { INTER } = await import('./storyboard/workspace')
 const { publishToYouTube } = await import('./youtube-publish')
 const { storeAsset, writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
@@ -312,6 +313,60 @@ it('sets the title over the thumbnail on the creator’s word, large on the left
     'release',
     { coverTitle: false }
   ])
+}, 60_000)
+
+it('sets the title in the brand’s display face, its kicker in the brand’s accent when that reads on the shade (F19, round 2)', async () => {
+  const face = await storeAsset({
+    body: await readFile(INTER),
+    contentType: 'font/woff2',
+    kind: 'font',
+    filename: 'brand-display.woff2'
+  } as never)
+  const branding = {
+    name: 'Latte Labs',
+    tagline: '',
+    accent: '#22c55e',
+    useAccent: true,
+    logoKey: null,
+    fonts: {
+      display: "'Brand Display', serif",
+      body: 'Inter',
+      mono: 'monospace'
+    },
+    fontFiles: [
+      {
+        family: 'Brand Display',
+        weight: [100, 900] as [number, number],
+        style: 'normal' as const,
+        objectKey: face.objectKey,
+        format: 'woff2' as const
+      }
+    ]
+  }
+  const look = await coverLook(branding)
+  expect(look.font.startsWith("'Brand Display',")).toBe(true)
+  expect(look.faces).toContain('font-family:"Brand Display"')
+  expect(look.accent).toBe('#22c55e')
+  // A dark accent would vanish on the shade: the kicker keeps its yellow.
+  expect((await coverLook({ ...branding, accent: '#1e3a8a' })).accent).toBe(
+    '#ffd84d'
+  )
+  expect((await coverLook({ ...branding, useAccent: false })).accent).toBe(
+    '#ffd84d'
+  )
+  // On the cover, the kicker ("Episode 3") is in the brand's green.
+  await save({ ...episode('branded'), branding } as Project)
+  await updateRelease('branded', { coverTitle: true })
+  const titled = looks(
+    await coverImage((await loadProject('branded'))!.project)
+  )
+  let green = 0
+  for (let y = 60; y < 660; y += 2)
+    for (let x = 64; x < 700; x += 2) {
+      const [r, g, b] = titled.at(x, y)
+      if (g > 150 && r < 120 && b < 150) green++
+    }
+  expect(green).toBeGreaterThan(50)
 }, 60_000)
 
 it('keeps the bundle and the upload waiting until the creator approves the thumbnail as shown (F19, round 2)', async () => {

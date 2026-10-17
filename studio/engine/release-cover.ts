@@ -10,6 +10,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Project } from '../shared/model'
+import type { Branding } from '../shared/settings'
 import {
   chosenCover,
   coverChoices,
@@ -22,7 +23,7 @@ import { frameId } from '../shared/storyboard'
 import { readAsset } from './persistence'
 import { Refusal } from './refusal'
 import { stillFile } from './storyboard/board'
-import { productionDir } from './storyboard/workspace'
+import { INTER, productionDir } from './storyboard/workspace'
 import { BAND_TOP } from './teaser-framing'
 import { runCommand } from './voice'
 
@@ -82,9 +83,55 @@ const escapeHtml = (text: string) =>
  * in a series above it, the picture showing on the right. Drawn by a
  * browser, as the teasers' captions are.
  */
+/** How bright a #rrggbb colour is, 0–255. */
+const brightness = (hex: string) => {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+  if (!match) return 0
+  const n = parseInt(match[1], 16)
+  return (
+    0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)
+  )
+}
+
+/** The brand on a titled cover: its display face (from its own files, else
+ * the studio's Inter) and its accent for the kicker when that reads on the
+ * dark shade (round 2: system fonts and a fixed yellow, whatever the brand). */
+export const coverLook = async (branding?: Branding) => {
+  const name = String(branding?.fonts?.display || '')
+    .split(',')[0]
+    .replace(/['"]/g, '')
+    .trim()
+  const faces: string[] = []
+  for (const file of (branding?.fontFiles || []).filter(
+    (item) => item.family === name
+  )) {
+    try {
+      const data = (await readAsset(file.objectKey)).toString('base64')
+      const weight = [file.weight].flat().join(' ')
+      faces.push(
+        `@font-face{font-family:"${name.replace(/['"]/g, '')}";src:url(data:font/${file.format};base64,${data});font-weight:${weight};font-style:${file.style}}`
+      )
+    } catch {
+      // A face that can't be read falls back to Inter.
+    }
+  }
+  if (existsSync(INTER))
+    faces.push(
+      `@font-face{font-family:"Inter";src:url(data:font/woff2;base64,${(await readFile(INTER)).toString('base64')});font-weight:100 900}`
+    )
+  const accent = branding?.useAccent ? branding.accent : ''
+  return {
+    faces: faces.join(''),
+    // Single quotes: the stack goes into a style attribute.
+    font: `${name ? `'${name.replace(/['"]/g, '')}',` : ''}Inter,-apple-system,'Segoe UI',Arial,sans-serif`,
+    accent: accent && brightness(accent) >= 110 ? accent : '#ffd84d'
+  }
+}
+
 export const titledCover = async (
   picture: Buffer,
-  words: { title: string; kicker: string }
+  words: { title: string; kicker: string },
+  look?: { faces: string; font: string; accent: string }
 ) => {
   const { default: puppeteer } = await import('puppeteer')
   const browser = await puppeteer.launch({
@@ -97,17 +144,19 @@ export const titledCover = async (
   try {
     const page = await browser.newPage()
     await page.setViewport({ width: 1280, height: 720 })
-    const font = "-apple-system,'Segoe UI',Inter,Arial,sans-serif"
+    const font = look?.font || "-apple-system,'Segoe UI',Inter,Arial,sans-serif"
     await page.setContent(
-      '<body style="margin:0;width:1280px;height:720px;position:relative;overflow:hidden;background:#000">' +
+      (look?.faces ? `<style>${look.faces}</style>` : '') +
+        '<body style="margin:0;width:1280px;height:720px;position:relative;overflow:hidden;background:#000">' +
         `<img src="data:image/jpeg;base64,${picture.toString('base64')}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` +
         '<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.7) 46%,rgba(0,0,0,0) 74%)"></div>' +
         '<div style="position:absolute;left:64px;top:56px;bottom:56px;width:660px;display:flex;flex-direction:column;justify-content:center;color:#fff">' +
         (words.kicker
-          ? `<div style="font:700 30px/1.2 ${font};letter-spacing:.08em;text-transform:uppercase;color:#ffd84d;margin-bottom:18px">${escapeHtml(words.kicker)}</div>`
+          ? `<div style="font:700 30px/1.2 ${font};letter-spacing:.08em;text-transform:uppercase;color:${look?.accent || '#ffd84d'};margin-bottom:18px">${escapeHtml(words.kicker)}</div>`
           : '') +
         `<div id="title" style="font:800 88px/1.04 ${font};letter-spacing:-.02em;text-wrap:balance">${escapeHtml(words.title)}</div></div></body>`
     )
+    await page.evaluate('document.fonts.ready.then(() => true)')
     // A long title comes down a size at a time until it fits.
     await page.evaluate(
       "(() => { const title = document.getElementById('title'); let size = 88; while (title.scrollHeight > 470 && size > 44) { size -= 4; title.style.fontSize = size + 'px' } })()"
@@ -193,8 +242,9 @@ const coverOf = async (
   const picture = await settledPicture(project, choice)
   if (!titled) return picture
   const words = coverWords(project)
-  const key = `${createHash('sha1').update(picture).digest('hex')}:${words.kicker}/${words.title}`
-  return made.get(key) || keep(key, await titledCover(picture, words))
+  const look = await coverLook(project.branding)
+  const key = `${createHash('sha1').update(picture).digest('hex')}:${words.kicker}/${words.title}:${look.font}/${look.accent}`
+  return made.get(key) || keep(key, await titledCover(picture, words, look))
 }
 
 /**
