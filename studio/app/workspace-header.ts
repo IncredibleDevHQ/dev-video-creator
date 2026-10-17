@@ -118,7 +118,7 @@ export const workspaceHeader = (
   const { project, status } = snapshot
   const title = project.title.replace(/ \| [^|]+$/, '')
   return `<header class="workspace-header">
-<a class="brand" href="/" aria-label="Incredible Studio: all notebooks" title="All notebooks">
+<a class="brand" href="${project.researchProjectId ? `/?space=${encodeURIComponent(project.researchProjectId)}` : '/'}" aria-label="${project.researchProjectId ? 'Back to project' : 'Incredible Studio: all notebooks'}" title="${project.researchProjectId ? 'Back to project' : 'All notebooks'}">
 <img src="${incredibleLogo}" alt=""></a>
 <div class="notebook-identity"><span class="header-sep" aria-hidden="true">/</span><a class="header-project-title" href="/?notebook=${encodeURIComponent(
     project.id

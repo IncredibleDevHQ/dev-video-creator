@@ -28,9 +28,31 @@ launcher refuses occupied ports before accessing storage and stops both servers
 if either exits. `yarn desktop` opens the same app in the development Electron
 shell. It is not a packaged installer.
 
+## Projects and research
+
+The home page starts with one pasted note. It creates a project and its first
+notebook immediately, without waiting for AI. Add and name notebooks to organize
+subjects. Research combines a question graph, a chat, and the selected notebook.
+Choose Claude Code, Codex, or Kimi; optionally link up to four local repositories
+with their branches. Each question reads committed revisions pinned when asked.
+
+Select an answer passage to save it to a notebook or branch into a follow-up.
+Saved excerpts retain their question, response, and repository revisions. Select
+a notebook passage to explore it, or use View source to return to its original
+research node. Switching graph nodes preserves sibling paths. Drafts survive
+reloads in the current browser session.
+
+Wireframes scroll continuously across notebooks, with a notebook jump menu. The
+shared canvas aggregates the whole project's notes and feeds the existing series
+workflow. Create it once; later notes join through the durable note queue.
+Project notes are append-only, preserving the lineage of captured excerpts.
+
+Existing standalone notebooks and the URL import workflow remain under
+**Earlier notebooks & studio tools**. They are not automatically migrated.
+
 ## Create and finish a video
 
-Paste a blog URL or Markdown, or write your notes, and open the notebook. Your
+In Earlier notebooks & studio tools, paste a blog URL or Markdown, or write your notes, and open the notebook. Your
 source is saved and rendered before any AI generation. Link imports prefer the
 article body over the surrounding page and remove navigation and site controls.
 Before slides exist, Refresh article re-reads the original link in the same

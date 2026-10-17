@@ -57,6 +57,10 @@ export const editNotebookSource = async (
   if (typeof title !== 'string' || !title.trim() || title.length > 160)
     throw new Refusal('Add a notebook title up to 160 characters')
   return changeProject(id, async (current) => {
+    if (current.project.researchProjectId)
+      throw new Refusal(
+        'Add notes in the project notebook to preserve research lineage'
+      )
     if (
       !['draft', 'failed'].includes(current.status) ||
       current.project.slides.length ||

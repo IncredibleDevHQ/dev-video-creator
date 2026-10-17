@@ -8,6 +8,7 @@ import { notebookNotes, waitingNotes } from './notebook-notes'
 export const notebookScreen = (snapshot: Snapshot, pending: boolean) => {
   const { project, status } = snapshot
   const editable =
+    !project.researchProjectId &&
     !snapshot.readOnly &&
     !project.slides.length &&
     !project.video &&
@@ -36,7 +37,7 @@ ${titled ? '' : `<h1>${escape(title)}</h1>`}
 <div class="notebook-meta">
 <div class="notebook-source"><span>${words.toLocaleString()} ${words === 1 ? 'word' : 'words'}</span><span aria-hidden="true">·</span>${project.sourceUrl ? `<a href="${escape(project.sourceUrl)}" target="_blank" rel="noopener" title="Open original article">${escape(sourceLabel)} ↗</a>${editable ? button('Refresh', 'refresh-source') : ''}` : '<span>Your notes</span>'}</div>
 </div>
-${notebookHint(snapshot, editable)}</div>
+${notebookHint(snapshot, editable)}${project.researchProjectId ? `<p><a href="/?space=${encodeURIComponent(project.researchProjectId)}&book=${encodeURIComponent(project.id)}">Open project notebook to add notes or research a passage ↗</a></p>` : ''}</div>
 ${editable ? notebookToolbar() : ''}
 ${editable ? waitingNotes(snapshot) : snapshot.sourceOnly || snapshot.readOnly ? '' : notebookNotes(snapshot)}
 <div class="notebook-body">

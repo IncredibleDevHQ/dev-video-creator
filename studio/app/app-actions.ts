@@ -38,6 +38,7 @@ import { syncMakeDialog } from './make-dialog-sync'
 
 export const installAppActions = (app: AppContext) => {
   document.addEventListener('submit', async (event) => {
+    if (app.researchWorkspace?.isOpen) return
     const form = event.target as HTMLFormElement
     if (form.closest('[data-confirm]')) return
     event.preventDefault()
@@ -62,6 +63,11 @@ export const installAppActions = (app: AppContext) => {
     }
   })
   document.addEventListener('click', async (event) => {
+    if (
+      app.researchWorkspace?.isOpen ||
+      (event.target as Element).closest('.brand[href*="space="]')
+    )
+      return
     if ((event.target as Element).closest('.brand')) {
       if (app.capture.phase !== 'idle') return
       event.preventDefault()

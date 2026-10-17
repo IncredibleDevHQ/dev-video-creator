@@ -32,6 +32,7 @@ import { lookForAgent } from './agent-setup'
 
 export const createRender = (app: AppContext) => () => {
   if (
+    app.researchWorkspace?.isOpen ||
     app.settingsScreen.isOpen ||
     app.templateGallery.isOpen ||
     app.mapCanvas.isOpen

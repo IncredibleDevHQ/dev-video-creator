@@ -1,3 +1,4 @@
+import { ResearchWorkspace } from './research-workspace'
 import { showSeries } from './series-controller'
 import { dialogContent } from './dialog-content'
 import { TemplateGallery } from './template-gallery'
@@ -60,6 +61,7 @@ installAppearance()
 installTooltips()
 const app = {} as AppContext
 app.root = document.querySelector<HTMLDivElement>('#app')!
+app.researchWorkspace = new ResearchWorkspace(app.root)
 app.syncMediaRecovery = savedMediaRecovery(app.root)
 app.snapshot = null
 app.notebooks = []
@@ -292,7 +294,16 @@ app.render()
 app.parameters = new URLSearchParams(location.search)
 app.saved = app.parameters.get('notebook') || app.parameters.get('project')
 const mapParameter = app.parameters.get('map')
-if (mapParameter) void app.mapCanvas.open(mapParameter)
+if (app.parameters.get('space') && !app.parameters.has('detail'))
+  void app.researchWorkspace.open(app.parameters.get('space')!).catch(app.error)
+else if (
+  !mapParameter &&
+  !app.saved &&
+  !app.parameters.has('series') &&
+  !app.parameters.has('legacy')
+)
+  void app.researchWorkspace.home()
+else if (mapParameter) void app.mapCanvas.open(mapParameter)
 else if (app.parameters.get('series'))
   void showSeries(app, app.parameters.get('series')!, true).catch(app.error)
 else if (app.saved) void app.openNotebook(app.saved)

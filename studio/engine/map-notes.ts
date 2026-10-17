@@ -123,12 +123,31 @@ const drawnMap = (snapshot: Snapshot) =>
  * notebook's own queue, where the drawing finishes: a note written as it
  * did was kept waiting on a drawn map until a restart (round 2's audit).
  */
-export const addNote = async (id: string, raw: unknown) => {
+export const addNote = async (
+  id: string,
+  raw: unknown,
+  retainedId?: string
+) => {
   const text = String((raw as { text?: unknown })?.text ?? '').trim()
   if (!text) throw new Refusal('Write the note first')
   if (text.length > NOTE_LIMIT)
     throw new Refusal(`Keep a note under ${NOTE_LIMIT} characters`)
-  if (!(await loadProject(id))) throw new Refusal('Notebook not found')
+  const existing = await loadProject(id)
+  if (!existing) throw new Refusal('Notebook not found')
+  // Capture from the existing editor or map belongs to its containing project
+  // too. Internal projection calls carry a stable ID and bypass this bridge.
+  if (!retainedId && existing.project.researchProjectId) {
+    const { readResearchProject, addProjectNote } =
+      await import('./research-projects')
+    const space = await readResearchProject(existing.project.researchProjectId)
+    const notebook =
+      space.notebooks.find((n) => n.id === id) ||
+      (space.canvasId === id ? space.notebooks[0] : undefined)
+    if (notebook) {
+      await addProjectNote(space.id, { notebookId: notebook.id, text })
+      return (await loadProject(id))!
+    }
+  }
   const at = new Date().toISOString()
   const gap = String((raw as { gap?: unknown })?.gap || '')
   // Written in one of the map's episodes: that episode lists it, and where
@@ -138,7 +157,7 @@ export const addNote = async (id: string, raw: unknown) => {
     /^[a-zA-Z0-9_-]+$/.test(from) &&
     (await loadProject(from))?.project.copyOfMap === id
   const note: MapNote = {
-    id: randomUUID(),
+    id: retainedId || randomUUID(),
     at,
     text,
     state: 'sorting',
@@ -146,6 +165,11 @@ export const addNote = async (id: string, raw: unknown) => {
   }
   let entered = false
   const snapshot = await changeProject(id, async (current) => {
+    if (
+      retainedId &&
+      current.project.notes?.some((item) => item.id === retainedId)
+    )
+      return
     if (!drawnMap(current)) {
       current.project.notes = [
         ...(current.project.notes || []),

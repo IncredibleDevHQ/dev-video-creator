@@ -1,3 +1,5 @@
+import { researchRoute } from './research-routes'
+import { recoverResearch } from './research-chat'
 import { downloadDisposition } from './download-name'
 import {
   saveTakeRequest,
@@ -321,6 +323,8 @@ export const createStudioServer = (
       const routed = await studioRoute(url, request, body, response)
       if (routed === 'sent') return
       if (routed) return send(response, routed.status, routed.value)
+      const research = await researchRoute(url, request.method || 'GET', body)
+      if (research) return send(response, research.status, research.value)
       const mapped = await mapRoute(url, request, body)
       if (mapped) return send(response, mapped.status, mapped.value)
       if (url.pathname === '/api/harnesses' && request.method === 'GET')
@@ -727,6 +731,7 @@ if (
   await recoverEngineRuns()
   await listClones()
   await settleInterruptedWork()
+  await recoverResearch()
   await recoverProjects({
     changes: scheduleChanges,
     slides: scheduleSlides,

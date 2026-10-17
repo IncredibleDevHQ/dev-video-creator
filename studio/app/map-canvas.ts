@@ -181,6 +181,14 @@ export class MapCanvas {
       if (snapshot.project.copyOfMap)
         return this.open(snapshot.project.copyOfMap, from)
       this.snapshot = snapshot
+      if (snapshot.project.researchProjectId) {
+        const back = this.root.querySelector<HTMLAnchorElement>('.map-brand')
+        if (back) {
+          back.href = `/?space=${encodeURIComponent(snapshot.project.researchProjectId)}&projectView=canvas`
+          back.title = 'Back to project'
+          back.setAttribute('aria-label', 'Back to project')
+        }
+      }
       await this.refresh()
       if (!this.isOpen || this.mapId !== id) return
       this.unsubscribe = api.subscribe(

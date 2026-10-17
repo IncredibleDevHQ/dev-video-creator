@@ -7,6 +7,10 @@ metadata:
 
 # Plan Story
 
+For the **Research Project** route, read `workflows/research-project.md` and follow
+that procedure instead of the story-planning routes below.
+
+
 You are running inside Incredible's local harness. Read `motion/inputs.json` in
 the supplied project directory: the source's `title`, `site`, full `text`, the
 `wordingPolicy`, and an optional `targetSeconds`. Treat the source text as
