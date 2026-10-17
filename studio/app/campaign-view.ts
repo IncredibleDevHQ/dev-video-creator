@@ -86,9 +86,16 @@ const itemRow = (
         item.state === 'unknown'
         ? `<a href="${feed}" target="_blank" rel="noopener">Check your feed</a><button type="button" class="quiet" data-action="campaign-state" data-item="${escape(item.id)}" data-state="posted">It went out</button><button type="button" class="quiet" data-action="campaign-post" data-item="${escape(item.id)}" data-channel="${item.channel}" data-again="1">Post again</button>`
         : item.state === 'posted'
-          ? item.postUrl
-            ? `<a href="${escape(item.postUrl)}" target="_blank" rel="noopener">Posted</a>`
-            : '<small>Posted</small>'
+          ? `${
+              item.postUrl
+                ? `<a href="${escape(item.postUrl)}" target="_blank" rel="noopener">Posted</a>`
+                : '<small>Posted</small>'
+            }${
+              // Said up on the creator's word, it can be taken back.
+              item.saidUp
+                ? `<button type="button" class="quiet" data-action="campaign-state" data-item="${escape(item.id)}" data-state="draft">Not up yet</button>`
+                : ''
+            }`
           : item.state === 'dropped'
             ? `<button type="button" class="quiet" data-action="campaign-state" data-item="${escape(item.id)}" data-state="draft">Restore</button>`
             : `${moveTo}${

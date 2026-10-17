@@ -125,7 +125,10 @@ it('marks YouTube’s launch as up when its link is pasted, and its row can say 
     plan.overdueItems(marked.project.release, AFTER).map((item) => item.id)
   ).not.toContain('launch-youtube-0')
   const posted = youtubeRow(doc(campaignSection(marked, AFTER)))
-  expect(posted.querySelector('.campaign-actions')?.textContent).toBe('Posted')
+  // Said up on the creator's word, it can be taken back (round 3).
+  expect(posted.querySelector('.campaign-actions')?.textContent).toBe(
+    'PostedNot up yet'
+  )
   expect(posted.querySelector('a')).toBeNull()
   // Only YouTube's launch is marked so: an X post goes out by posting it.
   await expect(

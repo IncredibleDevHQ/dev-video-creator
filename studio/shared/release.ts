@@ -79,6 +79,9 @@ export type CampaignItem = {
   timed?: boolean
   /** Moved closer by a plan made near the release: the step it was. */
   from?: string
+  /** YouTube's launch marked up on the creator's word ("It is up"): the
+   * state it had, so "Not up yet" takes it back (review 8, round 3). */
+  saidUp?: 'draft' | 'approved' | 'dropped'
 }
 
 export type YouTubeUpload = {

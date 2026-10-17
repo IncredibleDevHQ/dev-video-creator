@@ -58,23 +58,27 @@ const youtubeItem = (campaign: CampaignItem[]) =>
 
 /** YouTube's launch once the video is up, however it went up: the studio's
  * upload, or the bundle uploaded by hand and its link pasted (review 8,
- * round 2: the hand upload left the launch overdue for good). */
+ * round 2: the hand upload left the launch overdue for good). One up
+ * already takes the link given now, a corrected one pasted over a wrong
+ * one (round 3: the launch row kept the old link). A link is the video's
+ * word, so a launch the creator said was up is no longer theirs to undo. */
 export const markYouTubeUp = (
   campaign: CampaignItem[],
   videoId: string | undefined,
   at: string
 ) => {
-  for (const item of campaign)
-    if (
-      item.channel === 'youtube' &&
-      item.kind === 'launch' &&
-      item.state !== 'posted'
-    ) {
+  for (const item of campaign) {
+    if (item.channel !== 'youtube' || item.kind !== 'launch') continue
+    if (item.state !== 'posted') {
       item.state = 'posted'
       item.postedAt = at
-      if (videoId) item.postUrl = `https://www.youtube.com/watch?v=${videoId}`
       delete item.note
     }
+    if (videoId) {
+      item.postUrl = `https://www.youtube.com/watch?v=${videoId}`
+      delete item.saidUp
+    }
+  }
 }
 
 /** When the video is out: an upload's own schedule, else the campaign's

@@ -80,6 +80,15 @@ export const changeItem = (id: string, raw: unknown) => {
       (entry) => entry.id === value.item
     )
     if (!item) throw new Refusal('That item is not in the campaign')
+    // "It is up" said too soon: "Not up yet" takes it back to what it was,
+    // as Unapprove and Restore do (review 8, round 3).
+    if (item.state === 'posted' && item.saidUp && value.state === 'draft') {
+      item.state = item.saidUp
+      delete item.saidUp
+      delete item.postedAt
+      delete item.postUrl
+      return
+    }
     if (item.state === 'posted') throw new Refusal('It has gone out already')
     if (item.state === 'posting') throw new Refusal('It is being posted now')
     // Words the creator wrote are theirs: a new plan keeps them.
@@ -132,17 +141,22 @@ export const changeItem = (id: string, raw: unknown) => {
       delete item.note
     }
     // YouTube's launch is up, uploaded by hand: the creator says so
-    // (review 8, round 2: it stayed overdue for good).
+    // (review 8, round 2: it stayed overdue for good). Said with no link to
+    // show for it, it can be taken back (round 3).
     if (
       value.state === 'posted' &&
       item.channel === 'youtube' &&
       item.kind === 'launch'
-    )
-      markYouTubeUp(
-        [item],
-        current.project.release?.youtube?.videoId,
-        new Date().toISOString()
+    ) {
+      const was = item.state
+      const videoId = current.project.release?.youtube?.videoId
+      markYouTubeUp([item], videoId, new Date().toISOString())
+      if (
+        !videoId &&
+        (was === 'draft' || was === 'approved' || was === 'dropped')
       )
+        item.saidUp = was
+    }
   })
 }
 
