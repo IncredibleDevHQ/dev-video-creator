@@ -498,10 +498,7 @@ const submit = async (map: MapCanvas, form: HTMLFormElement) => {
     const text = String(data.get('note') || '').trim()
     if (!text) return
     form.reset()
-    return map.run(
-      () => mapApi.note(map.mapId, text),
-      'Note added: sorting it into the map'
-    )
+    return map.run(() => mapApi.note(map.mapId, text), map.noteSaid)
   }
   if (kind === 'episode') return map.addEpisode(String(data.get('title') || ''))
   if (kind === 'plan') return map.planEpisodes(data)

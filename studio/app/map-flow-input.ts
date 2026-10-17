@@ -629,9 +629,9 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
     }
     await map.run(
       async () => {},
-      gap
+      gap && map.snapshot?.status === 'ready'
         ? 'Note added: it becomes a card, and organising puts it where the gap is'
-        : 'Note added: sorting it into the map'
+        : map.noteSaid
     )
     return true
   }

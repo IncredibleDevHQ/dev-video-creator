@@ -253,21 +253,16 @@ export class MapCanvas {
     this.fill('stages', mapStages(this.snapshot))
     this.fill('notes', mapNotes(this.snapshot, this.openNotes))
     this.fill('note-count', noteCount(this))
-    // Notes pile into a drawn map; while it forms they wait.
-    const ready = this.snapshot.status === 'ready'
+    // Notes pile in any time: while the map forms they are kept, and sorted
+    // once it is drawn (review 8 F01: the field was shut while it formed).
     const note = this.root.querySelector<HTMLTextAreaElement>(
       '[data-map-form="note"] textarea'
     )
-    const add = this.root.querySelector<HTMLButtonElement>(
-      '[data-map-form="note"] button'
-    )
-    if (note && note.disabled === ready) {
-      note.disabled = !ready
-      note.placeholder = ready
+    const said =
+      this.snapshot.status === 'ready'
         ? 'Add a note: an idea, a link, a half-thought…'
-        : 'Notes open once the map is drawn'
-    }
-    if (add) add.disabled = !ready
+        : 'Add a note: it joins the map once the wireframes are drawn'
+    if (note && note.placeholder !== said) note.placeholder = said
     if (this.view?.series) {
       this.view.series.directions = this.view.series.directions.filter(
         (direction) => direction.id !== '__draft__'
@@ -373,6 +368,12 @@ export class MapCanvas {
       },
       action ? 7000 : 3200
     )
+  }
+  /** What adding a note says: sorted now, or kept until the map is drawn. */
+  get noteSaid() {
+    return this.snapshot?.status === 'ready'
+      ? 'Note added: sorting it into the map'
+      : 'Note saved: it joins the map once the wireframes are drawn'
   }
   /** Runs a change, then shows the map as it is now. True when it went through. */
   async run(work: () => Promise<unknown>, said?: string | (() => string)) {

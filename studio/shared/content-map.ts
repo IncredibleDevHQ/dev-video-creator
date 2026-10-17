@@ -11,7 +11,8 @@ export type MapNote = {
   at: string
   text: string
   gap?: string
-  state: 'sorting' | 'sorted' | 'failed'
+  /** Waiting: saved while the map was drawn, sorted once it is. */
+  state: 'waiting' | 'sorting' | 'sorted' | 'failed'
   results?: NoteResult[]
   error?: string
 }

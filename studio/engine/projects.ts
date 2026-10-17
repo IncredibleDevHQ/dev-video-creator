@@ -579,6 +579,10 @@ const buildSlides = async (id: string) => {
     }
   })
   await planStarted()
+  // Notes written while the map was drawn are sorted into it now (review 8).
+  void import('./map-notes')
+    .then(({ sortWaitingNotes }) => sortWaitingNotes(id))
+    .catch(() => {})
   // Jev, when set up, reads which beat each page carries.
   if ((await loadProject(id))?.project.narrative)
     void import('./template-suggest')

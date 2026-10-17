@@ -164,7 +164,7 @@ export const mapNotes = (snapshot: Snapshot, open: Set<string> = new Set()) => {
   if (!notes.length)
     return snapshot.status === 'ready'
       ? `<p class="map-hint">Add notes here any time. Each one is sorted into the map: a new page, an addition to a page, or already covered.</p>`
-      : ''
+      : `<p class="map-hint">Add notes here any time. They are kept, and sorted into the map once the wireframes are drawn.</p>`
   const page = (id: string) =>
     snapshot.project.slides.findIndex((slide) => slide.id === id) + 1
   return notes
@@ -178,11 +178,13 @@ export const mapNotes = (snapshot: Snapshot, open: Set<string> = new Set()) => {
         })
         .join('')
       const state =
-        note.state === 'sorting'
-          ? '<p class="map-note-state">Sorting into the map…</p>'
-          : note.state === 'failed'
-            ? `<p class="map-note-state is-failed">${escape(note.error || 'Could not sort this note')} <button type="button" class="quiet" data-map="resort:${note.id}">Sort again</button></p>`
-            : ''
+        note.state === 'waiting'
+          ? '<p class="map-note-state">Saved · sorted into the map once the wireframes are drawn</p>'
+          : note.state === 'sorting'
+            ? '<p class="map-note-state">Sorting into the map…</p>'
+            : note.state === 'failed'
+              ? `<p class="map-note-state is-failed">${escape(note.error || 'Could not sort this note')} <button type="button" class="quiet" data-map="resort:${note.id}">Sort again</button></p>`
+              : ''
       const long = note.text.length > 220
       const text =
         long && !open.has(note.id) ? `${note.text.slice(0, 219)}…` : note.text
