@@ -230,6 +230,12 @@
   white-space: pre-wrap;
   user-select: text;
 }
+/* Where a direction applies: every episode and card, scrolled if long. */
+.map-menu.is-apply {
+  max-width: min(360px, calc(100% - 20px));
+  max-height: min(440px, calc(100% - 20px));
+  overflow-y: auto;
+}
 /* Studio AI without a key: what it needs, and the way to add it. */
 .map-menu.is-setup {
   width: 252px;

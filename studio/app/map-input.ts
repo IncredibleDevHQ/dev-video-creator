@@ -23,6 +23,7 @@ import {
 } from './map-flow-input'
 import { chromeAction } from './map-chrome'
 import { installMapKeys } from './map-keys'
+import { applyTo, showApply } from './map-apply'
 
 export type DragState = {
   key: string
@@ -511,6 +512,7 @@ const dispatch = async (
           target,
           episodeChoices(map, 'copy-to', undefined, page)
         )
+      if (arg === 'apply-to') return showApply(map, target)
       if (arg === 'move-to') {
         const from = map.episodeOf(copy)
         const source = from?.copies.find((c) => c.id === copy)?.copyOf?.slide
@@ -588,6 +590,8 @@ const dispatch = async (
       return map.copyInto(page, arg, undefined, Boolean(event?.altKey))
     case 'move-to':
       return copy ? map.moveCopy(copy, arg) : undefined
+    case 'apply-to':
+      return applyTo(map, arg)
     case 'aside':
     case 'bring-back':
       return page

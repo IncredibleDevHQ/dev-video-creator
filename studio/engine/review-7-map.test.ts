@@ -584,7 +584,11 @@ describe('keys on the map (CV-2, CV-8, CV-11, UX-13, UX-14)', () => {
     fire(map.els.get('d:d1')!, 'keydown', { key: 'Enter' })
     expect(map.sel).toEqual({ t: 'direction', id: 'd1' })
     const bar = root.querySelector('[data-map-slot="bar"]')!
-    expect(texts(bar.querySelectorAll('button'))).toEqual(['Edit', 'Remove'])
+    expect(texts(bar.querySelectorAll('button'))).toEqual([
+      'Edit',
+      'Apply to…',
+      'Remove'
+    ])
   })
 
   it('does not zoom out to everything when a direction is double-clicked (CV-8)', async () => {

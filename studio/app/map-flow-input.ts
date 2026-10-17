@@ -486,13 +486,6 @@ export const flowAction = async (
         )
         ?.focus()
       return true
-    case 'direction-unwire':
-      if (series)
-        await map.run(
-          () => mapApi.direction(series.id, { id: arg, to: null }),
-          'It guides the whole series now'
-        )
-      return true
     case 'direction-delete':
       if (series) {
         map.sel = null

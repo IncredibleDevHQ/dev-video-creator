@@ -90,8 +90,20 @@ class FormShim {
 
 let win = parseHTML('')
 const maps: Canvas[] = []
+const undo: Array<() => void> = []
+/** Sets a property for one test; it is put back after. */
+const patch = (target: object, key: string, value: unknown) => {
+  const own = Object.getOwnPropertyDescriptor(target, key)
+  Object.defineProperty(target, key, { value, configurable: true })
+  undo.push(() =>
+    own
+      ? Object.defineProperty(target, key, own)
+      : delete (target as Record<string, unknown>)[key]
+  )
+}
 afterEach(() => {
   for (const map of maps.splice(0)) map.dismiss()
+  for (const step of undo.splice(0).reverse()) step()
   vi.unstubAllGlobals()
   vi.resetAllMocks()
 })
@@ -388,5 +400,88 @@ describe('a cut or a copy waiting to be pasted (F13)', () => {
     )
     expect(map.clip).toEqual({ mode: 'copy', slide: 'a' })
     expect(mapApi.copies).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('what a direction applies to (F14)', () => {
+  it('is chosen from its bar, from the keys as from the mouse: the series, an episode, or its cards', async () => {
+    const shown = view()
+    const { map } = await openMap(shown)
+    let focused: Element | null = null
+    patch(win.HTMLElement.prototype, 'focus', function (this: Element) {
+      focused = this
+    })
+    map.select({ t: 'direction', id: 'd1' })
+    const bar = map.slot('bar')!
+    const acts = [...bar.querySelectorAll<HTMLElement>('button')]
+    expect(acts.map((b) => b.textContent)).toEqual([
+      'Edit',
+      'Apply to…',
+      'Remove'
+    ])
+    const menu = map.slot('menu')!
+    /** Opens Apply to…; what it offers, the ticked ones marked. */
+    const open = async () => {
+      click(bar.querySelector('[data-map="menu:apply-to"]'))
+      await settle()
+      return [...menu.querySelectorAll<HTMLElement>('button')].map(
+        (b) =>
+          `${b.querySelector('span')!.textContent}${b.querySelector('small') ? ' ✓' : ''}`
+      )
+    }
+    const choose = async (action: string, to: unknown) => {
+      click(menu.querySelector(`[data-map="${action}"]`))
+      await settle()
+      shown.series!.directions[0].to = to as never
+      await map.refresh()
+    }
+    expect(await open()).toEqual([
+      'The whole series ✓',
+      'Ep 1 · Episode 1',
+      'Ep 2 · Episode 2',
+      'Card 1 · Page a',
+      'Card 2 · Page b',
+      'Card 3 · Page c',
+      'Card 4 · Page d'
+    ])
+    expect(menu.hidden).toBe(false)
+    // From the keyboard, the choice it has now is where the keys start.
+    expect((focused as HTMLElement | null)?.dataset.map).toBe('apply-to:series')
+    await choose('apply-to:episode:e2', { episode: 'e2' })
+    expect(mapApi.direction).toHaveBeenLastCalledWith('s', {
+      id: 'd1',
+      to: { episode: 'e2' }
+    })
+    expect(map.slot('toast')!.textContent).toBe('It guides Ep 2 now')
+    expect((focused as HTMLElement | null)?.dataset.map).toBe('menu:apply-to')
+    expect(await open()).toContain('Ep 2 · Episode 2 ✓')
+    // A card replaces the episode, more cards join it, a ticked one leaves.
+    await choose('apply-to:card:a', { pages: ['a'] })
+    expect(mapApi.direction).toHaveBeenLastCalledWith('s', {
+      id: 'd1',
+      to: { pages: ['a'] }
+    })
+    await open()
+    await choose('apply-to:card:c', { pages: ['a', 'c'] })
+    expect(map.slot('toast')!.textContent).toBe('It guides cards 1, 3 now')
+    await open()
+    await choose('apply-to:card:a', { pages: ['c'] })
+    expect(mapApi.direction).toHaveBeenLastCalledWith('s', {
+      id: 'd1',
+      to: { pages: ['c'] }
+    })
+    await open()
+    await choose('apply-to:series', undefined)
+    expect(mapApi.direction).toHaveBeenLastCalledWith('s', {
+      id: 'd1',
+      to: null
+    })
+    expect(map.slot('toast')!.textContent).toBe(
+      'It guides the whole series now'
+    )
+    // What it has already is not sent again.
+    await open()
+    await choose('apply-to:series', undefined)
+    expect(mapApi.direction).toHaveBeenCalledTimes(5)
   })
 })

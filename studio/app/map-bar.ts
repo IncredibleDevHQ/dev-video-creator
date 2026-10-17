@@ -52,10 +52,8 @@ const content = (map: MapCanvas) => {
     const said = answer
       ? `${answer.state === 'followed' ? 'Followed' : answer.state === 'partly' ? 'Partly followed' : 'Not followed'}: ${answer.why}`
       : 'The next plan answers it'
-    const unwire = direction.to
-      ? act(`direction-unwire:${direction.id}`, 'Guide the whole series')
-      : ''
-    return `<div class="map-info"><b>Direction</b> · ${escape(text)}<small>${escape(said)}</small></div>${act(`direction-edit:${direction.id}`, 'Edit')}${unwire}${act(`direction-delete:${direction.id}`, 'Remove')}`
+    // What it guides, chosen here as well as by dragging its handle.
+    return `<div class="map-info"><b>Direction</b> · ${escape(text)}<small>${escape(said)}</small></div>${act(`direction-edit:${direction.id}`, 'Edit')}${act('menu:apply-to', 'Apply to…')}${act(`direction-delete:${direction.id}`, 'Remove')}`
   }
   if (map.naming) {
     const chosen = map.naming.slides.length
