@@ -455,14 +455,18 @@ export class MapCanvas {
       index
     )
     if (within && after.join() === before.join()) return true
+    // The copy it becomes in another episode, for Undo to take back.
+    let as = ''
     const moved = await this.run(
-      () =>
-        mapApi.copies(from.notebook, {
+      async () => {
+        const result = await mapApi.copies(from.notebook, {
           action: 'move',
           slide: copy,
           to,
           index
-        }),
+        })
+        as = result.as || ''
+      },
       undefined,
       true
     )
@@ -472,20 +476,21 @@ export class MapCanvas {
         { kind: 'order', episode: to, copy, before, after },
         'Moved. The segues around it are being rewritten.'
       )
-    else if (card.copyOf)
+    else if (as)
       this.history.record(
         {
           kind: 'move',
           from: from.notebook,
           to,
-          page: keyOf(card),
-          before,
+          copy,
+          as,
+          page: card.copyOf?.slide,
           after
         },
         `Moved to Ep ${into.number}`
       )
     else {
-      // A page of its own is a new card where it lands: Undo can't follow.
+      // An engine that kept nothing to put back: no Undo to offer.
       this.history.clear()
       this.toast(`Moved to Ep ${into.number}`)
     }

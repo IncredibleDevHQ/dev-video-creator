@@ -55,15 +55,21 @@ export type Snapshot = {
     video: VideoView
     presentation?: StatusDisplay
   }
-  deletedSlide?: {
-    slide: Slide
-    index: number
-    scene?: Scene
-    seams?: Array<{ left: string; right: string; transition: Transition }>
-    /** The video's line, when it stood stopped with this page's scene
-     * stopped. */
-    stopped?: string
-  }
+  deletedSlide?: KeptSlide
+  /** An episode's page last moved to another episode from the content map,
+   * kept as it was so the map's Undo puts back this very page: where it
+   * went, and the copy it became there. */
+  movedSlide?: KeptSlide & { to: string; as: string }
+}
+/** A page kept for Undo, where it stood, with its scene. */
+export type KeptSlide = {
+  slide: Slide
+  index: number
+  scene?: Scene
+  seams?: Array<{ left: string; right: string; transition: Transition }>
+  /** The video's line, when it stood stopped with this page's scene
+   * stopped. */
+  stopped?: string
 }
 export type CreateProject = {
   sourceOnly?: boolean

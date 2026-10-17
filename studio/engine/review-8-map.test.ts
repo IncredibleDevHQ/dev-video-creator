@@ -489,11 +489,13 @@ describe('what a direction applies to (F14)', () => {
 
 describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
   /** The engine's copies, kept in the view the map reads back: a move (a
-   * card moved to another episode is a new card there), a removal, and
-   * bringing the last removal back. */
+   * card moved to another episode is a new card there, the one that left
+   * kept to come back), a removal, and bringing either back. */
   const serve = (shown: MapView) => {
     let made = 0
-    const kept: Record<string, { copy: Copies[number]; index: number }> = {}
+    type Kept = { copy: Copies[number]; index: number }
+    const kept: Record<string, Kept> = {}
+    const moved: Record<string, Kept & { to: string; as: string }> = {}
     const lane = (id: string) => shown.episodes.find((e) => e.notebook === id)!
     vi.mocked(mapApi.copies).mockImplementation(async (episode, body) => {
       const { action, slide, to, index } = body as {
@@ -503,6 +505,18 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
         index?: number
       }
       const from = lane(episode)
+      if (action === 'unmove') {
+        const back = moved[episode]
+        if (back?.copy.id !== slide) throw new Error('Can no longer be undone')
+        const there = lane(back.to).copies
+        there.splice(
+          there.findIndex((copy) => copy.id === back.as),
+          1
+        )
+        from.copies.splice(back.index, 0, back.copy)
+        delete moved[episode]
+        return { moved: true } as never
+      }
       const at = from.copies.findIndex((copy) => copy.id === slide)
       if (at < 0) throw new Error('That page is no longer in this episode')
       const [card] = from.copies.splice(at, 1)
@@ -510,11 +524,17 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
       if (action === 'move') {
         const into = lane(to || episode)
         const place = Math.min(index ?? into.copies.length, into.copies.length)
-        into.copies.splice(
-          place,
-          0,
-          into === from ? card : { ...card, id: `m${++made}` }
-        )
+        const copy = into === from ? card : { ...card, id: `m${++made}` }
+        into.copies.splice(place, 0, copy)
+        if (into !== from) {
+          moved[episode] = {
+            copy: card,
+            index: at,
+            to: into.notebook,
+            as: copy.id
+          }
+          return { as: copy.id }
+        }
       }
       return {}
     })
@@ -584,17 +604,27 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
     await map.moveCopy('w', 'e2', 0)
     expect([order('e1'), order('e2')]).toEqual([['y'], ['m1', 'z']])
     expect(toast(map)).toEqual(['Moved to Ep 2', 'Undo'])
+    // Undo of the move brings back the very card, never a new copy of it.
     await press('z')
-    expect([order('e1'), order('e2')]).toEqual([['y', 'm2'], ['z']])
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'unmove',
+      slide: 'w'
+    })
+    expect([order('e1'), order('e2')]).toEqual([['y', 'w'], ['z']])
     expect(toast(map)[0]).toBe('Back in Ep 1')
     await press('z')
-    expect(order('e1')).toEqual(['x', 'y', 'm2'])
+    expect(order('e1')).toEqual(['x', 'y', 'w'])
     expect(toast(map)).toEqual(['Back in the episode', 'Redo'])
     await press('z')
     expect(toast(map)).toEqual(['Nothing to undo', null])
-    // Redo goes forward again in order, the removal first.
+    // Redo goes forward again in order, the removal first, then the move,
+    // and Undo of that brings the card back again.
     await press('z', true)
-    expect(order('e1')).toEqual(['y', 'm2'])
+    expect(order('e1')).toEqual(['y', 'w'])
+    await press('z', true)
+    expect([order('e1'), order('e2')]).toEqual([['y'], ['m2', 'z']])
+    await press('z')
+    expect([order('e1'), order('e2')]).toEqual([['y', 'w'], ['z']])
     // Another change to the map ends the history: Undo reaches no further.
     await map.run(async () => {}, 'Episode renamed')
     const sent = vi.mocked(mapApi.copies).mock.calls.length

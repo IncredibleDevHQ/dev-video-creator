@@ -27,7 +27,7 @@ import {
   storyPlanBrief
 } from '../shared/narratives'
 import { randomUUID } from 'node:crypto'
-import type { Snapshot, SlideEdit, ChatRequest } from '../shared/api'
+import type { ChatRequest, KeptSlide, SlideEdit, Snapshot } from '../shared/api'
 import type { Project, ProjectEvent } from '../shared/model'
 import {
   readRow,
@@ -620,10 +620,7 @@ const addSlide = (project: Snapshot['project'], beatId?: string) => {
  * video's line while it stood stopped with this scene stopped: the
  * Wireframe stage's delete and the map's remove keep the same.
  */
-export const keptForUndo = (
-  project: Project,
-  index: number
-): NonNullable<Snapshot['deletedSlide']> => {
+export const keptForUndo = (project: Project, index: number): KeptSlide => {
   const video = project.video
   const slide = project.slides[index]
   const scene = video?.scenes.find((item) => item.slideId === slide.id)
@@ -646,6 +643,42 @@ export const keptForUndo = (
       ? { stopped: video.error || stoppedLine(1) }
       : {})
   }
+}
+/**
+ * Puts a page kept for Undo back where it stood, with its scene, the seams
+ * either side and the video's line if it stood stopped for it: the
+ * Wireframe stage's Undo delete, and the map's Undo of a move to another
+ * episode.
+ */
+export const restoreKept = (snapshot: Snapshot, kept: KeptSlide) => {
+  const slides = snapshot.project.slides
+  slides.splice(Math.min(kept.index, slides.length), 0, kept.slide)
+  const { scene, stopped } = kept
+  const video = snapshot.project.video
+  if (scene && video) {
+    video.scenes.push(scene)
+    // The video stood stopped for it: it says so again (review 6: the
+    // only stopped scene came back, and the line didn't).
+    if (stopped && scene.phase === 'failed' && video.phase === 'idle') {
+      video.phase = 'failed'
+      // One saved by 5876b274 said only that it stood stopped.
+      video.error = typeof stopped === 'string' ? stopped : stoppedLine(1)
+    }
+  }
+  reconcileVideo(snapshot.project, snapshot)
+  // One brought back counts again in the video's line (review 6).
+  settleStoppedVideo(snapshot.project.video)
+  const now = snapshot.project.video
+  if (!kept.seams || !now) return
+  now.scenes.slice(0, -1).forEach((scene, index) => {
+    const seam = kept.seams!.find(
+      (seam) =>
+        seam.left === scene.slideId &&
+        seam.right === now.scenes[index + 1].slideId
+    )
+    if (seam) now.transitions[index] = seam.transition
+  })
+  refreshVideoKeys(snapshot.project)
 }
 export const editSlide = (id: string, edit: SlideEdit) =>
   changeProject(id, (snapshot) => {
@@ -673,30 +706,17 @@ export const editSlide = (id: string, edit: SlideEdit) =>
     }
     if (snapshot.status === 'building')
       throw new Refusal('Wait for the wireframes to finish')
+    if (edit.action === 'undo-delete') {
+      const kept = snapshot.deletedSlide
+      if (!kept) throw new Refusal('No slide to restore')
+      delete snapshot.deletedSlide
+      restoreKept(snapshot, kept)
+      addEvent(snapshot, 'slide', 'Wireframes updated')
+      return
+    }
     const slides = snapshot.project.slides
     const index = slides.findIndex((slide) => slide.id === edit.slideId)
-    const restored = snapshot.deletedSlide
-    if (edit.action === 'undo-delete') {
-      if (!snapshot.deletedSlide) throw new Refusal('No slide to restore')
-      slides.splice(
-        Math.min(snapshot.deletedSlide.index, slides.length),
-        0,
-        snapshot.deletedSlide.slide
-      )
-      const { scene, stopped } = snapshot.deletedSlide
-      const video = snapshot.project.video
-      if (scene && video) {
-        video.scenes.push(scene)
-        // The video stood stopped for it: it says so again (review 6: the
-        // only stopped scene came back, and the line didn't).
-        if (stopped && scene.phase === 'failed' && video.phase === 'idle') {
-          video.phase = 'failed'
-          // One saved by 5876b274 said only that it stood stopped.
-          video.error = typeof stopped === 'string' ? stopped : stoppedLine(1)
-        }
-      }
-      delete snapshot.deletedSlide
-    } else if (edit.action === 'add') addSlide(snapshot.project, edit.beat)
+    if (edit.action === 'add') addSlide(snapshot.project, edit.beat)
     else {
       if (index < 0) throw new Refusal('Slide not found')
       if (edit.action === 'delete') {
@@ -721,27 +741,8 @@ export const editSlide = (id: string, edit: SlideEdit) =>
         slides.splice(edit.index!, 0, slides.splice(index, 1)[0])
       }
     }
+    // One that went with its wireframe is settled by reconcileVideo.
     reconcileVideo(snapshot.project, snapshot)
-    // One brought back counts again in the video's line (review 6); one
-    // that went with its wireframe is settled by reconcileVideo.
-    if (edit.action === 'undo-delete')
-      settleStoppedVideo(snapshot.project.video)
-    if (
-      edit.action === 'undo-delete' &&
-      restored?.seams &&
-      snapshot.project.video
-    ) {
-      const video = snapshot.project.video
-      video.scenes.slice(0, -1).forEach((scene, index) => {
-        const seam = restored!.seams!.find(
-          (seam) =>
-            seam.left === scene.slideId &&
-            seam.right === video.scenes[index + 1].slideId
-        )
-        if (seam) video.transitions[index] = seam.transition
-      })
-      refreshVideoKeys(snapshot.project)
-    }
     addEvent(snapshot, 'slide', 'Wireframes updated')
   })
 

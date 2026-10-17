@@ -78,8 +78,9 @@ export const mapApi = {
       'POST',
       body
     ),
+  /** A card added, moved (and the copy it became), removed or updated. */
   copies: (episode: string, body: Record<string, unknown>) =>
-    request<Record<string, boolean>>(
+    request<{ as?: string; shared?: boolean; cut?: boolean }>(
       `/projects/${episode}/copies`,
       'POST',
       body

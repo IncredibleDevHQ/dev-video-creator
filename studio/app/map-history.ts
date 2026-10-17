@@ -18,14 +18,16 @@ type Order = {
   before: string[]
   after: string[]
 }
-/** A move to another episode, by the map page the card copies (a card
- * moved is a new card there). */
+/** A move to another episode: the card that left (the engine keeps it, so
+ * Undo brings back this very card, its lines and its scene), the copy it
+ * became there, its map page and the order it went into. */
 type Move = {
   kind: 'move'
   from: string
   to: string
-  page: string
-  before: string[]
+  copy: string
+  as: string
+  page?: string
   after: string[]
 }
 type Removal = { kind: 'remove'; episode: string; copy: string }
@@ -67,14 +69,16 @@ export class MapHistory {
   /** An edit just made, with Undo in the toast that says so. */
   record(edit: MapEdit, said: string) {
     const id = ++this.last
-    // The engine keeps one removal per episode to bring back.
-    if (edit.kind === 'remove')
-      for (const list of [this.done, this.undone])
-        for (let i = list.length - 1; i >= 0; i--) {
-          const item = list[i]
-          if (item.kind === 'remove' && item.episode === edit.episode)
-            list.splice(i, 1)
-        }
+    // The engine keeps one removal per episode to bring back, and one card
+    // moved out of each.
+    const older = (item: MapEdit) =>
+      (item.kind === 'remove' &&
+        edit.kind === 'remove' &&
+        item.episode === edit.episode) ||
+      (item.kind === 'move' && edit.kind === 'move' && item.from === edit.from)
+    for (const list of [this.done, this.undone])
+      for (let i = list.length - 1; i >= 0; i--)
+        if (older(list[i])) list.splice(i, 1)
     this.done.push({ ...edit, id })
     if (this.done.length > 20) this.done.shift()
     this.undone.length = 0
@@ -146,24 +150,39 @@ export class MapHistory {
       }
     }
     if (edit.kind === 'move') {
-      const [here, there] = back ? [edit.to, edit.from] : [edit.from, edit.to]
-      const card = find(episode(here), edit.page)
-      const into = episode(there)
-      if (!card || !into || find(into, edit.page)) return null
-      const index = placeAfter(
-        back ? edit.before : edit.after,
-        edit.page,
-        into.copies.map(keyOf)
-      )
+      const from = episode(edit.from)
+      const to = episode(edit.to)
+      const has = (lane: MapEpisode | undefined, id: string) =>
+        lane?.copies.some((copy) => copy.id === id)
+      if (!from || !to) return null
+      // Back: the copy it became is still there, and its page isn't here
+      // again; the engine puts back the card that left, as it was.
+      if (back)
+        return has(to, edit.as) && !(edit.page && find(from, edit.page))
+          ? {
+              work: () =>
+                mapApi.copies(edit.from, {
+                  action: 'unmove',
+                  slide: edit.copy
+                }),
+              said: `Back in Ep ${from.number}`
+            }
+          : null
+      if (!has(from, edit.copy) || (edit.page && find(to, edit.page)))
+        return null
+      const card = from.copies.find((copy) => copy.id === edit.copy)!
+      const index = placeAfter(edit.after, keyOf(card), to.copies.map(keyOf))
       return {
-        work: () =>
-          mapApi.copies(here, {
+        work: async () => {
+          const moved = await mapApi.copies(edit.from, {
             action: 'move',
-            slide: card.id,
-            to: there,
+            slide: edit.copy,
+            to: edit.to,
             index
-          }),
-        said: `${back ? 'Back in' : 'Moved to'} Ep ${into.number}`
+          })
+          edit.as = moved.as || ''
+        },
+        said: `Moved to Ep ${to.number}`
       }
     }
     if (back)

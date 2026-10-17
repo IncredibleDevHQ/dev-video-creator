@@ -974,3 +974,80 @@ it('keeps a removed copy and its scene, so Undo brings both back', async () => {
   ])
   await segues.settledAllSegues()
 })
+
+it('moves a page to another episode and back as it was: its id, its lines and its made scene (review 8)', async () => {
+  vi.doMock('./video', () => ({ schedulePlanning: vi.fn() }))
+  const { reconcileVideo, scenePlanKey } = await import('./scene-model')
+  await drawnMap('m22')
+  const series = await episodes.startMapSeries('m22', {})
+  const a = (
+    await episodes.addMapEpisode(series.id, {
+      slides: ['m22-1', 'm22-2', 'm22-3']
+    })
+  ).notebook.project.id
+  const b = (await episodes.addMapEpisode(series.id, { slides: ['m22-4'] }))
+    .notebook.project.id
+  await segues.settledAllSegues()
+  // A's second page has its scene made.
+  await changeProject(a, (current) => {
+    current.project.video = {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: null
+    }
+    reconcileVideo(current.project, current, new Set())
+    const scene = current.project.video.scenes[1]
+    scene.phase = 'produced'
+    scene.produced = { inputKey: 'k', objectKey: 'scene.mp4' }
+    // Planned as it stands in the video, as a made scene is.
+    scene.planKey = scenePlanKey(current.project, scene)
+  })
+  const before = (await loadProject(a))!.project.slides
+  const page = before[1]
+  const moved = await episodes.changeCopies(a, {
+    action: 'move',
+    slide: page.id,
+    to: b
+  })
+  const as = (moved as { as: string }).as
+  expect((await loadProject(b))!.project.slides.map((s) => s.id)).toContain(as)
+  expect(as).not.toBe(page.id)
+  await segues.settledAllSegues()
+  // Undo: the very page comes back where it stood, the copy goes.
+  await episodes.changeCopies(a, { action: 'unmove', slide: page.id })
+  const back = (await loadProject(a))!
+  expect(back.project.slides.map((s) => s.id)).toEqual(before.map((s) => s.id))
+  expect(back.project.slides[1].bridge).toBe(page.bridge)
+  expect(back.project.slides[1].narration).toBe(page.narration)
+  const scene = back.project.video!.scenes.find((s) => s.slideId === page.id)
+  expect(scene?.phase).toBe('produced')
+  expect(scene?.produced).toEqual({ inputKey: 'k', objectKey: 'scene.mp4' })
+  expect(back.movedSlide).toBeUndefined()
+  expect(
+    (await loadProject(b))!.project.slides.map((s) => s.copyOf?.slide)
+  ).toEqual(['m22-4'])
+  // Once: there is nothing left to undo.
+  await expect(
+    episodes.changeCopies(a, { action: 'unmove', slide: page.id })
+  ).rejects.toThrow('can no longer be undone')
+  await segues.settledAllSegues()
+  // Its copy gone from where it went: Undo says so, and nothing changes.
+  const again = await episodes.changeCopies(a, {
+    action: 'move',
+    slide: page.id,
+    to: b
+  })
+  await episodes.changeCopies(b, {
+    action: 'remove',
+    slide: (again as { as: string }).as
+  })
+  const now = (await loadProject(a))!.project.slides.map((s) => s.id)
+  await expect(
+    episodes.changeCopies(a, { action: 'unmove', slide: page.id })
+  ).rejects.toThrow('left the episode it went to')
+  expect((await loadProject(a))!.project.slides.map((s) => s.id)).toEqual(now)
+  await segues.settledAllSegues()
+  vi.doUnmock('./video')
+})

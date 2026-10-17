@@ -12,7 +12,12 @@ import { organizes, type Series } from '../shared/series'
 import { addEvent } from './activity'
 import { loadComments } from './map-comments'
 import { readRow, writeRow } from './persistence'
-import { changeProject, keptForUndo, loadProject } from './projects'
+import {
+  changeProject,
+  keptForUndo,
+  loadProject,
+  restoreKept
+} from './projects'
 import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
 import { changeSeries, loadSeries, previouslyOf } from './series'
@@ -258,6 +263,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
     return { cut, shared: !cut && value.only === true }
   }
   const slideId = String(value.slide || '')
+  if (action === 'unmove') return unmove(id, episode, slideId)
   const copy = episode.project.slides.find((s) => s.id === slideId)
   if (!copy) throw gone()
   if (action === 'move') {
@@ -295,8 +301,16 @@ export const changeCopies = async (id: string, raw: unknown) => {
     })
     try {
       await changeProject(id, (current) => {
-        if (!current.project.slides.some((s) => s.id === slideId)) throw gone()
+        const index = current.project.slides.findIndex((s) => s.id === slideId)
+        if (index < 0) throw gone()
         if (planned(current)) throw usedByStoryboard()
+        // Kept as it was, with its lines and its scene, so the map's Undo
+        // puts back this very page, never a new copy of it (review 8).
+        current.movedSlide = {
+          ...keptForUndo(current.project, index),
+          to,
+          as: moved.id
+        }
         current.project.slides = current.project.slides.filter(
           (s) => s.id !== slideId
         )
@@ -317,7 +331,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
     await planScenes(to)
     await scheduleAround(id)
     await scheduleAround(to)
-    return { moved: true }
+    return { moved: true, as: moved.id }
   }
   if (action === 'remove') {
     await changeProject(id, (current) => {
@@ -375,6 +389,54 @@ export const changeCopies = async (id: string, raw: unknown) => {
     return { [action === 'keep' ? 'kept' : 'updated']: true }
   }
   throw new Refusal('Choose add, move, remove, update or keep')
+}
+
+/**
+ * The map's Undo of a move to another episode: the page comes back from
+ * there as it was, with its id, its lines and its scene, where it stood;
+ * the copy it became there goes. Only the latest move out of an episode
+ * can be undone, and only while that copy is still where it went.
+ */
+const unmove = async (id: string, episode: Snapshot, slideId: string) => {
+  const kept = episode.movedSlide
+  const later = () => new Refusal('That move can no longer be undone')
+  if (!kept || kept.slide.id !== slideId) throw later()
+  const mapId = episode.project.copyOfMap!
+  const page = kept.slide.copyOf?.slide
+  if (page && episode.project.slides.some((s) => s.copyOf?.slide === page))
+    throw new Refusal('This episode has that page again')
+  let taken: { slide: Slide; at: number } | undefined
+  await changeProject(kept.to, (current) => {
+    const at = current.project.slides.findIndex((s) => s.id === kept.as)
+    if (at < 0) throw new Refusal('That page has left the episode it went to')
+    if (current.project.video?.storyboard?.pages.includes(kept.as))
+      throw usedByStoryboard()
+    taken = { slide: current.project.slides.splice(at, 1)[0], at }
+    reconcileVideo(current.project, current, new Set())
+  })
+  try {
+    await changeProject(id, (current) => {
+      const back = current.movedSlide
+      if (!back || back.slide.id !== slideId) throw later()
+      delete current.movedSlide
+      restoreKept(current, back)
+      addEvent(current, 'slide', `Moved “${back.slide.title}” back`)
+    })
+  } catch (error) {
+    // Left where it went, as it was.
+    await changeProject(kept.to, (current) => {
+      if (taken) current.project.slides.splice(taken.at, 0, taken.slide)
+      reconcileVideo(current.project, current, new Set())
+    })
+    throw error
+  }
+  await clearOnly(mapId, page, kept.to, id)
+  await syncEvidence(mapId, id)
+  await planScenes(id)
+  await planScenes(kept.to)
+  await scheduleAround(id)
+  await scheduleAround(kept.to)
+  return { moved: true }
 }
 
 /**
