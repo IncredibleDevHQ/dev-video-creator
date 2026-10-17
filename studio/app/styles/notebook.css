@@ -283,3 +283,63 @@
   font-size: 13px;
   text-align: center;
 }
+
+/* Notes go on once the wireframes are made: the map's own notes (review 8). */
+.notebook-notes {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 20px;
+}
+.notebook-note-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.notebook-note-form:focus-within {
+  border-color: #8da996;
+}
+.notebook-note-form textarea {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 8px;
+}
+.notebook-notes-where {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.notebook-note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.notebook-note-list li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+.notebook-note-list p {
+  margin: 0;
+  font-size: 13px;
+}
+.notebook-note-list small {
+  color: var(--muted);
+}
+.notebook-note-list .is-failed small {
+  color: var(--danger, #b42318);
+}

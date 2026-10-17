@@ -1,4 +1,5 @@
 import { api } from './api'
+import { mapApi } from './map-api'
 import type { AppContext } from './app-context'
 import { downloadPresentation } from './download'
 import { saveBeforeLeaving } from './notebook-editor'
@@ -98,6 +99,16 @@ export const submitSlides = async (
     const instruction = String(values.get('instruction') || '').trim()
     if (!instruction) return
     await app.sendChat({ anchor: { stage: 'notebook' }, instruction })
+  }
+  // A note from the Notebook goes to its content map (review 8 F02).
+  if (form.id === 'notebook-note' && app.snapshot) {
+    const text = String(values.get('note') || '').trim()
+    if (!text) return
+    const { project } = app.snapshot
+    const saved = await mapApi.note(project.copyOfMap || project.id, text)
+    form.reset()
+    if (app.snapshot?.project.id === saved.project.id) app.snapshot = saved
+    app.render()
   }
   if (form.matches('.evidence-ask') && app.snapshot) {
     const answer = String(values.get('answer') || '').trim()
