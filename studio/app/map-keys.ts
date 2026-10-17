@@ -24,10 +24,14 @@ export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
     }
     still()
     requestAnimationFrame(still)
-    if (!el.classList?.contains('map-el') || !el.matches(':focus-visible'))
+    // A block reached by key, or a box to type in on one: Add → Direction
+    // focused its box at the series' head, off screen (review 8, round 2).
+    const node = el.closest<HTMLElement>('.map-el')
+    const typing = el.matches('input, textarea, select')
+    if (!node || !(typing || (node === el && el.matches(':focus-visible'))))
       return
     const at = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(
-      el.style.transform
+      node.style.transform
     )
     if (!at) return
     const { k } = map.camera
@@ -52,14 +56,14 @@ export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
             : 0
     const dx = nudge(
       map.camera.x + Number(at[1]) * k,
-      el.offsetWidth * k,
+      node.offsetWidth * k,
       rect.width - cover.right,
       40,
       40
     )
     const dy = nudge(
       map.camera.y + Number(at[2]) * k,
-      el.offsetHeight * k,
+      node.offsetHeight * k,
       rect.height - cover.bottom,
       60,
       110

@@ -722,6 +722,43 @@ describe('focus as a bar menu closes (round 1)', () => {
   })
 })
 
+describe('a box to type in is never focused off screen (round 2)', () => {
+  it('brings a new direction into view, its zoom kept, when Add → Direction opens it far from where the creator is looking', async () => {
+    const { map, root } = await openMap()
+    map.canvas!.getBoundingClientRect = () => rect(0, 0, 1200, 800)
+    patch(win.HTMLElement.prototype, 'offsetWidth', 240)
+    patch(win.HTMLElement.prototype, 'offsetHeight', 152)
+    patch(win.HTMLElement.prototype, 'select', () => {})
+    patch(win.HTMLElement.prototype, 'focus', function (this: Element) {
+      fire(this, 'focusin')
+    })
+    // Zoomed in on the last episode: the series' head, where a direction
+    // made over the episodes goes, is above the screen.
+    const lane = map.layout!.lanes.e2
+    map.camera = {
+      k: 1.5,
+      x: 600 - (lane.x + lane.w / 2) * 1.5,
+      y: 400 - (lane.y + lane.h / 2) * 1.5
+    }
+    map.applyCamera()
+    expect(map.camera.y + map.layout!.series!.y * 1.5).toBeLessThan(0)
+    click(root.querySelector('[data-map="add"]'))
+    await settle()
+    click(map.slot('menu')!.querySelector('[data-map="flow-direction"]'))
+    await settle()
+    const node = root
+      .querySelector('.map-direction-form textarea')!
+      .closest<HTMLElement>('.map-el')!
+    const y = Number(
+      /translate\([-\d.]+px,\s*([-\d.]+)px\)/.exec(node.style.transform)![1]
+    )
+    const top = map.camera.y + y * map.camera.k
+    expect(map.camera.k).toBe(1.5)
+    expect(top).toBeGreaterThanOrEqual(60)
+    expect(top + 152 * 1.5).toBeLessThanOrEqual(800 - 110)
+  })
+})
+
 describe('heard as well as seen (round 1)', () => {
   it('says the toast aloud, and what a direction guides with its name', async () => {
     const shown = view()
