@@ -24,7 +24,8 @@ const { changeProject } = await import('./projects')
 const episodes = await import('./map-episodes')
 const segues = await import('./map-segues')
 const { loadSeries } = await import('./series')
-const { planSeries, settledSeriesPlan } = await import('./series-plan')
+const { planSeries, settledSeriesPlan, mapAtWork, waitingFor } =
+  await import('./series-plan')
 const { setGap } = await import('./series-directions')
 const { coveredBy } = await import('./series-gaps')
 afterAll(async () => {
@@ -316,3 +317,58 @@ it('plans once the notes waiting on the drawn map are sorted and their cards are
   await settledSeriesPlan(series.id)
   expect(pages.map((page) => page.id)).toContain('n-4')
 }, 15_000)
+
+// Round 3's audit: the wait named notes while the map was not drawn, though
+// a note waiting for an undrawn map holds no plan.
+it('names what holds the plan in one phrase: the map being drawn first, never a note waiting for an undrawn map', () => {
+  const at = '2026-10-17T00:00:00.000Z'
+  const note = (state: 'waiting' | 'sorting') => ({
+    id: `n-${state}`,
+    at,
+    text: 'An idea',
+    state
+  })
+  const change = (state: 'working' | 'queued') => ({
+    id: `c-${state}`,
+    slideId: 's',
+    instruction: 'Draw it',
+    state,
+    at
+  })
+  const map = (
+    status: Snapshot['status'],
+    notes: Array<ReturnType<typeof note>>,
+    changes: Array<ReturnType<typeof change>>
+  ) =>
+    ({
+      project: {
+        id: 'm',
+        title: 'M',
+        source: '',
+        slides: [],
+        video: null,
+        notes
+      },
+      status,
+      error: null,
+      events: [],
+      changes
+    }) as unknown as Snapshot
+  const all = [note('sorting'), note('waiting')]
+  expect(waitingFor(map('building', all, [change('working')]))).toBe(
+    'waiting for the map to be drawn'
+  )
+  // Not drawn: a card being redrawn holds it; the note waits for the map.
+  expect(
+    waitingFor(map('failed', [note('waiting')], [change('working')]))
+  ).toBe('waiting for 1 card being drawn')
+  const idle = map('failed', [note('waiting')], [change('queued')])
+  expect([mapAtWork(idle), waitingFor(idle)]).toEqual([false, ''])
+  // Drawn: notes being sorted, then cards being drawn.
+  expect(waitingFor(map('ready', all, [change('working')]))).toBe(
+    'waiting for 2 notes to be sorted'
+  )
+  expect(
+    waitingFor(map('ready', [], [change('working'), change('queued')]))
+  ).toBe('waiting for 2 cards being drawn')
+})

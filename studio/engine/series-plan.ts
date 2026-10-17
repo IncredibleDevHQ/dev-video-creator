@@ -161,27 +161,26 @@ export const directionLines = async (
 /** The most a plan waits for the map's cards being drawn or changed. */
 const DRAWING_WAIT_MS = 5 * 60_000
 /** Work on the map that is under way and will land: the map being drawn, a
- * card being drawn or changed (a queued one runs once the map is drawn), a
- * note being sorted, or waiting on a drawn map to be. A failed change waits
+ * note being sorted, or waiting on a drawn map to be, a card being drawn or
+ * changed (a queued one runs once the map is drawn). A failed change waits
  * for the creator, not for the plan: counted, it held every plan five
  * minutes, saying nothing (review 8, round 2's audit). */
-export const mapAtWork = (map: Snapshot) => {
+const workOn = (map: Snapshot) => {
   const drawn = map.status === 'ready'
-  return (
-    map.status === 'building' ||
-    Boolean(
-      map.changes?.some(
-        (change) =>
-          change.state === 'working' || (drawn && change.state === 'queued')
-      )
-    ) ||
-    Boolean(
-      map.project.notes?.some(
-        (note) =>
-          note.state === 'sorting' || (drawn && note.state === 'waiting')
-      )
-    )
-  )
+  return {
+    drawing: map.status === 'building',
+    notes: (map.project.notes || []).filter(
+      (note) => note.state === 'sorting' || (drawn && note.state === 'waiting')
+    ).length,
+    cards: (map.changes || []).filter(
+      (change) =>
+        change.state === 'working' || (drawn && change.state === 'queued')
+    ).length
+  }
+}
+export const mapAtWork = (map: Snapshot) => {
+  const { drawing, notes, cards } = workOn(map)
+  return drawing || notes > 0 || cards > 0
 }
 /** The map once the work under way on it has landed: a note's new card
  * drawn a moment after the plan began was missed, and named as a gap
@@ -209,18 +208,18 @@ const settledMap = async (id: string, seriesId: string) => {
   await say('')
   return map
 }
-/** What a plan waits for on the map, in words. */
-const waitingFor = (map: Snapshot) => {
-  if (map.status === 'building') return 'waiting for the map to be drawn'
-  const sorting = (map.project.notes || []).filter(
-    (note) => note.state === 'sorting' || note.state === 'waiting'
-  ).length
-  if (sorting)
-    return `waiting for ${sorting === 1 ? 'your note' : `${sorting} notes`} to be sorted`
-  const cards = (map.changes || []).filter(
-    (change) => change.state === 'working' || change.state === 'queued'
-  ).length
-  return `waiting for ${cards === 1 ? '1 card' : `${cards} cards`} being drawn`
+/** What a plan waits for on the map, in one short phrase: of the work that
+ * holds it, the map being drawn first, then notes, then cards. A note that
+ * waits for an undrawn map, or a card queued on it, holds nothing, and is
+ * not named (review 8, round 3's audit). */
+export const waitingFor = (map: Snapshot) => {
+  const { drawing, notes, cards } = workOn(map)
+  if (drawing) return 'waiting for the map to be drawn'
+  if (notes)
+    return `waiting for ${notes === 1 ? 'your note' : `${notes} notes`} to be sorted`
+  if (cards)
+    return `waiting for ${cards === 1 ? '1 card' : `${cards} cards`} being drawn`
+  return ''
 }
 
 const runPlan = async (seriesId: string) => {
