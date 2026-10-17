@@ -29,6 +29,13 @@ export const seriesApi = {
       `/series/${id}/episodes`,
       'POST',
       body
+    ),
+  /** The series a notebook's stopped drawing held, given up. */
+  cancelWaiting: (notebook: string) =>
+    studioApi.request<Snapshot>(
+      `/projects/${notebook}/waiting-series`,
+      'POST',
+      { cancel: true }
     )
 }
 
@@ -135,6 +142,22 @@ export const clickSeries = async (
     const id = target.dataset.series
     await busy(target, () => seriesApi.planArc(id))
     await showSeries(app, id)
+    return true
+  }
+  // A series waiting on a drawing that stopped: the drawing tried again (the
+  // series starts once it is drawn), or the series given up.
+  if (
+    (action === 'retry-waiting-series' || action === 'cancel-waiting-series') &&
+    target.dataset.id
+  ) {
+    const id = target.dataset.id
+    await busy(target, () =>
+      action === 'retry-waiting-series'
+        ? api.retrySlides(id)
+        : seriesApi.cancelWaiting(id)
+    )
+    await app.refreshNotebooks()
+    app.render()
     return true
   }
   return false

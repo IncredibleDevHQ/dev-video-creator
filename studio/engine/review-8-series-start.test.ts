@@ -6,12 +6,13 @@ import type { SeriesSummary } from '../shared/series'
 // the creator's notes, the notebook just made chosen even while it is drawn;
 // the studio plans the episodes, and a repo is asked for only by a series
 // that follows code. The network is a stand-in.
-const { request, notebooks } = vi.hoisted(() => ({
+const { request, notebooks, retrySlides } = vi.hoisted(() => ({
+  retrySlides: vi.fn(),
   request: vi.fn(),
   notebooks: vi.fn()
 }))
 vi.mock('../app/studio-api', () => ({ studioApi: { request } }))
-vi.mock('../app/api', () => ({ api: { notebooks } }))
+vi.mock('../app/api', () => ({ api: { notebooks, retrySlides } }))
 vi.mock('../app/notebook-editor', () => ({ saveBeforeLeaving: vi.fn() }))
 const { clickSeries, submitSeries } = await import('../app/series-controller')
 const {
@@ -375,4 +376,60 @@ it('a series from nothing yet sends its repo and opens its page', async () => {
   })
   expect(app.mapCanvas.open).not.toHaveBeenCalled()
   expect(app.showDialog.mock.calls[0][0]).toContain('<h2>Limits</h2>')
+})
+
+// Round 2's audit: a drawing that failed or was stopped left its series
+// waiting, the notebook off home's lists, and no way out.
+it('says a series waiting on a stopped drawing has not started, lists its notebook, and offers Try again or Cancel', async () => {
+  const why =
+    'Stopped. Saved work is kept; Try again continues where it stopped.'
+  const stopped = notebook('n-stopped', 'Learning log: queues', {
+    status: 'failed',
+    preview: null,
+    waitingSeries: 'Queues, from my log',
+    waitingStopped: why
+  })
+  const home = parseHTML(`<div>${seriesSection([], [stopped])}</div>`).document
+  const row = home.querySelector('.series-row.is-stopped')!
+  expect(row.querySelector('.series-row-title')?.textContent).toBe(
+    'Queues, from my log'
+  )
+  expect(
+    row.querySelector('.series-row-title')?.getAttribute('data-notebook')
+  ).toBe('n-stopped')
+  const line = row.querySelector('.series-row-head small')!
+  expect(line.textContent).toBe('Not started: its wireframes stopped')
+  expect(line.getAttribute('title')).toBe(why)
+  expect(
+    [...row.querySelectorAll('button[data-action]')].map((b) => b.textContent)
+  ).toEqual(['Try again', 'Cancel'])
+  // Not hidden: one of the notebooks again; being drawn, the series'.
+  expect(looseNotebooks([stopped], [])).toEqual([stopped])
+  expect(looseNotebooks([{ ...stopped, status: 'building' }], []).length).toBe(
+    0
+  )
+  // A draft (its notes edited since) has no drawing to try: only Cancel.
+  const edited = parseHTML(
+    `<div>${seriesSection([], [{ ...stopped, status: 'draft' }])}</div>`
+  ).document
+  expect(
+    [...edited.querySelectorAll('.is-stopped button[data-action]')].map(
+      (b) => b.textContent
+    )
+  ).toEqual(['Cancel'])
+  // Each answer reaches the studio, and home is read again.
+  const app = { ...appWith([stopped], []), refreshNotebooks: vi.fn() }
+  for (const button of row.querySelectorAll<HTMLButtonElement>(
+    'button[data-action]'
+  ))
+    expect(await clickSeries(app as never, button, button.dataset.action)).toBe(
+      true
+    )
+  expect(retrySlides).toHaveBeenCalledWith('n-stopped')
+  expect(request).toHaveBeenCalledWith(
+    '/projects/n-stopped/waiting-series',
+    'POST',
+    { cancel: true }
+  )
+  expect(app.refreshNotebooks).toHaveBeenCalledTimes(2)
 })

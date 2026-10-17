@@ -174,6 +174,21 @@ export type WaitingSeries = {
   led?: SeriesLed
   at: string
 }
+/** On a notebook's summary: the series waiting for its wireframes, and,
+ * when the drawing failed or was stopped, why (review 8, round 2). */
+export const waitingOf = (saved: {
+  status: string
+  error?: string | null
+  project: { title: string; waitingSeries?: WaitingSeries }
+}) =>
+  saved.project.waitingSeries
+    ? {
+        waitingSeries: saved.project.waitingSeries.title || saved.project.title,
+        ...(saved.status === 'failed' && saved.error
+          ? { waitingStopped: saved.error }
+          : {})
+      }
+    : {}
 /** Who presents a series' episodes: as the creator said, else a content
  * map's series is told from its notes (review 8). */
 export const ledBy = (series: Pick<Series, 'led' | 'map'>) =>

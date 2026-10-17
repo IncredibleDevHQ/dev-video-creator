@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import type { Browser } from 'puppeteer'
 import type { NotebookSummary } from '../shared/api'
-import { newSeriesDialog } from '../app/series-view'
+import { newSeriesDialog, seriesSection } from '../app/series-view'
 
 // Start a series in a real browser, with the studio's own stylesheet (review
 // 8, F03): in the review's 1206×954 window the whole start is in sight, its
@@ -127,6 +127,46 @@ it('shows the whole start in a laptop window, whatever is chosen', async () => {
       )
   }
   expect(problems).toEqual([])
+})
+
+// Round 2's audit: a series waiting on a drawing that stopped says so on
+// home, with Try again and Cancel, in one row that fits a phone too.
+it('fits a series waiting on a stopped drawing in one row, its answers in sight', async () => {
+  const stopped: NotebookSummary = {
+    ...notebook('n5', 'Learning log: queues', 'failed'),
+    waitingSeries: 'Queues, from my learning log, week by week',
+    waitingStopped:
+      'Stopped. Saved work is kept; Try again continues where it stopped.'
+  }
+  const file = join(dir, 'home.html')
+  await writeFile(
+    file,
+    `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${style}"></head><body><main class="start">${seriesSection([], [stopped])}</main></body></html>`
+  )
+  for (const [width, height] of [
+    [1206, 954],
+    [390, 844]
+  ]) {
+    const tab = await browser.newPage()
+    await tab.setViewport({ width, height })
+    await tab.goto(`file://${file}`, { waitUntil: 'load' })
+    const at = await tab.evaluate(() => {
+      const row = document.querySelector('.series-row.is-stopped')!
+      const box = row.getBoundingClientRect()
+      const buttons = [...row.querySelectorAll('button[data-action]')].map(
+        (button) => button.getBoundingClientRect()
+      )
+      return {
+        wider: document.documentElement.scrollWidth - innerWidth,
+        inside: buttons.every(
+          (b) => b.left >= box.left && b.right <= box.right && b.width > 0
+        ),
+        count: buttons.length
+      }
+    })
+    await tab.close()
+    expect(at, `${width}px`).toEqual({ wider: 0, inside: true, count: 2 })
+  }
 })
 
 it('stacks the two choices on a phone, nothing wider than the screen', async () => {

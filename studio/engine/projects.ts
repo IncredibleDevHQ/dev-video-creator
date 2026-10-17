@@ -60,6 +60,7 @@ import { startingLook, withLook } from './looks'
 import { Refusal } from './refusal'
 import { settleStoppedVideo, stoppedLine } from './autopilot'
 import { sourceLink } from '../shared/source-link'
+import { waitingOf } from '../shared/series'
 const queues = new Map<string, Promise<unknown>>()
 /**
  * A video saved before narratives (October 2026) named a template, and its
@@ -783,12 +784,7 @@ export const listNotebooks = async (): Promise<
         preview:
           saved.project.slides.find((slide) => drawn(slide.svg))?.svg ?? null,
         slides: saved.project.slides.length,
-        ...(saved.project.waitingSeries
-          ? {
-              waitingSeries:
-                saved.project.waitingSeries.title || saved.project.title
-            }
-          : {})
+        ...waitingOf(saved)
       })
   }
   // Every notebook: home shows the latest few and "Show all" the rest.

@@ -68,6 +68,17 @@ export const startSeries = async (raw: unknown) => {
   return planSeries(series.id, {})
 }
 
+/** The series asked for from a notebook whose drawing stopped, given up:
+ * the notebook stays as it is, one of the creator's notebooks again (review
+ * 8, round 2's audit: there was no way out of waiting). */
+export const cancelWaitingSeries = (id: string) =>
+  changeProject(id, (current) => {
+    if (!current.project.waitingSeries)
+      throw new Refusal('No series waits for this notebook')
+    delete current.project.waitingSeries
+    addEvent(current, 'slide', 'The series it was to start is cancelled')
+  })
+
 /** Once a notebook's wireframes are drawn: the series asked for meanwhile
  * starts, as it was asked, its plan too. Taken off the notebook first, so
  * it starts once; when it cannot, the notebook says why and home offers it

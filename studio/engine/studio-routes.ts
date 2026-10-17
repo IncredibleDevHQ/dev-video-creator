@@ -31,13 +31,13 @@ import {
   seriesPage,
   updateSeries
 } from './series'
-import { startSeries } from './series-start'
+import { cancelWaitingSeries, startSeries } from './series-start'
 
 type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle|cover|numbers|campaign|youtube)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle|cover|numbers|campaign|youtube|waiting-series)$/
 
 export const studioRoute = (
   url: URL,
@@ -123,6 +123,8 @@ const route = async (
     const [, id, action] = project
     if (action === 'repos' && method === 'POST')
       return ok(await setNotebookRepos(id, body))
+    if (action === 'waiting-series' && method === 'POST' && body.cancel)
+      return ok(await cancelWaitingSeries(id))
     if (action === 'repo-answers' && method === 'POST')
       return ok(await askRepo(id, body))
     if (action === 'captures' && method === 'POST')

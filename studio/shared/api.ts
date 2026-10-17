@@ -130,6 +130,8 @@ export type NotebookSummary = {
   /** A series waits to start from it once its wireframes are drawn: the
    * series' title. */
   waitingSeries?: string
+  /** Why the drawing that series waits for stopped. */
+  waitingStopped?: string
 }
 
 export type HarnessChoice = {

@@ -42,10 +42,29 @@ const seriesRow = (item: SeriesSummary, notebooks: NotebookSummary[]) => {
   return `<article class="series-row"><div class="series-row-head"><button type="button" class="series-row-title" ${item.map ? `data-action="open-map-of" data-map="${escape(item.map)}"` : `data-action="open-series-page" data-series="${escape(item.id)}"`}>${escape(item.title)}</button><small>${count}</small></div>${map || episodes ? `<ol>${map}${episodes}</ol>` : ''}</article>`
 }
 
+/** A series waits on its notebook's drawing while it is under way: then the
+ * notebook is the series', not one of the loose ones. */
+const waitsOnDrawing = (item: NotebookSummary) =>
+  item.status === 'building' || item.status === 'reading'
+
 /** A series asked for from a notebook still being drawn: its notebook, and
- * that it starts once the wireframes are drawn. */
-const waitingRow = (item: NotebookSummary, notebooks: NotebookSummary[]) =>
-  `<article class="series-row is-waiting"><div class="series-row-head"><button type="button" class="series-row-title" data-action="open-map-of" data-map="${escape(item.id)}">${escape(item.waitingSeries || item.title)}</button><small>Starts once its wireframes are drawn</small></div><ol>${seriesEntry(notebooks, item.id, 'Content map', true)}</ol></article>`
+ * that it starts once the wireframes are drawn. A drawing that failed or was
+ * stopped says so, with Try again and Cancel; the notebook is listed among
+ * the others meanwhile (review 8, round 2's audit: it waited, hidden, with
+ * no way out). */
+const waitingRow = (item: NotebookSummary, notebooks: NotebookSummary[]) => {
+  const title = escape(item.waitingSeries || item.title)
+  if (waitsOnDrawing(item))
+    return `<article class="series-row is-waiting"><div class="series-row-head"><button type="button" class="series-row-title" data-action="open-map-of" data-map="${escape(item.id)}">${title}</button><small>Starts once its wireframes are drawn</small></div><ol>${seriesEntry(notebooks, item.id, 'Content map', true)}</ol></article>`
+  const id = escape(item.id)
+  const failed = item.status === 'failed'
+  const why = item.waitingStopped
+    ? ` title="${escape(item.waitingStopped)}"`
+    : ''
+  const answer = (action: string, label: string) =>
+    `<button type="button" class="quiet" data-action="${action}" data-id="${id}">${label}</button>`
+  return `<article class="series-row is-stopped"><div class="series-row-head"><button type="button" class="series-row-title" data-notebook="${id}">${title}</button><small${why}>Not started: its wireframes ${failed ? 'stopped' : 'are not drawn'}</small><span class="series-row-actions">${failed ? answer('retry-waiting-series', 'Try again') : ''}${answer('cancel-waiting-series', 'Cancel')}</span></div></article>`
+}
 
 /** The creator's series, under their notebooks, the ones waiting for their
  * wireframes first. */
@@ -61,8 +80,9 @@ export const seriesSection = (
     : ''
 }
 
-/** The notebooks no series uses yet, nor waits for, newest first: home's
- * loose tiles, and the notes a new series can start from. */
+/** The notebooks no series uses yet, nor waits for while they are drawn,
+ * newest first: home's loose tiles, and the notes a new series can start
+ * from. */
 export const looseNotebooks = (
   notebooks: NotebookSummary[],
   series: SeriesSummary[]
@@ -76,7 +96,10 @@ export const looseNotebooks = (
     )
   )
   return notebooks.filter(
-    (item) => !item.archived && !item.waitingSeries && !grouped.has(item.id)
+    (item) =>
+      !item.archived &&
+      !(item.waitingSeries && waitsOnDrawing(item)) &&
+      !grouped.has(item.id)
   )
 }
 

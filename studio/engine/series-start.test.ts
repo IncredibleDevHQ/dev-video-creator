@@ -288,3 +288,64 @@ it('refuses notes with no wireframes coming, or a notebook not the creator’s',
   ).rejects.toThrow('Notebook not found')
   expect(asked()).toHaveLength(0)
 })
+
+// Round 2's audit: a drawing that failed or was stopped left its series
+// waiting, the notebook off home's lists, and no way out.
+it('a series waiting on a drawing that fails says why, starts once drawn on Try again, or is cancelled', async () => {
+  const { retrySlides, settledBuild } = await import('./projects')
+  const { studioRoute } = await import('./studio-routes')
+  await drawing('failing')
+  let fail!: (reason: Error) => void
+  pages.mockImplementationOnce(
+    () => new Promise<string[]>((_, reject) => (fail = reject))
+  )
+  scheduleSlides('failing')
+  await vi.waitFor(() => expect(fail).toBeTypeOf('function'))
+  await series.startSeries({ from: 'failing', about, growth: 'one' })
+  fail(new Error('The stand-in agent stops here'))
+  await settledBuild('failing')
+  const failed = (await loadProject('failing'))!
+  expect(failed.status).toBe('failed')
+  expect(failed.project.waitingSeries).toBeDefined()
+  // Home hears why, by the series it holds.
+  expect(
+    (await listNotebooks()).find((item) => item.id === 'failing')
+  ).toMatchObject({ waitingSeries: 'Payments', waitingStopped: failed.error })
+  // Try again: drawn this time, the series starts.
+  pages.mockImplementationOnce(async () => [svg])
+  await retrySlides('failing')
+  await vi.waitFor(async () =>
+    expect((await loadProject('failing'))?.project.mapSeries).toBeTruthy()
+  )
+  expect((await loadProject('failing'))?.project.waitingSeries).toBeUndefined()
+
+  // Stopped, and given up: the notebook is one of the creator's again.
+  await drawing('stopped', {
+    waitingSeries: { title: 'Queues', about, growth: 'arc', at: '' }
+  })
+  await writeRow('projects', 'stopped', {
+    ...(await loadProject('stopped'))!,
+    status: 'failed',
+    error: 'Stopped. Saved work is kept; Try again continues where it stopped.'
+  })
+  const cancel = () =>
+    studioRoute(
+      new URL('http://studio.test/api/projects/stopped/waiting-series'),
+      { method: 'POST' } as never,
+      { cancel: true },
+      {} as never
+    )
+  const reply = (await cancel()) as { status: number; value: Snapshot }
+  expect(reply.status).toBe(200)
+  expect(reply.value.project.waitingSeries).toBeUndefined()
+  expect(reply.value.events.at(-1)?.message).toBe(
+    'The series it was to start is cancelled'
+  )
+  expect(
+    (await listNotebooks()).find((item) => item.id === 'stopped')?.waitingSeries
+  ).toBeUndefined()
+  expect(await cancel()).toEqual({
+    status: 400,
+    value: { error: 'No series waits for this notebook' }
+  })
+})

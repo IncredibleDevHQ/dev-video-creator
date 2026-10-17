@@ -113,6 +113,19 @@
 .series-row small {
   color: var(--muted);
 }
+/* Waiting on a drawing that stopped: the line, then Try again and Cancel,
+   below it when the row is narrow. */
+.series-row.is-stopped .series-row-head {
+  flex-wrap: wrap;
+}
+.series-row.is-stopped .series-row-head small {
+  flex: 1 1 12em;
+}
+.series-row-actions {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
 .series-form,
 .episode-form,
 .threads-form,
