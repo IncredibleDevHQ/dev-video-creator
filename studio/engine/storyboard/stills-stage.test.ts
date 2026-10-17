@@ -279,3 +279,43 @@ it('poses every frame, keeps a failed one for a retry, then takes notes round by
     'Posed again with your note: frame 4'
   )
 })
+
+it('leaves the stills it did not reach alone when the creator stops, with no error under a frame it cut short (review 8 F11)', async () => {
+  await seed('stop-stills', {})
+  const dir = await mkdtemp(join(tmpdir(), 'stills-stop-'))
+  const internal: Internal = { plan }
+  const snapshot = (await loadProject('stop-stills'))!
+  process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY = '1'
+  try {
+    pose.mockReset()
+    pose.mockImplementation(
+      async (input: { number: number; onAccepted: () => Promise<void> }) => {
+        if (input.number === 1) return input.onAccepted()
+        // Frame 2 is at work when the creator presses Stop.
+        await setStoryboard('stop-stills', { stopping: true })
+        throw new Error('The engine run was interrupted')
+      }
+    )
+    await expect(
+      stillsStage({
+        snapshot,
+        storyboard: snapshot.project.video!.storyboard!,
+        dir,
+        internal
+      })
+    ).rejects.toThrow(/could not be posed/)
+  } finally {
+    delete process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY
+  }
+  expect(pose.mock.calls.map(([input]) => input.number)).toEqual([1, 2])
+  expect(internal.statuses).toEqual({ 1: 'built' })
+  const frames = (await stored('stop-stills')).plan!.scenes.flatMap(
+    (scene) => scene.frames
+  )
+  expect(frames.map((entry) => [entry.status, entry.problem])).toEqual([
+    ['built', undefined],
+    ['outline', undefined],
+    ['outline', undefined],
+    ['outline', undefined]
+  ])
+})

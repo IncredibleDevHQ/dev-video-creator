@@ -413,6 +413,12 @@ it('gives a frame stopped by the creator no finding to fix on its next try (F11)
   await stopStoryboard('frames-stop')
   release()
   await settledStoryboard('frames-stop')
+  // The board says Stopped once; no frame says it again, or shows an error.
+  const frames = (await stored('frames-stop')).plan!.scenes[0].frames
+  expect(frames.map((entry) => [entry.status, entry.problem])).toEqual([
+    ['outline', undefined],
+    ['outline', undefined]
+  ])
   built.mockReset()
   built.mockResolvedValue(undefined)
   await retryStoryboard('frames-stop')

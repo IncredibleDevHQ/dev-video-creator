@@ -32,9 +32,11 @@ import {
   LAYOUTS,
   MOTION,
   concurrency,
+  leaveAsWas,
   origin,
   pageTitles,
   selectionOf,
+  stopAsked,
   summaryNow,
   takesOf,
   update,
@@ -573,6 +575,7 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
   }
   const lane = async () => {
     while (cursor < todo.length) {
+      if (await stopAsked(snapshot.project.id)) return
       const frame = todo[cursor++]
       try {
         await buildFrame({
@@ -595,17 +598,15 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
           }
         })
       } catch (error) {
-        internal.statuses![frame.number] = 'failed'
         // A run the creator stopped is no finding for the frame's next try.
-        if (
-          (await loadProject(snapshot.project.id))?.project.video?.storyboard
-            ?.stopping
-        )
-          delete internal.problems![frame.number]
-        else
+        if (await stopAsked(snapshot.project.id))
+          leaveAsWas(internal, frame.number)
+        else {
+          internal.statuses![frame.number] = 'failed'
           internal.problems![frame.number] = [
             error instanceof Error ? error.message : String(error)
           ]
+        }
         await save()
       }
     }

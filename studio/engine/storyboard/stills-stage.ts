@@ -11,9 +11,11 @@ import {
   LAYOUTS,
   MOTION,
   concurrency,
+  leaveAsWas,
   origin,
   pageTitles,
   selectionOf,
+  stopAsked,
   summaryNow,
   update,
   type StageInput
@@ -91,6 +93,7 @@ export const stillsStage = async ({
   }
   const lane = async () => {
     while (cursor < todo.length) {
+      if (await stopAsked(snapshot.project.id)) return
       const frame = todo[cursor++]
       const at = frames.indexOf(frame)
       try {
@@ -123,10 +126,14 @@ export const stillsStage = async ({
           }
         })
       } catch (error) {
-        internal.statuses![frame.number] = 'failed'
-        internal.problems![frame.number] = [
-          error instanceof Error ? error.message : String(error)
-        ]
+        if (await stopAsked(snapshot.project.id))
+          leaveAsWas(internal, frame.number)
+        else {
+          internal.statuses![frame.number] = 'failed'
+          internal.problems![frame.number] = [
+            error instanceof Error ? error.message : String(error)
+          ]
+        }
         await save()
       }
     }

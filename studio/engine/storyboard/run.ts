@@ -3,7 +3,7 @@
 // storyboard changed in place, and the harness the notebook chose.
 import type { Snapshot } from '../../shared/api'
 import type { Storyboard } from '../../shared/storyboard'
-import { changeProject } from '../projects'
+import { changeProject, loadProject } from '../projects'
 import { detectedHarness } from '../notebook-intake'
 import { planSummary, type Internal } from './state'
 
@@ -28,6 +28,17 @@ export const update = (
     if (storyboard.status !== 'working') delete storyboard.stopping
     storyboard.updatedAt = new Date().toISOString()
   })
+
+/** The creator pressed Stop: the frames still to make are left alone, and
+ * the ones it cut short go back as they were, with nothing said against
+ * them; the board says Stopped once (review 8 F11, round 2). */
+export const stopAsked = async (projectId: string) =>
+  Boolean((await loadProject(projectId))?.project.video?.storyboard?.stopping)
+export const leaveAsWas = (internal: Internal, number: number) => {
+  delete internal.problems?.[number]
+  if (internal.stills?.[number]) internal.statuses![number] = 'built'
+  else delete internal.statuses![number]
+}
 
 export const takesOf = (storyboard: Storyboard) =>
   Object.fromEntries(
