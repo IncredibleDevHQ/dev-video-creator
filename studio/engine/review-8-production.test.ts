@@ -251,6 +251,29 @@ it('starts the first plan once the episode’s own segues are written (F04)', as
   ])
 })
 
+it('plans a stale production again with a note from the wireframes as they are, and lets that plan be approved (round 2)', async () => {
+  await seed('stale-note', {
+    stage: 'board',
+    status: 'waiting',
+    waitingFor: 'approval',
+    approved: true,
+    plan: planSummary({ plan })
+  })
+  await rewrite('stale-note', 'The new outro.')
+  expect((await stored('stale-note')).stale).toBe(true)
+  await approveStoryboard('stale-note', { note: 'Open on the numbers' })
+  await settledStoryboard('stale-note')
+  expect(heard()).toEqual(['The new outro.'])
+  const board = await stored('stale-note')
+  expect([board.stage, board.status, board.stale]).toEqual([
+    'review',
+    'waiting',
+    undefined
+  ])
+  await approveStoryboard('stale-note', {})
+  expect((await stored('stale-note')).stage).toBe('stills')
+})
+
 it('stops at once while the first plan waits for its segues (F11, round 2)', async () => {
   await seed('segue-stop', {})
   // The episode's segues are still being written, and take long.

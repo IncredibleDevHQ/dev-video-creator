@@ -93,6 +93,10 @@ export const approveStoryboard = async (projectId: string, raw: unknown) => {
       storyboard.stage = 'plan'
       delete storyboard.approved
       delete storyboard.frameNotes
+      // Planned again from the wireframes as they are now: nothing in it is
+      // old, or its approval would be refused (review 8, round 2).
+      delete storyboard.stale
+      delete storyboard.replan
       addEvent(current, 'video', 'Planning again with your change')
     } else if (stage === 'review') {
       storyboard.approved = true
