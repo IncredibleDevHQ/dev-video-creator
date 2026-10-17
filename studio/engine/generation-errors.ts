@@ -1,3 +1,4 @@
+import { STOPPED_BY_YOU } from '../shared/storyboard'
 import type { RunFailure } from './harness/types'
 
 export class HarnessStageError extends Error {
@@ -23,7 +24,7 @@ export class PageDrawingError extends HarnessStageError {
 
 // Product-owned messages only: raw provider/tool errors may contain private data.
 export const generationStops = {
-  user: 'Stopped. Saved work is kept; Try again continues where it stopped.',
+  user: STOPPED_BY_YOU,
   time: 'The agent ran out of time. Saved work is kept; Try again continues from there.',
   idle: 'The agent stopped responding. Saved work is kept; Try again continues from there.',
   tools:

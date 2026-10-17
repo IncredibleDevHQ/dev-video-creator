@@ -16,12 +16,14 @@ import {
   BUILD_TYPES,
   SCENE_CHANGE_SECONDS,
   STAGE_LABELS,
+  STOPPED_BY_YOU,
   TAKE_TYPES,
   TRANSITION_LABELS,
   frameCount,
   frameId,
   framesDone,
   framesPosed,
+  stoppedLine,
   type FrameSummary,
   type SceneSummary,
   type Storyboard
@@ -637,7 +639,7 @@ ${
     : band(storyboard)
 }
 ${storyboard.stale || (storyboard.replan && storyboard.status === 'waiting') ? staleNote(storyboard) : ''}
-${storyboard.status === 'failed' && storyboard.error && !storyboard.stale ? stopAlert(storyboard.error) : ''}
+${storyboard.status === 'failed' && storyboard.error && !storyboard.stale ? stopAlert(storyboard.error === STOPPED_BY_YOU ? stoppedLine(storyboard) : storyboard.error) : ''}
 ${stage(snapshot, storyboard, scene, frame, capture, recording)}
 ${takes || heard ? `<div class="sb-take-actions">${heard || voiceTake(scene)}${takes}</div>` : ''}
 ${scene ? prompter(scene, capture, recording) : ''}

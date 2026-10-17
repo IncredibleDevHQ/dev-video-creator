@@ -285,6 +285,48 @@ export type Storyboard = {
   updatedAt: string
 }
 
+/** What a production stopped by the creator says it kept, and what Try
+ * again makes, by where it stopped: one line (review 8 F11 asked what
+ * completed work is preserved; round 2 found a generic line). */
+export const STOPPED_BY_YOU =
+  'Stopped. Saved work is kept; Try again continues where it stopped.'
+export const stoppedLine = (storyboard: Storyboard) => {
+  const total = frameCount(storyboard)
+  const plural = (n: number, word: string) =>
+    `${n} ${word}${n === 1 ? '' : 's'}`
+  switch (storyboard.stage) {
+    case 'plan':
+      return 'Stopped before the plan was made. Try again plans the episode.'
+    case 'stills': {
+      const posed = framesPosed(storyboard)
+      const notes = Object.keys(storyboard.frameNotes || {}).length
+      const left = total - posed
+      const next = [
+        left ? `the other ${left}` : '',
+        notes ? `${notes} again with your note${notes === 1 ? '' : 's'}` : ''
+      ]
+      return posed
+        ? `Stopped with ${posed} of ${plural(total, 'still')} posed, all kept. Try again poses ${next.filter(Boolean).join(' and ') || 'what is left'}.`
+        : `Stopped before any still was posed. Try again poses all ${total}.`
+    }
+    case 'voice':
+      return 'Stopped while the voice was recorded. The stills are kept; Try again records the voice.'
+    case 'shots':
+      return 'Stopped while the shots were designed. The stills and the voice are kept; Try again designs the rest.'
+    case 'frames': {
+      const done = framesDone(storyboard)
+      return done
+        ? `Stopped with ${done} of ${plural(total, 'frame')} built, all kept. Try again builds the other ${total - done}.`
+        : `Stopped before any frame was built. The stills and the voice are kept; Try again builds all ${total}.`
+    }
+    case 'assemble':
+    case 'render':
+      return 'Stopped before the render. Every frame is kept; Try again renders the video.'
+    default:
+      return STOPPED_BY_YOU
+  }
+}
+
 export const frameCount = (storyboard: Storyboard) =>
   (storyboard.plan?.scenes || []).reduce(
     (total, scene) => total + scene.frames.length,

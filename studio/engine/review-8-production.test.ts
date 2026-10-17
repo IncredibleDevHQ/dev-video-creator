@@ -330,6 +330,18 @@ it('stops the stills when asked, keeps what is made, and carries on with Try aga
     generationStops.user,
     undefined
   ])
+  // The page says what the stop kept and what Try again makes (round 2).
+  expect(await screen('stop')).toContain(
+    'Stopped before any still was posed. Try again poses all 2.'
+  )
+  await changeProject('stop', (snapshot) => {
+    const kept = snapshot.project.video!.storyboard!
+    kept.plan!.scenes[0].frames[0].still = 'now'
+    kept.frameNotes = { 1: 'Bigger' }
+  })
+  expect(await screen('stop')).toContain(
+    'Stopped with 1 of 2 stills posed, all kept. Try again poses the other 1 and 1 again with your note.'
+  )
   await retryStoryboard('stop')
   expect((await stored('stop')).status).toBe('working')
   await settledStoryboard('stop')
