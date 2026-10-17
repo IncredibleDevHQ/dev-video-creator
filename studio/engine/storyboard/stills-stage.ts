@@ -85,6 +85,9 @@ export const stillsStage = async ({
     (frame) => !internal.stills![frame.number] || notes[frame.number]
   )
   let cursor = 0
+  // Posed in this round: a frame Stop cut short keeps its old still, and its
+  // note, for the next round (review 8, round 2: it counted as posed).
+  const accepted = new Set<number>()
   const save = async () => {
     await writeInternal(dir, internal)
     await update(snapshot.project.id, (current, ledger) => {
@@ -123,6 +126,7 @@ export const stillsStage = async ({
           selection,
           origin: origin(),
           onAccepted: async () => {
+            accepted.add(frame.number)
             internal.stills![frame.number] = new Date().toISOString()
             internal.statuses![frame.number] = 'built'
             delete internal.problems![frame.number]
@@ -146,9 +150,7 @@ export const stillsStage = async ({
     Array.from({ length: Math.min(concurrency(), todo.length) }, lane)
   )
   await writeProjectFiles(dir, internal)
-  const posed = todo.filter(
-    (frame) => internal.statuses![frame.number] === 'built'
-  )
+  const posed = todo.filter((frame) => accepted.has(frame.number))
   const failed = todo.length - posed.length
   await update(snapshot.project.id, (current, ledger) => {
     // A note is done once its frame is posed with it; one that came in or
@@ -179,7 +181,7 @@ export const stillsStage = async ({
   if (failed)
     throw new Error(
       `${failed} still${failed === 1 ? '' : 's'} could not be posed: ${todo
-        .filter((frame) => internal.statuses![frame.number] !== 'built')
+        .filter((frame) => !accepted.has(frame.number))
         .map((frame) => frame.number)
         .join(', ')}`
     )

@@ -328,3 +328,41 @@ it('leaves the stills it did not reach alone when the creator stops, with no err
     ['outline', undefined]
   ])
 })
+
+it('keeps the notes of stills it did not pose again when the creator stops, and does not wait for approval (review 8, round 2)', async () => {
+  await seed('stop-notes', { frameNotes: { 2: 'Bigger', 3: 'Left' } })
+  const dir = await mkdtemp(join(tmpdir(), 'stills-stop-notes-'))
+  const posedAt = '2026-10-17T00:00:00.000Z'
+  // Every frame was posed before; two have notes to pose again with.
+  const internal: Internal = {
+    plan,
+    stills: { 1: posedAt, 2: posedAt, 3: posedAt, 4: posedAt },
+    statuses: { 1: 'built', 2: 'built', 3: 'built', 4: 'built' }
+  }
+  const snapshot = (await loadProject('stop-notes'))!
+  process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY = '1'
+  try {
+    pose.mockReset()
+    pose.mockImplementation(async () => {
+      await setStoryboard('stop-notes', { stopping: true })
+      throw new Error('The engine run was interrupted')
+    })
+    await expect(
+      stillsStage({
+        snapshot,
+        storyboard: snapshot.project.video!.storyboard!,
+        dir,
+        internal
+      })
+    ).rejects.toThrow(/could not be posed: 2, 3/)
+  } finally {
+    delete process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY
+  }
+  expect(pose.mock.calls.map(([input]) => input.number)).toEqual([2])
+  const value = await stored('stop-notes')
+  expect([value.stage, value.status, value.frameNotes]).toEqual([
+    'stills',
+    'working',
+    { 2: 'Bigger', 3: 'Left' }
+  ])
+})
