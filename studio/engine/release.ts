@@ -2,6 +2,7 @@
 // the creator's voice, and the YouTube upload bundle (the file, its title,
 // a description whose timestamps become chapters, a thumbnail, the
 // playlist). Nothing here posts: the creator uploads the bundle.
+import { MOVED_LATER } from '../shared/campaign'
 import { narrativeById } from '../shared/narratives'
 import {
   chapters,
@@ -209,8 +210,15 @@ export const updateRelease = (id: string, raw: unknown) => {
       const at = value.at ? new Date(String(value.at)) : null
       if (at && Number.isNaN(at.getTime()))
         throw new Refusal('Give the release a date')
-      // What the last plan said about its days no longer holds.
-      if (at?.toISOString() !== release.at) delete release.campaignNote
+      // What the last plan said about its days no longer holds; a squeezed
+      // plan moved later says to plan it again (review 8, round 1).
+      if (at?.toISOString() !== release.at) {
+        const squeezed = Boolean(release.campaignNote)
+        const later = Boolean(at && release.at && at > new Date(release.at))
+        if (release.campaignNote === MOVED_LATER || (squeezed && later))
+          release.campaignNote = MOVED_LATER
+        else delete release.campaignNote
+      }
       if (at) release.at = at.toISOString()
       else delete release.at
     }

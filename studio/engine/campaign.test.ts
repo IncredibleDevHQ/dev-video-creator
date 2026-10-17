@@ -100,7 +100,7 @@ it('dates each item from the release, and knows which are due', () => {
     { ...project(), release },
     { now: new Date(2026, 9, 1) }
   )
-  expect(plan.dueAt(release.at, first)).toEqual(new Date(2026, 9, 6, 9, 0))
+  expect(plan.dueAt(release, first)).toEqual(new Date(2026, 9, 6, 9, 0))
   release.campaign = [
     { ...first, state: 'approved' },
     { ...first, id: 'b', state: 'draft' },

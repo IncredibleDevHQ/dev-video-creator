@@ -7,6 +7,7 @@ import {
   LINK,
   campaignPlan,
   clockOf,
+  timed,
   withUtm
 } from '../shared/campaign'
 import { emptyRelease, type CampaignItem } from '../shared/release'
@@ -45,7 +46,7 @@ export const planCampaignFor = async (id: string) => {
 export const changeItem = (id: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
   return changeProject(id, (current) => {
-    const releaseAt = current.project.release?.at
+    const when = timed(current.project.release)
     const item = current.project.release?.campaign.find(
       (entry) => entry.id === value.item
     )
@@ -75,9 +76,7 @@ export const changeItem = (id: string, raw: unknown) => {
     // A launch post moves with the release until the creator gives it a day
     // or a time of its own, and goes back with it on "follow" (review 8).
     const shown =
-      item.afterRelease !== undefined && releaseAt
-        ? clockOf(releaseAt, item)
-        : item.time
+      item.afterRelease !== undefined && when ? clockOf(when, item) : item.time
     const time = typeof value.time === 'string' ? value.time : shown
     if (value.follow === true && item.kind === 'launch') {
       item.afterRelease = LAUNCH_AFTER[item.channel]
@@ -87,8 +86,7 @@ export const changeItem = (id: string, raw: unknown) => {
       item.offsetDays = days
       item.time = time
     }
-    if (item.afterRelease !== undefined && releaseAt)
-      item.time = clockOf(releaseAt, item)
+    if (item.afterRelease !== undefined && when) item.time = clockOf(when, item)
     if (['draft', 'approved', 'dropped'].includes(String(value.state)))
       item.state = value.state as CampaignItem['state']
     // Seen in the feed: it went out after all.

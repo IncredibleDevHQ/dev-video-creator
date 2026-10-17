@@ -3,6 +3,7 @@ import { scheduleSource } from './notebook-intake'
 import { addEvent } from './activity'
 export { addEvent } from './activity'
 import { sumUsage } from '../shared/usage'
+import { followTheRelease } from '../shared/campaign'
 import { cancelEngineRun, type EngineRun } from './harness/runtime'
 import {
   generationStops,
@@ -77,6 +78,8 @@ export const loadProject = async (id: string) => {
   const snapshot = await readRow<Snapshot>('projects', id)
   if (snapshot) {
     fromTemplate(snapshot.project)
+    // Launch posts planned at the old template's times follow the release.
+    followTheRelease(snapshot.project.release)
     movedKeysBack(snapshot.project)
     snapshot.views = projectViews(snapshot.project, snapshot.events)
     snapshot.views.video.display = videoDisplay(snapshot)

@@ -61,7 +61,7 @@ it('launches YouTube at the saved release time, the posts after it, and moves th
   const items = plan.planCampaign(project(), { now: EARLY })
   const at = (channel: string) =>
     plan.dueAt(
-      RELEASE,
+      { at: RELEASE, campaign: items },
       items.find((item) => item.id === `launch-${channel}-0`)!
     )
   expect(at('youtube')).toEqual(new Date(2026, 9, 20, 18, 0))
@@ -75,8 +75,10 @@ it('launches YouTube at the saved release time, the posts after it, and moves th
   ])
   // A release moved to the next morning takes its launch along, unplanned.
   const moved = new Date(2026, 9, 21, 7, 30).toISOString()
-  expect(plan.dueAt(moved, items[3])).toEqual(new Date(2026, 9, 21, 7, 30))
-  expect(plan.clockOf(moved, items[4])).toBe('08:30')
+  expect(plan.dueAt({ at: moved, campaign: items }, items[3])).toEqual(
+    new Date(2026, 9, 21, 7, 30)
+  )
+  expect(plan.clockOf({ at: moved, campaign: items }, items[4])).toBe('08:30')
   // The publisher fills the same time the campaign shows.
   const page = doc(
     campaignSection(
@@ -155,10 +157,6 @@ it('keeps a launch with the release until its time is changed, labels that, and 
     offsetDays: 0,
     time: '18:00'
   })
-  // A plan from before this review, YouTube at 08:00, shows as its own time.
-  const legacy = { ...launchOf(after.project, 'youtube'), time: '08:00' }
-  delete legacy.afterRelease
-  expect(plan.ownLaunchTime(RELEASE, legacy)).toBe(true)
 })
 
 it('says when the time chosen to publish is not the campaign’s launch (F17)', () => {
@@ -248,9 +246,11 @@ it('plans around today: teasers whose day has gone move closer or are left out, 
   const ids = (items: Array<{ id: string }>) => items.map((item) => item.id)
   // On 17 October, three days out: no step dated before today.
   const near = plan.campaignPlan(project(), { now: TODAY })
-  expect(near.items.every((item) => plan.dueAt(RELEASE, item) > TODAY)).toBe(
-    true
-  )
+  expect(
+    near.items.every(
+      (item) => plan.dueAt({ at: RELEASE, campaign: near.items }, item) > TODAY
+    )
+  ).toBe(true)
   expect(ids(near.items)).not.toContain('teaser-x--14')
   expect(ids(near.items)).toContain('teaser-x--2')
   // LinkedIn's only teaser moves to the soonest day still ahead.
@@ -314,10 +314,18 @@ it('keeps what the plan left out with the campaign until the release moves (F18)
         '.campaign > .release-note'
       )?.textContent
     ).toBe('The release is in 3 days: 1 teaser moved closer, 1 left out.')
+    // Moved later, the squeezed plan says to plan it again (round 1)…
     const moved = await updateRelease('r8-note', {
       at: new Date(2026, 10, 20, 18, 0).toISOString()
     })
-    expect(moved.project.release!.campaignNote).toBeUndefined()
+    expect(moved.project.release!.campaignNote).toBe(
+      'The release moved later: Plan again to spread the lead-up.'
+    )
+    // …and keeps saying it until the plan is made again.
+    const back = await updateRelease('r8-note', {
+      at: new Date(2026, 10, 19, 18, 0).toISOString()
+    })
+    expect(back.project.release!.campaignNote).toMatch(/^The release moved/)
     const again = await planCampaignFor('r8-note')
     expect(again.project.release!.campaignNote).toBeUndefined()
     expect(again.project.release!.campaign).toHaveLength(8)

@@ -1,8 +1,9 @@
 // The campaign around a release: teasers in the two weeks before, the
 // launch posts on the day, a clip and a quote card in the week after, and a
 // recap when a series finishes a run. Dates are relative to the release, so
-// moving the release moves the plan, and the launch posts keep its time of
-// day as well; links carry tracking tags.
+// moving the release moves the plan; YouTube's launch keeps its time of day
+// too, and the X and LinkedIn launch posts follow YouTube's. Links carry
+// tracking tags.
 import type { Project } from './model'
 import type { CampaignItem, Channel, Release } from './release'
 
@@ -10,14 +11,28 @@ import type { CampaignItem, Channel, Release } from './release'
 export const LINK = '{link}'
 
 /** Minutes after the release each channel's launch post goes out: YouTube's
- * is the release itself, then X and LinkedIn an hour apart, once the video
- * they link to is out (review 8: YouTube's launch was planned for 08:00 on a
- * release saved for 18:00). */
+ * is the release itself, then X and LinkedIn an hour apart after YouTube's
+ * launch, once the video they link to is out (review 8: YouTube's launch
+ * was planned for 08:00 on a release saved for 18:00). */
 export const LAUNCH_AFTER: Record<Channel, number> = {
   youtube: 0,
   x: 60,
   linkedin: 120
 }
+
+/** The launch times the template set before launch posts moved with the
+ * release (review 8, round 1). */
+const OLD_LAUNCH: Record<Channel, string> = {
+  youtube: '08:00',
+  x: '09:00',
+  linkedin: '10:00'
+}
+
+/** A release with its date set: what every time in the campaign is
+ * counted from. */
+export type Timed = Pick<Release, 'campaign' | 'youtube'> & { at: string }
+export const timed = (release: Release | undefined): Timed | null =>
+  release?.at ? (release as Timed) : null
 
 const firstLine = (text = '') => text.split(/\n+/)[0]?.trim() || ''
 const slug = (text: string) =>
@@ -29,14 +44,34 @@ const slug = (text: string) =>
 const pad = (value: number) => String(value).padStart(2, '0')
 const clockAt = (at: Date) => `${pad(at.getHours())}:${pad(at.getMinutes())}`
 
-/** When an item goes out: a launch post its minutes after the release, any
- * other on the release's date moved by its days, at its own time. */
-export const dueAt = (releaseAt: string, item: CampaignItem) => {
-  const at = new Date(releaseAt)
+/** YouTube's launch in a campaign, unless it was dropped. */
+const youtubeItem = (campaign: CampaignItem[]) =>
+  campaign.find(
+    (item) =>
+      item.channel === 'youtube' &&
+      item.kind === 'launch' &&
+      item.state !== 'dropped'
+  )
+
+/** When the video is out: an upload's own schedule, else the campaign's
+ * YouTube launch, else the release. */
+export const launchMoment = (release: Timed) =>
+  release.youtube?.publishAt
+    ? new Date(release.youtube.publishAt)
+    : youtubeItem(release.campaign)
+      ? dueAt(release, youtubeItem(release.campaign)!)
+      : new Date(release.at)
+
+/** When an item goes out: YouTube's launch with the release, the X and
+ * LinkedIn launch posts their minutes after YouTube's (review 8, round 1:
+ * YouTube at 21:30 left them at 19:00 and 20:00, linking to a video not yet
+ * out), any other on the release's date moved by its days, at its time. */
+export const dueAt = (release: Timed, item: CampaignItem): Date => {
+  const at = new Date(release.at)
   at.setDate(at.getDate() + item.offsetDays)
   if (item.afterRelease !== undefined) {
-    at.setMinutes(at.getMinutes() + item.afterRelease)
-    return at
+    const from = item.channel === 'youtube' ? at : launchMoment(release)
+    return new Date(from.getTime() + item.afterRelease * 60_000)
   }
   const [hours, minutes] = item.time.split(':').map(Number)
   at.setHours(hours, minutes, 0, 0)
@@ -44,19 +79,39 @@ export const dueAt = (releaseAt: string, item: CampaignItem) => {
 }
 
 /** An item's time of day as it goes out, local, as HH:MM. */
-export const clockOf = (releaseAt: string, item: CampaignItem) =>
-  clockAt(dueAt(releaseAt, item))
+export const clockOf = (release: Timed, item: CampaignItem) =>
+  clockAt(dueAt(release, item))
+
+/**
+ * Launch posts planned before they moved with the release, still at the
+ * template's times (YouTube 08:00, X 09:00, LinkedIn 10:00, on the day):
+ * they follow it now, as a new plan's do (review 8, round 1: YouTube showed
+ * 08:00 as "its own time", and the publisher proposed it).
+ */
+export const followTheRelease = (release: Release | undefined) => {
+  const old = (release?.campaign || []).filter(
+    (item) =>
+      item.kind === 'launch' &&
+      item.afterRelease === undefined &&
+      item.offsetDays === 0 &&
+      ['draft', 'approved', 'dropped'].includes(item.state) &&
+      item.time === OLD_LAUNCH[item.channel]
+  )
+  for (const item of old) item.afterRelease = LAUNCH_AFTER[item.channel]
+  const when = timed(release)
+  if (when) for (const item of old) item.time = clockOf(when, item)
+}
 
 /** How soon a step can still be planned for: an hour from now, time to
  * approve and post it. */
 const LEAD_MS = 60 * 60_000
-const late = (releaseAt: string, item: CampaignItem, now: Date) =>
-  dueAt(releaseAt, item).getTime() <= now.getTime() + LEAD_MS
+const late = (release: Timed, item: CampaignItem, now: Date) =>
+  dueAt(release, item).getTime() <= now.getTime() + LEAD_MS
 
 /** The soonest day an item can still go out at its time, from now: before
  * the release for a teaser, within 60 days of it otherwise; null if none. */
 export const nextDay = (
-  releaseAt: string,
+  release: Timed,
   item: CampaignItem,
   now = new Date()
 ) => {
@@ -65,7 +120,7 @@ export const nextDay = (
     days <= (item.offsetDays < 0 ? -1 : 60);
     days++
   )
-    if (!late(releaseAt, { ...item, offsetDays: days }, now)) return days
+    if (!late(release, { ...item, offsetDays: days }, now)) return days
   return null
 }
 
@@ -95,6 +150,11 @@ const fitNote = (releaseAt: string, now: Date, moved: number, left: number) => {
         : `${teasers(left)} left out`
   }.`
 }
+
+/** What a squeezed plan says once the release moves later (review 8,
+ * round 1: the note that explained it went, the plan stayed squeezed). */
+export const MOVED_LATER =
+  'The release moved later: Plan again to spread the lead-up.'
 
 /** The default plan; posted items are the creator's and stay as they are. */
 export const planCampaign = (
@@ -190,9 +250,14 @@ export const campaignPlan = (
   let fresh = plan.filter((entry) => !kept.some((done) => done.id === entry.id))
   let note: string | undefined
   const at = release.at
+  const when = (campaign: CampaignItem[]): Timed => ({
+    at: at!,
+    campaign,
+    youtube: release.youtube
+  })
   if (at) {
     const gone = fresh.filter(
-      (entry) => entry.offsetDays < 0 && late(at, entry, now)
+      (entry) => entry.offsetDays < 0 && late(when(fresh), entry, now)
     )
     fresh = fresh.filter((entry) => !gone.includes(entry))
     let moved = 0
@@ -201,7 +266,7 @@ export const campaignPlan = (
         (entry) => entry.channel === channel && entry.offsetDays < 0
       )
       const latest = gone.filter((entry) => entry.channel === channel).at(-1)!
-      const days = covered ? null : nextDay(at, latest, now)
+      const days = covered ? null : nextDay(when(fresh), latest, now)
       if (days === null) continue
       moved++
       fresh.push({
@@ -219,7 +284,7 @@ export const campaignPlan = (
   const all = [...kept, ...fresh]
   return {
     items: at
-      ? all.sort(byDue(at))
+      ? all.sort(byDue(when(all)))
       : all.sort(
           (a, b) => a.offsetDays - b.offsetDays || a.time.localeCompare(b.time)
         ),
@@ -228,63 +293,71 @@ export const campaignPlan = (
 }
 
 /** The campaign in the order it goes out. */
-export const byDue =
-  (releaseAt: string) => (a: CampaignItem, b: CampaignItem) =>
-    dueAt(releaseAt, a).getTime() - dueAt(releaseAt, b).getTime()
+export const byDue = (release: Timed) => (a: CampaignItem, b: CampaignItem) =>
+  dueAt(release, a).getTime() - dueAt(release, b).getTime()
 
 /** A launch post the creator gave a day or a time of its own: it no longer
  * moves with the release, and says so. */
-export const ownLaunchTime = (releaseAt: string, item: CampaignItem) =>
+export const ownLaunchTime = (release: Timed, item: CampaignItem) =>
   item.kind === 'launch' &&
   item.afterRelease === undefined &&
-  dueAt(releaseAt, item).getTime() !==
-    dueAt(releaseAt, {
+  dueAt(release, item).getTime() !==
+    dueAt(release, {
       ...item,
       offsetDays: 0,
       afterRelease: LAUNCH_AFTER[item.channel]
     }).getTime()
 
+/** An X or LinkedIn launch post set to go out before the video it links to
+ * is: its own time, earlier than YouTube's launch. */
+export const beforeLaunch = (release: Timed, item: CampaignItem) =>
+  item.kind === 'launch' &&
+  item.channel !== 'youtube' &&
+  ['draft', 'approved'].includes(item.state) &&
+  dueAt(release, item) < launchMoment(release)
+
 /** When YouTube's launch goes out, the campaign's or else the release
  * itself, and whether the creator gave it a time of its own. */
 export const youtubeLaunch = (release: Release | undefined) => {
-  if (!release?.at) return null
-  const launch = release.campaign.find(
-    (item) =>
-      item.channel === 'youtube' &&
-      item.kind === 'launch' &&
-      item.state !== 'dropped'
-  )
+  const when = timed(release)
+  if (!when) return null
+  const launch = youtubeItem(when.campaign)
   return launch
-    ? { at: dueAt(release.at, launch), own: ownLaunchTime(release.at, launch) }
-    : { at: new Date(release.at), own: false }
+    ? { at: dueAt(when, launch), own: ownLaunchTime(when, launch) }
+    : { at: new Date(when.at), own: false }
 }
 
 /** An approved X or LinkedIn item whose time has come: the creator posts it
  * now. A teaser stops being one once the release is out. */
-const isDue = (releaseAt: string, item: CampaignItem, now: Date) =>
+const isDue = (release: Timed, item: CampaignItem, now: Date) =>
   item.state === 'approved' &&
   item.channel !== 'youtube' &&
-  dueAt(releaseAt, item) <= now &&
-  !(item.offsetDays < 0 && new Date(releaseAt) <= now)
+  dueAt(release, item) <= now &&
+  !(item.offsetDays < 0 && new Date(release.at) <= now)
 
 /** Approved items whose time has come and which have not gone out. */
-export const dueItems = (release: Release | undefined, now = new Date()) =>
-  release?.at
-    ? release.campaign.filter((item) => isDue(release.at!, item, now))
-    : []
+export const dueItems = (release: Release | undefined, now = new Date()) => {
+  const when = timed(release)
+  return when ? when.campaign.filter((item) => isDue(when, item, now)) : []
+}
 
 /** Every other item whose time has gone without it going out, whether it was
  * approved or not: a draft, YouTube's launch, a teaser after the release
  * (review 8: past drafts looked like upcoming work). */
-export const overdueItems = (release: Release | undefined, now = new Date()) =>
-  release?.at
-    ? release.campaign.filter(
+export const overdueItems = (
+  release: Release | undefined,
+  now = new Date()
+) => {
+  const when = timed(release)
+  return when
+    ? when.campaign.filter(
         (item) =>
           (item.state === 'draft' || item.state === 'approved') &&
-          dueAt(release.at!, item) <= now &&
-          !isDue(release.at!, item, now)
+          dueAt(when, item) <= now &&
+          !isDue(when, item, now)
       )
     : []
+}
 
 /** A link tagged so the numbers can say which post sent people. */
 export const withUtm = (url: string, project: Project, item: CampaignItem) => {
@@ -304,12 +377,20 @@ export const whenWords = (offsetDays: number) =>
       ? `a week ${offsetDays < 0 ? 'before' : 'after'}`
       : `${Math.abs(offsetDays)} ${Math.abs(offsetDays) === 1 ? 'day' : 'days'} ${offsetDays < 0 ? 'before' : 'after'}`
 
-/** "with the release", "an hour after the release", "2 hours after …". */
-export const launchWords = (minutes: number) =>
-  minutes === 0
-    ? 'with the release'
+/** "with the release", "an hour after YouTube's launch", "2 hours after
+ * the release" (when YouTube's launch was dropped). */
+export const launchWords = (release: Timed, item: CampaignItem) => {
+  const minutes = item.afterRelease || 0
+  const from =
+    item.channel !== 'youtube' &&
+    (release.youtube?.publishAt || youtubeItem(release.campaign))
+      ? 'YouTube’s launch'
+      : 'the release'
+  return minutes === 0
+    ? `with ${from}`
     : minutes === 60
-      ? 'an hour after the release'
+      ? `an hour after ${from}`
       : minutes % 60 === 0
-        ? `${minutes / 60} hours after the release`
-        : `${minutes} minutes after the release`
+        ? `${minutes / 60} hours after ${from}`
+        : `${minutes} minutes after ${from}`
+}
