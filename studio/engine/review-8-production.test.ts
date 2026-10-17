@@ -8,11 +8,16 @@ import type { EpisodePlan, PlanFrame, Storyboard } from '../shared/storyboard'
 // before a video exists, and a production at work can be stopped. The
 // agents, the voice and Hyperframes are stand-ins: these checks prove the
 // production's plumbing, never what a model plans or builds.
-const { planned, posed, built, rendered } = vi.hoisted(() => ({
+const { planned, posed, built, rendered, segued } = vi.hoisted(() => ({
   planned: vi.fn(),
   posed: vi.fn(),
   built: vi.fn(),
-  rendered: vi.fn()
+  rendered: vi.fn(),
+  segued: vi.fn()
+}))
+vi.mock('./map-segues', async (original) => ({
+  ...(await original<typeof import('./map-segues')>()),
+  settledSegues: segued
 }))
 vi.mock('./storyboard/plan', async (original) => ({
   ...(await original<typeof import('./storyboard/plan')>()),
@@ -164,6 +169,8 @@ const header = async (id: string) => {
 beforeEach(() => {
   planned.mockReset()
   posed.mockReset()
+  segued.mockReset()
+  segued.mockResolvedValue(undefined)
   planned.mockResolvedValue({
     plan,
     length: { min: 10, max: 60, strict: false },
@@ -242,6 +249,27 @@ it('starts the first plan once the episode’s own segues are written (F04)', as
     undefined,
     undefined
   ])
+})
+
+it('stops at once while the first plan waits for its segues (F11, round 2)', async () => {
+  await seed('segue-stop', {})
+  // The episode's segues are still being written, and take long.
+  segued.mockReturnValue(new Promise(() => {}))
+  scheduleStoryboard('segue-stop')
+  await new Promise((resolve) => setTimeout(resolve, 300))
+  await stopStoryboard('segue-stop')
+  const settled = await Promise.race([
+    settledStoryboard('segue-stop').then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 2000))
+  ])
+  expect(settled).toBe(true)
+  const board = await stored('segue-stop')
+  expect([board.status, board.error, board.stopping]).toEqual([
+    'failed',
+    generationStops.user,
+    undefined
+  ])
+  expect(planned).not.toHaveBeenCalled()
 })
 
 it('goes stale only after the plan is approved, refuses approval then, and offers Remake (F04)', async () => {

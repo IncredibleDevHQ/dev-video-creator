@@ -101,14 +101,14 @@ const SEGUE_WAIT_MS = 5 * 60_000
  * What changed before it starts is in the lines it plans from. */
 const linesToPlan = async (snapshot: Snapshot) => {
   const id = snapshot.project.id
-  await Promise.race([
-    settledSegues(id),
-    new Promise((resolve) => setTimeout(resolve, SEGUE_WAIT_MS))
-  ])
+  // Stop ends the wait at once: it hung "Stopping…" for up to five minutes
+  // (review 8, round 2).
+  let settled = false
+  void settledSegues(id).then(() => (settled = true))
   let current = (await loadProject(id)) || snapshot
   const until = Date.now() + SEGUE_WAIT_MS
   while (
-    current.project.segues?.state === 'writing' &&
+    (!settled || current.project.segues?.state === 'writing') &&
     !current.project.video?.storyboard?.stopping &&
     Date.now() < until
   ) {
