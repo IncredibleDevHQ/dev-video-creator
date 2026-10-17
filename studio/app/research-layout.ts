@@ -3,6 +3,7 @@ import type { GraphScope } from './research-graph-model'
 export type ResearchLayout = {
   graphWidth: number
   notesWidth: number
+  graphOpen: boolean
   notesOpen: boolean
   expanded: boolean
   scope: GraphScope
@@ -11,7 +12,8 @@ export type ResearchLayout = {
 export const defaultResearchLayout = (): ResearchLayout => ({
   graphWidth: 310,
   notesWidth: 280,
-  notesOpen: true,
+  graphOpen: false,
+  notesOpen: false,
   expanded: false,
   scope: 'all',
   depth: 2
@@ -32,8 +34,9 @@ export const normalizeResearchLayout = (
   return {
     graphWidth: number(raw.graphWidth, base.graphWidth, 230, 620),
     notesWidth: number(raw.notesWidth, base.notesWidth, 230, 440),
-    notesOpen: typeof raw.notesOpen === 'boolean' ? raw.notesOpen : true,
-    expanded: typeof raw.expanded === 'boolean' ? raw.expanded : false,
+    graphOpen: raw.graphOpen === true,
+    notesOpen: raw.notesOpen === true,
+    expanded: raw.graphOpen === true && raw.expanded === true,
     scope: raw.scope === 'local' ? 'local' : 'all',
     depth: Math.round(number(raw.depth, base.depth, 1, 3))
   }

@@ -1,10 +1,15 @@
 import { html } from '../shared/html'
 import { escape } from './ui'
 import type { ResearchProjectSummary } from '../shared/research'
+import incredibleLogo from './assets/incredible-logo.svg'
 export const researchHome = (draft: string) =>
   html`<div class="research-home">
     <header class="research-header">
-      <a href="/" class="research-brand">✳ <span>Incredible</span></a
+      <a
+        href="/"
+        class="research-brand"
+        aria-label="Incredible Studio: all projects"
+        ><img src="${incredibleLogo}" alt="" /><span>Incredible</span></a
       ><a href="/?legacy=1">Earlier notebooks & studio tools ↗</a>
     </header>
     <main>

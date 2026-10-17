@@ -9,19 +9,17 @@ const control = (action: string, text: string, attrs = '') =>
     ${text}
   </button>`
 export const workbenchToolbar = (layout = defaultResearchLayout()) =>
-  html`<div class="research-workbench-toolbar">
-    <span>RESEARCH WORKSPACE <small>Explore · ask · keep</small></span>
-    <div>
-      ${control(
-        'graph-expand',
-        layout.expanded ? '↙ Restore workspace' : '↗ Expand graph',
-        `aria-pressed="${layout.expanded}"`
-      )}${control(
-        'toggle-notebook',
-        '▤ Notebook',
-        `aria-pressed="${layout.notesOpen && !layout.expanded}"`
-      )}
-    </div>
+  html`<div class="research-pane-toggles" aria-label="Workspace panels">
+    ${control(
+      'toggle-graph',
+      'Graph',
+      `aria-pressed="${layout.graphOpen}" aria-controls="research-graph-panel"`
+    )}
+    ${control(
+      'toggle-notebook',
+      'Notebook',
+      `aria-pressed="${layout.notesOpen && !layout.expanded}" aria-controls="research-notes-panel"`
+    )}
   </div>`
 export const graphPanel = (
   nodes: ResearchNode[],
@@ -29,13 +27,20 @@ export const graphPanel = (
   query: string,
   layout: ResearchLayout = defaultResearchLayout()
 ) =>
-  html`<aside class="research-graph-panel" aria-label="Question graph">
+  html`<aside
+    class="research-graph-panel"
+    id="research-graph-panel"
+    aria-label="Question graph"
+  >
     <div class="research-panel-heading">
-      <div>
-        <span class="research-eyebrow">YOUR RESEARCH</span>
-        <h2>Follow a thought.</h2>
-      </div>
-      <span class="research-count">${nodes.length}</span>
+      <h2>
+        Research graph <span class="research-count">${nodes.length}</span>
+      </h2>
+      ${control(
+        'graph-expand',
+        layout.expanded ? '↙' : '↗',
+        `aria-label="${layout.expanded ? 'Restore workspace' : 'Expand graph'}" title="${layout.expanded ? 'Restore workspace' : 'Expand graph'}"`
+      )}
     </div>
     <label class="sr" for="research-search">Find a question</label
     ><input
@@ -44,37 +49,40 @@ export const graphPanel = (
       placeholder="Find a question…"
       value="${escape(query)}"
     />
-    <div class="research-graph-scope" aria-label="Graph scope">
-      ${control(
-        'graph-all',
-        'All questions',
-        `aria-pressed="${layout.scope === 'all'}"`
-      )}${control(
-        'graph-local',
-        'Around this question',
-        `aria-pressed="${layout.scope === 'local'}"`
-      )}
-    </div>
-    ${layout.scope === 'local'
-      ? html`<label class="research-graph-depth"
-          >Connection depth<select
-            id="research-graph-depth"
-            aria-label="Connection depth"
-          >
-            ${[1, 2, 3]
-              .map(
-                (n) =>
-                  html`<option
-                    value="${n}"
-                    ${layout.depth === n ? 'selected' : ''}
-                  >
-                    ${n} ${n === 1 ? 'step' : 'steps'}
-                  </option>`
-              )
-              .join('')}
-          </select></label
-        >`
-      : ''}
+    <details class="research-graph-options" id="research-graph-options">
+      <summary>View options</summary>
+      <div class="research-graph-scope" aria-label="Graph scope">
+        ${control(
+          'graph-all',
+          'All questions',
+          `aria-pressed="${layout.scope === 'all'}"`
+        )}${control(
+          'graph-local',
+          'Around this question',
+          `aria-pressed="${layout.scope === 'local'}"`
+        )}
+      </div>
+      ${layout.scope === 'local'
+        ? html`<label class="research-graph-depth"
+            >Connection depth<select
+              id="research-graph-depth"
+              aria-label="Connection depth"
+            >
+              ${[1, 2, 3]
+                .map(
+                  (n) =>
+                    html`<option
+                      value="${n}"
+                      ${layout.depth === n ? 'selected' : ''}
+                    >
+                      ${n} ${n === 1 ? 'step' : 'steps'}
+                    </option>`
+                )
+                .join('')}
+            </select></label
+          >`
+        : ''}
+    </details>
     <div
       class="research-graph-scroll"
       tabindex="0"
@@ -96,10 +104,7 @@ export const graphPanel = (
         'aria-label="Fit question graph"'
       )}${control('graph-in', '+', 'aria-label="Zoom graph in"')}
     </div>
-    <small class="research-graph-footer"
-      >Drag to explore · scroll to zoom<br />Choose a question to return and
-      branch.</small
-    >
+    <small class="research-graph-footer">Drag to pan · scroll to zoom</small>
   </aside>`
 export const paneDivider = (pane: 'graph' | 'notes') =>
   html`<div
@@ -120,7 +125,7 @@ export const ancestryTrail = (
   const path = researchPath(nodes, selected)
   return path.length
     ? html`<nav class="research-ancestry" aria-label="Question ancestry">
-        <span>PATH</span>${path
+        ${path
           .map(
             (node, index) =>
               html`${index ? '<span aria-hidden="true">›</span>' : ''}<button

@@ -22,6 +22,15 @@ export class ResearchWorkbench {
     private changed: () => void
   ) {
     this.graph = new ResearchGraphViewport(root)
+    window.addEventListener('resize', () => {
+      if (this.constrainPanes()) {
+        this.resizing = null
+        this.save()
+        this.changed()
+        this.graph.fit()
+      }
+      this.applyWidths()
+    })
     root.addEventListener('pointerdown', (event) => {
       const handle = (event.target as Element).closest<HTMLElement>(
         '[data-resize-pane]'
@@ -79,6 +88,7 @@ export class ResearchWorkbench {
     } catch {
       this.state = defaultResearchLayout()
     }
+    this.constrainPanes()
     this.graph.reset()
   }
   get interacting() {
@@ -103,11 +113,20 @@ export class ResearchWorkbench {
     }
     if (action === 'graph-all' || action === 'graph-local')
       this.state.scope = action === 'graph-local' ? 'local' : 'all'
-    else if (action === 'graph-expand')
+    else if (action === 'toggle-graph') {
+      this.state.graphOpen = !this.state.graphOpen
+      this.state.expanded = false
+      if (this.state.graphOpen && window.innerWidth < 1200)
+        this.state.notesOpen = false
+    } else if (action === 'graph-expand') {
+      this.state.graphOpen = true
       this.state.expanded = !this.state.expanded
-    else if (action === 'toggle-notebook') {
+      if (window.innerWidth < 1200) this.state.notesOpen = false
+    } else if (action === 'toggle-notebook') {
       this.state.notesOpen = !this.state.notesOpen
       this.state.expanded = false
+      if (this.state.notesOpen && window.innerWidth < 1200)
+        this.state.graphOpen = false
     } else return false
     this.save()
     this.changed()
@@ -119,34 +138,68 @@ export class ResearchWorkbench {
     this.save()
     this.changed()
   }
+  private constrainPanes() {
+    if (
+      window.innerWidth >= 1200 ||
+      !this.state.graphOpen ||
+      !this.state.notesOpen
+    )
+      return false
+    if (this.state.expanded) this.state.notesOpen = false
+    else this.state.graphOpen = false
+    return true
+  }
   private resize(pane: 'graph' | 'notes', value: number) {
     const columns = this.root.querySelector<HTMLElement>('.research-columns')
-    const room =
+    const graphOpen = this.state.graphOpen
+    const notesOpen = this.state.notesOpen && !this.state.expanded
+    if (pane === 'graph' ? !graphOpen : !notesOpen) return
+    const room = Math.max(
+      0,
       (columns?.clientWidth || 1000) -
-      330 -
-      (pane === 'graph'
-        ? this.state.notesOpen
-          ? this.state.notesWidth
-          : 0
-        : this.state.graphWidth)
+        480 -
+        (Number(graphOpen) + Number(notesOpen)) * 5 -
+        (pane === 'graph'
+          ? notesOpen
+            ? this.state.notesWidth
+            : 0
+          : graphOpen
+            ? this.state.graphWidth
+            : 0)
+    )
     if (pane === 'graph')
-      this.state.graphWidth = Math.max(230, Math.min(620, room, value))
-    else this.state.notesWidth = Math.max(230, Math.min(440, room, value))
+      this.state.graphWidth = Math.max(
+        Math.min(230, room),
+        Math.min(620, room, value)
+      )
+    else
+      this.state.notesWidth = Math.max(
+        Math.min(230, room),
+        Math.min(440, room, value)
+      )
     this.applyWidths()
   }
   private applyWidths() {
     const columns = this.root.querySelector<HTMLElement>('.research-columns')
     if (!columns) return
-    const available = Math.max(460, columns.clientWidth - 330)
-    const notesWidth = this.state.notesOpen ? this.state.notesWidth : 0
-    const ratio = Math.min(1, available / (this.state.graphWidth + notesWidth))
+    const graphWidth = this.state.graphOpen ? this.state.graphWidth : 0
+    const notesWidth =
+      this.state.notesOpen && !this.state.expanded ? this.state.notesWidth : 0
+    const available = Math.max(
+      0,
+      columns.clientWidth -
+        480 -
+        (Number(graphWidth > 0) + Number(notesWidth > 0)) * 5
+    )
+    const total = graphWidth + notesWidth
+    const ratio = total ? Math.min(1, available / total) : 1
     columns.style.setProperty(
       '--research-graph-width',
-      `${this.state.graphWidth * ratio}px`
+      `${graphWidth * ratio}px`
     )
     columns.style.setProperty(
       '--research-notes-width',
-      `${this.state.notesWidth * ratio}px`
+      `${notesWidth * ratio}px`
     )
     for (const handle of columns.querySelectorAll<HTMLElement>(
       '[data-resize-pane]'
@@ -155,8 +208,8 @@ export class ResearchWorkbench {
         'aria-valuenow',
         String(
           handle.dataset.resizePane === 'graph'
-            ? this.state.graphWidth
-            : this.state.notesWidth
+            ? Math.round(graphWidth * ratio)
+            : Math.round(notesWidth * ratio)
         )
       )
   }

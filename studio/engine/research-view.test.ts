@@ -86,7 +86,7 @@ it('offers recovery instead of letting a stopped answer become a parent', () => 
   const doc = parseHTML(researchWorkspaceView(stopped)).document
   expect(
     doc
-      .querySelector('#research-question-form button')
+      .querySelector('button[form="research-question-form"]')
       ?.hasAttribute('disabled')
   ).toBe(true)
   expect(doc.querySelector('.research-branch-hint')?.textContent).toContain(

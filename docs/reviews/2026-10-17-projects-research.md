@@ -112,3 +112,43 @@ Screenshot annotations: **1 — Kimi/K3 remain selected; no change was made. 2 �
 ![The running notebook explicitly selects Kimi K3](projects-research-evidence/kimi-k3-wireframe-harness.png)
 
 This pass changed test settings and added review evidence only. No application source was modified. The earlier automated suite/build results above remain the latest code checks; `git diff --check` passes for this documentation update.
+
+## Conversation-first UX cleanup
+
+The research view now starts with the conversation. Graph and Notebook are explicit toggles in one chat bar; agent/model and repository settings sit beside the composer. Opening a saved excerpt reveals its notebook automatically. Secondary source receipts and graph controls expand on demand. Notes read as document blocks with thin separators, while source links and branching remain available.
+
+The project header, chat bar, reading width, composer and notebook styles have been simplified together. On compact screens only one supporting pane opens at a time; on phones selecting a graph question or a note's source returns to the conversation. Pane changes and resizing retain unsent drafts. The original Incredible SVG logo is reused on the landing page, project header and research surfaces. The temporary asterisk branding has been removed. Selected project tabs remain legible on hover in dark mode.
+
+### Macro and Notion comparison
+
+Macro's current local frontend runs at `http://localhost:3004` against the existing local `tour` backend on port 27509. Its supported passwordless development flow successfully signed into the seeded Alice persona. No password, hosted account or new auth bypass was required. The relevant implementation is in Macro's `apps/web/src/features/auth/EmailForm.tsx` and `Login.tsx`; `docs/AGENT_GUIDE/login.md` documents the flow.
+
+The visible review exercised Home, its persistent navigation, a document, its contextual side panel, **Ask Macro**, and the resulting adjacent chat with the document already attached. Opening an existing chat preserved the document pane. The useful patterns are a stable resource location, a compact composer, contextual actions and independent panes. Macro's split-router documentation separately confirms stable component identity and per-pane navigation/history. Notion's [sidebar guidance](https://www.notion.com/help/navigate-with-the-sidebar) informed keeping organization available without displaying every secondary action at once.
+
+Limit: this restored Macro backend has older service artifacts. The document body remained in initial-sync loading, and its agent harness was restarting with missing integration configuration. The document-to-chat attachment and split were verified, but no live AI answer or successful document editing is claimed for Macro. Its source files were not changed.
+
+![Macro's local workspace after passwordless login](projects-research-evidence/macro-local-workspace.png)
+
+![Macro opens a document-scoped chat alongside the document; the document body is still loading](projects-research-evidence/macro-local-document-chat.png)
+
+### Validation and evidence
+
+- Visible browser checks on 4291/4391 covered conversation, graph, notebook, source navigation, model/repository popovers, draft retention, pane resizing, the continuous wireframe jump selector and the shared canvas handoff.
+- A real follow-up completed with Kimi `kimi-code/k3` (question `7d8c1eeb-c5d8-4899-9221-30b6e1989f61`). Engine records confirmed both requested and reported model IDs and successful completion. Saving its answer preserved the source and opened **Kimi K3 validation** beside the conversation.
+- The previously started K3 notebook now displays all ten generated wireframes. The shared canvas lists all four notebooks and thirteen connected wireframes. No finished video or YouTube upload is claimed.
+- At 390 × 844, the document width is exactly 390px and the composer ends at 832px. Graph and notebook navigation were also exercised at mobile width. Temporary viewport overrides were reset.
+- After the final code changes: 5 focused test files / 28 tests passed; TypeScript and the production build passed; formatting, source-size and whitespace checks passed. The existing bundle-size warning remains. This pass does not claim a new full-suite or storage run; it changes presentation and workspace interaction only.
+
+See the [annotated cleanup evidence](projects-research-evidence/ux-cleanup-annotated.html). The earlier unchanged-agent-picker finding remains open; it is outside this research workspace cleanup.
+
+![Conversation with the original product logo and compact composer](projects-research-evidence/ux-cleanup-conversation.png)
+
+![Saved notes beside the conversation](projects-research-evidence/ux-cleanup-notebook.png)
+
+![Research graph available on demand](projects-research-evidence/ux-cleanup-graph.png)
+
+![Mobile conversation](projects-research-evidence/ux-cleanup-mobile.png)
+
+![Mobile research graph](projects-research-evidence/ux-cleanup-mobile-graph.png)
+
+![Completed K3 wireframes reached through the notebook jump selector](projects-research-evidence/ux-cleanup-k3-wireframes.png)

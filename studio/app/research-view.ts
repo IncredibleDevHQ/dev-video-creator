@@ -9,13 +9,14 @@ import { researchPath } from '../shared/research'
 import { researchHtml } from '../shared/research-markdown'
 import {
   graphPanel,
-  workbenchToolbar,
   paneDivider,
   ancestryTrail
 } from './research-workbench-view'
 import type { ResearchLayout } from './research-layout'
 import { escape } from './ui'
-import { chatSwitcher, collaborationLoop } from './research-session-view'
+import { chatSwitcher } from './research-session-view'
+import { modelName } from '../shared/agent-models'
+import incredibleLogo from './assets/incredible-logo.svg'
 export type ResearchViewState = {
   layout?: ResearchLayout
   project: ResearchProjectView
@@ -49,7 +50,8 @@ const action = (name: string, label: string, cls = '', extra = '') =>
   </button>`
 const notebookPicker = (s: ResearchViewState) =>
   html`<label class="research-notebook-picker"
-    >Notebook<select id="research-notebook">
+    ><span class="sr">Notebook</span
+    ><select id="research-notebook">
       ${s.project.notebooks
         .map(
           (n) =>
@@ -69,17 +71,17 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
     s.project.notebooks[0]
   return html`<section
     class="research-notes ${compact ? 'compact' : ''}"
+    id="research-notes-panel"
     aria-label="Notebook"
   >
     <div class="research-panel-heading">
-      ${notebookPicker(s)}${action(
-        'new-notebook',
-        '+',
+      ${compact ? notebookPicker(s) : `<h1>${escape(n.title)}</h1>`}${action(
+        compact ? 'new-notebook' : 'rename-notebook',
+        compact ? '+' : '···',
         'research-icon',
-        'aria-label="New notebook"'
+        `aria-label="${compact ? 'New notebook' : 'Rename notebook'}"`
       )}
     </div>
-    ${compact ? collaborationLoop(s) : ''}
     <div class="research-note-scroll">
       ${n.blocks.length
         ? n.blocks
@@ -103,14 +105,20 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
                     escape(b.text)
                   )}
                   ${b.origin
-                    ? html`<small class="research-note-origin"
-                        >${escape(b.origin.question)}${b.origin.repos
-                          .map(
-                            (r) =>
-                              ` · ${escape(r.name)} @ ${r.commit.slice(0, 7)}`
-                          )
-                          .join('')}</small
-                      >`
+                    ? html`<details
+                        class="research-note-provenance"
+                        id="research-origin-${b.id}"
+                      >
+                        <summary>Source details</summary>
+                        <small class="research-note-origin"
+                          >${escape(b.origin.question)}${b.origin.repos
+                            .map(
+                              (r) =>
+                                ` · ${escape(r.name)} @ ${r.commit.slice(0, 7)}`
+                            )
+                            .join('')}</small
+                        >
+                      </details>`
                     : ''}<button type="button" data-note-ask="${b.id}">
                     Ask about this note ↗
                   </button>
@@ -138,7 +146,7 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
         required
       ></textarea>
       <div class="research-composer-footer">
-        <small>Saved to ${escape(n.title)}</small
+        <small>In ${escape(n.title)}</small
         ><button class="research-primary" ${s.pending ? 'disabled' : ''}>
           Add note
         </button>
@@ -154,27 +162,39 @@ const reply = (n: ResearchNode) =>
       ${n.anchor ? html`<blockquote>${escape(n.anchor.text)}</blockquote>` : ''}
     </div>
     <div class="research-answer-heading">
-      <span class="research-agent-mark">✳</span
+      <span class="research-agent-mark"
+        ><img src="${incredibleLogo}" alt="" /></span
       ><strong
         >${n.harness.adapter === 'claude-code'
           ? 'Claude Code'
           : n.harness.adapter === 'codex'
             ? 'Codex'
             : 'Kimi'}</strong
-      ><small>${escape(n.harness.model || 'Default model')}</small>
+      ><small
+        >${escape(n.harness.model ? modelName(n.harness.model) : '')}</small
+      >
     </div>
     ${n.repos.length
-      ? html`<div class="research-context-receipt">
-          ${n.repos
-            .map(
-              (r) =>
-                html`<span title="${escape(r.path)}"
-                  >${escape(r.name)} · ${escape(r.branch)}
-                  <code>${r.commit.slice(0, 7)}</code></span
-                >`
-            )
-            .join('')}
-        </div>`
+      ? html`<details
+          class="research-answer-sources"
+          id="research-sources-${n.id}"
+        >
+          <summary>
+            ${n.repos.length}
+            ${n.repos.length === 1 ? 'repository' : 'repositories'}
+          </summary>
+          <div class="research-context-receipt">
+            ${n.repos
+              .map(
+                (r) =>
+                  html`<span title="${escape(r.path)}"
+                    >${escape(r.name)} · ${escape(r.branch)}
+                    <code>${r.commit.slice(0, 7)}</code></span
+                  >`
+              )
+              .join('')}
+          </div>
+        </details>`
       : ''}
     ${n.state === 'done'
       ? html`${passage(
@@ -183,10 +203,10 @@ const reply = (n: ResearchNode) =>
           )}
           <div class="research-answer-actions">
             <button type="button" data-save-answer="${n.id}">
-              Save answer to notebook</button
+              Save to notebook</button
             ><button type="button" data-branch-answer="${n.id}">
-              Branch from here ↗</button
-            ><small>Select a passage to save or explore it.</small>
+              Branch from here ↗
+            </button>
           </div>`
       : n.state === 'working'
         ? html`<div class="research-working" role="status">
@@ -200,10 +220,13 @@ const reply = (n: ResearchNode) =>
           </div>`}
   </article>`
 const repoContext = (s: ResearchViewState) =>
-  html`<details class="research-repos" ${s.inspected ? 'open' : ''}>
+  html`<details
+    id="research-repos"
+    class="research-repos"
+    ${s.inspected ? 'open' : ''}
+  >
     <summary>
-      Repository context
-      <span>${s.repos.length ? `${s.repos.length} linked` : 'Optional'}</span>
+      ${s.repos.length ? `${s.repos.length} repositories` : '+ Repositories'}
     </summary>
     <div class="research-context-popover">
       <div class="research-context-title">
@@ -277,18 +300,8 @@ const chat = (s: ResearchViewState) => {
     (n) => n.chatId === s.chat && n.state === 'working'
   )
   const working = Boolean(workingNode)
-  const session = s.project.chats?.find((c) => c.id === s.chat)
   const unfinished = Boolean(s.node && path.at(-1)?.state !== 'done')
   return html`<section class="research-chat" aria-label="Research conversation">
-    <div class="research-chat-heading">
-      <div>
-        <span class="research-eyebrow">YOU + YOUR AGENT</span>
-        <h2>
-          ${escape(session?.title || 'What would you like to understand?')}
-        </h2>
-      </div>
-      ${session ? action('rename-chat', 'Rename', 'research-secondary') : ''}
-    </div>
     ${workingNode && workingNode.id !== s.node
       ? html`<button
           class="research-running-link"
@@ -302,17 +315,14 @@ const chat = (s: ResearchViewState) => {
       ${path.length
         ? path.map(reply).join('')
         : html`<div class="research-chat-welcome">
-            <span class="research-welcome-icon">✳</span>
-            <h2>Bring a question. Build understanding.</h2>
+            <span class="research-welcome-icon"
+              ><img src="${incredibleLogo}" alt=""
+            /></span>
+            <h2>What are you exploring?</h2>
             <p>
-              Add repository context below, choose your agent, and ask. You
-              guide the research and keep the useful answers in your notebooks.
+              Ask a question or add repositories for context. Save useful
+              answers to a notebook as you go.
             </p>
-            <div class="research-hints">
-              <span>01 &nbsp; Ask anything</span
-              ><span>02 &nbsp; Follow a thread</span
-              ><span>03 &nbsp; Save → create</span>
-            </div>
           </div>`}
     </div>
     <div class="research-compose-area">
@@ -330,7 +340,7 @@ const chat = (s: ResearchViewState) => {
                 : ''}
             </blockquote>
           </div>`
-        : s.node
+        : s.node && (working || unfinished)
           ? html`<div class="research-branch-hint">
               ${path.at(-1)?.state === 'working'
                 ? 'Your agent is researching this question. Keep notes or explore another path while it works.'
@@ -344,15 +354,26 @@ const chat = (s: ResearchViewState) => {
         ><textarea
           id="research-question"
           name="question"
-          rows="3"
+          rows="2"
           maxlength="8000"
-          placeholder="Ask a question. Follow an idea. Understand it deeply."
+          placeholder="Ask a question…"
           required
         ></textarea>
-        <div class="research-composer-footer">
-          <div class="research-model">
-            <label class="sr" for="research-adapter">Local agent</label
-            ><select id="research-adapter" ${s.pending ? 'disabled' : ''}>
+      </form>
+      <div class="research-compose-tools">
+        <details class="research-agent-options" id="research-agent-options">
+          <summary>
+            ${s.adapter === 'claude-code'
+              ? 'Claude Code'
+              : s.adapter === 'kimi'
+                ? 'Kimi'
+                : 'Codex'}${s.model ? ` · ${escape(modelName(s.model))}` : ''}
+            <span aria-hidden="true">⌄</span>
+          </summary>
+          <div class="research-agent-popover">
+            <strong>Agent for this chat</strong>
+            <label for="research-adapter">Local agent</label>
+            <select id="research-adapter" ${s.pending ? 'disabled' : ''}>
               <option
                 value="claude-code"
                 ${s.adapter === 'claude-code' ? 'selected' : ''}
@@ -364,37 +385,44 @@ const chat = (s: ResearchViewState) => {
               </option>
               <option value="kimi" ${s.adapter === 'kimi' ? 'selected' : ''}>
                 Kimi
-              </option></select
-            ><label class="sr" for="research-model">Model (optional)</label
-            ><input
+              </option>
+            </select>
+            <label for="research-model">Model (optional)</label>
+            <input
               id="research-model"
               maxlength="200"
               ${s.pending ? 'disabled' : ''}
               value="${escape(s.model)}"
               placeholder="Default model"
-              aria-label="Model (optional)"
             />
+            <p>
+              Applies to your next answer. Earlier answers keep their original
+              agent.
+            </p>
           </div>
-          <button
-            class="research-primary"
-            ${working || unfinished || s.pending ? 'disabled' : ''}
-          >
-            ${working ? 'Researching…' : 'Ask ↗'}
-          </button>
-        </div>
-      </form>
-      <p class="research-next-agent">
-        Agent and model apply to the next answer. Earlier answers keep their
-        history.
-      </p>
-      ${repoContext(s)}
+        </details>
+        ${repoContext(s)}
+        <button
+          type="submit"
+          form="research-question-form"
+          class="research-primary research-send"
+          aria-label="Ask question"
+          ${working || unfinished || s.pending ? 'disabled' : ''}
+        >
+          ${working ? 'Working…' : 'Ask ↗'}
+        </button>
+      </div>
     </div>
   </section>`
 }
 export const researchWorkspaceView = (s: ResearchViewState) =>
   html`<div class="research-workspace">
     <header class="research-header">
-      <a href="/" class="research-brand">✳ <span>Incredible</span></a
+      <a
+        href="/"
+        class="research-brand"
+        aria-label="Incredible Studio: all projects"
+        ><img src="${incredibleLogo}" alt="" /><span>Incredible</span></a
       ><span class="research-header-divider">/</span
       ><button
         data-research-action="rename-project"
@@ -426,7 +454,12 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
         </div>`
       : ''}${s.message
       ? html`<div class="research-banner" role="status">
-          ${escape(s.message)}
+          ${escape(s.message)}${action(
+            'clear-message',
+            '×',
+            '',
+            'aria-label="Dismiss notification"'
+          )}
         </div>`
       : ''}${s.project.syncError
       ? html`<div class="research-banner error" role="alert">
@@ -435,11 +468,14 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
         </div>`
       : ''}
     ${s.tab === 'research'
-      ? html`${chatSwitcher(s)}${workbenchToolbar(s.layout)}
+      ? html`${chatSwitcher(s)}
           <main
-            class="research-columns ${s.layout?.notesOpen === false
-              ? 'notes-hidden'
-              : ''} ${s.layout?.expanded ? 'graph-expanded' : ''}"
+            class="research-columns ${!s.layout?.graphOpen
+              ? 'graph-hidden'
+              : ''} ${s.layout?.notesOpen !== true ? 'notes-hidden' : ''} ${s
+              .layout?.expanded
+              ? 'graph-expanded'
+              : ''}"
           >
             ${graphPanel(s.project.nodes, s.node, s.query, s.layout)}${s.layout
               ?.expanded
@@ -450,9 +486,7 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
       : s.tab === 'notes'
         ? html`<main class="research-notebooks-page">
             <aside>
-              <span class="research-eyebrow">PROJECT NOTEBOOKS</span>
-              <h1>A little space<br />for every idea.</h1>
-              <p>Separate your subjects.<br />Keep one connected picture.</p>
+              <h1>Notebooks</h1>
               ${s.project.notebooks
                 .map(
                   (n) =>
@@ -466,14 +500,10 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
                       ><small>${n.blocks.length} notes</small>
                     </button>`
                 )
-                .join('')}${action('new-notebook', '+ New notebook')}${action(
-                'rename-notebook',
-                'Rename notebook',
-                'research-muted'
-              )}
+                .join('')}${action('new-notebook', '+ New notebook')}
               <div class="research-next-step">
-                Ready to connect the
-                dots?${action(
+                Continue your
+                work${action(
                   'tab-research',
                   'Research with your notes ↗'
                 )}${action('tab-canvas', 'See the shared canvas ↗')}
@@ -491,12 +521,8 @@ const wireframes = (s: ResearchViewState) =>
   html`<main class="research-wireframes">
     <div class="research-section-heading">
       <div>
-        <span class="research-eyebrow">ONE CONTINUOUS VIEW</span>
-        <h1>From notes to a story.</h1>
-        <p>
-          Scroll across notebooks, or jump to one. Every notebook contributes to
-          the shared canvas.
-        </p>
+        <h1>Wireframes</h1>
+        <p>Shape your notes into a story, one notebook at a time.</p>
       </div>
       <label
         >Jump to notebook<select id="research-jump">
@@ -563,8 +589,7 @@ const canvas = (s: ResearchViewState) =>
   html`<main class="research-canvas-page">
     <div class="research-section-heading">
       <div>
-        <span class="research-eyebrow">ONE PROJECT · ONE CANVAS</span>
-        <h1>Everything connects here.</h1>
+        <h1>Shared canvas</h1>
         <p>
           Notes from every notebook feed the same content map and series. New
           notes join it automatically.

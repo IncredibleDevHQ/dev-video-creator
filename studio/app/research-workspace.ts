@@ -1,4 +1,5 @@
 import { html } from '../shared/html'
+import { modelName } from '../shared/agent-models'
 import type { ResearchAnchor, ResearchProjectView } from '../shared/research'
 import type { RepoInspection } from '../shared/repos'
 import { researchApi, researchRequest } from './research-api'
@@ -38,7 +39,17 @@ export class ResearchWorkspace {
     this.workbench = new ResearchWorkbench(root, () => this.render())
     root.addEventListener('click', (event) => {
       if (!this.isOpen) return
-      const target = (event.target as Element).closest<HTMLElement>('button')
+      const element = event.target as Element
+      const menu = element.closest(
+        '.research-compose-tools summary'
+      )?.parentElement
+      if (menu || !element.closest('.research-compose-tools'))
+        this.root
+          .querySelectorAll('.research-compose-tools details[open]')
+          .forEach((other) => {
+            if (other !== menu) other.removeAttribute('open')
+          })
+      const target = element.closest<HTMLElement>('button')
       if (target) void this.click(target).catch((e) => this.error(e))
     })
     root.addEventListener('submit', (event) => {
@@ -76,6 +87,9 @@ export class ResearchWorkspace {
         this.workbench.depth(Number(field.value))
       if (field.id === 'research-model') {
         s.model = field.value.trim()
+        const label = this.root.querySelector('.research-agent-options summary')
+        if (label)
+          label.textContent = `${s.adapter === 'claude-code' ? 'Claude Code' : s.adapter === 'kimi' ? 'Kimi' : 'Codex'}${s.model ? ` · ${modelName(s.model)}` : ''} ⌄`
         void this.saveChatSettings().catch((e) => this.error(e))
       }
       if (field.id === 'research-jump' && field.value)
@@ -86,8 +100,12 @@ export class ResearchWorkspace {
     root.addEventListener('input', (event) => {
       const field = event.target as HTMLInputElement
       if (!this.isOpen) return
-      if (field.id === 'research-model' && this.state)
+      if (field.id === 'research-model' && this.state) {
         this.state.model = field.value
+        const label = this.root.querySelector('.research-agent-options summary')
+        if (label)
+          label.textContent = `${this.state.adapter === 'claude-code' ? 'Claude Code' : this.state.adapter === 'kimi' ? 'Kimi' : 'Codex'}${field.value ? ` · ${modelName(field.value)}` : ''} ⌄`
+      }
       if (field.id === 'research-search' && this.state) {
         this.state.query = field.value
         const graph = this.root.querySelector('.research-graph-scroll')
@@ -113,7 +131,9 @@ export class ResearchWorkspace {
     root.addEventListener('keyup', (event) => {
       if (event.key === 'Shift') this.captureSelection()
       if (event.key === 'Escape')
-        this.root.querySelector('.research-repos')?.removeAttribute('open')
+        this.root
+          .querySelectorAll('.research-compose-tools details[open]')
+          .forEach((menu) => menu.removeAttribute('open'))
     })
     window.addEventListener('popstate', () => {
       const url = new URL(location.href)
@@ -289,9 +309,9 @@ export class ResearchWorkspace {
     const follow = nearEnd
       ? nearEnd.scrollHeight - nearEnd.scrollTop - nearEnd.clientHeight < 60
       : true
-    const contextOpen = Boolean(
-      this.root.querySelector('.research-repos[open]')
-    )
+    const openDetails = [
+      ...this.root.querySelectorAll('details[id][open]')
+    ].map((detail) => detail.id)
     const composerKeys = Object.fromEntries(
       ['research-question', 'research-note-input'].map((id) => [
         id,
@@ -305,8 +325,8 @@ export class ResearchWorkspace {
       composerKeys
     )
     this.composerKeys = composerKeys
-    if (contextOpen)
-      this.root.querySelector('.research-repos')?.setAttribute('open', '')
+    for (const id of openDetails)
+      this.root.querySelector(`#${CSS.escape(id)}`)?.setAttribute('open', '')
     for (const field of this.root.querySelectorAll<
       HTMLInputElement | HTMLTextAreaElement
     >('input[id],textarea[id]')) {
@@ -419,7 +439,7 @@ export class ResearchWorkspace {
         })
         this.drafts[this.draftKey('research-note-input')] = ''
         this.persistDrafts()
-        s.message = 'Note saved. It is part of your project’s shared knowledge.'
+        s.message = 'Note saved.'
       }
       if (formId === 'research-question-form') {
         const result = await researchRequest<{
@@ -474,7 +494,7 @@ export class ResearchWorkspace {
     })
     if (formId === 'research-question-form') this.workbench.graph.fit()
     if (formId === 'research-repo-form' || formId === 'research-branch-form')
-      this.root.querySelector('details')?.setAttribute('open', '')
+      this.root.querySelector('.research-repos')?.setAttribute('open', '')
   }
   private captureSelection() {
     if (!this.state || this.state.pending) return
@@ -535,16 +555,22 @@ export class ResearchWorkspace {
     getSelection()?.removeAllRanges()
     this.navigate()
     this.render()
+    this.showSelectedTurn()
     this.root.querySelector<HTMLTextAreaElement>('#research-question')?.focus()
   }
   private showSelectedTurn() {
+    if (matchMedia('(max-width: 700px)').matches) {
+      if (this.workbench.state.graphOpen) this.workbench.handle('toggle-graph')
+      if (this.workbench.state.notesOpen)
+        this.workbench.handle('toggle-notebook')
+    }
     const transcript = this.root.querySelector<HTMLElement>(
       '.research-transcript'
     )
     const turn = this.root.querySelector<HTMLElement>(
       `#turn-${CSS.escape(this.state?.node || '')}`
     )
-    if (matchMedia('(max-width: 560px)').matches)
+    if (matchMedia('(max-width: 700px)').matches)
       this.root
         .querySelector('.research-chat')
         ?.scrollIntoView({ block: 'start' })
@@ -672,6 +698,7 @@ export class ResearchWorkspace {
     }
     if (action === 'clear-anchor') s.anchor = null
     if (action === 'clear-error') s.error = ''
+    if (action === 'clear-message') s.message = ''
     if (action === 'remove-repo') {
       s.repos.splice(Number(button.dataset.index), 1)
       await this.saveChatSettings()
@@ -746,10 +773,13 @@ export class ResearchWorkspace {
         start: selection.start,
         end: selection.end
       })
-      this.state!.message =
-        'Excerpt saved with its question, response, and repository context. Use View source to return.'
+      this.state!.message = 'Saved to your notebook with its source.'
       this.selection = null
     })
+    if (!this.workbench.state.notesOpen || this.workbench.state.expanded) {
+      this.workbench.state.notesOpen = false
+      this.workbench.handle('toggle-notebook')
+    }
     const notes = this.root.querySelector('.research-note-scroll')
     if (notes) notes.scrollTop = notes.scrollHeight
   }
