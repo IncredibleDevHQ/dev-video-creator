@@ -106,100 +106,136 @@ export const validateSort = (
 const noted = (text: string, note: MapNote) =>
   `${text.trimEnd()}\n\n## Note, ${new Date(note.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}\n\n${note.text}`
 
+/** A map whose notes are sorted now: its wireframes are drawn. */
+const drawnMap = (snapshot: Snapshot) =>
+  snapshot.status === 'ready' && snapshot.project.slides.some((s) => s.svg)
+
 /**
  * Adds a note any time. To a drawn map it is sorted into its pages in the
  * background; while the map is still being drawn it is kept and waits, and is
  * sorted once the wireframes are drawn (review 8 F01: both note paths refused
- * a note while the first map was made).
+ * a note while the first map was made). Which of the two is read in the
+ * notebook's own queue, where the drawing finishes: a note written as it
+ * did was kept waiting on a drawn map until a restart (round 2's audit).
  */
 export const addNote = async (id: string, raw: unknown) => {
   const text = String((raw as { text?: unknown })?.text ?? '').trim()
   if (!text) throw new Refusal('Write the note first')
   if (text.length > NOTE_LIMIT)
     throw new Refusal(`Keep a note under ${NOTE_LIMIT} characters`)
-  const before = await loadProject(id)
-  if (!before) throw new Refusal('Notebook not found')
+  if (!(await loadProject(id))) throw new Refusal('Notebook not found')
   const at = new Date().toISOString()
-  if (before.status !== 'ready' || !before.project.slides.some((s) => s.svg))
-    return changeProject(id, (current) => {
+  const gap = String((raw as { gap?: unknown })?.gap || '')
+  const note: MapNote = { id: randomUUID(), at, text, state: 'sorting' }
+  let entered = false
+  const snapshot = await changeProject(id, async (current) => {
+    if (!drawnMap(current)) {
       current.project.notes = [
         ...(current.project.notes || []),
-        { id: randomUUID(), at, text, state: 'waiting' }
+        { ...note, state: 'waiting' }
       ]
       addEvent(
         current,
         'slide',
         'Note saved: it is sorted into the map once the wireframes are drawn'
       )
-    })
-  if (!(await readRow('outlines', id)))
-    throw new Refusal('This notebook has no wireframes to sort into')
-  const gap = String((raw as { gap?: unknown })?.gap || '')
-  if (gap) {
-    const series = before.project.mapSeries
-      ? await loadSeries(before.project.mapSeries)
-      : null
-    if (
-      !series?.gaps?.some((entry) => entry.id === gap && entry.state === 'open')
-    )
-      throw new Refusal('Choose an open gap of this series')
-  }
-  return intoMap(id, {
-    id: randomUUID(),
-    at,
-    text,
-    ...(gap ? { gap } : {}),
-    state: 'sorting'
+      return
+    }
+    if (!(await readRow('outlines', id)))
+      throw new Refusal('This notebook has no wireframes to sort into')
+    if (gap) {
+      const series = current.project.mapSeries
+        ? await loadSeries(current.project.mapSeries)
+        : null
+      if (
+        !series?.gaps?.some(
+          (entry) => entry.id === gap && entry.state === 'open'
+        )
+      )
+        throw new Refusal('Choose an open gap of this series')
+    }
+    await enterMap(id, current, { ...note, ...(gap ? { gap } : {}) })
+    entered = true
   })
+  if (entered) await startSorting(id, snapshot, note.id)
+  return snapshot
 }
 
-/** A note into the drawn map: its words join the source, then it is sorted. */
-const intoMap = async (id: string, note: MapNote) => {
-  const snapshot = await changeProject(id, async (current) => {
-    // The note is evidence from now on: a page drawn from it quotes it.
-    // Inside the notebook's queue, so two quick notes both stay.
-    const retained = await readRow<{ source: { text: string } }>('outlines', id)
-    if (retained) {
-      retained.source.text = noted(retained.source.text, note)
-      await writeRow('outlines', id, retained)
-    }
-    const read = await readRow<{ text: string }>('sources', id)
-    if (read)
-      await writeRow('sources', id, { ...read, text: noted(read.text, note) })
-    const notes = current.project.notes || []
-    current.project.notes = notes.some((item) => item.id === note.id)
-      ? notes.map((item) => (item.id === note.id ? note : item))
-      : [...notes, note]
-    current.project.source = noted(current.project.source, note)
-    addEvent(current, 'slide', 'Sorting your note into the map')
-  })
-  // The map's episodes quote the same evidence.
+/** A note into the drawn map, in the notebook's queue: its words join the
+ * source, and it is marked as being sorted. */
+const enterMap = async (id: string, current: Snapshot, note: MapNote) => {
+  // The note is evidence from now on: a page drawn from it quotes it.
+  // Inside the notebook's queue, so two quick notes both stay.
+  const retained = await readRow<{ source: { text: string } }>('outlines', id)
+  if (retained) {
+    retained.source.text = noted(retained.source.text, note)
+    await writeRow('outlines', id, retained)
+  }
+  const read = await readRow<{ text: string }>('sources', id)
+  if (read)
+    await writeRow('sources', id, { ...read, text: noted(read.text, note) })
+  const notes = current.project.notes || []
+  current.project.notes = notes.some((item) => item.id === note.id)
+    ? notes.map((item) => (item.id === note.id ? note : item))
+    : [...notes, note]
+  current.project.source = noted(current.project.source, note)
+  addEvent(current, 'slide', 'Sorting your note into the map')
+}
+
+/** Once a note is in the map: its episodes quote the same evidence, and the
+ * note is sorted in its turn. */
+const startSorting = async (id: string, snapshot: Snapshot, noteId: string) => {
   const series = snapshot.project.mapSeries
     ? await loadSeries(snapshot.project.mapSeries)
     : null
   for (const episode of series?.episodes || [])
     await syncEvidence(id, episode.notebookId)
-  const job = sortNote(id, note.id).finally(() => {
-    if (sorting.get(note.id) === job) sorting.delete(note.id)
+  const job = sortNote(id, noteId).finally(() => {
+    if (sorting.get(noteId) === job) sorting.delete(noteId)
   })
-  sorting.set(note.id, job)
-  return snapshot
+  sorting.set(noteId, job)
 }
 
 /** Once the wireframes are drawn: the notes that waited are sorted into them,
- * in the order they were written (review 8 F01). */
+ * in the order they were written (review 8 F01). Each is taken in the
+ * notebook's queue, so a note is sorted once however often this runs. */
 export const sortWaitingNotes = async (id: string) => {
   const snapshot = await loadProject(id)
   if (snapshot?.status !== 'ready' || !(await readRow('outlines', id))) return
-  for (const note of snapshot.project.notes || [])
-    if (note.state === 'waiting')
-      await intoMap(id, { ...note, state: 'sorting' })
+  for (const waiting of snapshot.project.notes || []) {
+    if (waiting.state !== 'waiting') continue
+    let entered = false
+    const saved = await changeProject(id, async (current) => {
+      const note = current.project.notes?.find((item) => item.id === waiting.id)
+      if (note?.state !== 'waiting' || !drawnMap(current)) return
+      await enterMap(id, current, { ...note, state: 'sorting' })
+      entered = true
+    })
+    if (entered) await startSorting(id, saved, waiting.id)
+  }
 }
 
 const sorting = new Map<string, Promise<void>>()
 /** Resolves when every note being sorted is placed (tests and checks). */
 export const settledNotes = async () => {
   while (sorting.size) await Promise.all([...sorting.values()])
+}
+
+const turns = new Map<string, Promise<void>>()
+/**
+ * A notebook's notes are sorted one after another, each against the cards
+ * the last one made: sorted at once against the same pages, two notes about
+ * one idea became two cards (round 2's audit).
+ */
+const inTurn = async (id: string, work: () => Promise<void>) => {
+  const before = turns.get(id) || Promise.resolve()
+  const mine = before.then(work, work)
+  turns.set(id, mine)
+  try {
+    await mine
+  } finally {
+    if (turns.get(id) === mine) turns.delete(id)
+  }
 }
 
 /** Sorts a note again that could not be sorted; its text is in the source already. */
@@ -229,6 +265,13 @@ const pagesOf = (snapshot: Snapshot) =>
   }))
 
 const sortNote = async (id: string, noteId: string) => {
+  await inTurn(id, () => sortInto(id, noteId))
+  await recheckLines(id)
+}
+
+/** The agent sorts a note against the pages the map has now, its new cards
+ * among them, and its cards and changes go in; or the note says why not. */
+const sortInto = async (id: string, noteId: string) => {
   try {
     const snapshot = await loadProject(id)
     const note = snapshot?.project.notes?.find((item) => item.id === noteId)
@@ -306,7 +349,6 @@ const sortNote = async (id: string, noteId: string) => {
       })
     }).catch(() => {})
   }
-  await recheckLines(id)
 }
 
 /**
