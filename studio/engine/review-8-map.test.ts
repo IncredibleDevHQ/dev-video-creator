@@ -10,6 +10,7 @@ vi.mock('../app/map-api', () => ({
     view: vi.fn(),
     copies: vi.fn(async () => ({})),
     direction: vi.fn(async () => ({})),
+    note: vi.fn(async () => ({})),
     comments: vi.fn(async () => ({ comments: [] }))
   }
 }))
@@ -617,5 +618,40 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
     expect(toast(map)[0]).toBe('Nothing to undo: that card has changed since')
     expect(mapApi.copies).toHaveBeenCalledTimes(sent)
     expect(order('e1')).toEqual(['x', 'y'])
+  })
+
+  it('keeps Undo through a note added from the Notes panel or the canvas (round 1)', async () => {
+    const shown = view()
+    const order = serve(shown)
+    const { map, root } = await openMap(shown)
+    await map.moveCopy('w', 'e1', 1)
+    const rail = root.querySelector<HTMLFormElement>('[data-map-form="note"]')!
+    rail.querySelector('textarea')!.value = 'A thought'
+    // (linkedom's form has no reset(); the browser's does.)
+    rail.reset = () => {}
+    fire(rail, 'submit')
+    await settle()
+    expect(mapApi.note).toHaveBeenCalledWith('map', 'A thought')
+    expect(toast(map)[0]).toBe('Note added: sorting it into the map')
+    await press('z')
+    expect(order('e1')).toEqual(['x', 'y', 'w'])
+    // A note from the canvas's Add → Note keeps it too.
+    await press('z', true)
+    expect(order('e1')).toEqual(['x', 'w', 'y'])
+    map.noteAsk = { text: '' }
+    map.paint()
+    const flow = root.querySelector<HTMLFormElement>(
+      '[data-map-form="flow-note"]'
+    )!
+    flow.querySelector('textarea')!.value = 'Another thought'
+    fire(flow, 'submit')
+    await settle()
+    expect(mapApi.note).toHaveBeenLastCalledWith(
+      'map',
+      'Another thought',
+      undefined
+    )
+    await press('z')
+    expect(order('e1')).toEqual(['x', 'y', 'w'])
   })
 })

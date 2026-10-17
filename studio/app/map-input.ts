@@ -393,7 +393,9 @@ const submit = async (map: MapCanvas, form: HTMLFormElement) => {
     const text = String(data.get('note') || '').trim()
     if (!text) return
     form.reset()
-    return map.run(() => mapApi.note(map.mapId, text), map.noteSaid)
+    // A note changes no episode's cards: Undo still reaches what was done
+    // before it (review 8).
+    return map.run(() => mapApi.note(map.mapId, text), map.noteSaid, true)
   }
   if (kind === 'episode') return map.addEpisode(String(data.get('title') || ''))
   if (kind === 'plan') return map.planEpisodes(data)

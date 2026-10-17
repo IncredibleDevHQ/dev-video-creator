@@ -627,11 +627,13 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
       map.hooks.error(reason)
       return true
     }
+    // Kept: Undo still reaches the cards moved before it (review 8).
     await map.run(
       async () => {},
       gap && map.snapshot?.status === 'ready'
         ? 'Note added: it becomes a card, and organising puts it where the gap is'
-        : map.noteSaid
+        : map.noteSaid,
+      true
     )
     return true
   }
