@@ -1,6 +1,6 @@
 // What the creator does on the content map: pan and zoom the canvas, select,
 // drag a page into an episode (⌥ cuts it), reorder or move copies, use the
-// bar and its menus, ⌘C/⌘X/⌘V, Delete and Esc, and the notes rail's form.
+// bar and its menus, and the notes rail's form; its keys are map-keys.ts.
 import { api } from './api'
 import { confirmAction } from './confirm-action'
 import {
@@ -22,7 +22,7 @@ import {
   startFlowPointer
 } from './map-flow-input'
 import { chromeAction } from './map-chrome'
-import { dialogOpen } from './ui'
+import { installMapKeys } from './map-keys'
 
 export type DragState = {
   key: string
@@ -126,65 +126,7 @@ export const installMapInput = (map: MapCanvas) => {
       map.select(selectionOf(el.dataset.k || ''))
     }
   })
-  // Focus moves the camera, never the canvas: a card reached with Tab is
-  // brought into view as a pan would, from where the layout puts it (the
-  // camera may still be gliding).
-  root.addEventListener('focusin', (event) => {
-    const el = event.target as HTMLElement
-    const canvas = map.canvas
-    if (!canvas?.contains(el)) return
-    // No focus scrolls the canvas itself, by mouse or by key: the camera is
-    // the only view (review 7). Once now, and once after the browser's own.
-    const still = () => {
-      canvas.scrollLeft = 0
-      canvas.scrollTop = 0
-    }
-    still()
-    requestAnimationFrame(still)
-    if (!el.classList?.contains('map-el') || !el.matches(':focus-visible'))
-      return
-    const at = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(
-      el.style.transform
-    )
-    if (!at) return
-    const { k } = map.camera
-    const rect = canvas.getBoundingClientRect()
-    // Too big to show whole, it shows its start; else it is nudged in.
-    const nudge = (
-      start: number,
-      size: number,
-      room: number,
-      lead: number,
-      tail: number
-    ) =>
-      size > room - lead - tail
-        ? start < lead || start > room - tail
-          ? lead - start
-          : 0
-        : start < lead
-          ? lead - start
-          : start + size > room - tail
-            ? room - tail - start - size
-            : 0
-    const dx = nudge(
-      map.camera.x + Number(at[1]) * k,
-      el.offsetWidth * k,
-      rect.width - map.covered(rect),
-      40,
-      40
-    )
-    const dy = nudge(
-      map.camera.y + Number(at[2]) * k,
-      el.offsetHeight * k,
-      rect.height,
-      60,
-      110
-    )
-    if (!dx && !dy) return
-    map.camera.x += dx
-    map.camera.y += dy
-    map.applyCamera(true)
-  })
+  installMapKeys(map, dispatch)
   root.addEventListener('pointerdown', (event) => {
     if (!map.isOpen || event.button !== 0) return
     const target = event.target as Element
@@ -335,54 +277,6 @@ export const installMapInput = (map: MapCanvas) => {
     if (lane && map.layout.lanes[lane])
       return map.fit(pad(map.layout.lanes[lane]))
     map.fit()
-  })
-  globalThis.addEventListener?.('keydown', (event) => {
-    // A dialog open over the map has the keys (review 7).
-    if (!map.isOpen || event.defaultPrevented || dialogOpen()) return
-    const e = event as KeyboardEvent
-    if ((e.target as Element)?.closest?.('input, textarea, select')) return
-    const mod = e.metaKey || e.ctrlKey
-    const key = e.key.toLowerCase()
-    const sel = map.sel
-    if (mod && key === 'c' && sel?.t === 'page') {
-      e.preventDefault()
-      void dispatch(map, 'copy')
-    } else if (mod && key === 'x' && sel) {
-      e.preventDefault()
-      void dispatch(map, sel.t === 'copy' ? 'cut-copy' : 'cut')
-    } else if (mod && key === 'v') {
-      e.preventDefault()
-      void map.paste()
-    } else if ((key === 'backspace' || key === 'delete') && sel?.t === 'copy') {
-      e.preventDefault()
-      void map.removeCopy(sel.id)
-    } else if (key === 'escape') {
-      // One Esc closes one thing: an open menu or the Notes panel is the
-      // chrome's to close; then the selection goes.
-      const menu = map.slot('menu')
-      if (menu && !menu.hidden) return
-      if (map.root.querySelector('.map-page.is-notes-open')) return
-      // A comment, its recording or the comment tool closes first (review 7).
-      if (map.comments.escapable) return
-      e.preventDefault()
-      // Then the queue's list, then a question in the bar, then what is
-      // selected: one at a time.
-      if (map.queueOpen) {
-        map.queueOpen = false
-        return map.paint()
-      }
-      // A question in the bar, then a direction being written: one each.
-      const asking =
-        map.naming ||
-        map.changing ||
-        map.renaming ||
-        map.askingPlan ||
-        map.noteAsk ||
-        map.briefing
-      if (asking) return void dispatch(map, 'cancel')
-      if (map.editingDirection) return void dispatch(map, 'direction-cancel')
-      map.select(null)
-    }
   })
 }
 
