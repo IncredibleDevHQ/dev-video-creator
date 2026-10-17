@@ -720,6 +720,62 @@ it('organises new cards into the series, and Undo takes them out again', async (
   expect((await loadSeries(series.id))!.organizing).toBeUndefined()
 })
 
+it('marks an open gap a placed card says, for the creator to close with it, when the placement did not (round 2)', async () => {
+  const map = await drawnMap('m-cov')
+  const ids = map.project.slides.map((s) => s.id)
+  const series = await episodes.startMapSeries('m-cov', {})
+  const one = await episodes.addMapEpisode(series.id, {
+    title: 'Keys',
+    slides: [ids[0], ids[1], ids[2]]
+  })
+  const e1 = one.notebook.project.id
+  await changeProject('m-cov', (current) => {
+    current.project.slides = current.project.slides.slice(0, 3)
+  })
+  const { changeSeries } = await import('./series')
+  await changeSeries(series.id, (current) => {
+    current.gaps = [
+      {
+        id: 'fp',
+        missing:
+          'What a request fingerprint is made from and how the server computes it',
+        episode: e1,
+        why: 'w',
+        ask: 'a',
+        state: 'open'
+      }
+    ]
+  })
+  // A note's card says it, word for word, but the placement doesn't link it.
+  await changeProject('m-cov', (current) => {
+    current.project.slides.push({
+      ...card('m-cov-9', 'What the fingerprint is'),
+      narration:
+        'The server computes the request fingerprint as a SHA-256 hash of the method, the path and the body.'
+    })
+  })
+  replies['Place Pages'] = () => ({
+    answers: [],
+    moves: [
+      {
+        page: 'm-cov-9',
+        into: e1,
+        after: ids[1],
+        why: 'It belongs with the key'
+      }
+    ],
+    start: []
+  })
+  await organize.organizeNewPages('m-cov')
+  await organize.settledOrganize(series.id)
+  const gap = (await loadSeries(series.id))!.gaps![0]
+  expect(gap.state).toBe('open')
+  expect(gap.covered).toEqual({
+    page: 'm-cov-9',
+    says: expect.stringContaining('SHA-256 hash of the method')
+  })
+})
+
 it('refuses a placement into a made episode, before the last made one, or twice', () => {
   const rules = {
     fresh: ['n1', 'n2'],

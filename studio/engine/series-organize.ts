@@ -29,6 +29,7 @@ import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { changeSeries, loadSeries } from './series'
 import { directionLines, cardsOf, existingOf, isPlanning } from './series-plan'
+import { coveredBy, type Covered } from './series-gaps'
 
 const origin = () =>
   process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
@@ -427,6 +428,37 @@ const place = async (
       })
   })
   await applyPlacement(seriesId, mapId, plan, fresh, existing)
+  await markNewCovered(seriesId, mapId)
+}
+
+/** An open gap a card now says is marked with it, as a plan marks one, for
+ * the creator to close with that card (round 2's live run: a note that
+ * answered the fingerprint gap left it asking for a note). */
+const markNewCovered = async (seriesId: string, mapId: string) => {
+  const map = await loadProject(mapId)
+  const series = await loadSeries(seriesId)
+  if (!map || !series) return
+  const episodeOf = new Map<string, number>()
+  for (const item of await existingOf(series))
+    for (const page of item.pages) episodeOf.set(page, item.number)
+  const number = (notebook?: string) =>
+    series.episodes.find((e) => e.notebookId === notebook)?.number
+  const cards = cardsOf(map)
+  const found = new Map<string, Covered>()
+  for (const gap of series.gaps || []) {
+    if (gap.state !== 'open' || gap.covered) continue
+    const covered = coveredBy(gap.missing, cards, {
+      episode: number(gap.episode),
+      episodeOf
+    })
+    if (covered) found.set(gap.id, covered)
+  }
+  if (!found.size) return
+  await changeSeries(seriesId, (current) => {
+    for (const gap of current.gaps || [])
+      if (gap.state === 'open' && !gap.covered && found.has(gap.id))
+        gap.covered = found.get(gap.id)
+  })
 }
 
 /** Puts the placement into the episodes and records it for Undo. */
