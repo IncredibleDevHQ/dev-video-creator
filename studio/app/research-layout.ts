@@ -42,10 +42,13 @@ export const normalizeResearchLayout = (
 export const researchDraftKey = (
   field: string,
   notebook: string,
-  node: string | null
+  node: string | null,
+  chat: string | null = null
 ) =>
   field === 'research-note-input'
     ? `${field}:${notebook}`
     : field === 'research-question'
-      ? `${field}:${node || 'new'}`
-      : field
+      ? `${field}:${node || chat || 'new'}`
+      : field === 'research-repo-path'
+        ? `${field}:${chat || 'new'}`
+        : field

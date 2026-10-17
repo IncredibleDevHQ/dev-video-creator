@@ -1,0 +1,214 @@
+/* Chats own their context; project knowledge stays shared. */
+.research-session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.research-session-picker,
+.research-loop-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.research-session-picker label {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.research-session-picker select {
+  max-width: 300px;
+  min-width: 160px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+.research-session-picker button {
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.research-loop-nav {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.research-loop-nav span[aria-current] {
+  color: var(--accent);
+  font-weight: 600;
+}
+.research-loop-nav button {
+  padding: 4px 0;
+  color: var(--muted);
+}
+.research-loop-nav button:last-child {
+  color: var(--accent);
+}
+.research-capture-guide {
+  border-bottom: 1px solid var(--line);
+  padding: 14px 18px;
+  background: var(--selected);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.research-capture-guide strong {
+  font-weight: 550;
+}
+.research-capture-guide p {
+  color: var(--muted);
+  margin: 4px 0 8px;
+}
+.research-capture-guide button {
+  padding: 0;
+  text-align: left;
+  color: var(--accent);
+}
+.research-chat-heading h2 {
+  overflow-wrap: anywhere;
+}
+.research-next-agent {
+  margin: 8px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+}
+.research-context-editor {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.research-running-link {
+  color: var(--accent);
+  background: var(--selected);
+  padding: 10px 24px;
+  text-align: left;
+  font-size: 11px;
+}
+.research-columns {
+  height: calc(100dvh - 169px);
+}
+.research-workspace:has(.research-banner) .research-columns {
+  height: calc(100dvh - 213px);
+}
+@media (max-width: 1100px) {
+  .research-session-picker select {
+    max-width: 230px;
+  }
+  .research-session-picker label {
+    display: none;
+  }
+  .research-loop-nav {
+    gap: 8px;
+  }
+}
+@media (max-width: 700px) {
+  .research-session-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .research-session-picker select {
+    flex: 1;
+    max-width: none;
+    min-width: 0;
+  }
+  .research-session-picker button {
+    flex-shrink: 0;
+  }
+  .research-loop-nav {
+    justify-content: center;
+  }
+  .research-columns,
+  .research-workspace:has(.research-banner) .research-columns {
+    height: auto;
+  }
+}
+/* Keep agent names legible even when the chat pane is narrow. */
+#research-question-form .research-composer-footer {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.research-model {
+  flex-wrap: wrap;
+  flex: 1 1 180px;
+}
+.research-model select {
+  flex: 0 0 auto;
+  min-width: 105px;
+}
+.research-model input {
+  flex: 1 1 95px;
+}
+#research-question-form .research-composer-footer > button {
+  margin-left: auto;
+}
+#research-question-form textarea {
+  height: 80px;
+}
+#research-note-form textarea {
+  height: 90px;
+}
+@media (max-width: 560px) {
+  .research-columns .research-chat {
+    order: 0;
+    height: 740px;
+    min-height: 640px;
+  }
+  .research-columns .research-graph-panel {
+    order: 1;
+  }
+  .research-columns .research-notes {
+    order: 2;
+  }
+  .research-columns.graph-expanded .research-graph-panel {
+    order: -1;
+  }
+}
+@media (max-width: 560px) {
+  .research-header nav button {
+    padding: 8px 9px;
+    font-size: 12px;
+  }
+}
+.research-compose-area {
+  position: relative;
+  overflow: visible;
+  max-height: none;
+  flex-shrink: 0;
+}
+.research-context-popover {
+  position: absolute;
+  z-index: 8;
+  bottom: 48px;
+  left: 12px;
+  right: 12px;
+  max-height: min(360px, 60dvh);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 12px 36px #0005;
+}
+.research-context-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.research-context-title button {
+  font-size: 20px;
+  padding: 0 6px;
+}
+.research-context-editor {
+  max-height: none;
+  overflow: visible;
+}
+.research-anchor blockquote {
+  max-height: 100px;
+  overflow: auto;
+}

@@ -13,7 +13,8 @@ import {
   requiredText,
   researchProjectView
 } from './research-projects'
-import { validateRepoLink, branchHead, repoFiles } from './repo-git'
+import { branchHead, repoFiles } from './repo-git'
+import { researchRepositories } from './research-sessions'
 import { repoTools } from './repo-answers'
 import { availableHarness, detectedHarness } from './notebook-intake'
 import { runValidatedJsonStage } from './creative/stage'
@@ -44,21 +45,24 @@ export const askResearch = async (
 ) => {
   const question = requiredText(body.question, 'Question', 8000)
   const project = await readResearchProject(id)
+  if (body.chatId !== undefined && typeof body.chatId !== 'string')
+    throw new Refusal('Choose a chat in this project')
   const parentId = typeof body.parentId === 'string' ? body.parentId : null
   const parent = project.nodes.find((n) => n.id === parentId)
   if (parentId && (!parent || parent.state !== 'done'))
     throw new Refusal('Branch from a completed answer')
-  const harness = body.harness
-    ? await availableHarness(body.harness)
-    : project.harness || (await detectedHarness())
-  const rawRepos = body.repos ?? project.repos
-  if (!Array.isArray(rawRepos) || rawRepos.length > 4)
-    throw new Refusal('Choose up to four repositories')
-  const repos: ResearchRepo[] = []
-  for (const raw of rawRepos) {
-    const link = await validateRepoLink(raw)
-    repos.push({ ...link, commit: await branchHead(link) })
-  }
+  const chatId = typeof body.chatId === 'string' ? body.chatId : parent?.chatId
+  const chat = project.chats!.find((c) => c.id === chatId)
+  if (chatId && !chat) throw new Refusal('Choose a chat in this project')
+  if (parent && parent.chatId !== chatId)
+    throw new Refusal('Choose a question from this chat')
+  const harness = await availableHarness(
+    body.harness || chat?.harness || (await detectedHarness())
+  )
+  const links = await researchRepositories(body.repos ?? chat?.repos ?? [])
+  const repos: ResearchRepo[] = await Promise.all(
+    links.map(async (link) => ({ ...link, commit: await branchHead(link) }))
+  )
   let anchor: ResearchAnchor | undefined
   if (body.anchor) {
     const raw = body.anchor as ResearchAnchor
@@ -92,6 +96,7 @@ export const askResearch = async (
   }
   const node: ResearchNode = {
     id: randomUUID(),
+    chatId: chatId || randomUUID(),
     parentId,
     question,
     anchor,
@@ -104,13 +109,26 @@ export const askResearch = async (
     activity: 'Starting research…'
   }
   await changeResearchProject(id, (p) => {
-    if (p.nodes.some((n) => n.state === 'working'))
+    if (p.nodes.some((n) => n.chatId === node.chatId && n.state === 'working'))
       throw new Refusal(
-        'Wait for the current answer, or stop it before asking another question'
+        'Wait for this chat’s answer, or stop it before asking another question'
       )
     p.nodes.push(node)
-    p.repos = repos.map(({ commit: _, ...link }) => link)
-    p.harness = harness
+    let session = p.chats!.find((c) => c.id === node.chatId)
+    if (!session) {
+      session = {
+        id: node.chatId!,
+        title: question.slice(0, 100),
+        createdAt: node.at,
+        updatedAt: node.at,
+        repos: links
+      }
+      p.chats!.push(session)
+    }
+    session.updatedAt = node.at
+    session.lastNodeId = node.id
+    session.repos = links
+    session.harness = harness
   })
   scheduleResearch(id, node.id)
   return { nodeId: node.id, project: await researchProjectView(id) }
@@ -119,8 +137,10 @@ const scheduleResearch = (id: string, nodeId: string) => {
   const job = answerResearch(id, nodeId)
     .catch(async (error: unknown) => {
       const message =
-        agentStopped(error, 'The agent could not finish. Try again.')
-          ?.message ||
+        agentStopped(
+          error,
+          'The local agent could not finish. Your question is saved. Choose another agent below and use Ask again, or retry with this agent.'
+        )?.message ||
         (error instanceof Error ? error.message : 'The agent could not finish')
       await changeResearchProject(id, (p) => {
         const node = p.nodes.find((n) => n.id === nodeId)

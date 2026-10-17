@@ -15,12 +15,15 @@ import {
 } from './research-workbench-view'
 import type { ResearchLayout } from './research-layout'
 import { escape } from './ui'
+import { chatSwitcher, collaborationLoop } from './research-session-view'
 export type ResearchViewState = {
   layout?: ResearchLayout
   project: ResearchProjectView
   tab: 'notes' | 'research' | 'wireframes' | 'canvas'
   notebook: string
   node: string | null
+  chat?: string | null
+  chatPositions?: Record<string, string | null>
   anchor: ResearchAnchor | null
   repos: RepoLink[]
   inspected: RepoInspection | null
@@ -76,6 +79,7 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
         'aria-label="New notebook"'
       )}
     </div>
+    ${compact ? collaborationLoop(s) : ''}
     <div class="research-note-scroll">
       ${n.blocks.length
         ? n.blocks
@@ -196,96 +200,118 @@ const reply = (n: ResearchNode) =>
           </div>`}
   </article>`
 const repoContext = (s: ResearchViewState) =>
-  html`<details class="research-repos">
+  html`<details class="research-repos" ${s.inspected ? 'open' : ''}>
     <summary>
       Repository context
       <span>${s.repos.length ? `${s.repos.length} linked` : 'Optional'}</span>
     </summary>
-    <p>
-      Choose local repositories and branches for this conversation. Your
-      checkouts stay on their current branches.
-    </p>
-    ${s.repos
-      .map(
-        (r, i) =>
-          html`<div class="research-repo-chip">
-            <span title="${escape(r.path)}"
-              >${escape(r.name)} <small>${escape(r.branch)}</small></span
-            >${action(
-              'remove-repo',
-              '×',
-              '',
-              `data-index="${i}" aria-label="Remove ${escape(r.name)}"`
-            )}
-          </div>`
-      )
-      .join('')}
-    <form id="research-repo-form">
-      <label for="research-repo-path">Repository folder</label>
-      <div class="research-inline">
-        <input
-          id="research-repo-path"
-          name="path"
-          placeholder="/Users/you/code/repository"
-          required
-        /><button ${s.pending ? 'disabled' : ''}>Find branches</button>
+    <div class="research-context-popover">
+      <div class="research-context-title">
+        <strong>Chat repositories</strong>${action(
+          'close-context',
+          '×',
+          '',
+          'aria-label="Close repository context"'
+        )}
       </div>
-    </form>
-    ${s.inspected
-      ? html`<form id="research-branch-form">
-          <label for="research-repo-branch"
-            >${escape(s.inspected.name)} · Branch</label
-          >
+      <p>
+        Link up to four repositories and choose a branch for each. Context is
+        saved to this chat; every answer records the exact commit it used.
+      </p>
+      <div class="research-context-editor">
+        ${s.repos
+          .map(
+            (r, i) =>
+              html`<div class="research-repo-chip">
+                <span title="${escape(r.path)}"
+                  >${escape(r.name)} <small>${escape(r.branch)}</small></span
+                >${action(
+                  'remove-repo',
+                  '×',
+                  '',
+                  `data-index="${i}" aria-label="Remove ${escape(r.name)}"`
+                )}
+              </div>`
+          )
+          .join('')}
+        <form id="research-repo-form">
+          <label for="research-repo-path">Repository folder</label>
           <div class="research-inline">
-            <select id="research-repo-branch" name="branch">
-              ${s.inspected.branches
-                .map(
-                  (b) =>
-                    html`<option
-                      ${b === s.inspected!.current ? 'selected' : ''}
-                    >
-                      ${escape(b)}
-                    </option>`
-                )
-                .join('')}</select
-            ><button ${s.repos.length >= 4 ? 'disabled' : ''}>
-              Add context
-            </button>
+            <input
+              id="research-repo-path"
+              name="path"
+              placeholder="/Users/you/code/repository"
+              required
+            /><button ${s.pending ? 'disabled' : ''}>Find branches</button>
           </div>
-        </form>`
-      : ''}
+        </form>
+        ${s.inspected
+          ? html`<form id="research-branch-form">
+              <label for="research-repo-branch"
+                >${escape(s.inspected.name)} · Branch</label
+              >
+              <div class="research-inline">
+                <select id="research-repo-branch" name="branch">
+                  ${s.inspected.branches
+                    .map(
+                      (b) =>
+                        html`<option
+                          ${b === s.inspected!.current ? 'selected' : ''}
+                        >
+                          ${escape(b)}
+                        </option>`
+                    )
+                    .join('')}</select
+                ><button ${s.repos.length >= 4 ? 'disabled' : ''}>
+                  Add context
+                </button>
+              </div>
+            </form>`
+          : ''}
+      </div>
+    </div>
   </details>`
 const chat = (s: ResearchViewState) => {
   const path = researchPath(s.project.nodes, s.node)
-  const working = s.project.nodes.some((n) => n.state === 'working')
+  const workingNode = s.project.nodes.find(
+    (n) => n.chatId === s.chat && n.state === 'working'
+  )
+  const working = Boolean(workingNode)
+  const session = s.project.chats?.find((c) => c.id === s.chat)
   const unfinished = Boolean(s.node && path.at(-1)?.state !== 'done')
   return html`<section class="research-chat" aria-label="Research conversation">
     <div class="research-chat-heading">
       <div>
-        <span class="research-eyebrow">PROJECT RESEARCH</span>
+        <span class="research-eyebrow">YOU + YOUR AGENT</span>
         <h2>
-          ${path.length
-            ? 'Follow your curiosity'
-            : 'What would you like to understand?'}
+          ${escape(session?.title || 'What would you like to understand?')}
         </h2>
       </div>
-      ${action('new-chat', '+ New conversation', 'research-secondary')}
+      ${session ? action('rename-chat', 'Rename', 'research-secondary') : ''}
     </div>
+    ${workingNode && workingNode.id !== s.node
+      ? html`<button
+          class="research-running-link"
+          data-research-node="${workingNode.id}"
+        >
+          Your agent is answering in this chat · View progress →
+        </button>`
+      : ''}
     ${ancestryTrail(s.project.nodes, s.node)}
     <div class="research-transcript" aria-live="polite">
       ${path.length
         ? path.map(reply).join('')
         : html`<div class="research-chat-welcome">
             <span class="research-welcome-icon">✳</span>
-            <h2>Make room for the next question.</h2>
+            <h2>Bring a question. Build understanding.</h2>
             <p>
-              Research with your local agent. Explore a branch without losing
-              where you started, and keep the useful parts in your notebooks.
+              Add repository context below, choose your agent, and ask. You
+              guide the research and keep the useful answers in your notebooks.
             </p>
             <div class="research-hints">
               <span>01 &nbsp; Ask anything</span
               ><span>02 &nbsp; Follow a thread</span
-              ><span>03 &nbsp; Keep what matters</span>
+              ><span>03 &nbsp; Save → create</span>
             </div>
           </div>`}
     </div>
@@ -326,7 +352,7 @@ const chat = (s: ResearchViewState) => {
         <div class="research-composer-footer">
           <div class="research-model">
             <label class="sr" for="research-adapter">Local agent</label
-            ><select id="research-adapter">
+            ><select id="research-adapter" ${s.pending ? 'disabled' : ''}>
               <option
                 value="claude-code"
                 ${s.adapter === 'claude-code' ? 'selected' : ''}
@@ -342,6 +368,8 @@ const chat = (s: ResearchViewState) => {
             ><label class="sr" for="research-model">Model (optional)</label
             ><input
               id="research-model"
+              maxlength="200"
+              ${s.pending ? 'disabled' : ''}
               value="${escape(s.model)}"
               placeholder="Default model"
               aria-label="Model (optional)"
@@ -355,6 +383,10 @@ const chat = (s: ResearchViewState) => {
           </button>
         </div>
       </form>
+      <p class="research-next-agent">
+        Agent and model apply to the next answer. Earlier answers keep their
+        history.
+      </p>
       ${repoContext(s)}
     </div>
   </section>`
@@ -403,7 +435,7 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
         </div>`
       : ''}
     ${s.tab === 'research'
-      ? html`${workbenchToolbar(s.layout)}
+      ? html`${chatSwitcher(s)}${workbenchToolbar(s.layout)}
           <main
             class="research-columns ${s.layout?.notesOpen === false
               ? 'notes-hidden'

@@ -32,7 +32,18 @@ export type ResearchAnchor = {
   start: number
   end: number
 }
+export type ResearchChat = {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  repos: RepoLink[]
+  harness?: HarnessSelection
+  lastNodeId?: string
+}
 export type ResearchNode = {
+  /** Optional only for records written before named chats. */
+  chatId?: string
   id: string
   parentId: string | null
   question: string
@@ -53,6 +64,7 @@ export type ResearchProject = {
   updatedAt: string
   notebooks: ProjectNotebook[]
   nodes: ResearchNode[]
+  chats?: ResearchChat[]
   repos: RepoLink[]
   harness?: HarnessSelection
   /** One aggregate notebook drives the existing content-map / series engine. */

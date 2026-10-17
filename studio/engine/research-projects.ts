@@ -13,12 +13,13 @@ import { readSourceNarrative } from './source-document'
 import { addNote } from './map-notes'
 import { startPresentation } from './notebook-intake'
 import { Refusal } from './refusal'
+import { normalizeResearchChats } from '../shared/research-chats'
 
 const table = 'research-projects'
 export const readResearchProject = async (id: string) => {
   const project = await readRow<ResearchProject>(table, id)
   if (!project) throw new Refusal('Project not found')
-  return project
+  return normalizeResearchChats(project)
 }
 const queues = new Map<string, Promise<unknown>>()
 const lockedChange = <T>(
@@ -123,6 +124,7 @@ export const createResearchProject = async (body: Record<string, unknown>) => {
       }
     ],
     nodes: [],
+    chats: [],
     repos: []
   }
   await writeRow(table, id, project)

@@ -7,11 +7,19 @@ import { researchGraph } from './research-graph'
 import { ResearchWorkbench } from './research-workbench'
 import { researchDraftKey } from './research-layout'
 import { renderResearch } from './research-render'
+import { researchHome, researchProjectCards } from './research-home'
+import { researchNameDialog } from './research-dialog'
+import {
+  selectResearchChat,
+  selectResearchNode,
+  chatSettings
+} from './research-session-state'
 import { requestJson } from './http'
 import { escape } from './ui'
 import './styles/research.css'
 import './styles/research-notebooks.css'
 import './styles/research-spatial.css'
+import './styles/research-sessions.css'
 
 export class ResearchWorkspace {
   isOpen = false
@@ -22,6 +30,9 @@ export class ResearchWorkspace {
   private selection: ResearchAnchor | null = null
   private drafts: Record<string, string> = {}
   private busy = false
+  private settingsSave: Promise<void> = Promise.resolve()
+  private settingsVersion = 0
+  private settingsPending = false
   private composerKeys: Record<string, string> = {}
   constructor(private root: HTMLElement) {
     this.workbench = new ResearchWorkbench(root, () => this.render())
@@ -44,6 +55,12 @@ export class ResearchWorkspace {
       const field = event.target as HTMLInputElement
       const s = this.state
       if (!this.isOpen || !s) return
+      if (field.id === 'research-chat-picker') {
+        selectResearchChat(s, field.value)
+        this.navigate()
+        this.render()
+        this.showSelectedTurn()
+      }
       if (field.id === 'research-notebook') {
         s.notebook = field.value
         this.navigate()
@@ -53,10 +70,14 @@ export class ResearchWorkspace {
         s.adapter = field.value
         s.model = ''
         this.render()
+        void this.saveChatSettings().catch((e) => this.error(e))
       }
       if (field.id === 'research-graph-depth')
         this.workbench.depth(Number(field.value))
-      if (field.id === 'research-model') s.model = field.value.trim()
+      if (field.id === 'research-model') {
+        s.model = field.value.trim()
+        void this.saveChatSettings().catch((e) => this.error(e))
+      }
       if (field.id === 'research-jump' && field.value)
         this.root
           .querySelector(`#wireframes-${CSS.escape(field.value)}`)
@@ -65,6 +86,8 @@ export class ResearchWorkspace {
     root.addEventListener('input', (event) => {
       const field = event.target as HTMLInputElement
       if (!this.isOpen) return
+      if (field.id === 'research-model' && this.state)
+        this.state.model = field.value
       if (field.id === 'research-search' && this.state) {
         this.state.query = field.value
         const graph = this.root.querySelector('.research-graph-scroll')
@@ -89,6 +112,8 @@ export class ResearchWorkspace {
     })
     root.addEventListener('keyup', (event) => {
       if (event.key === 'Shift') this.captureSelection()
+      if (event.key === 'Escape')
+        this.root.querySelector('.research-repos')?.removeAttribute('open')
     })
     window.addEventListener('popstate', () => {
       const url = new URL(location.href)
@@ -110,7 +135,8 @@ export class ResearchWorkspace {
     return researchDraftKey(
       field,
       this.state?.notebook || '',
-      this.state?.node || null
+      this.state?.node || null,
+      this.state?.chat || null
     )
   }
   private persistDrafts() {
@@ -138,44 +164,7 @@ export class ResearchWorkspace {
     this.revision++
     if (this.timer) clearTimeout(this.timer)
     this.loadDrafts('home')
-    this.root.innerHTML = html`<div class="research-home">
-      <header class="research-header">
-        <a href="/" class="research-brand">✳ <span>Incredible</span></a
-        ><a href="/?legacy=1">Earlier notebooks & studio tools ↗</a>
-      </header>
-      <main>
-        <span class="research-eyebrow">A PLACE FOR YOUR CURIOSITY</span>
-        <h1>Start with a thought.<br /><em>See where it takes you.</em></h1>
-        <p>
-          Collect notes. Explore questions. Turn what you learn into a series.
-        </p>
-        <form id="research-start-form">
-          <label class="sr" for="research-first-note">Your first note</label
-          ><textarea
-            id="research-first-note"
-            name="text"
-            rows="5"
-            maxlength="7600"
-            placeholder="Paste a note, an idea, something you’re learning…"
-            required
-          >
-${escape(this.drafts['research-first-note'] || '')}</textarea
-          >
-          <div class="research-composer-footer">
-            <small>We’ll create a project and your first notebook.</small
-            ><button class="research-primary">Get started ↗</button>
-          </div>
-        </form>
-        <div class="research-home-error" role="alert"></div>
-        <section class="research-project-list">
-          <div class="research-section-heading">
-            <h2>Your projects</h2>
-            <button data-research-action="new-project">+ New project</button>
-          </div>
-          <div id="research-projects" role="status">Loading your projects…</div>
-        </section>
-      </main>
-    </div>`
+    this.root.innerHTML = researchHome(this.drafts['research-first-note'] || '')
     this.root.querySelector<HTMLTextAreaElement>(
       '#research-first-note'
     )!.value = this.drafts['research-first-note'] || ''
@@ -184,25 +173,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       const projects = await researchApi.list()
       if (revision !== this.revision) return
       const list = this.root.querySelector('#research-projects')!
-      list.innerHTML = projects.length
-        ? html`<div class="research-project-grid">
-            ${projects
-              .map(
-                (p) =>
-                  html`<a class="research-project-card" href="/?space=${p.id}"
-                    ><span class="research-project-symbol">▤</span>
-                    <h3>${escape(p.title)}</h3>
-                    <p>
-                      ${p.notebooks}
-                      ${p.notebooks === 1 ? 'notebook' : 'notebooks'} ·
-                      ${p.questions} research questions
-                    </p>
-                    <span>Open project ↗</span></a
-                  >`
-              )
-              .join('')}
-          </div>`
-        : '<p>Your first project starts with the note above. No setup needed.</p>'
+      list.innerHTML = researchProjectCards(projects)
     } catch (error) {
       this.error(error)
     }
@@ -238,6 +209,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       notebook:
         project.notebooks.find((n) => n.id === url.searchParams.get('book'))
           ?.id || project.notebooks[0].id,
+      chat: null,
       node: project.nodes.some((n) => n.id === node) ? node : null,
       anchor: null,
       repos: [...project.repos],
@@ -249,6 +221,12 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       message: '',
       error: ''
     }
+    const selected = project.nodes.find((n) => n.id === node)
+    selectResearchChat(
+      this.state,
+      selected?.chatId || url.searchParams.get('chat')
+    )
+    if (selected) this.state.node = selected.id
     this.render()
     this.poll(revision)
   }
@@ -261,6 +239,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
         if (JSON.stringify(project) !== JSON.stringify(this.state.project)) {
           if (
             !this.busy &&
+            !this.settingsPending &&
             !this.workbench.interacting &&
             !this.root.querySelector('dialog[open]') &&
             !getSelection()?.toString()
@@ -285,6 +264,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
     url.searchParams.set('space', this.state.project.id)
     url.searchParams.set('projectView', this.state.tab)
     url.searchParams.set('book', this.state.notebook)
+    if (this.state.chat) url.searchParams.set('chat', this.state.chat)
     if (this.state.node) url.searchParams.set('node', this.state.node)
     if (url.href !== location.href) history.pushState(null, '', url)
   }
@@ -309,6 +289,9 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
     const follow = nearEnd
       ? nearEnd.scrollHeight - nearEnd.scrollTop - nearEnd.clientHeight < 60
       : true
+    const contextOpen = Boolean(
+      this.root.querySelector('.research-repos[open]')
+    )
     const composerKeys = Object.fromEntries(
       ['research-question', 'research-note-input'].map((id) => [
         id,
@@ -322,6 +305,8 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       composerKeys
     )
     this.composerKeys = composerKeys
+    if (contextOpen)
+      this.root.querySelector('.research-repos')?.setAttribute('open', '')
     for (const field of this.root.querySelectorAll<
       HTMLInputElement | HTMLTextAreaElement
     >('input[id],textarea[id]')) {
@@ -385,9 +370,37 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
     const project = await researchApi.change(id, action, body)
     if (this.state?.project.id === id) this.state.project = project
   }
+  private async saveChatSettings() {
+    const s = this.state
+    if (!s?.chat) return
+    const body = chatSettings(s)
+    const version = ++this.settingsVersion
+    this.settingsPending = true
+    const chat = s.project.chats?.find((c) => c.id === s.chat)
+    if (chat) {
+      chat.repos = structuredClone(body.repos)
+      chat.harness = body.harness
+    }
+    this.settingsSave = this.settingsSave
+      .catch(() => {})
+      .then(async () => {
+        const project = await researchApi.change(s.project.id, 'chats', body)
+        if (
+          this.state?.project.id === project.id &&
+          version === this.settingsVersion
+        )
+          this.state.project = project
+      })
+    try {
+      await this.settingsSave
+    } finally {
+      if (version === this.settingsVersion) this.settingsPending = false
+    }
+  }
   private async submit(form: HTMLFormElement) {
     const values = new FormData(form)
     const formId = form.id
+    await this.settingsSave.catch(() => {})
     await this.mutation(async () => {
       if (formId === 'research-start-form') {
         const p = await researchApi.create({ text: values.get('text') })
@@ -414,6 +427,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
           project: ResearchProjectView
         }>(`/${s.project.id}/ask`, {
           question: values.get('question'),
+          chatId: s.chat || undefined,
           parentId: s.node,
           anchor: s.anchor,
           harness: {
@@ -424,6 +438,9 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
         })
         this.drafts[this.draftKey('research-question')] = ''
         s.project = result.project
+        s.chat = result.project.nodes.find(
+          (n) => n.id === result.nodeId
+        )!.chatId!
         s.node = result.nodeId
         s.anchor = null
         this.drafts[this.draftKey('research-question')] = ''
@@ -451,7 +468,8 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
         )
           s.repos.push(repo)
         s.inspected = null
-        this.drafts['research-repo-path'] = ''
+        this.drafts[this.draftKey('research-repo-path')] = ''
+        if (s.chat) await this.change('chats', chatSettings(s))
       }
     })
     if (formId === 'research-question-form') this.workbench.graph.fit()
@@ -504,13 +522,15 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
   private branch(anchor: ResearchAnchor) {
     const s = this.state!
     s.anchor = anchor
-    if (anchor.kind === 'response') s.node = anchor.id
-    else {
+    let nodeId: string | null = anchor.kind === 'response' ? anchor.id : null
+    if (anchor.kind === 'note') {
       const block = s.project.notebooks
         .find((n) => n.id === anchor.notebookId)
         ?.blocks.find((b) => b.id === anchor.id)
-      s.node = block?.origin?.nodeId || null
+      nodeId = block?.origin?.nodeId || null
     }
+    if (nodeId) selectResearchNode(s, nodeId, false)
+    else s.node = null
     s.tab = 'research'
     getSelection()?.removeAllRanges()
     this.navigate()
@@ -524,6 +544,10 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
     const turn = this.root.querySelector<HTMLElement>(
       `#turn-${CSS.escape(this.state?.node || '')}`
     )
+    if (matchMedia('(max-width: 560px)').matches)
+      this.root
+        .querySelector('.research-chat')
+        ?.scrollIntoView({ block: 'start' })
     if (transcript && turn)
       transcript.scrollTop +=
         turn.getBoundingClientRect().top -
@@ -533,8 +557,14 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
   private async click(button: HTMLElement) {
     const action = button.dataset.researchAction
     const s = this.state
+    if (this.busy) return
     if (action === 'new-project') {
-      const title = await this.nameDialog('New project', 'Project name', '')
+      const title = await researchNameDialog(
+        this.root,
+        'New project',
+        'Project name',
+        ''
+      )
       if (title) {
         const p = await researchApi.create({ title })
         history.pushState(null, '', `/?space=${p.id}`)
@@ -547,12 +577,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       const node = s.project.nodes.find(
         (n) => n.id === button.dataset.researchNode
       )!
-      s.node = node.id
-      s.anchor = null
-      s.tab = 'research'
-      s.repos = node.repos.map(({ commit: _, ...r }) => r)
-      s.adapter = node.harness.adapter
-      s.model = node.harness.model || ''
+      selectResearchNode(s, node.id)
       this.navigate()
       this.render()
       this.showSelectedTurn()
@@ -614,23 +639,43 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       return
     }
     if (!action) return
+    if (action === 'close-context') {
+      this.root.querySelector('.research-repos')?.removeAttribute('open')
+      return
+    }
     if (action?.startsWith('tab-')) {
       s.tab = action.slice(4) as ResearchViewState['tab']
       this.navigate()
       this.render()
       return
     }
-    if (action === 'new-chat') {
-      s.node = null
-      s.anchor = null
+    if (action === 'new-chat' || action === 'rename-chat') {
+      const current = s.project.chats?.find((c) => c.id === s.chat)
+      const title = await researchNameDialog(
+        this.root,
+        action === 'new-chat' ? 'New chat' : 'Rename chat',
+        'Chat name',
+        action === 'new-chat' ? '' : current?.title || ''
+      )
+      if (!title) return
+      await this.mutation(async () => {
+        await this.change('chats', {
+          title,
+          ...(action === 'rename-chat' ? { chatId: s.chat } : {})
+        })
+        if (action === 'new-chat')
+          selectResearchChat(s, s.project.chats!.at(-1)!.id)
+      })
       this.navigate()
       this.render()
       return
     }
     if (action === 'clear-anchor') s.anchor = null
     if (action === 'clear-error') s.error = ''
-    if (action === 'remove-repo')
+    if (action === 'remove-repo') {
       s.repos.splice(Number(button.dataset.index), 1)
+      await this.saveChatSettings()
+    }
     if (action && this.workbench.handle(action)) return
     if (action === 'dismiss-selection') {
       getSelection()?.removeAllRanges()
@@ -646,16 +691,23 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       return
     }
     if (action === 'new-notebook') {
-      const name = await this.nameDialog('New notebook', 'Notebook name', '')
+      const name = await researchNameDialog(
+        this.root,
+        'New notebook',
+        'Notebook name',
+        ''
+      )
       if (name)
         await this.mutation(async () => {
           await this.change('notebooks', { title: name })
           s.notebook = s.project.notebooks.at(-1)!.id
+          this.navigate()
         })
     }
     if (action === 'rename-project' || action === 'rename-notebook') {
       const notebook = s.project.notebooks.find((n) => n.id === s.notebook)!
-      const name = await this.nameDialog(
+      const name = await researchNameDialog(
+        this.root,
         action === 'rename-project' ? 'Rename project' : 'Rename notebook',
         'Name',
         action === 'rename-project' ? s.project.title : notebook.title
@@ -698,48 +750,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
         'Excerpt saved with its question, response, and repository context. Use View source to return.'
       this.selection = null
     })
-  }
-  private nameDialog(
-    title: string,
-    label: string,
-    value: string
-  ): Promise<string | null> {
-    let dialog = this.root.querySelector<HTMLDialogElement>('#research-dialog')
-    if (!dialog) {
-      dialog = document.createElement('dialog')
-      dialog.id = 'research-dialog'
-      this.root.append(dialog)
-    }
-    dialog.innerHTML = html`<form method="dialog">
-      <h2>${escape(title)}</h2>
-      <label for="research-name">${escape(label)}</label
-      ><input
-        id="research-name"
-        name="name"
-        value="${escape(value)}"
-        maxlength="160"
-        required
-      />
-      <div>
-        <button value="cancel" formnovalidate>Cancel</button
-        ><button value="save" class="research-primary">Save</button>
-      </div>
-    </form>`
-    const target = dialog
-    return new Promise((resolve) => {
-      target.addEventListener(
-        'close',
-        () =>
-          resolve(
-            target.returnValue === 'save'
-              ? target.querySelector<HTMLInputElement>('input')!.value.trim() ||
-                  null
-              : null
-          ),
-        { once: true }
-      )
-      target.showModal()
-      target.querySelector<HTMLInputElement>('input')!.focus()
-    })
+    const notes = this.root.querySelector('.research-note-scroll')
+    if (notes) notes.scrollTop = notes.scrollHeight
   }
 }
