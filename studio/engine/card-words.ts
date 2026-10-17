@@ -42,13 +42,15 @@ export const stem = (word: string) => {
   return w
 }
 
-/** A text's words in order, lower case, apostrophes as typeset. */
+/** A text's words in order, lower case, apostrophes as typeset; a
+ * possessive's ending left off ("the key's window" is key, window: round 3's
+ * audit found "key's" never met "key"). */
 export const tokensOf = (text: string) =>
   String(text || '')
     .toLowerCase()
     .replace(/'/g, '’')
     .split(/[^a-z0-9%’]+/)
-    .map((word) => word.replace(/^’+|’+$/g, ''))
+    .map((word) => word.replace(/^’+|’+$/g, '').replace(/’s$/, ''))
     .filter(Boolean)
 
 const isContent = (word: string) =>

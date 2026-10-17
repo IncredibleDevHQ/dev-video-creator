@@ -179,6 +179,35 @@ it('checks only the words a frame adds, against the creator’s', async () => {
   expect(frameClaims(value, [pages[0], spoken], material)).toEqual([])
 })
 
+it('never sends back a frame that says the creator’s caveat (round 3’s audit)', async () => {
+  const pages = slides.map((slide) => ({
+    id: slide.id,
+    title: slide.title,
+    script: slide.narration,
+    capture: false
+  }))
+  const { checkEpisodePlan } = await import('./storyboard/plan-check')
+  const options = {
+    pages,
+    camera: false,
+    blueprints: [],
+    voMode: 'restructure' as const
+  }
+  const caveat = checkEpisodePlan(
+    plan('After expiry, an old retry won’t be deduplicated.'),
+    options
+  ).value
+  expect(frameClaims(caveat, pages, material)).toEqual([])
+  // A scope of its own is no limit of the creator's.
+  const launch = checkEpisodePlan(
+    plan('During the launch period, a retry can never pour a second latte.'),
+    options
+  ).value
+  expect(frameClaims(launch, pages, material)).toMatchObject([
+    { number: 3, claim: { word: 'never' } }
+  ])
+})
+
 it('sends a frame’s own words past the creator’s back once through the plan’s check, and flags them when still past', async () => {
   const dir = await mkdtemp(join(root, 'production-'))
   await writeFile(join(dir, 'frame.md'), '# Frame\n')

@@ -251,3 +251,95 @@ it('takes a promise word as backed only by the creator’s own words, never a ca
     )
   ).toEqual([])
 })
+
+// Round 3's audit: any scope phrase skipped the check, the creator's own or
+// not; a short caveat missed "can't pour" and "no retry pours" ("key's" never
+// met "key"); and a line that says the caveat itself was flagged, its writer
+// told to leave out what the creator asked for.
+describe('a scope, a short caveat and the caveat itself, as round 3’s audit found', () => {
+  const NOTE_LIMIT = {
+    from: 'the note of 17 October 2026',
+    says: 'Do not promise that an old retry will be deduplicated forever.'
+  }
+  const noted = (note: string) =>
+    materialOf(`${LOG}\n\n## Note, 17 October 2026\n\n${note}`, [])
+
+  it.each([
+    'During the launch period, a retry can never pour a second latte.',
+    'For several weeks we chased this bug, and now a retry can never pour a second latte.',
+    'For several weeks we chased this bug; an idempotency key means a retry can never pour a second latte.',
+    'Next time, during the launch window, an idempotency key means a retry can never pour a second latte.',
+    'Next time: an idempotency key, so a retry can never pour a second latte, as long as you keep the coffee warm.'
+  ])('flags “%s”: its scope is not the creator’s', (line) => {
+    expect(said(line)).toMatchObject([{ word: 'never', limit: NOTE_LIMIT }])
+    expect(said(line, materialOf(LOG, []))).toEqual([])
+  })
+
+  it('lets a scope be that names the creator’s own limit, its expiry or its hours', () => {
+    for (const line of [
+      'Until its key expires, a retry can never pour a second latte.',
+      'Until it expires, a retry can never pour a second latte.',
+      'Within the key’s retention window, a retry can never pour a second latte.',
+      'A retry can never pour a second latte, as long as the server still keeps its key.'
+    ])
+      expect(said(line, materialOf(SOURCE, [])), line).toEqual([])
+    const hours = noted(
+      'The server only keeps a key for 24 hours. Do not promise that an old retry will be deduplicated forever.'
+    )
+    expect(
+      said('For 24 hours, a retry can never pour a second latte.', hours)
+    ).toEqual([])
+    for (const line of [
+      'For 48 hours, a retry can never pour a second latte.',
+      'For several weeks, a retry can never pour a second latte.'
+    ])
+      expect(said(line, hours), line).toMatchObject([{ word: 'never' }])
+  })
+
+  it('reads “the key’s” as the key: a caveat on the key’s window limits a line about the key', () => {
+    const line =
+      'Next time: an idempotency key, so a retry can’t pour a second latte.'
+    for (const caveat of [
+      'Dedup only holds within the key’s retention window.',
+      "Dedup only holds within the key's retention window."
+    ])
+      expect(said(line, noted(caveat)), caveat).toMatchObject([
+        { word: 'can’t', limit: { says: caveat } }
+      ])
+  })
+
+  const SHORT =
+    'Dedup depends on the key’s retention window; don’t promise forever.'
+  it.each([
+    OUTRO,
+    'A retry with the same key never pours a second latte.',
+    'A retry with the same key can’t pour a second latte.',
+    'Next time: an idempotency key, so a retry can’t pour a second latte.',
+    'Next time: an idempotency key, so a retry cannot pour a second latte.',
+    'Next time: an idempotency key, so a retry won’t pour a second latte.',
+    'Next time: an idempotency key, and no retry pours a second latte.',
+    'No retry pours a second latte.',
+    'Next time: no retry pours a second latte.',
+    'Next time: an idempotency key, so a retry is deduplicated forever.'
+  ])('flags “%s” against the short caveat', (line) => {
+    const limit = { from: 'the note of 17 October 2026', says: SHORT }
+    expect(said(line, noted(SHORT))).toMatchObject([{ limit }])
+    // Typed with a plain apostrophe, it is the same caveat.
+    expect(said(line, noted(SHORT.replace(/’/g, "'")))).toMatchObject([
+      { limit: { says: SHORT.replace(/’/g, "'") } }
+    ])
+  })
+
+  it.each([
+    'After expiry, an old retry won’t be deduplicated.',
+    'After expiry, an old retry can’t be deduplicated, so it may pour a second latte.',
+    'Next time: the retention window, so an old retry won’t be deduplicated after expiry.',
+    'An old retry is never deduplicated forever: keys expire.',
+    'Dedup won’t last forever: it depends on the key’s retention window.',
+    'Within the key’s retention window, a retry can never pour a second latte.',
+    'A retry can never pour a second latte, as long as the server still keeps its key.'
+  ])('lets “%s” be: it keeps the caveat', (line) => {
+    expect(said(line), 'the note').toEqual([])
+    expect(said(line, noted(SHORT)), 'the short caveat').toEqual([])
+  })
+})

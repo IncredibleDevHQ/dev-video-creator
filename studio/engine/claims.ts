@@ -140,13 +140,63 @@ const placeOf = (sentence: string, at: number, length = 0) => {
     previous: index > 0 ? clauses[index - 1].text : ''
   }
 }
-/** Whether a line states a limit for its absolute word, in the word's clause
- * or one beside it. */
-const scopedAt = (sentence: string, said: Said) => {
+/** The limit a line states for its absolute word, in the word's clause or
+ * one beside it: from the scope's first word to the clause's end, or to the
+ * absolute word ("within the key's retention window"); '' when none. */
+const scopeAt = (sentence: string, said: Said) => {
   const { clauses, index } = clauseAt(sentence, said.at, said.word.length)
   return clauses
     .slice(Math.max(0, index - 1), index + 2)
-    .some((clause) => STATES_SCOPE.test(clause.text))
+    .flatMap((clause) => {
+      const found = STATES_SCOPE.exec(clause.text)
+      if (!found) return []
+      const from = clause.start + found.index
+      const end = clause.start + clause.text.length
+      return [
+        sentence.slice(from, said.at > from && said.at < end ? said.at : end)
+      ]
+    })
+    .join(' ')
+    .replace(SCOPE_WORDS, ' ')
+}
+/** The words that only say a scope follows: "long" in "as long as" is no
+ * word of the limit. */
+const SCOPE_WORDS = /\b(?:as|so) long as\b|\bprovided\b|\binside\b/gi
+/** Words that name a limit: a lifetime, an expiry, a window, a time. */
+const LIMITING =
+  /^(?:keep|expir|ttl|lifetim|valid|window|period|stor|evict|minut|hour|day|week|month|year|\d+)$/
+/** Of those, the ones only a lifetime's limit says. */
+const OWN_LIMIT = /^(?:retain|retent|expir|ttl|lifetim)/
+/** A limit's words, one word for one limit: retention, retained and kept
+ * are all "keep". */
+const limitWords = (text: string) =>
+  contentWords(text).map((word) => ({
+    word: /^(?:retain|retent|kept$)/.test(word)
+      ? 'keep'
+      : /^expir/.test(word)
+        ? 'expir'
+        : TWICE.has(word)
+          ? 'twice'
+          : word,
+    own: OWN_LIMIT.test(word)
+  }))
+/**
+ * Whether the limit a line states is the creator's own: it shares a word
+ * only a lifetime's limit says (retention, expiry, TTL), or two words, one
+ * of them a limit's ("as long as the server keeps its key"). A scope of the
+ * line's own ("during the launch period", "for several weeks") is none
+ * (review 8, round 3's audit: any such phrase skipped the check).
+ */
+const keepsTo = (scope: string, caveats: Sentence[]) => {
+  const theirs = new Set(
+    caveats.flatMap((one) => limitWords(one.text)).map((one) => one.word)
+  )
+  const met = limitWords(scope).filter((one) => theirs.has(one.word))
+  return (
+    met.some((one) => one.own) ||
+    (new Set(met.map((one) => one.word)).size >= 2 &&
+      met.some((one) => LIMITING.test(one.word)))
+  )
 }
 const isNegated = (before: string, kind: string) =>
   tokensOf(before)
@@ -205,6 +255,8 @@ type Sentence = {
   by: Passage['by']
   /** The sentences on either side, in its passage. */
   around: string
+  /** The sentence before it, in its passage. */
+  before: string
 }
 /** The material, sentence by sentence, each once, with its neighbours. */
 const sentencesIn = (material: Passage[]) => {
@@ -220,7 +272,8 @@ const sentencesIn = (material: Passage[]) => {
           text: sentence,
           from,
           by,
-          around: all.slice(Math.max(0, at - 1), at + 2).join(' ')
+          around: all.slice(Math.max(0, at - 1), at + 2).join(' '),
+          before: all[at - 1] || ''
         }
       ]
     })
@@ -316,16 +369,72 @@ const limitOf = (
     .filter((item) => item.meets >= least)
     .sort((one, other) => other.score - one.score)[0]?.source
 
+/** What "won't" or "never" turns when it says a limit: "won't last
+ * forever", "can't always". */
+const NOT_FOREVER =
+  /\b(?:forever|always|for\s+good|every\s+(?:single\s+)?time|guarantee[sd]?)\b/i
+/** A text's content words, absolutes left out, a dedup said one way. */
+const plainOf = (text: string) =>
+  contentWords(text.replace(ABSOLUTE, ' ')).map((word) =>
+    word === 'dedup' ? 'deduplicat' : word
+  )
+/** What a ruled-out promise says happens: its words after "will be", "is"
+ * ("an old retry will be deduplicated forever": deduplicated). */
+const predicateOf = (phrase: string) =>
+  new Set(
+    plainOf(
+      /\b(?:will|would|shall|is|are|was|were|be|been|can|could|gets?|got|stays?|remains?)\s+(.+)$/i.exec(
+        phrase
+      )?.[1] || ''
+    )
+  )
+/** What a sentence limits: its words before its verb ("Dedup depends on the
+ * key's retention window": dedup), or its first word. */
+const LINKS =
+  /\b(?:depends?|relies|rely|holds?|lasts?|works?|only|is|are|was|were|needs?|requires?|expires?|ends?|applies|covers?|has|have|can|will|may|might|must|should)\b/i
+const topicOf = (text: string) => {
+  const at = text.search(LINKS)
+  return at > 0 ? text.slice(0, at) : text.trim().split(/\s+/)[0] || ''
+}
 /** The material's negated promises, each with the words of what it rules
  * out ("Do not promise that an old retry will be deduplicated forever": old,
- * retry, twice). */
+ * retry, twice), how many a line must share, and what it denies happens
+ * (deduplicated). One that names nothing ("Dedup depends on the key's
+ * retention window; don't promise forever") rules out an absolute about
+ * what its sentence, or the one before it, limits (round 3's audit). */
 const ruledOut = (sources: Sentence[]) =>
   sources.flatMap((source) => {
     const negated = NEGATED_PROMISE.exec(source.text)
     if (!negated) return []
     const rest = source.text.slice(negated.index + negated[0].length)
-    const words = new Set(aboutOf(RULED_OUT.exec(rest)?.[1] || ''))
-    return words.size >= 2 ? [{ source, words }] : []
+    const phrase = RULED_OUT.exec(rest)?.[1] || ''
+    const words = new Set(aboutOf(phrase))
+    if (words.size >= 2)
+      return [
+        {
+          source,
+          words,
+          least: Math.max(2, Math.ceil(words.size * 0.6)),
+          denies: predicateOf(phrase)
+        }
+      ]
+    // What it limits is what it says not to promise forever: a line that
+    // says it fails ("won't be deduplicated") keeps the caveat.
+    const lead = source.text.slice(0, negated.index)
+    const named = words.size
+      ? phrase
+      : topicOf(/[a-z0-9]/i.test(lead) ? lead : source.before)
+    const topic = new Set(aboutOf(named))
+    return topic.size
+      ? [
+          {
+            source,
+            words: topic,
+            least: Math.ceil(topic.size * 0.6),
+            denies: new Set(plainOf(named))
+          }
+        ]
+      : []
   })
 
 /**
@@ -341,9 +450,12 @@ const ruledOut = (sources: Sentence[]) =>
  *   against "do not promise that an old retry will be deduplicated
  *   forever"); advice ("never hammer a struggling server") and a story line
  *   are no promise.
- * - A line that states its own limit beside the word ("within the key's
- *   retention window") promises nothing more; a sentence that limits backs
- *   nothing.
+ * - A line that states the creator's own limit beside the word ("within the
+ *   key's retention window") promises nothing more; a scope of its own
+ *   ("during the launch period") is no such limit. A line that says the
+ *   caveat itself ("After expiry, an old retry won't be deduplicated")
+ *   denies what was ruled out: it is no claim past it. A sentence that
+ *   limits backs nothing.
  */
 export const overclaims = (text: string, material: Passage[]) => {
   const sources = sentencesIn(material)
@@ -351,12 +463,21 @@ export const overclaims = (text: string, material: Passage[]) => {
   const found: Overclaim[] = []
   for (const sentence of sentencesOf(text)) {
     for (const said of absolutesIn(sentence)) {
-      if (scopedAt(sentence, said)) continue
       const { clause, before, previous } = placeOf(
         sentence,
         said.at,
         said.word.length
       )
+      // The caveat said: what "won't" or "never" turns is what the creator
+      // said not to promise ("after expiry, an old retry won't be
+      // deduplicated"), or forever itself ("dedup won't last forever"). It
+      // keeps the limit (round 3's audit: the caveat itself was flagged).
+      if (said.kind === 'never' && said.word.toLowerCase() !== 'no') {
+        const rest = clause.slice(before.length + said.word.length)
+        const turns = plainOf(rest)[0]
+        if (turns && forbids.some(({ denies }) => denies.has(turns))) continue
+        if (NOT_FOREVER.test(rest)) continue
+      }
       const head = tokensOf(before)
       const promise = PROMISES.has(said.kind)
       // Advice: "Never trust…", "should always…"; "No retry pours…" is none.
@@ -366,8 +487,7 @@ export const overclaims = (text: string, material: Passage[]) => {
       // What the material said not to promise, promised outright: it needs
       // no "so" (round 2's audit).
       const against = forbids.find(
-        ({ words }) =>
-          shared(clause, words) >= Math.max(2, Math.ceil(words.size * 0.6))
+        ({ words, least }) => shared(clause, words) >= least
       )?.source
       if (!promise && !outcome && !BRINGS.test(before) && !against) continue
       const subject = new Set(aboutOf(`${outcome ? previous : ''} ${clause}`))
@@ -384,6 +504,13 @@ export const overclaims = (text: string, material: Passage[]) => {
       const limit =
         limitOf(sources, subject, said.kind, Math.max(1, need)) ?? against
       if (!limit && !promise) continue
+      // A limit the line states is the creator's own, or no limit: the
+      // caveats are the sentences that restrict and touch what it is about.
+      const scope = scopeAt(sentence, said)
+      const caveats = sources.filter(
+        (source) => restricts(source.text) && shared(source.around, subject)
+      )
+      if (scope && keepsTo(scope, caveats)) continue
       found.push({
         word: said.word,
         sentence,
