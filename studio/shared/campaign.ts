@@ -105,6 +105,20 @@ export const followTheRelease = (release: Release | undefined) => {
   if (when) for (const item of old) item.time = clockOf(when, item)
 }
 
+/**
+ * A teaser's words planned before they ended as a sentence, still unposted
+ * ("One click, two lattes Out soon."): the full stop they were missing
+ * (review 8, round 1). Words the creator punctuated are left as they are.
+ */
+export const endOldSentences = (release: Release | undefined) => {
+  for (const item of release?.campaign || []) {
+    if (item.kind !== 'teaser') continue
+    if (!['draft', 'approved', 'dropped'].includes(item.state)) continue
+    const old = /^(.*[^\s.!?…,;:"”’)])\s+Out soon\.$/s.exec(item.words)
+    if (old) item.words = `${old[1]}. Out soon.`
+  }
+}
+
 /** How soon a step can still be planned for: an hour from now, time to
  * approve and post it. */
 const LEAD_MS = 60 * 60_000

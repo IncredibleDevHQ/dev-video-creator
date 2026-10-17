@@ -3,7 +3,7 @@ import { scheduleSource } from './notebook-intake'
 import { addEvent } from './activity'
 export { addEvent } from './activity'
 import { sumUsage } from '../shared/usage'
-import { followTheRelease } from '../shared/campaign'
+import { endOldSentences, followTheRelease } from '../shared/campaign'
 import { cancelEngineRun, type EngineRun } from './harness/runtime'
 import {
   generationStops,
@@ -80,6 +80,8 @@ export const loadProject = async (id: string) => {
     fromTemplate(snapshot.project)
     // Launch posts planned at the old template's times follow the release.
     followTheRelease(snapshot.project.release)
+    // A teaser's words planned without a full stop before Out soon get one.
+    endOldSentences(snapshot.project.release)
     movedKeysBack(snapshot.project)
     snapshot.views = projectViews(snapshot.project, snapshot.events)
     snapshot.views.video.display = videoDisplay(snapshot)

@@ -225,3 +225,38 @@ it('ends a teaser’s first words as a sentence before "Out soon." (F18, round 1
       .map((item) => item.words)
   ).toEqual(['One tap? Out soon.', 'Why two lattes! Out soon.'])
 })
+
+it('gives a teaser’s words planned before the fix their full stop, when it opens (F18, round 1)', async () => {
+  const teaser = (id: string, words: string, extra = {}): CampaignItem => ({
+    id,
+    channel: 'x',
+    asset: 'teaser-x',
+    kind: 'teaser',
+    words,
+    offsetDays: -3,
+    time: '18:00',
+    state: 'draft',
+    ...extra
+  })
+  const old = project([
+    teaser('a', 'One click, two lattes Out soon.'),
+    teaser('b', 'One tap? Out soon.'),
+    teaser('c', 'Two lattes Out soon.', { state: 'posted' }),
+    teaser('d', 'My own words, Out soon.'),
+    { ...teaser('e', 'One click Out soon.'), kind: 'clip' }
+  ])
+  old.id = 'old-words'
+  await writeRow('projects', 'old-words', snapshot(old))
+  const words = (await loadProject('old-words'))!.project.release!.campaign.map(
+    (item) => item.words
+  )
+  // Only the template's words, still to go out: what went out, what the
+  // creator punctuated, and other kinds stay as they are.
+  expect(words).toEqual([
+    'One click, two lattes. Out soon.',
+    'One tap? Out soon.',
+    'Two lattes Out soon.',
+    'My own words, Out soon.',
+    'One click Out soon.'
+  ])
+})
