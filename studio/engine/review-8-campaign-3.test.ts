@@ -133,3 +133,63 @@ it('marks YouTube’s launch as up when its link is pasted, and its row can say 
     )!.state
   ).toBe('draft')
 })
+
+/** A launch post's time of day as it goes out, read back from disk. */
+const clock = async (id: string, channel: string) => {
+  const release = (await loadProject(id))!.project.release!
+  const item = release.campaign.find(
+    (entry) => entry.kind === 'launch' && entry.channel === channel
+  )!
+  return plan.clockOf({ ...release, at: release.at! }, item)
+}
+
+it('keeps a launch time the creator chose, and moves an old plan’s template times once (round 2)', async () => {
+  await save(project('own'))
+  await planCampaignFor('own')
+  // The reviewer's example: the release at 18:00, YouTube set to 08:00.
+  await changeItem('own', { item: 'launch-youtube-0', time: '08:00' })
+  expect(await clock('own', 'youtube')).toBe('08:00')
+  // All three given the old template's times of their own stay too (X and
+  // LinkedIn follow YouTube's 08:00 to 09:00 and 10:00, so they are moved
+  // away first, then back).
+  for (const [item, away, time] of [
+    ['launch-x-0', '09:30', '09:00'],
+    ['launch-linkedin-0', '10:30', '10:00']
+  ]) {
+    await changeItem('own', { item, time: away })
+    await changeItem('own', { item, time })
+  }
+  expect(
+    (await loadProject('own'))!.project.release!.campaign.filter(
+      (item) => item.kind === 'launch' && item.afterRelease !== undefined
+    )
+  ).toEqual([])
+  expect([
+    await clock('own', 'youtube'),
+    await clock('own', 'x'),
+    await clock('own', 'linkedin')
+  ]).toEqual(['08:00', '09:00', '10:00'])
+  // Saved before the campaign was marked (round 1): a plan whose X and
+  // LinkedIn posts follow the release is no old plan.
+  const unmarked = project('unmarked')
+  unmarked.release!.campaign = plan.planCampaign(unmarked, { now: EARLY })
+  const youtube = youtubeLaunch(unmarked)
+  delete youtube.afterRelease
+  youtube.time = '08:00'
+  await save(unmarked)
+  expect(await clock('unmarked', 'youtube')).toBe('08:00')
+  // An old plan at the template's times follows the release, once.
+  const legacy = project('legacy')
+  const old = { youtube: '08:00', x: '09:00', linkedin: '10:00' }
+  legacy.release!.campaign = plan
+    .planCampaign(legacy, { now: EARLY })
+    .map((item) => {
+      if (item.kind !== 'launch') return item
+      const { afterRelease: _, ...rest } = item
+      return { ...rest, time: old[item.channel] }
+    })
+  await save(legacy)
+  expect(await clock('legacy', 'youtube')).toBe('18:00')
+  await changeItem('legacy', { item: 'launch-youtube-0', time: '08:00' })
+  expect(await clock('legacy', 'youtube')).toBe('08:00')
+})

@@ -38,6 +38,7 @@ export const planCampaignFor = async (id: string) => {
     // Planned today: what has gone by is moved closer or left out, and said.
     const plan = campaignPlan(current.project, { lastOfRun })
     release.campaign = plan.items
+    release.launchesFollow = true
     if (plan.note) release.campaignNote = plan.note
     else delete release.campaignNote
     current.project.release = release

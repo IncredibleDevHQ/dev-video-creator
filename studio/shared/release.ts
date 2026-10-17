@@ -110,6 +110,10 @@ export type Release = {
   >
   drafting?: { state: 'drafting' | 'failed'; error?: string; at: string }
   campaign: CampaignItem[]
+  /** The campaign's launch posts move with the release: planned so, or an
+   * older plan's moved once. A time the creator sets after is never moved
+   * again (review 8, round 2). */
+  launchesFollow?: boolean
   /** What the last plan left out or moved, planned close to the release. */
   campaignNote?: string
   /** The thumbnail the creator chose: a storyboard frame's still, or a

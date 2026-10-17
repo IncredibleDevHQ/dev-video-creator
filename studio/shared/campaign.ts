@@ -110,13 +110,19 @@ export const clockOf = (release: Timed, item: CampaignItem) =>
  * Launch posts planned before they moved with the release, still at the
  * template's times (YouTube 08:00, X 09:00, LinkedIn 10:00, on the day):
  * they follow it now, as a new plan's do (review 8, round 1: YouTube showed
- * 08:00 as "its own time", and the publisher proposed it).
+ * 08:00 as "its own time", and the publisher proposed it). Once only: the
+ * campaign is marked, and a plan with a launch post that follows the
+ * release is no old plan, so a time the creator gives a launch post is
+ * never taken for the template's (round 2: YouTube set to 08:00 by hand
+ * went back to the release's 18:00 on the next load).
  */
 export const followTheRelease = (release: Release | undefined) => {
-  const old = (release?.campaign || []).filter(
+  if (!release?.campaign?.length || release.launchesFollow) return
+  release.launchesFollow = true
+  const launches = release.campaign.filter((item) => item.kind === 'launch')
+  if (launches.some((item) => item.afterRelease !== undefined)) return
+  const old = launches.filter(
     (item) =>
-      item.kind === 'launch' &&
-      item.afterRelease === undefined &&
       item.offsetDays === 0 &&
       ['draft', 'approved', 'dropped'].includes(item.state) &&
       item.time === OLD_LAUNCH[item.channel]
