@@ -713,6 +713,12 @@ describe('focus as a bar menu closes (round 1)', () => {
     menu.querySelector<HTMLElement>('button')!.focus()
     fire(focused!, 'keydown', { key: 'Escape' })
     expect([menu.hidden, opener()]).toEqual([true, 'menu:move-to'])
+    // The canvas's Add menu, opened from +: Esc gives focus back to +.
+    click(map.root.querySelector('[data-map="add"]'))
+    await settle()
+    expect([menu.hidden, menu.contains(focused)]).toEqual([false, true])
+    fire(focused!, 'keydown', { key: 'Escape' })
+    expect([menu.hidden, opener()]).toEqual([true, 'add'])
   })
 })
 

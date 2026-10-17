@@ -7,6 +7,7 @@
 // series' outcome and audience, a gap's note, Undo for organising.
 import type { MapCanvas } from './map-canvas'
 import { mapApi } from './map-api'
+import { hideMenu } from './map-bar'
 import { LH, type Box } from './map-layout'
 import { addMenu } from './map-nodes'
 import { repaintWires } from './map-paint'
@@ -241,7 +242,8 @@ export const installFlowInput = (map: MapCanvas) => {
     } else if (key === 'escape') {
       event.preventDefault()
       event.stopPropagation()
-      menu.hidden = true
+      // Focus goes back to the + that opened it (review 8).
+      hideMenu(map)
     }
   })
 }
