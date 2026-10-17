@@ -427,6 +427,50 @@ it('gives a frame stopped by the creator no finding to fix on its next try (F11)
     expect((input as { findings?: string[] }).findings).toBeUndefined()
 })
 
+it('builds a frame that failed again with what its last try found, and it reads as being built meanwhile (round 2)', async () => {
+  const failed = {
+    statuses: { 1: 'failed', 2: 'animated' } as const,
+    problems: { 1: ['Text runs off the frame'] }
+  }
+  await seed('frames-again', {
+    stage: 'frames',
+    status: 'working',
+    approved: true,
+    plan: planSummary({ plan, ...failed })
+  })
+  const shot = (number: number) => ({
+    number,
+    blueprint: 'compose',
+    focal: 'The key',
+    roles: 'One focal point',
+    windows: []
+  })
+  await writeInternal(
+    storyboardDir('frames-again', await stored('frames-again')),
+    {
+      plan,
+      ...failed,
+      rounds: 0,
+      voiced: ['p1'],
+      durations: { 1: 3, 2: 3 },
+      shots: { 1: shot(1), 2: shot(2) }
+    }
+  )
+  const during: unknown[] = []
+  built.mockReset()
+  built.mockImplementation(
+    async (input: { number: number; findings?: string[] }) => {
+      const now = (await stored('frames-again')).plan!.scenes[0].frames.find(
+        (entry) => entry.number === input.number
+      )!
+      during.push([input.findings, now.status, now.problem])
+    }
+  )
+  scheduleStoryboard('frames-again')
+  await settledStoryboard('frames-again')
+  expect(during).toEqual([[['Text runs off the frame'], 'outline', undefined]])
+})
+
 it('offers Remake, not Try again, on a stopped production that went stale, and Stop beside Remake while it works (F04, F11)', async () => {
   await seed('stale-stop', {
     stage: 'stills',

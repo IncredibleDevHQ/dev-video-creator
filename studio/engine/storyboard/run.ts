@@ -34,7 +34,10 @@ export const update = (
  * them; the board says Stopped once (review 8 F11, round 2). */
 export const stopAsked = async (projectId: string) =>
   Boolean((await loadProject(projectId))?.project.video?.storyboard?.stopping)
-export const leaveAsWas = (internal: Internal, number: number) => {
+/** A frame's failure taken back, as Stop cut it short or as it is tried
+ * again: posed if its still is, else an outline. A frame tried again read
+ * Stopped, its old error under it, while it was posed (review 8, round 2). */
+export const clearFailure = (internal: Internal, number: number) => {
   delete internal.problems?.[number]
   if (internal.stills?.[number]) internal.statuses![number] = 'built'
   else delete internal.statuses![number]

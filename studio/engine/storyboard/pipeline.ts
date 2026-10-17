@@ -31,8 +31,8 @@ import { stillsStage } from './stills-stage'
 import {
   LAYOUTS,
   MOTION,
+  clearFailure,
   concurrency,
-  leaveAsWas,
   origin,
   pageTitles,
   selectionOf,
@@ -577,6 +577,12 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
     while (cursor < todo.length) {
       if (await stopAsked(snapshot.project.id)) return
       const frame = todo[cursor++]
+      // What its last try found is for this one to fix.
+      const findings = internal.problems![frame.number]
+      if (internal.statuses![frame.number] === 'failed') {
+        clearFailure(internal, frame.number)
+        await save()
+      }
       try {
         await buildFrame({
           projectId: snapshot.project.id,
@@ -590,7 +596,7 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
           sketch: Boolean(internal.stills?.[frame.number]),
           selection,
           origin: origin(),
-          findings: internal.problems![frame.number],
+          findings,
           onAccepted: async () => {
             internal.statuses![frame.number] = 'animated'
             delete internal.problems![frame.number]
@@ -600,7 +606,7 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
       } catch (error) {
         // A run the creator stopped is no finding for the frame's next try.
         if (await stopAsked(snapshot.project.id))
-          leaveAsWas(internal, frame.number)
+          clearFailure(internal, frame.number)
         else {
           internal.statuses![frame.number] = 'failed'
           internal.problems![frame.number] = [

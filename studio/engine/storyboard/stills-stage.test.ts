@@ -228,11 +228,20 @@ it('poses every frame, keeps a failed one for a retry, then takes notes round by
   const board = await readFile(join(dir, 'boards', 'storyboard.html'), 'utf8')
   expect(board.match(/class="frame"/g)).toHaveLength(4)
   expect(existsSync(join(dir, 'STORYBOARD.md'))).toBe(true)
-  // Tried again: only the frame that failed is posed.
+  // Tried again: only the frame that failed is posed, and while it is it
+  // reads as being posed, its old error gone (round 2).
   pose.mockReset()
-  pose.mockImplementation(async (input: PoseInput) => input.onAccepted())
+  const during: unknown[] = []
+  pose.mockImplementation(async (input: PoseInput) => {
+    const now = (await stored('stills'))
+      .plan!.scenes.flatMap((scene) => scene.frames)
+      .find((entry) => entry.number === input.number)!
+    during.push([now.status, now.problem])
+    return input.onAccepted()
+  })
   await run()
   expect(pose.mock.calls.map(([input]) => input.number)).toEqual([3])
+  expect(during).toEqual([['outline', undefined]])
   value = await stored('stills')
   expect([value.stage, value.status, value.waitingFor]).toEqual([
     'board',

@@ -10,8 +10,8 @@ import { writeFramePackets } from './frames'
 import {
   LAYOUTS,
   MOTION,
+  clearFailure,
   concurrency,
-  leaveAsWas,
   origin,
   pageTitles,
   selectionOf,
@@ -96,6 +96,10 @@ export const stillsStage = async ({
       if (await stopAsked(snapshot.project.id)) return
       const frame = todo[cursor++]
       const at = frames.indexOf(frame)
+      if (internal.statuses![frame.number] === 'failed') {
+        clearFailure(internal, frame.number)
+        await save()
+      }
       try {
         await poseFrame({
           projectId: snapshot.project.id,
@@ -127,7 +131,7 @@ export const stillsStage = async ({
         })
       } catch (error) {
         if (await stopAsked(snapshot.project.id))
-          leaveAsWas(internal, frame.number)
+          clearFailure(internal, frame.number)
         else {
           internal.statuses![frame.number] = 'failed'
           internal.problems![frame.number] = [
