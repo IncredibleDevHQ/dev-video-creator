@@ -1,5 +1,6 @@
 import { html } from './ui'
 import type { Snapshot } from '../shared/api'
+import { openChecks } from '../shared/claims'
 import type { ChangeTarget, Slide, SlideChange } from '../shared/model'
 import { agentNames } from './agent-setup'
 import { escape, button } from './ui'
@@ -10,15 +11,18 @@ import { pageStory, storyGaps } from './wireframe-story'
 import { doneCount, pageWork } from './wireframe-progress'
 
 /** A line in or out that still promises more than the creator's notes
- * after one rewrite: what to check, under it (review 8). */
+ * after one rewrite: what to check, under it, and the two answers to it
+ * (review 8). */
 const segueCheck = (
   snapshot: Snapshot,
   slide: Slide,
   line: 'bridge' | 'outro'
 ) => {
-  const check = snapshot.project.segueChecks?.[slide.id]?.[line]
-  return check && check.line === slide[line]
-    ? `<p class="page-check">Check this line <small>${escape(check.note)}</small></p>`
+  const note = openChecks(snapshot.project, slide)?.[line]
+  const act = (action: string, label: string) =>
+    `<button type="button" class="quiet" data-action="${action}" data-slide="${escape(slide.id)}" data-line="${line}">${label}</button>`
+  return note
+    ? `<p class="page-check">Check this line <small>${escape(note)}</small> ${act('segue-again', 'Write it again')}${act('segue-keep', 'Keep it')}</p>`
     : ''
 }
 

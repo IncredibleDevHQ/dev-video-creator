@@ -356,7 +356,20 @@ export const segueCard = (episode: MapEpisode, end: boolean, last: boolean) => {
     : episode.number === 1
       ? 'Cold open'
       : 'Last time'
-  return `<div class="map-segue-k">${label}</div><div class="map-segue-s">${writing ? 'writing…' : escape(text || (episode.segues === 'failed' ? 'Could not write it' : '—'))}</div>`
+  const note = copy && !writing ? copy.checks?.[end ? 'outro' : 'bridge'] : ''
+  return `<div class="map-segue-k">${label}${note ? ' <b class="map-check">check</b>' : ''}</div><div class="map-segue-s">${writing ? 'writing…' : escape(text || (episode.segues === 'failed' ? 'Could not write it' : '—'))}</div>${note && copy ? segueCheck(episode, copy.id, end ? 'outro' : 'bridge', note) : ''}`
+}
+
+/** A line still past the creator's words after one rewrite: what to check
+ * and the two answers, shown once its episode is open (review 8). */
+export const segueCheck = (
+  episode: MapEpisode,
+  copy: string,
+  line: 'bridge' | 'outro',
+  note: string
+) => {
+  const arg = escape(`${episode.notebook}|${copy}|${line}`)
+  return `<div class="map-segue-check"><small>${escape(note)}</small><span><button type="button" class="quiet" data-map="segue-again:${arg}">Write it again</button><button type="button" class="quiet" data-map="segue-keep:${arg}">Keep it</button></span></div>`
 }
 
 const fitArrow = (fit: 'short' | 'long') =>

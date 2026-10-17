@@ -13,6 +13,8 @@ import type {
   EpisodePlan,
   LengthGoal
 } from '../../shared/storyboard'
+import { sentencesOf } from '../card-words'
+import { askOnce, claimProblem, overclaims, type Passage } from '../claims'
 import {
   runValidatedJsonStage,
   type CreativeSelection
@@ -235,6 +237,34 @@ export const episodeBrief = (input: {
   return lines.join('\n')
 }
 
+const plainWords = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+/**
+ * What the plan's frames promise past the creator's words: only what a
+ * frame says that no page's script does (its own call-back or hand-off, a
+ * line it restructured), checked against the creator's material (review 8).
+ */
+export const frameClaims = (
+  plan: EpisodePlan,
+  pages: PlanPage[],
+  material: Passage[]
+) => {
+  const scripts = pages.map((page) => plainWords(page.script))
+  return plan.scenes
+    .flatMap((scene) => scene.frames)
+    .flatMap((frame) => {
+      const own = sentencesOf(frame.voiceover || '').filter(
+        (sentence) =>
+          !scripts.some((script) => script.includes(plainWords(sentence)))
+      )
+      const [claim] = own.length ? overclaims(own.join(' '), material) : []
+      return claim ? [{ number: frame.number, claim }] : []
+    })
+}
+
 export const planEpisode = async (input: {
   snapshot: Snapshot
   dir: string
@@ -247,6 +277,8 @@ export const planEpisode = async (input: {
   previous?: EpisodePlan
   builds?: Record<string, BuildType>
   logo?: string | null
+  /** The creator's material its words may promise no more than. */
+  material?: Passage[]
 }) => {
   const { snapshot } = input
   const pages = planPages(snapshot, input.pages)
@@ -326,18 +358,27 @@ export const planEpisode = async (input: {
     packet,
     selection: input.selection,
     origin: input.origin,
-    validate: (raw) =>
-      checkEpisodePlan(raw, {
-        pages,
-        camera,
-        length,
-        blueprints,
-        builds: input.builds,
-        voMode,
-        logo: Boolean(input.logo)
-      })
+    // A frame's own words that promise past the creator's go back once.
+    validate: askOnce(
+      (raw) =>
+        checkEpisodePlan(raw, {
+          pages,
+          camera,
+          length,
+          blueprints,
+          builds: input.builds,
+          voMode,
+          logo: Boolean(input.logo)
+        }),
+      (plan) =>
+        frameClaims(plan, pages, input.material || []).map((item) =>
+          claimProblem(`Frame ${item.number}`, item.claim)
+        )
+    )
   })
-  return { plan, length, brief }
+  // What still promises past them after the rewrite: flagged on its frame.
+  const claims = frameClaims(plan, pages, input.material || [])
+  return { plan, length, brief, claims }
 }
 
 /** BRIEF.md, STORYBOARD.md and SCRIPT.md in the project, from the plan. */

@@ -21,9 +21,9 @@ import {
   claimNote,
   claimProblem,
   limitsFor,
-  materialOf,
   overclaims
 } from './claims'
+import { episodeMaterial } from './claims-material'
 import { runValidatedJsonStage } from './creative/stage'
 import { detectedHarness } from './notebook-intake'
 import { readAsset } from './persistence'
@@ -94,15 +94,7 @@ export const draftPosts = async (id: string) => {
   })
   // What the creator wrote: the map's source with every note, and the
   // pages' own words, not the lines the studio wrote around them.
-  const map = project.copyOfMap ? await loadProject(project.copyOfMap) : null
-  const material = materialOf(map?.project.source ?? project.source, [
-    ...project.slides,
-    ...project.slides.flatMap(
-      (slide) =>
-        map?.project.slides.find((page) => page.id === slide.copyOf?.slide) ??
-        []
-    )
-  ])
+  const material = await episodeMaterial(snapshot, { neighbours: true })
   const brief = {
     title: project.title,
     template: narrativeById(project.narrative)?.name || null,
@@ -120,13 +112,13 @@ export const draftPosts = async (id: string) => {
         }
       : null,
     // The creator's own limits on what the posts may promise.
+    // What its pages and the episodes either side say: a post speaks of
+    // the next episode too.
     limits: limitsFor(
       material,
-      project.slides
-        .map(
-          (slide) =>
-            `${slide.title} ${slide.idea || ''} ${slide.base ?? slide.narration ?? ''}`
-        )
+      material
+        .filter((passage) => passage.from.startsWith('the card'))
+        .map((passage) => passage.text)
         .join(' ')
     )
   }
@@ -177,7 +169,15 @@ export const draftPosts = async (id: string) => {
         'video',
         'Drafted the posts for X, LinkedIn and YouTube'
       )
-      // Still past the creator's words after the rewrite: said, to check.
+      // Still past the creator's words after the rewrite: flagged beside
+      // the post, to write again or keep, and said.
+      release.postChecks = Object.fromEntries(
+        left.map(({ channel, claim }) => [
+          channel,
+          { text: words[channel], note: claimNote(claim) }
+        ])
+      )
+      if (!left.length) delete release.postChecks
       for (const { channel, claim } of left)
         addEvent(
           current,
@@ -239,6 +239,19 @@ export const updateRelease = (id: string, raw: unknown) => {
             POST_LIMITS[channel] + 200
           )
       release.posts = { ...next, at: new Date().toISOString() }
+    }
+    // A flagged post the creator keeps as it is: the flag goes (review 8).
+    const kept = value.keepCheck as Channel | undefined
+    if (kept !== undefined) {
+      const check = release.postChecks?.[kept]
+      if (!check || check.text !== release.posts?.[kept])
+        throw new Refusal('That post is no longer flagged')
+      check.kept = true
+      addEvent(
+        current,
+        'video',
+        `Kept the ${CHANNEL_LABELS[kept]} post as it is`
+      )
     }
     current.project.release = release
   })

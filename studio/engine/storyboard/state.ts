@@ -39,6 +39,9 @@ export type Internal = {
   /** Frames whose still is posed (boards/poses/<id>.html, its picture in
    * boards/stills/<id>.png), by number: when it was posed. */
   stills?: Record<number, string>
+  /** Frames whose own words still promise past the creator's after one
+   * rewrite, by number: what to check (review 8). */
+  claims?: Record<number, string>
 }
 
 const statePath = (dir: string) => join(dir, '.studio', 'state.json')
@@ -105,7 +108,9 @@ export const writeProjectFiles = async (dir: string, internal: Internal) => {
 export const planSummary = (
   internal: Internal,
   takes: Record<string, SceneSummary['take']> = {},
-  recordVoice = false
+  recordVoice = false,
+  /** Frames whose flagged words the creator kept. */
+  kept: number[] = []
 ): Storyboard['plan'] => {
   const plan = internal.plan!
   return {
@@ -137,6 +142,9 @@ export const planSummary = (
         status: internal.statuses?.[frame.number] || 'outline',
         ...(internal.problems?.[frame.number]?.length
           ? { problem: internal.problems[frame.number][0] }
+          : {}),
+        ...(internal.claims?.[frame.number] && !kept.includes(frame.number)
+          ? { claim: internal.claims[frame.number] }
           : {}),
         ...(internal.stills?.[frame.number]
           ? { still: internal.stills[frame.number] }

@@ -6,6 +6,7 @@
 // because an episode did.
 import { randomUUID } from 'node:crypto'
 import type { Snapshot } from '../shared/api'
+import { openChecks } from '../shared/claims'
 import type { MapCopy, MapEpisode, MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
 import { organizes, type Series } from '../shared/series'
@@ -609,6 +610,8 @@ export const mapView = async (mapId: string): Promise<MapView> => {
     const scenes = new Map(
       (ep.project.video?.scenes || []).map((scene) => [scene.slideId, scene])
     )
+    // A line still past the creator's words, flagged on its card.
+    const checks = (slide: Slide) => openChecks(ep.project, slide)
     const copies: MapCopy[] = ep.project.slides.map((slide) => {
       const original = slide.copyOf ? pages.get(slide.copyOf.slide) : undefined
       if (original) (usage[original.id] ||= []).push(ep.project.id)
@@ -621,6 +624,7 @@ export const mapView = async (mapId: string): Promise<MapView> => {
         ...(slide.copyOf ? { copyOf: slide.copyOf } : {}),
         ...(slide.bridge ? { bridge: slide.bridge } : {}),
         ...(slide.outro ? { outro: slide.outro } : {}),
+        ...(checks(slide) ? { checks: checks(slide) } : {}),
         stale: Boolean(
           original && now !== slide.copyOf!.hash && now !== slide.copyOf!.kept
         ),

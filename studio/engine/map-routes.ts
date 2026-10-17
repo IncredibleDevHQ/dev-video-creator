@@ -25,7 +25,7 @@ import {
 } from './series-directions'
 import { organizeNewPages, undoOrganize } from './series-organize'
 import { loadSeries } from './series'
-import { scheduleSegues } from './map-segues'
+import { answerSegueCheck, scheduleSegues } from './map-segues'
 import { groupTopics } from './map-topics'
 import { loadProject } from './projects'
 import { Refusal } from './refusal'
@@ -79,6 +79,8 @@ const route = async (
   if (action === 'segues') {
     if (!(await loadProject(id))?.project.copyOfMap)
       throw new Refusal('Choose an episode')
+    // A flagged line: kept as it is, or written again alone (review 8).
+    if (body.check) return ok(await answerSegueCheck(id, body.check))
     // Asked for by the creator: every line is written anew.
     scheduleSegues(id, true)
     return ok({ writing: true })

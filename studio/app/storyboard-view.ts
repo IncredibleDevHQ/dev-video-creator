@@ -466,7 +466,7 @@ const strip = (
 ${frame.still ? `<img class="sb-thumb" src="${stillSrc(snapshot.project.id, frame)}" alt="">` : boarding(storyboard) ? '<span class="sb-thumb is-empty" aria-hidden="true"></span>' : ''}
 <span class="moment-head"><b class="moment-number">${frame.number}</b>${scene.build === 'camera' ? cameraCue('full') : ''}</span>
 <span class="moment-name" title="${escape(frame.title)}">${escape(frame.title)}</span>
-<small>${escape([TYPE_LABELS[frame.type] || frame.type, frameState(storyboard, frame)].filter(Boolean).join(' · '))}</small>
+<small>${escape([TYPE_LABELS[frame.type] || frame.type, frameState(storyboard, frame), frame.claim ? 'check its words' : ''].filter(Boolean).join(' · '))}</small>
 </button></div>`
     )
     .join(
@@ -482,7 +482,18 @@ ${frame.voiceover ? `<p class="sb-line">“${escape(frame.voiceover)}”</p>` : 
 ${storyboard.frameNotes?.[frame.number] ? `<p class="sb-note">Your note: “${escape(storyboard.frameNotes[frame.number])}”</p>` : ''}
 <dl><dt>Why</dt><dd>${escape(frame.narrativeRole)}</dd><dt>On screen</dt><dd>${escape(frame.scene)}</dd>${frame.transition ? `<dt>Enters with</dt><dd>${escape(transitionWords(frame, opensScene))}${frame.transitionWhy ? ` · ${escape(frame.transitionWhy)}` : ''}</dd>` : ''}</dl>
 ${frame.problem ? `<p class="sb-problem">${escape(frame.problem)}</p>` : ''}
+${frame.claim ? claimLine(storyboard, frame) : ''}
 </section>`
+
+/** Its own words still promise past the creator's after one rewrite: what
+ * to check, and the two answers. Written again while the plan or the stills
+ * wait for approval, as a change to the plan (review 8). */
+const claimLine = (storyboard: Storyboard, frame: FrameSummary) =>
+  `<p class="page-check">Check these words <small>${escape(frame.claim || '')}</small> ${
+    awaiting(storyboard) && ['review', 'board'].includes(storyboard.stage)
+      ? `<button type="button" class="quiet" data-action="sb-claim-again" data-number="${frame.number}">Write it again</button>`
+      : ''
+  }<button type="button" class="quiet" data-action="sb-claim-keep" data-number="${frame.number}">Keep it</button></p>`
 
 const actions = (
   storyboard: Storyboard,

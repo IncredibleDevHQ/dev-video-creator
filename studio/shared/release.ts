@@ -91,6 +91,12 @@ export type Release = {
   at?: string
   teasers: Teaser[]
   posts?: PostWords
+  /** A drafted post that still promises past the creator's words after one
+   * rewrite, by channel: the words flagged, what to check, and whether the
+   * creator kept them (review 8). */
+  postChecks?: Partial<
+    Record<Channel, { text: string; note: string; kept?: boolean }>
+  >
   drafting?: { state: 'drafting' | 'failed'; error?: string; at: string }
   campaign: CampaignItem[]
   /** What the last plan left out or moved, planned close to the release. */

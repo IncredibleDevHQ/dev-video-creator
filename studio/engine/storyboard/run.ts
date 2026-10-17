@@ -47,7 +47,8 @@ export const summaryNow = (
   planSummary(
     internal,
     takesOf(storyboard),
-    snapshot.project.video?.settings.voice.kind === 'record'
+    snapshot.project.video?.settings.voice.kind === 'record',
+    storyboard.keptClaims
   )
 
 export const selectionOf = async (snapshot: Snapshot) => {

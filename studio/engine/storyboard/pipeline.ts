@@ -12,6 +12,8 @@ import type { Snapshot } from '../../shared/api'
 import { fitOf, lengthLabel, windowLabel } from '../../shared/length'
 import type { BuildType, Storyboard } from '../../shared/storyboard'
 import { addEvent } from '../activity'
+import { claimNote } from '../claims'
+import { episodeMaterial } from '../claims-material'
 import { readAsset, storeAsset } from '../persistence'
 import { generationStops } from '../generation-errors'
 import { loadProject } from '../projects'
@@ -248,7 +250,12 @@ const planStage = async ({
       ? siteLogo.svgKey
       : branding?.logoKey
   const logo = await stageLogo(dir, logoKey ? await readAsset(logoKey) : null)
-  const { plan, length, brief } = await planEpisode({
+  const {
+    plan,
+    length,
+    brief,
+    claims = []
+  } = await planEpisode({
     snapshot,
     dir,
     productionId: storyboard.id,
@@ -259,7 +266,8 @@ const planStage = async ({
     note: storyboard.note,
     previous,
     builds: storyboard.builds,
-    logo
+    logo,
+    material: await episodeMaterial(snapshot, { neighbours: true })
   })
   const next: Internal = {
     plan,
@@ -268,7 +276,14 @@ const planStage = async ({
     statuses: {},
     problems: {},
     rounds: 0,
-    ...(logo ? { logo } : {})
+    ...(logo ? { logo } : {}),
+    ...(claims.length
+      ? {
+          claims: Object.fromEntries(
+            claims.map((item) => [item.number, claimNote(item.claim)])
+          )
+        }
+      : {})
   }
   // A new plan is posed afresh: the stills of the last one go.
   await rm(join(dir, 'boards'), { recursive: true, force: true })
@@ -276,6 +291,8 @@ const planStage = async ({
   await writeFile(join(dir, 'BRIEF.md'), brief)
   await writeProjectFiles(dir, next)
   await update(snapshot.project.id, (current, ledger) => {
+    // A new plan's frames are flagged afresh: what was kept was another line.
+    delete current.keptClaims
     current.plan = summaryNow(next, current, ledger)
     current.length = length
     // The wireframes changed while it planned: it plans again with them

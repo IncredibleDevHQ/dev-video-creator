@@ -148,6 +148,23 @@ export const noteStoryboardFrame = async (
   return snapshot
 }
 
+/** The creator keeps a frame's flagged words as they are: the flag goes,
+ * and stays gone until a new plan (review 8). */
+export const keepStoryboardClaim = (projectId: string, number: number) =>
+  changeProject(projectId, (current) => {
+    const storyboard = storyboardOf(current)
+    const frame = storyboard.plan?.scenes
+      .flatMap((scene) => scene.frames)
+      .find((entry) => entry.number === number)
+    if (!frame?.claim) throw new Refusal('Nothing is flagged in this frame')
+    delete frame.claim
+    storyboard.keptClaims = [
+      ...new Set([...(storyboard.keptClaims || []), number])
+    ]
+    storyboard.updatedAt = new Date().toISOString()
+    addEvent(current, 'video', `Kept frame ${number}’s words as they are`)
+  })
+
 /** Choose how a scene is built. Before approval the plan is made again
  * around it. */
 export const setStoryboardBuild = async (

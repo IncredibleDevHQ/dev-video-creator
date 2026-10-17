@@ -16,6 +16,7 @@ import { runValidatedJsonStage } from './creative/stage'
 import { detectedHarness } from './notebook-intake'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
+import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
 import { loadSeries } from './series'
 
@@ -114,6 +115,41 @@ export const scheduleAround = async (id: string) => {
   const at = order.findIndex((item) => item.notebookId === id)
   if (at > 0) scheduleSegues(order[at - 1].notebookId)
   if (at >= 0 && at < order.length - 1) scheduleSegues(order[at + 1].notebookId)
+}
+
+/**
+ * The creator's answer to a flagged line: keep it as it is (the flag goes),
+ * or have that line alone written again, once more through the check
+ * (review 8).
+ */
+export const answerSegueCheck = async (id: string, raw: unknown) => {
+  const value = (raw ?? {}) as Record<string, unknown>
+  const slideId = String(value.slide || '')
+  const line = value.line === 'outro' ? 'outro' : 'bridge'
+  let again = false
+  const snapshot = await changeProject(id, (current) => {
+    const slide = current.project.slides.find((entry) => entry.id === slideId)
+    const checks = current.project.segueChecks?.[slideId]
+    const check = checks?.[line]
+    if (!slide || !check || check.kept || check.line !== slide[line])
+      throw new Refusal('That line is no longer flagged')
+    const where = `the line ${line === 'outro' ? 'after' : 'before'} “${slide.title}”`
+    if (value.keep === true) {
+      check.kept = true
+      addEvent(current, 'slide', `Kept ${where} as it is`)
+      return
+    }
+    // Only this line is written again: its key goes, the others stay.
+    delete checks[line]
+    if (!checks.bridge && !checks.outro)
+      delete current.project.segueChecks![slideId]
+    if (line === 'bridge') delete slide.bridgeFor
+    else delete slide.outroFor
+    again = true
+    addEvent(current, 'slide', `Writing ${where} again`)
+  })
+  if (again) scheduleSegues(id)
+  return snapshot
 }
 
 /** Resolves when no episode's segues are being written (tests and checks). */

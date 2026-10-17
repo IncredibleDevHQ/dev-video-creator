@@ -219,6 +219,16 @@ export const clickRelease = async (
     await busy(target, async () =>
       update(app, await studioApi.notebook(id, 'posts'))
     )
+  // A flagged post kept as it is (review 8).
+  if (action === 'keep-post-check' && target.dataset.channel)
+    await busy(target, async () =>
+      update(
+        app,
+        await studioApi.notebook(id, 'release', {
+          keepCheck: target.dataset.channel
+        })
+      )
+    )
 }
 
 export const submitRelease = async (

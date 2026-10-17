@@ -233,6 +233,25 @@ export const clickStoryboard = async (
     }
     return true
   }
+  // A frame's words still past the creator's: the plan goes back with
+  // them named, or they are kept (review 8).
+  if (action === 'sb-claim-again' || action === 'sb-claim-keep') {
+    const number = Number(target.dataset.number)
+    const frame = storyboard?.plan?.scenes
+      .flatMap((scene) => scene.frames)
+      .find((entry) => entry.number === number)
+    if (busy || !frame?.claim) return true
+    target.disabled = true
+    const saved = await (action === 'sb-claim-keep'
+      ? api.keepFrameClaim(id, number)
+      : api.approveStoryboard(
+          id,
+          `Frame ${number}: ${frame.claim}. Say it within that limit, or leave the promise out.`
+        ))
+    if (app.snapshot?.project.id === id) app.snapshot = saved
+    app.render()
+    return true
+  }
   if (action === 'sb-still') {
     const number = Number(target.dataset.number)
     const frame = storyboard?.plan?.scenes

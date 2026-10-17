@@ -45,6 +45,8 @@ export type MapCopy = {
   /** The episode's line into this page, and out of the last one. */
   bridge?: string
   outro?: string
+  /** Either line still promising past the creator's words: what to check. */
+  checks?: { bridge?: string; outro?: string }
   /** The map's page changed since this copy was made. */
   stale: boolean
   /** The map's page was deleted; the copy keeps its content. */

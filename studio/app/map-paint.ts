@@ -22,6 +22,7 @@ import {
   mapCard,
   pageState,
   segueCard,
+  segueCheck,
   socialsHead
 } from './map-view'
 import {
@@ -299,10 +300,16 @@ export const paintWorld = (map: MapCanvas) => {
           box: segue,
           html: segueCard(episode, segue.end, at === view.episodes.length - 1),
           data: { lane: episode.notebook },
-          title:
-            (segue.end
+          title: [
+            segue.end
               ? episode.copies.at(-1)?.outro
-              : episode.copies[0]?.bridge) || ''
+              : episode.copies[0]?.bridge,
+            segue.end
+              ? episode.copies.at(-1)?.checks?.outro
+              : episode.copies[0]?.checks?.bridge
+          ]
+            .filter(Boolean)
+            .join('\n')
         })
     })
     for (const bridge of layout.bridges) {
@@ -315,8 +322,14 @@ export const paintWorld = (map: MapCanvas) => {
         box: bridge,
         html: busy
           ? 'rewriting…'
-          : escape(copy?.bridge ? `↳ ${copy.bridge}` : ''),
-        title: busy ? '' : copy?.bridge || ''
+          : `${escape(copy?.bridge ? `↳ ${copy.bridge}` : '')}${
+              episode && copy?.checks?.bridge
+                ? ` <b class="map-check">check</b>${segueCheck(episode, copy.id, 'bridge', copy.checks.bridge)}`
+                : ''
+            }`,
+        title: busy
+          ? ''
+          : [copy?.bridge, copy?.checks?.bridge].filter(Boolean).join('\n')
       })
     }
     for (const connector of layout.connectors)

@@ -31,9 +31,9 @@ const { loadProject, changeProject } = await import('./projects')
 const episodes = await import('./map-episodes')
 const segues = await import('./map-segues')
 const notes = await import('./map-notes')
-const { draftPosts } = await import('./release')
-const { materialOf, overclaims } = await import('./claims')
+const { draftPosts, updateRelease } = await import('./release')
 const { presentationScreen } = await import('../app/presentation-screen')
+const { postsSection } = await import('../app/release-view')
 afterAll(async () => {
   await segues.settledAllSegues()
   await rm(root, { recursive: true, force: true })
@@ -62,18 +62,22 @@ stage.mockImplementation(async (input: Record<string, unknown>) => {
 const packetOf = (input: Record<string, unknown>, name: string) =>
   JSON.parse((input.packet as Record<string, string>)[`packet/${name}`])
 
-const LOG = `Learning log: APIs that survive retries
+const LOG = `# Learning log: APIs that survive retries
 
-A customer taps order once and pays for two lattes. The client timed out and retried the same POST. A timeout only tells the client that no answer arrived; it doesn't prove the order failed.
+A timeout tells the client that it did not receive a response; it does not prove the order failed. Retrying the same POST can create two orders.
 
-The fix is an idempotency key: the client makes one key per order and sends it with every retry, and the server stores the key with the result.`
+The client creates a unique key for one logical order and reuses it when retrying that order. The server stores the key with a fingerprint of the request and the result.`
+// The live run's note, as the creator wrote it.
 const NOTE =
-  'Careful with the promise: deduplication only lasts as long as the server keeps the key, its retention window. Don’t promise a retry is safe forever; after the window the same key is new again.'
+  'New learning: the retention window is part of the idempotency contract. Keep a key long enough to cover the documented client retry window. After expiry, the same key may be treated as a new request. Do not promise that an old retry will be deduplicated forever. I want this caveat included in the series.'
 const NOTED = `${LOG}\n\n## Note, 17 October 2026\n\n${NOTE}`
-// The live run's outro and its LinkedIn copy, and each said within its
-// limit: the same guarantee, in its stated scope.
+const LIMIT = 'Do not promise that an old retry will be deduplicated forever.'
+// The live run's outro and its LinkedIn copy; the rewrite the audit's
+// stand-in moved to; and each said within its limit.
 const OVER =
   'Next time, in Give the latte a name, we reach for our first tool: an idempotency key, so a retry can never pour a second latte.'
+const FOREVER =
+  'Next time, in Give the latte a name: an idempotency key, so an old retry is deduplicated forever.'
 const SCOPED =
   'Next time, in Give the latte a name: an idempotency key, so that within the key’s retention window a retry can never pour a second latte.'
 const POST_OVER =
@@ -82,12 +86,13 @@ const POST_SCOPED =
   'Next episode: an idempotency key, so that within the key’s retention window a retry can never pour a second latte.'
 const KEY_SCRIPT =
   'Our first tool is an idempotency key. Before sending the latte order, the client creates a unique key for it and reuses that same key on every retry of that order. A retry with the same key and the same request gets the original result back.'
+const NOTE_SAYS = `It says “never”; the note of 17 October 2026 says “${LIMIT}”`
 
-const page = (id: string, title: string, narration: string, svg = '') =>
+const page = (id: string, title: string, narration: string) =>
   ({
     id,
     title,
-    svg: svg || `<svg><text>${title}</text></svg>`,
+    svg: `<svg><text>${title}</text></svg>`,
     idea: `${title}, in a sentence`,
     narration
   }) satisfies Slide
@@ -97,8 +102,7 @@ const drawnMap = async (id: string, source: string) => {
     page(
       `${id}-2`,
       'A timeout is ambiguous',
-      'Our client sends POST /orders for one latte and waits. The server commits the order, but its response gets lost on the way back. If the client simply sends the same POST again, one click can turn into two lattes.',
-      '<svg><text>Lost response</text><text>never reaches the client</text></svg>'
+      'Our client sends POST /orders for one latte and waits. The server commits the order, but its response gets lost on the way back.'
     ),
     page(`${id}-3`, 'First tool: an idempotency key', KEY_SCRIPT),
     page(
@@ -162,56 +166,16 @@ const writer =
     }
   }
 const briefs: Array<Record<string, unknown>> = []
+const screenOf = (snapshot: Snapshot) =>
+  presentationScreen(
+    { ...snapshot, views: projectViews(snapshot.project, []) },
+    1
+  )
 
 beforeEach(() => {
   for (const key of Object.keys(replies)) delete replies[key]
   asked.length = 0
   briefs.length = 0
-})
-
-it('finds a promise past the creator’s limit, and lets a scoped line, a story line and a backed one through', () => {
-  const material = materialOf(NOTED, [])
-  const [claim] = overclaims(OVER, material)
-  expect(claim).toMatchObject({
-    word: 'never',
-    limit: {
-      from: 'the note of 17 October 2026',
-      says: 'Don’t promise a retry is safe forever; after the window the same key is new again.'
-    }
-  })
-  // The same "never", said within the limit, is the creator's.
-  expect(overclaims(SCOPED, material)).toEqual([])
-  // "Never" in a story line is no promise.
-  expect(
-    overclaims(
-      'It starts with a single request that never hears back.',
-      material
-    )
-  ).toEqual([])
-  // "Doesn't … forever" keeps a limit, in a line or in the notes: the note's
-  // "don't promise … forever" backs no "forever".
-  const log = materialOf(LOG, [])
-  expect(overclaims('A key doesn’t keep a retry safe forever.', log)).toEqual(
-    []
-  )
-  expect(
-    overclaims('A key keeps a retry safe forever.', material)
-  ).toMatchObject([
-    { word: 'forever', limit: { from: 'the note of 17 October 2026' } }
-  ])
-  // The creator said it outright about the same things: it is theirs.
-  const backed =
-    'With the same key, retries are guaranteed to return the first result.'
-  expect(
-    overclaims(
-      'Retries with the same key are guaranteed to return the first result.',
-      materialOf(backed, [])
-    )
-  ).toEqual([])
-  // A promise word needs backing even where no limit was written.
-  expect(overclaims('Retries are guaranteed to be safe.', log)).toMatchObject([
-    { word: 'guaranteed' }
-  ])
 })
 
 it('gives the segue writer the creator’s limits and the next page, and sends a line past them back once', async () => {
@@ -230,15 +194,13 @@ it('gives the segue writer the creator’s limits and the next page, and sends a
   expect(brief.next.opens).toBe('First tool: an idempotency key')
   expect(brief.next.page.script).toBe(KEY_SCRIPT)
   expect(brief.limits).toContainEqual({
-    says: 'Careful with the promise: deduplication only lasts as long as the server keeps the key, its retention window.',
+    says: LIMIT,
     from: 'the note of 17 October 2026'
   })
   // Sent back once, with the creator's words it went past.
   expect(asked).toHaveLength(1)
   expect(asked[0].problems).toEqual([
-    expect.stringMatching(
-      /^The outro says “never”, which the pages and the creator’s notes don’t promise; the note of 17 October 2026 says: “Don’t promise a retry is safe forever/
-    )
+    `The outro says “never”, which the pages and the creator’s notes don’t promise; the note of 17 October 2026 says: “${LIMIT}”. Keep to what they say, within its limit, or leave the promise out`
   ])
   const last = await lastOf(one)
   expect(last.copyOf?.slide).toBe(ids[1])
@@ -247,9 +209,29 @@ it('gives the segue writer the creator’s limits and the next page, and sends a
   expect((await loadProject(one))!.project.segueChecks).toBeUndefined()
 })
 
-it('keeps a line still past the limit after its rewrite, flagged under it, and doesn’t ask again', async () => {
+it('flags the rewrite that moves to “deduplicated forever”, the very promise the note forbids', async () => {
   replies['Write Segues'] = writer(() => 'Next.')
-  const { one } = await twoEpisodes('m-stubborn', NOTED)
+  const { one } = await twoEpisodes('m-forever', NOTED)
+  replies['Write Segues'] = writer((_, said) => (said.length ? FOREVER : OVER))
+  segues.scheduleSegues(one, true)
+  await segues.settledAllSegues()
+  expect(asked).toHaveLength(1)
+  const snapshot = (await loadProject(one))!
+  const last = snapshot.project.slides.at(-1)!
+  expect(last.outro).toBe(FOREVER)
+  expect(snapshot.project.segueChecks).toEqual({
+    [last.id]: {
+      outro: {
+        line: FOREVER,
+        note: `It says “forever”; the note of 17 October 2026 says “${LIMIT}”`
+      }
+    }
+  })
+})
+
+it('keeps a line still past the limit after its rewrite, flagged where it is approved, until it is kept or written again', async () => {
+  replies['Write Segues'] = writer(() => 'Next.')
+  const { one, two } = await twoEpisodes('m-stubborn', NOTED)
   replies['Write Segues'] = writer(() => OVER)
   segues.scheduleSegues(one, true)
   await segues.settledAllSegues()
@@ -257,35 +239,74 @@ it('keeps a line still past the limit after its rewrite, flagged under it, and d
   const snapshot = (await loadProject(one))!
   const last = snapshot.project.slides.at(-1)!
   expect(last.outro).toBe(OVER)
-  const note =
-    'It says “never”; the note of 17 October 2026 says “Don’t promise a retry is safe forever; after the window the same key is new again.”'
   expect(snapshot.project.segueChecks).toEqual({
-    [last.id]: { outro: { line: OVER, note } }
+    [last.id]: { outro: { line: OVER, note: NOTE_SAYS } }
   })
   expect(snapshot.events.map((event) => event.message)).toContain(
-    `Check the line after “A timeout is ambiguous”. ${note}`
+    `Check the line after “A timeout is ambiguous”. ${NOTE_SAYS}`
   )
-  // Under "Said after it" on its wireframe.
-  const screen = presentationScreen(
-    { ...snapshot, views: projectViews(snapshot.project, []) },
-    1
+  // Under "Said after it" on its wireframe, with the two answers.
+  expect(screenOf(snapshot)).toContain(
+    `<p class="page-check">Check this line <small>${NOTE_SAYS}</small> <button type="button" class="quiet" data-action="segue-again" data-slide="${last.id}" data-line="outro">Write it again</button><button type="button" class="quiet" data-action="segue-keep" data-slide="${last.id}" data-line="outro">Keep it</button></p>`
   )
-  expect(screen).toContain(
-    `<p class="page-check">Check this line <small>${note}</small></p>`
+  // On the map's "Next time" card.
+  const view = await episodes.mapView('m-stubborn')
+  const card = view.episodes.find((e) => e.notebook === one)!.copies.at(-1)!
+  expect(card.checks).toEqual({ outro: NOTE_SAYS })
+  expect(view.episodes.find((e) => e.notebook === two)!.copies[0].checks).toBe(
+    undefined
   )
   // Flagged once: the next write leaves it, and asks no writer.
   stage.mockClear()
   segues.scheduleSegues(one)
   await segues.settledAllSegues()
   expect(stage).not.toHaveBeenCalled()
-  expect((await lastOf(one)).outro).toBe(OVER)
+  // Written again: that line alone, through the check once more.
+  const bridges = snapshot.project.slides.map((slide) => slide.bridge)
+  replies['Write Segues'] = writer(() => SCOPED)
+  await segues.answerSegueCheck(one, { slide: last.id, line: 'outro' })
+  await segues.settledAllSegues()
+  const again = (await loadProject(one))!
+  expect(again.project.slides.at(-1)!.outro).toBe(SCOPED)
+  expect(again.project.slides.map((slide) => slide.bridge)).toEqual(bridges)
+  expect(again.project.segueChecks).toBeUndefined()
+  expect(screenOf(again)).not.toContain('Check this line')
 })
 
-it('writes a line again when a later note brings a limit it goes past', async () => {
+it('keeps a flagged line as it is when the creator says so, and shows it nowhere again', async () => {
+  replies['Write Segues'] = writer(() => 'Next.')
+  const { one } = await twoEpisodes('m-keep', NOTED)
+  replies['Write Segues'] = writer(() => OVER)
+  segues.scheduleSegues(one, true)
+  await segues.settledAllSegues()
+  const last = await lastOf(one)
+  const kept = await segues.answerSegueCheck(one, {
+    slide: last.id,
+    line: 'outro',
+    keep: true
+  })
+  expect(kept.project.segueChecks?.[last.id]?.outro?.kept).toBe(true)
+  expect(kept.project.slides.at(-1)!.outro).toBe(OVER)
+  expect(screenOf(kept)).not.toContain('Check this line')
+  const view = await episodes.mapView('m-keep')
+  expect(
+    view.episodes.find((e) => e.notebook === one)!.copies.at(-1)!.checks
+  ).toBeUndefined()
+  // Kept stays kept: no writer is asked about it again.
+  stage.mockClear()
+  segues.scheduleSegues(one)
+  await segues.settledAllSegues()
+  expect(stage).not.toHaveBeenCalled()
+  await expect(
+    segues.answerSegueCheck(one, { slide: last.id, line: 'outro', keep: true })
+  ).rejects.toThrow('That line is no longer flagged')
+})
+
+it('writes a line again once a later note is sorted and brings a limit it goes past', async () => {
   // Before the note: no limit, so the line stands as written.
   replies['Write Segues'] = writer((brief) =>
     (brief.limits as Array<{ says: string }>).some((limit) =>
-      limit.says.includes('retention window')
+      limit.says.startsWith('Do not promise')
     )
       ? SCOPED
       : OVER
@@ -334,7 +355,7 @@ it('flags, and leaves as it is, a line under a started video when a later note b
       outro: {
         line: OVER,
         note: expect.stringMatching(
-          /^It says “never”; the note of .+ says “Don’t promise a retry is safe forever/
+          /^It says “never”; the note of .+ says “Do not promise that an old retry/
         )
       }
     }
@@ -342,9 +363,14 @@ it('flags, and leaves as it is, a line under a started video when a later note b
   expect(snapshot.events.at(-1)?.message).toMatch(
     /^Check the line after “A timeout is ambiguous”\. It says “never”/
   )
+  // Asked for by the creator, it is written again even under the video.
+  replies['Write Segues'] = writer(() => SCOPED)
+  await segues.answerSegueCheck(one, { slide: last.id, line: 'outro' })
+  await segues.settledAllSegues()
+  expect((await lastOf(one)).outro).toBe(SCOPED)
 })
 
-it('gives the posts writer the creator’s limits, and sends a post past them back once', async () => {
+it('gives the posts writer the creator’s limits, sends a post past them back once, and flags one still past them in Release', async () => {
   replies['Write Segues'] = writer(() => 'Next.')
   const { one } = await twoEpisodes('m-posts', NOTED)
   await changeProject(one, (current) => {
@@ -373,7 +399,7 @@ it('gives the posts writer the creator’s limits, and sends a post past them ba
     ).toBeTruthy()
   )
   expect(limits).toContainEqual({
-    says: 'Don’t promise a retry is safe forever; after the window the same key is new again.',
+    says: LIMIT,
     from: 'the note of 17 October 2026'
   })
   expect(asked).toEqual([
@@ -384,10 +410,12 @@ it('gives the posts writer the creator’s limits, and sends a post past them ba
       ]
     }
   ])
-  expect((await loadProject(one))!.project.release?.posts?.linkedin).toBe(
-    POST_SCOPED
-  )
-  // A post still past the limit after its rewrite is kept, and said.
+  const fixed = (await loadProject(one))!
+  expect(fixed.project.release?.posts?.linkedin).toBe(POST_SCOPED)
+  expect(fixed.project.release?.postChecks).toBeUndefined()
+  expect(postsSection(fixed)).not.toContain('Check this post')
+  // A post still past the limit after its rewrite is kept, flagged beside
+  // it with the two answers, and said.
   replies['Draft Posts'] = () => posts(POST_OVER)
   await draftPosts(one)
   await vi.waitFor(async () =>
@@ -395,9 +423,20 @@ it('gives the posts writer the creator’s limits, and sends a post past them ba
       POST_OVER
     )
   )
-  expect(
-    (await loadProject(one))!.events.map((event) => event.message)
-  ).toContain(
-    'Check the LinkedIn post. It says “never”; the note of 17 October 2026 says “Don’t promise a retry is safe forever; after the window the same key is new again.”'
+  const flagged = (await loadProject(one))!
+  expect(flagged.project.release?.postChecks).toEqual({
+    linkedin: { text: POST_OVER, note: NOTE_SAYS }
+  })
+  expect(postsSection(flagged)).toContain(
+    `<p class="page-check">Check this post <small>${NOTE_SAYS}</small> <button type="button" class="quiet" data-action="draft-posts">Write it again</button><button type="button" class="quiet" data-action="keep-post-check" data-channel="linkedin">Keep it</button></p>`
+  )
+  expect(flagged.events.map((event) => event.message)).toContain(
+    `Check the LinkedIn post. ${NOTE_SAYS}`
+  )
+  // Kept: the flag goes. Edited: a flag on other words shows nowhere.
+  const kept = await updateRelease(one, { keepCheck: 'linkedin' })
+  expect(postsSection(kept)).not.toContain('Check this post')
+  await expect(updateRelease(one, { keepCheck: 'x' })).rejects.toThrow(
+    'That post is no longer flagged'
   )
 })

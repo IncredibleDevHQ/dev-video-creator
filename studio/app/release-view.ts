@@ -3,6 +3,7 @@
 // campaign, the numbers and publishing (campaign-view.ts).
 import type { Snapshot } from '../shared/api'
 import { youtubeLaunch } from '../shared/campaign'
+import { openPostCheck } from '../shared/claims'
 import {
   CHANNEL_ASPECTS,
   CHANNEL_LABELS,
@@ -84,6 +85,18 @@ export const teasersSection = (snapshot: Snapshot) => {
 ${teasers.length ? `<ul class="teaser-list">${teasers.map(teaserRow).join('')}</ul>` : ''}</section>`
 }
 
+/** A post that still promises past the creator's words after one rewrite:
+ * what to check, beside it, with the two answers (review 8). */
+const postCheck = (
+  release: Snapshot['project']['release'],
+  channel: Channel
+) => {
+  const note = openPostCheck(release, channel)
+  return note
+    ? `<p class="page-check">Check this post <small>${escape(note)}</small> <button type="button" class="quiet" data-action="draft-posts">Write it again</button><button type="button" class="quiet" data-action="keep-post-check" data-channel="${channel}">Keep it</button></p>`
+    : ''
+}
+
 export const postsSection = (snapshot: Snapshot) => {
   const release = snapshot.project.release
   const posts = release?.posts
@@ -98,7 +111,7 @@ ${
   posts
     ? `<form id="posts-form" class="posts-form">${CHANNELS.map(
         (channel) =>
-          `<label for="post-${channel}">${CHANNEL_LABELS[channel]} <small>${posts[channel].length}/${LIMITS[channel]}</small></label><textarea id="post-${channel}" name="${channel}" rows="${channel === 'x' ? 3 : 5}">${escape(posts[channel])}</textarea>`
+          `<label for="post-${channel}">${CHANNEL_LABELS[channel]} <small>${posts[channel].length}/${LIMITS[channel]}</small></label><textarea id="post-${channel}" name="${channel}" rows="${channel === 'x' ? 3 : 5}">${escape(posts[channel])}</textarea>${postCheck(release, channel)}`
       ).join('')}<button class="quiet">Save posts</button></form>`
     : ''
 }</section>`

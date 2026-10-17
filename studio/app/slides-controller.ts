@@ -162,6 +162,20 @@ export const clickSlides = async (
     app.dialog.querySelector<HTMLTextAreaElement>('#note-dialog-text')?.focus()
     return
   }
+  // A line still past the creator's words: written again, or kept.
+  if (
+    (action === 'segue-again' || action === 'segue-keep') &&
+    target.dataset.slide
+  ) {
+    target.disabled = true
+    app.snapshot = await mapApi.segueCheck(id, {
+      slide: target.dataset.slide,
+      line: target.dataset.line === 'outro' ? 'outro' : 'bridge',
+      ...(action === 'segue-keep' ? { keep: true } : {})
+    })
+    app.render()
+    return
+  }
   if (action === 'stop-slides') {
     target.setAttribute('disabled', '')
     target.textContent = 'Stopping…'

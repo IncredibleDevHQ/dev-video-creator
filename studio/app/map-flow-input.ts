@@ -535,6 +535,21 @@ export const flowAction = async (
               : 'Gap set aside'
         )
       return true
+    // A line still past the creator's words: written again, or kept.
+    case 'segue-again':
+    case 'segue-keep': {
+      const [episode, slide, line] = arg.split('|')
+      await map.run(
+        () =>
+          mapApi.segueCheck(episode, {
+            slide,
+            line: line === 'outro' ? 'outro' : 'bridge',
+            ...(name === 'segue-keep' ? { keep: true } : {})
+          }),
+        name === 'segue-keep' ? 'Kept as it is' : 'Writing that line again'
+      )
+      return true
+    }
     case 'undo-organize':
       if (series)
         await map.run(

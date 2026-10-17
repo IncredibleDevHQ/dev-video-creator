@@ -14,7 +14,7 @@ import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
-import { scheduleChanges, withDeck } from './slide-changes'
+import { scheduleChanges, settledChanges, withDeck } from './slide-changes'
 import { syncEvidence } from './map-copy'
 import { scheduleSegues } from './map-segues'
 import { loadSeries } from './series'
@@ -173,15 +173,12 @@ const intoMap = async (id: string, note: MapNote) => {
     current.project.source = noted(current.project.source, note)
     addEvent(current, 'slide', 'Sorting your note into the map')
   })
-  // The map's episodes quote the same evidence, and their lines are checked
-  // against it again: a note can bring a limit a line goes past (review 8).
+  // The map's episodes quote the same evidence.
   const series = snapshot.project.mapSeries
     ? await loadSeries(snapshot.project.mapSeries)
     : null
-  for (const episode of series?.episodes || []) {
+  for (const episode of series?.episodes || [])
     await syncEvidence(id, episode.notebookId)
-    scheduleSegues(episode.notebookId)
-  }
   const job = sortNote(id, note.id).finally(() => {
     if (sorting.get(note.id) === job) sorting.delete(note.id)
   })
@@ -309,6 +306,24 @@ const sortNote = async (id: string, noteId: string) => {
       })
     }).catch(() => {})
   }
+  await recheckLines(id)
+}
+
+/**
+ * Once a note is sorted and the changes it made have landed on the cards
+ * (and on the copies that follow them), the episodes' lines are checked
+ * against it once: a note can bring a limit a line goes past. Checked any
+ * sooner, a line rewritten for the note would be rewritten again when its
+ * copy changes (review 8).
+ */
+const recheckLines = async (id: string) => {
+  await settledChanges(id)
+  const map = await loadProject(id)
+  const series = map?.project.mapSeries
+    ? await loadSeries(map.project.mapSeries)
+    : null
+  for (const episode of series?.episodes || [])
+    scheduleSegues(episode.notebookId)
 }
 
 /** New pages go in after the page they belong with; changes join the queue. */

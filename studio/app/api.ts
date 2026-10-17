@@ -151,6 +151,13 @@ export const api = {
       'POST',
       { transition }
     ),
+  /** A frame's flagged words kept as they are (review 8). */
+  keepFrameClaim: (id: string, frame: number) =>
+    request<Snapshot>(
+      `/projects/${id}/storyboard/frames/${frame}/claim`,
+      'POST',
+      {}
+    ),
   noteStoryboardFrame: (id: string, frame: number, note: string) =>
     request<Snapshot>(
       `/projects/${id}/storyboard/frames/${frame}/note`,

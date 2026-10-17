@@ -22,6 +22,7 @@ import { stillFile } from './board'
 import {
   approveStoryboard,
   remakeStoryboard,
+  keepStoryboardClaim,
   noteStoryboardFrame,
   retryStoryboard,
   stopStoryboard,
@@ -35,7 +36,7 @@ const ROUTE =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/(approve|retry|remake|stop|replan|sheet|scenes\/([a-zA-Z0-9_-]+)\/(build|take))$/
 
 const FRAME_CHANGE_ROUTE =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(\d{1,3})\/(transition|note)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(\d{1,3})\/(transition|note|claim)$/
 
 const FRAME_ROUTE =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(f\d{2}-[a-z0-9-]+)\/(snapshot|still)$/
@@ -122,7 +123,9 @@ export const storyboardRoute = async (
       value:
         change[3] === 'note'
           ? await noteStoryboardFrame(change[1], Number(change[2]), body)
-          : await setStoryboardTransition(change[1], Number(change[2]), body)
+          : change[3] === 'claim'
+            ? await keepStoryboardClaim(change[1], Number(change[2]))
+            : await setStoryboardTransition(change[1], Number(change[2]), body)
     }
   const match = url.pathname.match(ROUTE)
   if (!match) return null

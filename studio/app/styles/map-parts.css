@@ -118,3 +118,41 @@
     display: inline-flex;
   }
 }
+
+/* A line still past the creator's words after one rewrite (review 8): a
+   chip while the card is closed; its note and the two answers once open. */
+.map-check {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--warn, #b7791f);
+  border: 1px solid currentColor;
+}
+.map-segue-check {
+  display: none;
+  margin-top: 8px;
+  font-size: 12px;
+  font-style: normal;
+  text-align: left;
+}
+.map-segue.is-open .map-segue-check,
+.map-bridge.is-open .map-segue-check {
+  display: block;
+}
+.map-segue-check small {
+  display: block;
+  color: var(--muted);
+}
+.map-segue-check span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.map-segue-check button {
+  padding: 3px 8px;
+  font-size: 11px;
+}

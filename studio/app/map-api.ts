@@ -100,6 +100,11 @@ export const mapApi = {
     request<Snapshot>(`/projects/${id}/aside`, 'POST', { slide, aside }),
   segues: (episode: string) =>
     request<{ writing: boolean }>(`/projects/${episode}/segues`, 'POST', {}),
+  /** A flagged line kept as it is, or written again alone (review 8). */
+  segueCheck: (
+    episode: string,
+    check: { slide: string; line: 'bridge' | 'outro'; keep?: boolean }
+  ) => request<Snapshot>(`/projects/${episode}/segues`, 'POST', { check }),
   teaser: (episode: string) =>
     request<Snapshot>(`/projects/${episode}/teasers`, 'POST', {
       channel: 'x',

@@ -208,6 +208,9 @@ export type FrameSummary = Pick<
 > & {
   status: FrameStatus
   problem?: string
+  /** Its own words still promise past the creator's after one rewrite:
+   * what to check, until the creator keeps them or asks again (review 8). */
+  claim?: string
   /** When its still was posed: the still exists, and this names its version. */
   still?: string
 }
@@ -268,6 +271,8 @@ export type Storyboard = {
   /** The creator's note on a still, by frame number: that frame is posed
    * again with it, and the note goes once it is. */
   frameNotes?: Record<number, string>
+  /** Frames whose flagged words the creator kept as they are. */
+  keptClaims?: number[]
   /** Pages whose take was replaced after they were voiced: made again. */
   redo?: string[]
   approved?: boolean

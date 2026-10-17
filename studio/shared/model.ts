@@ -175,9 +175,9 @@ export type Slide = {
   bridgeFor?: string
   outroFor?: string
 }
-/** A segue line flagged for the creator: the line as written, and what
- * goes past their words. */
-export type SegueCheck = { line: string; note: string }
+/** A segue line flagged for the creator: the line as written, what goes
+ * past their words, and whether they kept it as it is. */
+export type SegueCheck = { line: string; note: string; kept?: boolean }
 export type Transition =
   | 'none'
   | 'crossfade'
