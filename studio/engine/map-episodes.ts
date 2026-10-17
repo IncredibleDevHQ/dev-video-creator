@@ -287,7 +287,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
   if (action === 'undo-update') return undoUpdate(id)
   const slideId = String(value.slide || '')
   if (action === 'unmove') return unmove(id, episode, slideId)
-  if (action === 'unremove') return unremove(id, slideId)
+  if (action === 'unremove') return unremove(id, slideId, mapId)
   const copy = episode.project.slides.find((s) => s.id === slideId)
   if (!copy) throw gone()
   if (action === 'move') {
@@ -361,6 +361,11 @@ export const changeCopies = async (id: string, raw: unknown) => {
     return { moved: true, as: moved.id }
   }
   if (action === 'remove') {
+    const page = copy.copyOf?.slide
+    const only = page
+      ? (await loadProject(mapId))?.project.slides.find((s) => s.id === page)
+          ?.onlyIn === id
+      : false
     await changeProject(id, (current) => {
       const slides = current.project.slides
       const index = slides.findIndex((s) => s.id === slideId)
@@ -372,7 +377,10 @@ export const changeCopies = async (id: string, raw: unknown) => {
         )
       // Kept for Undo, with its scene, as the Wireframe stage's delete does
       // (review 6: one key removed a made scene for good).
-      current.deletedSlide = keptForUndo(current.project, index)
+      current.deletedSlide = {
+        ...keptForUndo(current.project, index),
+        ...(only ? { only: true as const } : {})
+      }
       current.project.slides = slides.filter((s) => s.id !== slideId)
       reconcileVideo(current.project, current, new Set())
       addEvent(current, 'slide', `Removed “${copy.title}”; the map keeps it`)
@@ -434,19 +442,34 @@ const unmove = async (id: string, episode: Snapshot, slideId: string) => {
 }
 /**
  * The map's Undo of a removal: the page it removed comes back as it was,
- * where it stood. The episode keeps only its last removal, so one removed
- * since, on the map or its Wireframe stage, is never brought back in its
- * place (review 8, round 2).
+ * where it stood, this episode's only again if it was. The episode keeps
+ * only its last removal, so one removed since, on the map or its Wireframe
+ * stage, is never brought back in its place (review 8, round 2); nor one
+ * whose page it has again, added since.
  */
-const unremove = async (id: string, slideId: string) => {
+const unremove = async (id: string, slideId: string, mapId: string) => {
+  let page: string | undefined
   await changeProject(id, (current) => {
     const kept = current.deletedSlide
     if (kept?.slide.id !== slideId)
       throw new Refusal('That page can no longer be brought back')
+    const copied = kept.slide.copyOf?.slide
+    if (
+      copied &&
+      current.project.slides.some((s) => s.copyOf?.slide === copied)
+    )
+      throw new Refusal('This episode has that page again')
     delete current.deletedSlide
     restoreKept(current, kept)
     addEvent(current, 'slide', `Brought back “${kept.slide.title}”`)
+    page = kept.only ? copied : undefined
   })
+  // Only here as it was, unless another episode has its page since.
+  if (page && !(await usersOf(mapId, page)).some((other) => other !== id))
+    await changeProject(mapId, (current) => {
+      const original = current.project.slides.find((s) => s.id === page)
+      if (original && !original.onlyIn) original.onlyIn = id
+    })
   await planScenes(id)
   await scheduleAround(id)
   return { restored: true }

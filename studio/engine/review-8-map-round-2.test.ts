@@ -315,3 +315,39 @@ it('brings back the page the map removed, and refuses when another was removed s
   expect(back.deletedSlide).toBeUndefined()
   await segues.settledAllSegues()
 })
+
+it('brings a removed page back once, and this episode’s only again if it was (round 3)', async () => {
+  const { one, two } = await twoEpisodes('r6')
+  const { changeProject } = await import('./projects')
+  const [a] = (await loadProject(one))!.project.slides
+  const page = a.copyOf!.slide
+  const onlyIn = async () =>
+    (await loadProject('r6'))!.project.slides.find((s) => s.id === page)!.onlyIn
+  // Cut into this episode: only here.
+  await changeProject('r6', (current) => {
+    current.project.slides.find((s) => s.id === page)!.onlyIn = one
+  })
+  await episodes.changeCopies(one, { action: 'remove', slide: a.id })
+  expect(await onlyIn()).toBeUndefined()
+  await episodes.changeCopies(one, { action: 'unremove', slide: a.id })
+  expect(await onlyIn()).toBe(one)
+  // Removed, the page added again by hand, then Undo: one copy is enough.
+  await episodes.changeCopies(one, { action: 'remove', slide: a.id })
+  await episodes.changeCopies(one, { action: 'add', slide: page })
+  await expect(
+    episodes.changeCopies(one, { action: 'unremove', slide: a.id })
+  ).rejects.toThrow('This episode has that page again')
+  const copies = (await loadProject(one))!.project.slides.filter(
+    (s) => s.copyOf?.slide === page
+  )
+  expect(copies).toHaveLength(1)
+  // Another episode has it since: brought back, it is no longer only here.
+  await changeProject('r6', (current) => {
+    current.project.slides.find((s) => s.id === page)!.onlyIn = one
+  })
+  await episodes.changeCopies(one, { action: 'remove', slide: copies[0].id })
+  await episodes.changeCopies(two, { action: 'add', slide: page })
+  await episodes.changeCopies(one, { action: 'unremove', slide: copies[0].id })
+  expect(await onlyIn()).toBeUndefined()
+  await segues.settledAllSegues()
+})

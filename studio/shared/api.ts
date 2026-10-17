@@ -79,6 +79,8 @@ export type KeptSlide = {
   /** The video's line, when it stood stopped with this page's scene
    * stopped. */
   stopped?: string
+  /** Its map page was this episode's only, as the map removed it. */
+  only?: true
 }
 export type CreateProject = {
   sourceOnly?: boolean
