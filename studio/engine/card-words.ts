@@ -16,7 +16,9 @@ const SMALL = new Set(
     'just only also very too more most some any each every all both few ' +
     'many much such own other another again still even let lets let’s get ' +
     'gets got isn’t aren’t wasn’t weren’t don’t doesn’t didn’t can’t ' +
-    'cannot won’t wouldn’t shouldn’t couldn’t hasn’t haven’t hadn’t'
+    'cannot won’t wouldn’t shouldn’t couldn’t hasn’t haven’t hadn’t ' +
+    'isnt arent wasnt werent dont doesnt didnt cant wont wouldnt ' +
+    'shouldnt couldnt hasnt havent hadnt'
   ).split(' ')
 )
 
@@ -49,14 +51,15 @@ export const tokensOf = (text: string) =>
     .map((word) => word.replace(/^’+|’+$/g, ''))
     .filter(Boolean)
 
+const isContent = (word: string) =>
+  !SMALL.has(word) && (word.length > 1 || /\d/.test(word))
+
 /** The content words of a text, stemmed, in order: what it is about. */
 export const contentWords = (text: string) =>
-  tokensOf(text)
-    .filter((word) => !SMALL.has(word) && (word.length > 1 || /\d/.test(word)))
-    .map(stem)
+  tokensOf(text).filter(isContent).map(stem)
 
 /** Words that turn the next content word around: "never rejects", "don't
- * reuse", "no retry", "without a key". */
+ * reuse", "no retry", "without a key", "hardly ever rejects". */
 const NEGATORS = new Set([
   'not',
   'no',
@@ -67,37 +70,148 @@ const NEGATORS = new Set([
   'nothing',
   'nobody',
   'without',
-  'cannot'
+  'cannot',
+  'hardly',
+  'barely',
+  'scarcely',
+  'seldom'
 ])
-const negates = (word: string) => NEGATORS.has(word) || word.endsWith('n’t')
+/** "Doesnt", "dont", "isnt", "cant", "wont": typed without the apostrophe. */
+const BARE_NOT =
+  /^(?:is|are|was|were|do|does|did|has|have|had|ca|wo|would|should|could|must|need|sha)nt$/
+/** How many words from here say "not", or 0: one ("never", "doesnt") or
+ * two ("no longer rejects", "fails to reject"); "stops" says it before a
+ * word in -ing only ("stops rejecting", not "stops a retry"). */
+const negatorAt = (words: string[], at: number) => {
+  const [word, next = ''] = [words[at], words[at + 1]]
+  if (word === 'no' && next === 'longer') return 2
+  if (/^(?:fail(?:s|ed|ing)?|unable|refus(?:e|es|ed|ing))$/.test(word))
+    return next === 'to' ? 2 : 0
+  if (
+    /^(?:stop(?:s|ped|ping)?|ceas(?:e|es|ed|ing)|quit(?:s|ting)?)$/.test(word)
+  )
+    return /..ing$/.test(next) ? 1 : 0
+  return NEGATORS.has(word) || word.endsWith('n’t') || BARE_NOT.test(word)
+    ? 1
+    : 0
+}
+/** Words that say how, not what: a negation passes over them to the word
+ * it turns ("doesn't always reject" is ¬reject). */
+const HOW = new Set(
+  (
+    'always really actually necessarily simply quite entirely fully once ' +
+    'automatically explicitly silently quietly usually normally generally ' +
+    'typically currently immediately properly correctly reliably'
+  ).split(' ')
+)
 
 /**
  * A text's content words, as contentWords gives them, each one a negation
  * turns around marked "¬" ("the server never rejects it" is server, ¬reject):
  * a passage that says the opposite of what a gap asks doesn't cover it
- * (review 8, round 2's audit). A negation reaches the next content word of
- * its clause only, so "don't reuse the first result" is ¬reuse, first,
- * result.
+ * (review 8, rounds 2 and 3 of the audit). A negation reaches the next
+ * content word of its clause, so "don't reuse the first result" is ¬reuse,
+ * first, result; past a word that says how ("doesn't always reject"); and,
+ * given the words looked for, to one of them a word further on ("never in
+ * practice rejects", "does not in this case reject"). Left at a clause's
+ * end, it reaches past a short aside ("does not, in this case, reject").
  */
-export const polarWords = (text: string) =>
+export const polarWords = (text: string, aims?: Set<string>) =>
   String(text || '')
-    .split(/[,;:!?.()—–]+|\s-\s/)
-    .flatMap((clause) => {
+    .split(/[;:!?.]+/)
+    .flatMap((sentence) => {
+      const clauses = sentence
+        .split(/[,()—–]+|\s-\s/)
+        .map(tokensOf)
+        .filter((words) => words.length)
+      const said: string[] = []
       let negated = false
-      return tokensOf(clause).flatMap((word) => {
-        if (negates(word)) {
-          negated = true
-          return []
+      let aside = false
+      clauses.forEach((words, index) => {
+        // One aside of a few words between the negation and its word.
+        if (
+          negated &&
+          !aside &&
+          words.length <= 4 &&
+          index + 1 < clauses.length
+        ) {
+          said.push(...words.filter(isContent).map(stem))
+          aside = true
+          return
         }
-        if (SMALL.has(word) || (word.length <= 1 && !/\d/.test(word))) return []
-        const said = negated ? `¬${stem(word)}` : stem(word)
-        negated = false
-        return [said]
+        if (!aside) negated = false
+        aside = false
+        for (let at = 0; at < words.length; ) {
+          const takes = negatorAt(words, at)
+          if (takes) {
+            negated = true
+            at += takes
+            continue
+          }
+          const word = words[at++]
+          if (!isContent(word)) continue
+          if (!negated || HOW.has(word)) {
+            said.push(stem(word))
+            continue
+          }
+          negated = false
+          const next = words.findIndex(
+            (one, from) => from >= at && isContent(one)
+          )
+          const aimed =
+            aims &&
+            !aims.has(stem(word)) &&
+            next >= 0 &&
+            !words
+              .slice(at, next + 1)
+              .some((_, from) => negatorAt(words, at + from)) &&
+            aims.has(stem(words[next]))
+          if (aimed) {
+            said.push(stem(word), `¬${stem(words[next])}`)
+            at = next + 1
+          } else said.push(`¬${stem(word)}`)
+        }
       })
+      return said
     })
 /** The same word said the other way round. */
 export const turned = (word: string) =>
   word.startsWith('¬') ? word.slice(1) : `¬${word}`
+
+/** Verbs that say each other's opposite: a passage that "accepts" what a
+ * gap says is rejected says it the other way round. */
+const OPPOSITES = [
+  ['accept', 'reject'],
+  ['accept', 'refuse'],
+  ['allow', 'block'],
+  ['allow', 'deny'],
+  ['allow', 'forbid'],
+  ['permit', 'deny'],
+  ['keep', 'drop'],
+  ['keep', 'discard'],
+  ['keep', 'delete'],
+  ['keep', 'lose'],
+  ['succeed', 'fail'],
+  ['pass', 'fail'],
+  ['include', 'exclude'],
+  ['enable', 'disable']
+].reduce((all, [one, other]) => {
+  const [a, b] = [stem(one), stem(other)]
+  all.set(a, [...(all.get(a) || []), b])
+  all.set(b, [...(all.get(b) || []), a])
+  return all
+}, new Map<string, string[]>())
+
+/** The words that say this one the other way round: it negated, or turned
+ * ("¬reject"), and its opposite verbs said the same way ("accept"). */
+export const againstOf = (word: string) => {
+  const negated = word.startsWith('¬')
+  const plain = negated ? word.slice(1) : word
+  return [
+    turned(word),
+    ...(OPPOSITES.get(plain) || []).map((one) => (negated ? `¬${one}` : one))
+  ]
+}
 
 /** A text's sentences: split at full stops, question and exclamation marks
  * and line breaks; list marks and headings are left out. */

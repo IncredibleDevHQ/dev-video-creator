@@ -154,3 +154,80 @@ it('puts a card in the gap’s episode or before it first', () => {
   )
   expect(gap.covered?.page).toBe('earlier')
 })
+
+// Round 3's audit: "fails to reject", "stops rejecting", "doesnt reject"
+// typed without its apostrophe, "accepts" and "does not, in this case,
+// reject" each still covered a gap on what the server rejects.
+describe('a card that says it the other way round, as round 3’s audit found', () => {
+  const SHORT = 'The server rejects a reused key'
+  const LONG = 'The server rejects a reused key that carries a different order'
+  it.each([
+    'The server fails to reject a reused key that carries a different order.',
+    'The server stops rejecting a reused key that carries a different order.',
+    'The server doesnt reject a reused key that carries a different order.',
+    'The server dont reject a reused key that carries a different order.',
+    'The server isnt rejecting a reused key that carries a different order.',
+    'The server no longer rejects a reused key that carries a different order.',
+    'The server hardly ever rejects a reused key that carries a different order.',
+    'The server does not, in this case, reject a reused key that carries a different order.',
+    'The server never in practice rejects a reused key that carries a different order.',
+    'The server doesn’t always reject a reused key that carries a different order.',
+    'The server accepts a reused key that carries a different order.'
+  ])('leaves the gap open against “%s”', (script) => {
+    expect(coveredBy(LONG, [{ id: 'card', script }])).toBeNull()
+    expect(coveredBy(SHORT, [{ id: 'card', script }])).toBeNull()
+  })
+
+  it('reads the gap’s own “no longer” or “doesn’t always” as a negation', () => {
+    const card: GapCard = {
+      id: 'card',
+      script: 'After expiry, the server rejects a reused key from an old order.'
+    }
+    for (const missing of [
+      'After expiry, the server no longer rejects a reused key from an old order',
+      'After expiry, the server doesn’t always reject a reused key from an old order'
+    ])
+      expect(coveredBy(missing, [card]), missing).toBeNull()
+    expect(
+      coveredBy(
+        'After expiry, the server rejects a reused key from an old order',
+        [card]
+      )
+    ).toMatchObject({ page: 'card' })
+  })
+
+  it('reads an opposite verb either way round, and when both are negated', () => {
+    expect(
+      coveredBy('The server accepts a retry with the same key and request', [
+        {
+          id: 'card',
+          script:
+            'The server rejects a retry with the same key and the same request.'
+        }
+      ])
+    ).toBeNull()
+    expect(
+      coveredBy('Why the server does not accept a key reused for a new order', [
+        {
+          id: 'card',
+          script:
+            'The server does not reject a key reused for a new order, because the fingerprint matches.'
+        }
+      ])
+    ).toBeNull()
+  })
+
+  it.each([
+    'The server rejects a reused key that carries a different order.',
+    'The server, in this case, rejects a reused key that carries a different order.',
+    'Not surprisingly, the server rejects a reused key that carries a different order.',
+    'Without fail, the server rejects a reused key that carries a different order.',
+    'The client never retries blindly, so the server rejects a reused key that carries a different order.',
+    'The server rejects a reused key that carries a different order; it does not, in this case, replay the first result.',
+    'The server rejects a reused key that carries a different order and doesnt replay the first result.'
+  ])('still marks a card that says it: “%s”', (script) => {
+    expect(coveredBy(LONG, [{ id: 'card', script }])).toMatchObject({
+      page: 'card'
+    })
+  })
+})

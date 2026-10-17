@@ -3,7 +3,7 @@
 // words, so the creator can close it with the card in one step (review 8:
 // the planner asked for what the idempotency card's script already said).
 // A word check, tuned to mark rather than drop: a marked gap stays open.
-import { polarWords, sentencesOf, turned } from './card-words'
+import { againstOf, polarWords, sentencesOf } from './card-words'
 
 /** A card as the planner reads it (series-plan.ts `cardsOf`). */
 export type GapCard = {
@@ -95,7 +95,8 @@ const askOf = (missing: string) => {
  * reason in those words, a "how" gap a method, a "how long" gap a quantity.
  * A word must be said the same way round: a negated one ("never rejects")
  * meets only a negated one, and a passage saying any of the gap's words the
- * other way round is no cover. A gap of fewer than three content words
+ * other way round (negated, or with its opposite verb: "accepts" for
+ * "rejects") is no cover. A gap of fewer than three content words
  * ("what a Durable Object is") is left to the planner. Cards in the gap's
  * episode or before it come first.
  */
@@ -107,6 +108,8 @@ export const coveredBy = (
   const words = polarWords(missing)
   const wanted = new Set(words)
   if (wanted.size < 3) return null
+  // The gap's own words, which a negation a word further on reaches.
+  const aims = new Set(words.map((word) => word.replace(/^¬/, '')))
   const wantedPairs = pairs(words)
   const needs = askOf(missing)
   let best: { score: number; page: string; sentence: string } | null = null
@@ -117,10 +120,12 @@ export const coveredBy = (
     for (const passage of passagesOf(card)) {
       const text = passage.sentences.join(' ')
       if (needs && !needs.test(text)) continue
-      const said = polarWords(text)
+      const said = polarWords(text, aims)
       // A passage that says any of it the other way round ("the server
-      // never rejects…" for a gap on what it rejects) covers none of it.
-      if (said.some((word) => wanted.has(turned(word)))) continue
+      // never rejects…" or "accepts…" for a gap on what it rejects) covers
+      // none of it.
+      if (said.some((word) => againstOf(word).some((one) => wanted.has(one))))
+        continue
       const have = new Set(said)
       const met = [...wanted].filter((word) => have.has(word)).length
       const share = met / wanted.size
