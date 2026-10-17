@@ -14,7 +14,14 @@ import type {
   LengthGoal
 } from '../../shared/storyboard'
 import { sentencesOf } from '../card-words'
-import { askOnce, claimProblem, overclaims, type Passage } from '../claims'
+import {
+  askOnce,
+  claimProblem,
+  limitsFor,
+  overclaims,
+  type Limit,
+  type Passage
+} from '../claims'
 import {
   runValidatedJsonStage,
   type CreativeSelection
@@ -137,6 +144,8 @@ export const episodeBrief = (input: {
   note?: string
   builds?: Record<string, BuildType>
   brand?: { name?: string; tagline?: string; logo?: string | null }
+  /** The creator's limits and caveats on what the pages say. */
+  limits?: Limit[]
 }) => {
   const { length, series, brand } = input
   const lines = [
@@ -233,6 +242,18 @@ export const episodeBrief = (input: {
       ...chosen.map(([page, build]) => `- ${page}: ${build}`),
       ''
     )
+  // The planner writes words of its own (a call-back, a hand-off, a line it
+  // restructured): it reads the limits they must keep, as the segue writer
+  // does (review 8, round 2's audit: its brief carried none).
+  if (input.limits?.length)
+    lines.push(
+      "## The creator's limits",
+      '',
+      'Promise no more than these allow: no never, always or guarantee past them, and a frame that touches one keeps its caveat.',
+      '',
+      ...input.limits.map((limit) => `- “${limit.says}” (${limit.from})`),
+      ''
+    )
   if (input.note) lines.push('## The creator asks', '', input.note.trim(), '')
   return lines.join('\n')
 }
@@ -243,16 +264,38 @@ const plainWords = (text: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
 /**
+ * What a page's frames may say unchecked, by page: its own script, not the
+ * segues written around it (the line in, the line out), unless the creator
+ * kept that line as it is. The outro the live run flagged was in the script
+ * the planner speaks, and so went unchecked (review 8, round 2's audit).
+ */
+export const ownScripts = (snapshot: Snapshot, pages: string[]) =>
+  Object.fromEntries(
+    pages.map((id) => {
+      const slide = snapshot.project.slides.find((entry) => entry.id === id)
+      const kept = snapshot.project.segueChecks?.[id]
+      const lines = (['bridge', 'outro'] as const).flatMap((line) =>
+        slide?.[line] && kept?.[line]?.kept && kept[line]!.line === slide[line]
+          ? [slide[line]!]
+          : []
+      )
+      return [id, [slide?.base ?? slide?.narration ?? '', ...lines].join(' ')]
+    })
+  )
+
+/**
  * What the plan's frames promise past the creator's words: only what a
- * frame says that no page's script does (its own call-back or hand-off, a
- * line it restructured), checked against the creator's material (review 8).
+ * frame says that no page's own script does (its own call-back or hand-off,
+ * a line it restructured, a segue it speaks), checked against the creator's
+ * material (review 8).
  */
 export const frameClaims = (
   plan: EpisodePlan,
   pages: PlanPage[],
-  material: Passage[]
+  material: Passage[],
+  own: Record<string, string> = {}
 ) => {
-  const scripts = pages.map((page) => plainWords(page.script))
+  const scripts = pages.map((page) => plainWords(own[page.id] ?? page.script))
   return plan.scenes
     .flatMap((scene) => scene.frames)
     .flatMap((frame) => {
@@ -285,6 +328,8 @@ export const planEpisode = async (input: {
   const length = lengthGoalOf(snapshot)
   const camera = (snapshot.project.video?.settings.presence || 'off') !== 'off'
   const voMode = voModeFor(pages, length)
+  const material = input.material || []
+  const own = ownScripts(snapshot, input.pages)
   const brief = episodeBrief({
     title: snapshot.project.title,
     length,
@@ -298,7 +343,11 @@ export const planEpisode = async (input: {
       name: snapshot.project.branding?.name,
       tagline: snapshot.project.branding?.tagline,
       logo: input.logo
-    }
+    },
+    limits: limitsFor(
+      material,
+      pages.map((page) => `${page.title} ${page.script}`).join(' ')
+    )
   })
   const frameDesign = await readFile(join(input.dir, 'frame.md'), 'utf8')
   const blueprints = blueprintIds()
@@ -371,13 +420,13 @@ export const planEpisode = async (input: {
           logo: Boolean(input.logo)
         }),
       (plan) =>
-        frameClaims(plan, pages, input.material || []).map((item) =>
+        frameClaims(plan, pages, material, own).map((item) =>
           claimProblem(`Frame ${item.number}`, item.claim)
         )
     )
   })
   // What still promises past them after the rewrite: flagged on its frame.
-  const claims = frameClaims(plan, pages, input.material || [])
+  const claims = frameClaims(plan, pages, material, own)
   return { plan, length, brief, claims }
 }
 

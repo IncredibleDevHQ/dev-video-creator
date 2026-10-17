@@ -1,12 +1,13 @@
 // What a line the studio writes may promise: no more than the creator's
 // material says. A segue, a hook, a storyboard line or a post that promises
-// an outcome with never, always or ever ("an idempotency key, so a retry can
-// never pour a second latte") past a limit the creator wrote, or says a
-// promise word (guaranteed, forever, impossible, can't fail, 100%, every
-// single time, no matter what) that the creator's own words don't say,
-// goes back to its writer once, with the creator's words it goes past
-// (review 8). A word check, not a model: a line that still says it after the
-// rewrite is kept, and flagged for the creator to rewrite or keep.
+// an outcome absolutely (never, always, ever, can't, won't, no retry…: "an
+// idempotency key, so a retry can never pour a second latte") past a limit
+// the creator wrote, or promises outright what the creator said not to
+// promise, or says a promise word (guaranteed, forever, impossible, can't
+// fail, 100%, every single time, no matter what) that the creator's own
+// words don't say, goes back to its writer once, with the creator's words it
+// goes past (review 8). A word check, not a model: a line that still says it
+// after the rewrite is kept, and flagged for the creator to rewrite or keep.
 import type { Slide } from '../shared/model'
 import { contentWords, drawnWords, sentencesOf, tokensOf } from './card-words'
 
@@ -19,8 +20,11 @@ export type Limit = { says: string; from: string }
 /** An absolute word a line says where the material doesn't. */
 export type Overclaim = { word: string; sentence: string; limit?: Limit }
 
+/** The absolute words. "Can't" and "won't" say never too, unless they only
+ * say what can't be promised, known or told ("we can't promise…"); "no" is
+ * one before what it rules out ("no retry pours…"), not in "no longer". */
 const ABSOLUTE =
-  /\b(?:never(?:\s+ever)?|always|forever|for\s+good|once\s+and\s+for\s+all|guarantee[sd]?|impossible|can(?:no|['’])?t\s+(?:ever\s+)?fail|every\s+(?:single\s+)?time|no\s+matter\s+what|ever)\b|\b100\s?%/gi
+  /\b(?:never(?:\s+ever)?|always|forever|for\s+good|once\s+and\s+for\s+all|guarantee[sd]?|impossible|can(?:no|['’])?t\s+(?:ever\s+)?fail|every\s+(?:single\s+)?time|no\s+matter\s+what|ever|(?:can(?:no|['’])?t|can\s+not|won['’]t|will\s+not)(?=\s+(?!(?:promise|guarantee|claim|assume|say|tell|know|be\s+sure|expect)\b)[a-z])|no(?=\s+(?!(?:longer|more|need|idea|way|matter|guarantee|promise|claim|one\s+knows)\b)[a-z]))\b|\b100\s?%/gi
 /** Words that only promise: they always need the creator's own backing. */
 const PROMISES = new Set([
   'guarantee',
@@ -31,9 +35,27 @@ const PROMISES = new Set([
   'every single time',
   'no matter what'
 ])
-/** A limit the line gives itself: its absolute word is then scoped. */
-const SCOPED =
-  /\b(?:within|as long as|unless|only (?:if|while|when|within|until|for)|provided that|until (?:it|the \w+) expires?|before (?:it|the \w+) expires?|retention|window|expir\w*|for (?:\d+|a few|several) (?:seconds?|minutes?|hours?|days?|weeks?))\b/i
+/** A limit a line states for its promise ("within the key's retention
+ * window", "as long as the key is kept"): in the promise's clause or one
+ * beside it, its absolute word is scoped. A word alone ("window",
+ * "retention", "within a week") states no limit (round 2's audit: any such
+ * sentence went unchecked). */
+const STATES_SCOPE = new RegExp(
+  `\\b(?:${[
+    "(?:within|inside|during)\\s+(?:[\\w’']+\\s+){0,4}?(?:retention|window|ttl|lifetime|expiry|validity|period)",
+    '(?:as|so) long as',
+    'unless',
+    'only (?:if|while|when|within|until|for|as long as)',
+    'provided (?:that\\b)?',
+    "while (?:the|its|that) (?:[\\w’']+\\s+){0,2}?(?:is|stays|remains) (?:kept|retained|stored|valid|alive)",
+    '(?:until|before) (?:it|the \\w+|its \\w+) (?:expires?|is (?:dropped|deleted|evicted))',
+    'for (?:\\d+|a few|several) (?:seconds?|minutes?|hours?|days?|weeks?|months?)'
+  ].join('|')})\\b`,
+  'i'
+)
+/** What a negated promise rules out: the words after its promise word ("Do
+ * not promise that [an old retry will be deduplicated forever]"). */
+const RULED_OUT = /^\s*(?:that\s+)?([^;:]+)/i
 /** "Do not promise…", "we can't guarantee…": a limit, never a claim. */
 const NEGATED_PROMISE =
   /\b(?:not|no|never|cannot|can['’]t|don['’]t|doesn['’]t|won['’]t|shouldn['’]t|mustn['’]t|isn['’]t|aren['’]t|without)\b[^,;:.!?]*\b(?:promis\w*|guarante\w*|claim\w*|assum\w*)/i
@@ -70,6 +92,8 @@ const kindOf = (word: string) => {
   if (said.startsWith('never')) return 'never'
   if (said.startsWith('guarantee')) return 'guarantee'
   if (said.endsWith('fail')) return 'cannot fail'
+  // "Can't pour", "won't pour", "no retry pours": never, said another way.
+  if (said === 'no' || /^(?:can|won|will)/.test(said)) return 'never'
   if (said.startsWith('100')) return '100%'
   if (said === 'every single time') return said
   if (said.startsWith('every')) return 'every time'
@@ -89,20 +113,40 @@ const clausesOf = (sentence: string) => {
     }
   return clauses
 }
-/** The clause a word sits in, the one before it, and the words before it. */
-const placeOf = (sentence: string, at: number) => {
+/** Which clause a word of this length at this place sits in. */
+const clauseAt = (sentence: string, at: number, length = 0) => {
   const clauses = clausesOf(sentence)
   let index = clauses.findIndex(
     (clause) => at >= clause.start && at <= clause.start + clause.text.length
   )
-  // ", ever" at the end belongs to the clause it closes.
-  if (index > 0 && !sentence.slice(clauses[index].start, at).trim()) index--
+  // ", ever" or ", every single time" alone at the end belongs to the clause
+  // it closes; "…: no retry pours" or "…: never hammer" is a clause of its own.
+  const end = index >= 0 ? clauses[index].start + clauses[index].text.length : 0
+  if (
+    index > 0 &&
+    !sentence.slice(clauses[index].start, at).trim() &&
+    !/[a-z0-9]/i.test(sentence.slice(at + length, end))
+  )
+    index--
+  return { clauses, index }
+}
+/** The clause a word sits in, the one before it, and the words before it. */
+const placeOf = (sentence: string, at: number, length = 0) => {
+  const { clauses, index } = clauseAt(sentence, at, length)
   const clause = clauses[index]
   return {
     clause: clause.text,
     before: sentence.slice(clause.start, at),
     previous: index > 0 ? clauses[index - 1].text : ''
   }
+}
+/** Whether a line states a limit for its absolute word, in the word's clause
+ * or one beside it. */
+const scopedAt = (sentence: string, said: Said) => {
+  const { clauses, index } = clauseAt(sentence, said.at, said.word.length)
+  return clauses
+    .slice(Math.max(0, index - 1), index + 2)
+    .some((clause) => STATES_SCOPE.test(clause.text))
 }
 const isNegated = (before: string, kind: string) =>
   tokensOf(before)
@@ -122,7 +166,7 @@ type Said = { word: string; kind: string; at: number }
 const absolutesIn = (sentence: string): Said[] =>
   [...sentence.matchAll(ABSOLUTE)].flatMap((match) => {
     const kind = kindOf(match[0])
-    const { before, clause } = placeOf(sentence, match.index!)
+    const { before, clause } = placeOf(sentence, match.index!, match[0].length)
     if (NEGATED_PROMISE.test(before)) return []
     const scope = kind === 'ever' && !before.trim() ? clause : before
     if (kind === 'ever')
@@ -272,32 +316,60 @@ const limitOf = (
     .filter((item) => item.meets >= least)
     .sort((one, other) => other.score - one.score)[0]?.source
 
+/** The material's negated promises, each with the words of what it rules
+ * out ("Do not promise that an old retry will be deduplicated forever": old,
+ * retry, twice). */
+const ruledOut = (sources: Sentence[]) =>
+  sources.flatMap((source) => {
+    const negated = NEGATED_PROMISE.exec(source.text)
+    if (!negated) return []
+    const rest = source.text.slice(negated.index + negated[0].length)
+    const words = new Set(aboutOf(RULED_OUT.exec(rest)?.[1] || ''))
+    return words.size >= 2 ? [{ source, words }] : []
+  })
+
 /**
  * The absolute words a written text says where the material doesn't, each
  * with its sentence and the creator's words it goes past, when found.
  * - A promise word needs backing: a sentence of the creator's own (not a
  *   card's) that says it outright about two of the same things.
- * - "Never", "always", "every time" or "ever" counts only where it promises
- *   an outcome ("…, so a retry can never…", "…means it never will") and
- *   goes past a limit the creator wrote on the same thing; advice ("never
- *   hammer a struggling server") and a story line are no promise.
- * - A line that gives its own limit ("within the key's retention window")
- *   promises nothing more; a sentence that limits backs nothing.
+ * - "Never", "always", "every time", "ever", "can't", "won't" or "no …"
+ *   counts only where it promises an outcome ("…, so a retry can never…",
+ *   "…means it never will") and goes past a limit the creator wrote on the
+ *   same thing, or promises outright what a negated promise of the material
+ *   rules out ("a retry with the same key never pours a second latte"
+ *   against "do not promise that an old retry will be deduplicated
+ *   forever"); advice ("never hammer a struggling server") and a story line
+ *   are no promise.
+ * - A line that states its own limit beside the word ("within the key's
+ *   retention window") promises nothing more; a sentence that limits backs
+ *   nothing.
  */
 export const overclaims = (text: string, material: Passage[]) => {
   const sources = sentencesIn(material)
+  const forbids = ruledOut(sources)
   const found: Overclaim[] = []
   for (const sentence of sentencesOf(text)) {
-    if (SCOPED.test(sentence)) continue
     for (const said of absolutesIn(sentence)) {
-      const { clause, before, previous } = placeOf(sentence, said.at)
+      if (scopedAt(sentence, said)) continue
+      const { clause, before, previous } = placeOf(
+        sentence,
+        said.at,
+        said.word.length
+      )
       const head = tokensOf(before)
       const promise = PROMISES.has(said.kind)
-      // Advice: "Never trust…", "should always…".
-      if (!promise && !head.length) continue
+      // Advice: "Never trust…", "should always…"; "No retry pours…" is none.
+      if (!promise && !head.length && said.word.toLowerCase() !== 'no') continue
       if (head.slice(-2).some((word) => ADVICE.has(word))) continue
       const outcome = OUTCOME.test(clause.trim()) || BY.test(previous.trim())
-      if (!promise && !outcome && !BRINGS.test(before)) continue
+      // What the material said not to promise, promised outright: it needs
+      // no "so" (round 2's audit).
+      const against = forbids.find(
+        ({ words }) =>
+          shared(clause, words) >= Math.max(2, Math.ceil(words.size * 0.6))
+      )?.source
+      if (!promise && !outcome && !BRINGS.test(before) && !against) continue
       const subject = new Set(aboutOf(`${outcome ? previous : ''} ${clause}`))
       const need = Math.min(2, subject.size)
       const backed = sources.some(
@@ -309,7 +381,8 @@ export const overclaims = (text: string, material: Passage[]) => {
           shared(source.text, subject) >= need
       )
       if (backed) continue
-      const limit = limitOf(sources, subject, said.kind, Math.max(1, need))
+      const limit =
+        limitOf(sources, subject, said.kind, Math.max(1, need)) ?? against
       if (!limit && !promise) continue
       found.push({
         word: said.word,

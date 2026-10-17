@@ -220,6 +220,64 @@ it('sends a frame’s own words past the creator’s back once through the plan�
   ).toBeUndefined()
 })
 
+// Round 2's audit: the planner's brief carried no limits, and a frame that
+// spoke the page's outro went unchecked, the outro being in its script.
+it('gives the planner the creator’s limits, and checks a segue a frame speaks unless the creator kept it', async () => {
+  const dir = await mkdtemp(join(root, 'production-'))
+  await writeFile(join(dir, 'frame.md'), '# Frame\n')
+  // In an episode, the page's script holds its line out: the outro is the
+  // studio's, its own script the page's.
+  const episode = (kept: boolean) =>
+    ({
+      ...snapshot,
+      project: {
+        ...snapshot.project,
+        slides: [
+          slides[0],
+          { ...slides[1], base: KEY, outro: OWN, narration: `${KEY} ${OWN}` }
+        ],
+        ...(kept
+          ? {
+              segueChecks: {
+                p2: { outro: { line: OWN, note: 'It says never', kept: true } }
+              }
+            }
+          : {})
+      }
+    }) as unknown as Snapshot
+  const input = {
+    dir,
+    pages: ['p1', 'p2'],
+    selection: { adapter: 'claude-code' as const },
+    origin: 'http://127.0.0.1:1',
+    material
+  }
+  replies['Plan Episode'] = () => plan(OWN)
+  stage.mockClear()
+  const spoken = await planEpisode({
+    ...input,
+    snapshot: episode(false),
+    productionId: 'sb-outro'
+  })
+  const brief = (stage.mock.calls[0][0].packet as Record<string, string>)[
+    'packet/BRIEF.md'
+  ]
+  expect(brief).toContain(
+    "## The creator's limits\n\nPromise no more than these allow"
+  )
+  expect(brief).toContain(
+    '- “Do not promise that an old retry will be deduplicated forever.” (the note of 17 October 2026)'
+  )
+  expect(spoken.claims.map((item) => item.number)).toEqual([3])
+  // The creator kept that outro as it is: its frame is not flagged again.
+  const kept = await planEpisode({
+    ...input,
+    snapshot: episode(true),
+    productionId: 'sb-kept'
+  })
+  expect(kept.claims).toEqual([])
+})
+
 it('shows a flagged frame in the plan with its two answers, and keeps it when asked', async () => {
   const claimed = {
     number: 3,

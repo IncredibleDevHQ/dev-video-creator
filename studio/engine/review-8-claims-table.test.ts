@@ -166,6 +166,48 @@ describe('plain story lines with never or always', () => {
   })
 })
 
+// Round 2's audit: the check caught the review's sentence word for word but
+// not the same promise said without "so", with can't or "no retry", nor any
+// sentence holding "window", "within" or "retention" anywhere.
+describe('the same promise, said the ways round 2’s audit found', () => {
+  const NOTE_LIMIT = {
+    from: 'the note of 17 October 2026',
+    says: 'Do not promise that an old retry will be deduplicated forever.'
+  }
+  it.each([
+    'A retry with the same key never pours a second latte.',
+    'A retry with the same key can’t pour a second latte.',
+    'Next time: an idempotency key, so a retry can’t pour a second latte.',
+    'Next time: an idempotency key, so a retry cannot pour a second latte.',
+    'Next time: an idempotency key, so a retry won’t pour a second latte.',
+    'Next time: an idempotency key, and no retry pours a second latte.',
+    'No retry pours a second latte.',
+    'Next time: no retry pours a second latte.',
+    'The retention window is one detail; a retry can never pour a second latte.',
+    'Within a week you will see why a retry can never pour a second latte.',
+    'Retention matters, and an idempotency key means a retry can never pour a second latte.'
+  ])('flags “%s” against the note', (line) => {
+    expect(said(line)).toMatchObject([{ limit: NOTE_LIMIT }])
+    // No limit written, no limit gone past.
+    expect(said(line, materialOf(LOG, []))).toEqual([])
+  })
+
+  it.each([
+    'Within the key’s retention window, a retry can never pour a second latte.',
+    'A retry can never pour a second latte, as long as the server still keeps its key.',
+    'Next time: an idempotency key, so that within the key’s retention window no retry pours a second latte.',
+    // Can't, won't and no in story lines: no promise.
+    'A timeout can’t tell the client whether the order went through.',
+    'The client gets no answer, so it cannot know whether the order failed.',
+    'No response came back, so the client retried.',
+    'Without a key, the server can’t tell a retry from a new order.',
+    'A unique constraint won’t let both copies in.',
+    'Next time: an idempotency key, though we can’t promise no retry is ever deduplicated twice.'
+  ])('lets “%s” be', (line) => {
+    expect(said(line)).toEqual([])
+  })
+})
+
 it('never takes a sentence that limits for backing, even one that says the word', () => {
   const limited = materialOf(
     'In the retention window, a retry with the same key never creates a second order.',
