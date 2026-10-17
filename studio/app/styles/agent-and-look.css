@@ -50,6 +50,12 @@ header button:hover,
 :root[data-theme='dark'] header button:hover {
   background: var(--header-hover);
 }
+/* A header's primary button keeps its green on hover, in both appearances
+   (review 8: the map's Plan the series went grey in the dark). */
+header .primary:hover,
+:root[data-theme='dark'] header .primary:hover {
+  background: #196332;
+}
 header .theme-control,
 .workspace-header .theme-control {
   border-color: var(--header-line);

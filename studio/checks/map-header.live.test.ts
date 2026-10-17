@@ -141,3 +141,31 @@ it('keeps Plan the series and its length whole and readable in the header at eve
       .toBeLessThan(at.plan.left)
   }
 }, 120_000)
+
+it('keeps the header’s primary button green on hover in both appearances', async () => {
+  const tab = await browser.newPage()
+  await tab.setViewport({ width: 1206, height: 400 })
+  const seen: Record<string, string> = {}
+  for (const theme of ['light', 'dark']) {
+    const file = join(dir, `hover-${theme}.html`)
+    await writeFile(
+      file,
+      `<!doctype html><html data-theme="${theme}"><head><meta charset="utf-8"><link rel="stylesheet" href="file://${style}"></head><body>${mapPage(TITLE)}</body></html>`
+    )
+    await tab.goto(`file://${file}`, { waitUntil: 'load' })
+    await tab.evaluate(
+      (tools) => {
+        document.querySelector('[data-map-slot="tools"]')!.innerHTML = tools
+      },
+      mapTools(snapshot, view, 'order', 'all')
+    )
+    await tab.hover('[data-map="plan-series"]')
+    seen[theme] = await tab.evaluate(
+      () =>
+        getComputedStyle(document.querySelector('[data-map="plan-series"]')!)
+          .backgroundColor
+    )
+  }
+  // The green every .primary has on hover, never the header's grey.
+  expect(seen).toEqual({ light: 'rgb(25, 99, 50)', dark: 'rgb(25, 99, 50)' })
+}, 60_000)
