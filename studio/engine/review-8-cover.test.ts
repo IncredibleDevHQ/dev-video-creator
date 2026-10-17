@@ -249,6 +249,14 @@ it('bundles the hook’s still as the thumbnail, at 1280×720, and the frame the
     )
   )
   expect((await looks(await thumbnailOf('cover'))).hue).toBe('green')
+  // The dialog's picture for that frame is the same, never a broken image.
+  const gone = (await loadProject('cover'))!.project
+  expect(
+    (await looks(await coverFor(gone, new URLSearchParams('frame=2')))).hue
+  ).toBe('green')
+  expect(
+    (await looks(await coverFor(gone, new URLSearchParams('frame=1')))).hue
+  ).toBe('red')
 })
 
 it('uploads with the same thumbnail and the series and episode in the title (F19)', async () => {

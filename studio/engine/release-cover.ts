@@ -90,32 +90,41 @@ export const coverPicture = async (project: Project, choice: CoverChoice) => {
   )
 }
 
+/** A choice's picture, settled: a still gone from disk gives way to that
+ * frame's last picture in the video. */
+const settledPicture = async (project: Project, choice: CoverChoice) => {
+  try {
+    return await coverPicture(project, choice)
+  } catch (error) {
+    if (choice.frame === undefined) throw error
+    return coverPicture(project, {
+      ...choice,
+      frame: undefined,
+      at: frameHeld(project, choice.frame)
+    })
+  }
+}
+
 /**
  * The thumbnail the bundle and the upload carry: the creator's choice, else
- * the hook's still. A still gone from disk gives way to that frame's last
- * picture in the video; with neither, the video's own poster.
+ * the hook's still, settled as above; with neither, the video's own poster.
  */
 export const coverImage = async (project: Project) => {
   const chosen = chosenCover(project)
-  const tries: CoverChoice[] = chosen ? [chosen] : []
-  if (chosen?.frame !== undefined)
-    tries.push({
-      ...chosen,
-      frame: undefined,
-      at: frameHeld(project, chosen.frame)
-    })
-  for (const choice of tries)
+  if (chosen)
     try {
-      return await coverPicture(project, choice)
+      return await settledPicture(project, chosen)
     } catch {
-      /* The next way to a settled picture. */
+      /* The poster is the last way to a picture. */
     }
   const poster = project.video?.produced?.posterKey
   if (poster) return readAsset(poster)
   throw new Refusal('The video has no picture for a thumbnail yet')
 }
 
-/** A choice's picture for the dialog, when it is one of the choices. */
+/** A choice's picture for the dialog, when it is one of the choices: the
+ * same picture the bundle would carry for it (review 8, round 1: a still
+ * gone from disk showed a broken image while the bundle used the video). */
 export const coverFor = (project: Project, query: URLSearchParams) => {
   if (!query.has('frame') && !query.has('at')) return coverImage(project)
   const frame = query.has('frame') ? Number(query.get('frame')) : undefined
@@ -126,5 +135,5 @@ export const coverFor = (project: Project, query: URLSearchParams) => {
       (at !== undefined && item.at === at)
   )
   if (!choice) throw new Refusal('That is not one of the thumbnails')
-  return coverPicture(project, choice)
+  return settledPicture(project, choice)
 }
