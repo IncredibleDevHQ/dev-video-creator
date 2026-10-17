@@ -38,9 +38,14 @@ export const lengthWords = (length: LengthGoal) =>
 export const lengthChip = (length: LengthGoal = DEFAULT_LENGTH) =>
   `<button type="button" class="quiet map-length" data-map="length" data-popover="series-length" title="How long each episode runs">${lengthWords(length)}</button>`
 
+/** A plan has been made once it named the lines through the series. */
+export const seriesPlanned = (series: NonNullable<MapView['series']>) =>
+  Boolean(series.lines?.length)
+
 /** The series' head: its name, the outcome and audience (the planner's are
  * marked suggested until the creator edits them), the through-lines, the
- * gaps, and the way to plan it again. */
+ * gaps, and the way to plan it again. Its first plan, and the length it
+ * plans for, wait in the header, readable at any zoom (review 8). */
 export const seriesHead = (view: MapView) => {
   const series = view.series!
   const suggested = new Set(series.suggested || [])
@@ -64,13 +69,12 @@ export const seriesHead = (view: MapView) => {
     : series.planning?.state === 'failed'
       ? `<span class="map-state is-failed" title="${escape(series.planning.error || '')}">planning failed</span>`
       : `<span class="map-state">${view.episodes.length ? `${plural(view.episodes.length, 'episode')} · ${plural(copies, 'card')}` : 'No episodes yet'}${open.length ? ` · <b class="map-gap-count">${plural(open.length, 'gap')}</b>` : ''}</span>`
-  // A plan has been made once it named the lines through the series.
-  const planned = series.lines.length > 0
-  return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${lengthChip(series.length)}${
-    planning
-      ? ''
-      : `<button type="button" class="${planned ? 'quiet' : 'primary'}" data-map="plan-series">${planned ? 'Plan again' : 'Plan the series'}</button>`
-  }<label class="map-organize" title="New cards place themselves into the episodes"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label></span></div><div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}</div>${
+  const planned = seriesPlanned(series)
+  const again = planned
+    ? `${lengthChip(series.length)}${planning ? '' : '<button type="button" class="quiet" data-map="plan-series">Plan again</button>'}`
+    : ''
+  const organize = `<label class="map-organize" title="New cards place themselves into the episodes"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label>`
+  return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${again}${organize}</span></div><div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}</div>${
     planned
       ? lines
       : '<p class="map-series-hint">The plan reads every card, finds the lines through them, orders episodes so each builds on the last, and names what the cards don’t cover.</p>'

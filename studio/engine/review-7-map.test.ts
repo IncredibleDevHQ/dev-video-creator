@@ -641,6 +641,9 @@ describe('keys on the map (CV-2, CV-8, CV-11, UX-13, UX-14)', () => {
     ]
     if (!notes.contains('is-notes-open'))
       click(root.querySelector('.map-notes-toggle'))
+    // Before its first plan, the series' length is set in the plan bar.
+    click(root.querySelector('[data-map="plan-series"]'))
+    await settle()
     click(root.querySelector('[data-map="length"]'))
     const popover = document.querySelector('.length-popover')!
     fire(popover.querySelector('input') || popover, 'keydown', {

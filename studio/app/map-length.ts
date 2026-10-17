@@ -23,9 +23,12 @@ export const outsideLine = (view: MapView, goal: LengthGoal) => {
 
 /** Marks each lane's running time against a window, without a repaint:
  * its colour, its words and its tooltip together; and every chip that
- * says the window, the plan bar's too (it said the old window). */
+ * says the window, the plan bar's and the header's too (it said the old
+ * window). */
 export const markRuns = (root: ParentNode, goal: LengthGoal) => {
-  for (const chip of root.querySelectorAll<HTMLElement>('.map-length'))
+  for (const chip of root.querySelectorAll<HTMLElement>(
+    '.map-length, [data-length-words]'
+  ))
     chip.textContent = lengthWords(goal)
   for (const runs of root.querySelectorAll<HTMLElement>('[data-runs]')) {
     const seconds = Number(runs.dataset.runs)

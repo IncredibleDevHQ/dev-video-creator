@@ -14,7 +14,7 @@ import type { LengthGoal } from '../shared/storyboard'
 import { escape } from './ui'
 import { videoOpens } from '../shared/state'
 import incredibleLogo from './assets/incredible-logo.svg'
-import { lineColor, ports } from './map-nodes'
+import { lengthWords, lineColor, ports, seriesPlanned } from './map-nodes'
 import { voiceIcon } from './voice-icons'
 import {
   noteDay,
@@ -126,6 +126,19 @@ export const mapStages = (snapshot: Snapshot) =>
     )
     .join('')
 
+/** The series' one next step, in the header at any zoom: start it, plan it
+ * (with the length it plans for; + Episode by hand comes second), then add
+ * its episodes. Nothing to press while its plan runs (review 8). */
+const nextStep = (view: MapView | null) => {
+  const series = view?.series
+  if (!series)
+    return '<button type="button" class="primary" data-map="start-series">Start a series</button>'
+  if (seriesPlanned(series))
+    return '<button type="button" class="primary" data-map="new-episode">+ Episode</button>'
+  const planning = series.planning?.state === 'planning'
+  return `<button type="button" class="quiet map-tool" data-map="new-episode">+ Episode</button><button type="button" class="primary map-next" ${planning ? 'disabled' : 'data-map="plan-series"'}>${planning ? 'Planning…' : 'Plan the series'}<small data-length-words>${escape(lengthWords(series.length || DEFAULT_LENGTH))}</small></button>`
+}
+
 /** The header's tools: one View menu for how the map is arranged and
  * filtered (Figma and Miro keep such choices behind one control), and the
  * series' one next step. Nothing while the map forms. */
@@ -149,7 +162,7 @@ export const mapTools = (
     mode === 'topic' && grouping?.state === 'failed'
       ? `Grouping failed${grouping.error ? `: ${grouping.error}` : ''}`
       : ''
-  return `<button type="button" class="map-view-button${filter !== 'all' ? ' is-filtered' : ''}" data-map="view-menu" aria-haspopup="menu" title="${escape(failed || 'Arrange and filter the map')}">${escape(shown)}${chevron}</button>${view?.series ? `<button type="button" class="primary" data-map="new-episode">+ Episode</button>` : `<button type="button" class="primary" data-map="start-series">Start a series</button>`}`
+  return `<button type="button" class="map-view-button${filter !== 'all' ? ' is-filtered' : ''}" data-map="view-menu" aria-haspopup="menu" title="${escape(failed || 'Arrange and filter the map')}">${escape(shown)}${chevron}</button>${nextStep(view)}`
 }
 
 const kindLabel = {

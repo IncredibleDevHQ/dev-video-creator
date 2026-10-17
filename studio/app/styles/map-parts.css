@@ -56,6 +56,25 @@
   padding: 6px 12px;
   font-size: 13px;
 }
+/* The series' next step in the header, at one size whatever the zoom: Plan
+   the series with the length it plans for, + Episode beside it, quieter. */
+.map-tools .map-tool {
+  padding: 5px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.map-tools .map-next {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.map-next small {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.82;
+}
 .map-tool-error {
   color: var(--danger, #b91c1c);
   font-size: 13px;

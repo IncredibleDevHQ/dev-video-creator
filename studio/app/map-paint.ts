@@ -24,7 +24,7 @@ import {
   segueCard,
   socialsHead
 } from './map-view'
-import { directionCard, gapCard, seriesHead } from './map-nodes'
+import { directionCard, gapCard, seriesHead, seriesPlanned } from './map-nodes'
 import { escape } from './ui'
 
 type Item = {
@@ -204,11 +204,14 @@ export const paintWorld = (map: MapCanvas) => {
   if (view?.series && layout.series) {
     const copies = view.episodes.reduce((n, e) => n + e.copies.length, 0)
     void copies
+    // Before its first plan, the header asks for the plan first and an
+    // episode by hand second; the series doesn't say + Episode again.
+    const add = !view.episodes.length && seriesPlanned(view.series)
     items.push({
       key: 'B:series',
       cls: `map-block map-series${chosen === 'B:series' ? ' is-selected' : ''}`,
       box: layout.series,
-      html: `${seriesHead(view)}${view.episodes.length ? '' : '<button type="button" class="primary map-series-add" data-map="new-episode">+ Episode</button>'}`,
+      html: `${seriesHead(view)}${add ? '<button type="button" class="primary map-series-add" data-map="new-episode">+ Episode</button>' : ''}`,
       label: `Series: ${view.series.title}`
     })
     for (const direction of view.series.directions) {
