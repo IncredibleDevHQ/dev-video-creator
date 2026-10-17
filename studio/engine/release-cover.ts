@@ -120,18 +120,38 @@ export const coverLook = async (branding?: Branding) => {
       `@font-face{font-family:"Inter";src:url(data:font/woff2;base64,${(await readFile(INTER)).toString('base64')});font-weight:100 900}`
     )
   const accent = branding?.useAccent ? branding.accent : ''
+  const ground = branding?.palette?.ground || ''
   return {
     faces: faces.join(''),
     // Single quotes: the stack goes into a style attribute.
     font: `${name ? `'${name.replace(/['"]/g, '')}',` : ''}Inter,-apple-system,'Segoe UI',Arial,sans-serif`,
-    accent: accent && brightness(accent) >= 110 ? accent : '#ffd84d'
+    accent: /^#[0-9a-f]{6}$/i.test(accent) ? lightened(accent) : '#ffd84d',
+    // The title's panel: the brand's own ground when it is dark.
+    panel:
+      /^#[0-9a-f]{6}$/i.test(ground) && brightness(ground) < 60
+        ? ground
+        : '#0f1115'
   }
+}
+
+/** The accent made light enough to read on the dark panel, its hue kept:
+ * mixed with white until it does (round 2: a dark accent fell back to a
+ * yellow that was not the brand's). */
+const lightened = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16)
+  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  for (let mix = 0; mix <= 1; mix += 0.05) {
+    const out = rgb.map((c) => Math.round(c + (255 - c) * mix))
+    const value = `#${out.map((c) => c.toString(16).padStart(2, '0')).join('')}`
+    if (brightness(value) >= 150) return value
+  }
+  return '#ffffff'
 }
 
 export const titledCover = async (
   picture: Buffer,
   words: { title: string; kicker: string },
-  look?: { faces: string; font: string; accent: string }
+  look?: { faces: string; font: string; accent: string; panel: string }
 ) => {
   const { default: puppeteer } = await import('puppeteer')
   const browser = await puppeteer.launch({
@@ -145,12 +165,15 @@ export const titledCover = async (
     const page = await browser.newPage()
     await page.setViewport({ width: 1280, height: 720 })
     const font = look?.font || "-apple-system,'Segoe UI',Inter,Arial,sans-serif"
+    const panel = look?.panel || '#0f1115'
+    // The title on a panel of its own, the picture beside it: set over the
+    // picture, it ran into the picture's own words (round 2's live run).
     await page.setContent(
       (look?.faces ? `<style>${look.faces}</style>` : '') +
-        '<body style="margin:0;width:1280px;height:720px;position:relative;overflow:hidden;background:#000">' +
-        `<img src="data:image/jpeg;base64,${picture.toString('base64')}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">` +
-        '<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.86) 0%,rgba(0,0,0,.7) 46%,rgba(0,0,0,0) 74%)"></div>' +
-        '<div style="position:absolute;left:64px;top:56px;bottom:56px;width:660px;display:flex;flex-direction:column;justify-content:center;color:#fff">' +
+        `<body style="margin:0;width:1280px;height:720px;position:relative;overflow:hidden;background:${panel}">` +
+        `<img src="data:image/jpeg;base64,${picture.toString('base64')}" style="position:absolute;top:0;right:0;width:60%;height:100%;object-fit:cover;object-position:center">` +
+        `<div style="position:absolute;inset:0;background:linear-gradient(90deg,${panel} 0%,${panel} 42%,${panel}00 47%)"></div>` +
+        '<div id="words" style="position:absolute;left:64px;top:56px;bottom:56px;width:440px;display:flex;flex-direction:column;justify-content:center;color:#fff">' +
         (words.kicker
           ? `<div style="font:700 30px/1.2 ${font};letter-spacing:.08em;text-transform:uppercase;color:${look?.accent || '#ffd84d'};margin-bottom:18px">${escapeHtml(words.kicker)}</div>`
           : '') +
@@ -159,7 +182,7 @@ export const titledCover = async (
     await page.evaluate('document.fonts.ready.then(() => true)')
     // A long title comes down a size at a time until it fits.
     await page.evaluate(
-      "(() => { const title = document.getElementById('title'); let size = 88; while (title.scrollHeight > 470 && size > 44) { size -= 4; title.style.fontSize = size + 'px' } })()"
+      "(() => { const title = document.getElementById('title'); let size = 88; while ((title.scrollHeight > 470 || title.scrollWidth > title.clientWidth) && size > 40) { size -= 4; title.style.fontSize = size + 'px' } })()"
     )
     return Buffer.from(await page.screenshot({ type: 'jpeg', quality: 90 }))
   } finally {

@@ -283,9 +283,11 @@ it('sets the title over the thumbnail on the creator’s word, large on the left
   expect(titled.white(80, 160, 720, 560)).toBeGreaterThan(0.04)
   const [r, g, b] = titled.at(30, 360)
   expect(Math.max(r, g, b)).toBeLessThan(40)
-  // …and the picture shows on the right, as it was.
+  // …and the picture shows on the right, as it was, from just past the
+  // title's panel: the title never sits over its words (round 2).
   const [, right] = titled.at(1240, 360)
   expect(right).toBeGreaterThan(90)
+  expect(titled.at(700, 360)[1]).toBeGreaterThan(100)
   // The dialog shows the titled picture, the same as the bundle's.
   const view = page(project)
   const shown = view.querySelector<HTMLImageElement>('.release-cover img')!
@@ -347,13 +349,24 @@ it('sets the title in the brand’s display face, its kicker in the brand’s ac
   expect(look.font.startsWith("'Brand Display',")).toBe(true)
   expect(look.faces).toContain('font-family:"Brand Display"')
   expect(look.accent).toBe('#22c55e')
-  // A dark accent would vanish on the shade: the kicker keeps its yellow.
-  expect((await coverLook({ ...branding, accent: '#1e3a8a' })).accent).toBe(
-    '#ffd84d'
-  )
+  // A dark accent would vanish on the panel: it is lightened, its hue kept.
+  const dark = (await coverLook({ ...branding, accent: '#1e3a8a' })).accent
+  const [r, g, b] = [1, 3, 5].map((at) => parseInt(dark.slice(at, at + 2), 16))
+  expect(0.2126 * r + 0.7152 * g + 0.0722 * b).toBeGreaterThanOrEqual(150)
+  expect(b).toBeGreaterThan(r)
   expect((await coverLook({ ...branding, useAccent: false })).accent).toBe(
     '#ffd84d'
   )
+  // The panel is the brand's ground when that is dark, else near black.
+  expect((await coverLook(branding)).panel).toBe('#0f1115')
+  expect(
+    (
+      await coverLook({
+        ...branding,
+        palette: { ground: '#101828', text: '#ffffff', secondary: '#98a2b3' }
+      })
+    ).panel
+  ).toBe('#101828')
   // On the cover, the kicker ("Episode 3") is in the brand's green.
   await save({ ...episode('branded'), branding } as Project)
   await updateRelease('branded', { coverTitle: true })
