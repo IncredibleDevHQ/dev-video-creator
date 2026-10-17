@@ -87,7 +87,8 @@ export const createSeries = async (raw: unknown) => {
   return series
 }
 
-/** Title, about, threads and repos, as the creator changes them. */
+/** Title, about, threads, repos and who presents it, as the creator
+ * changes them. */
 export const updateSeries = async (id: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
   const repos = value.repos === undefined ? null : await reposOf(value.repos)
@@ -102,6 +103,8 @@ export const updateSeries = async (id: string, raw: unknown) => {
         .filter(Boolean)
         .slice(0, 12)
     if (repos) series.repos = repos
+    const led = seriesLed(value.led)
+    if (led) series.led = led
   })
 }
 

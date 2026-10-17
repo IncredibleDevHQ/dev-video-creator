@@ -192,10 +192,17 @@ export const submitSeries = async (
     app.attach(notebook)
     app.render()
   }
-  if (form.id === 'threads-form' && form.dataset.series) {
-    const page = await seriesApi.update(form.dataset.series, {
-      threads: String(values.get('threads') || '').split('\n')
-    })
+  // The threads, or who presents it, changed on the series' page.
+  if (
+    (form.id === 'threads-form' || form.id === 'led-form') &&
+    form.dataset.series
+  ) {
+    const page = await seriesApi.update(
+      form.dataset.series,
+      form.id === 'led-form'
+        ? { led: values.get('led') }
+        : { threads: String(values.get('threads') || '').split('\n') }
+    )
     if (app.seriesPage?.series.id === form.dataset.series) {
       app.seriesPage = page
       app.render()

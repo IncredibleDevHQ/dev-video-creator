@@ -3,7 +3,7 @@
 import type { Snapshot, NotebookSummary } from '../shared/api'
 import { narrativeById } from '../shared/narratives'
 import type { Series, SeriesEpisode, SeriesSummary } from '../shared/series'
-import { nextPart } from '../shared/series'
+import { ledBy, nextPart, type SeriesLed } from '../shared/series'
 import { notebookState } from './notebook-state'
 import { escape } from './ui'
 
@@ -100,6 +100,14 @@ const seriesFrom = (notebooks: NotebookSummary[], chosen: string) => {
   return `<fieldset class="series-from"><legend>From your notes</legend><div>${rows}<label><input type="radio" name="from" value=""${chosen ? '' : ' checked'}> Nothing yet</label></div><p class="series-later"${later ? '' : ' hidden'}>The series starts once its wireframes are drawn.</p></fieldset>`
 }
 
+/** Who presents a series, and what each asks the creator to record: at the
+ * start, and on the series' page, where it can change (review 8). */
+const ledChoice = (led?: SeriesLed) =>
+  `<fieldset class="series-led"><legend>Who presents it</legend>
+<label><input type="radio" name="led" value="notes" required${led === 'notes' ? ' checked' : ''}> A generated voice <small>Nothing for you to record.</small></label>
+<label><input type="radio" name="led" value="presenter"${led === 'presenter' ? ' checked' : ''}> You, on camera <small>You record your camera and voice for each episode.</small></label>
+</fieldset>`
+
 /** The notes the start chooses: the newest notebook, drawn or being drawn,
  * else nothing yet. */
 const firstChoice = (notebooks: NotebookSummary[]) =>
@@ -125,10 +133,7 @@ ${seriesFrom(notebooks, chosen?.id ?? '')}
 <label><input type="radio" name="growth" value="arc" checked> The studio plans the episodes <small>From your notes or what it is about; nothing is fixed.</small></label>
 <label><input type="radio" name="growth" value="one"> One episode at a time <small>You add each one as you go.</small></label>
 </fieldset>
-<fieldset class="series-led"><legend>Who presents it</legend>
-<label><input type="radio" name="led" value="notes" checked> A generated voice <small>Nothing for you to record.</small></label>
-<label><input type="radio" name="led" value="presenter"> You, on camera <small>You record your camera and voice for each episode.</small></label>
-</fieldset>
+${ledChoice('notes')}
 </div>
 <details class="series-code"${chosen ? ' hidden' : ''}><summary>From a code repository</summary>
 <div class="series-code-fields"><div>
@@ -245,6 +250,7 @@ ${next ? `<input type="hidden" name="part" value="${next.index}">` : ''}
 <textarea id="series-threads" name="threads" rows="3">${escape(series.threads.join('\n'))}</textarea>
 <button class="primary">Save threads</button>
 </form>
+<form id="led-form" class="led-form" data-series="${escape(series.id)}">${ledChoice(ledBy(series))}<button class="primary">Save</button></form>
 ${standalone ? '' : '<div class="dialog-actions"><button type="button" class="quiet" data-action="close">Close</button></div>'}`
 }
 

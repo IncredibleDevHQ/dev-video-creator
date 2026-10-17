@@ -76,8 +76,9 @@ Make the video selects its global Off/Low/High camera presence and off-camera
 voice, and which wireframes become scenes: all of them, or just some. An
 episode starts as its series is presented, asked once when the series starts:
 off camera in a generated voice when told from notes, on camera in your own
-voice when you present it. A line under the voices says what your choices ask
-you to record. A scene
+voice when you present it; the series' page (Episode N in an episode's header)
+changes it. A line under the voices says what your choices ask you to record.
+A scene
 left out can be made later, from its wireframe or the Video page, and finishing
 the video joins the scenes made. Each wireframe shows its scene's state, plays
 a made scene picture-in-picture, and links to that scene on the Video page,

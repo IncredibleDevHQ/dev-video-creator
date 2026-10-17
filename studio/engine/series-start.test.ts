@@ -143,6 +143,14 @@ it('keeps who presents the series, as the creator said (review 8, F05)', async (
   expect([mapped.led, ledBy(mapped)]).toEqual([undefined, 'notes'])
   const before = await startSeries({ title: 'Old', about, growth: 'one' })
   expect(ledBy(before)).toBeUndefined()
+  // Changed later, on the series' page: kept; anything else is no choice.
+  const { updateSeries } = await import('./series')
+  expect((await updateSeries(mapped.id, { led: 'presenter' })).led).toBe(
+    'presenter'
+  )
+  expect((await updateSeries(mapped.id, { led: 'camera' })).led).toBe(
+    'presenter'
+  )
 })
 
 it('home’s Start the series reaches the notebook through the route', async () => {

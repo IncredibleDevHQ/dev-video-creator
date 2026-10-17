@@ -13,7 +13,8 @@ const { request, settings } = vi.hoisted(() => ({
 vi.mock('../app/studio-api', () => ({ studioApi: { request } }))
 vi.mock('../app/api', () => ({ api: { settings } }))
 vi.mock('../app/notebook-editor', () => ({ saveBeforeLeaving: vi.fn() }))
-const { newSeriesDialog } = await import('../app/series-view')
+const { newSeriesDialog, seriesPageView } = await import('../app/series-view')
+const { submitSeries } = await import('../app/series-controller')
 const { makeVideoDialog } = await import('../app/video-screen')
 const { syncMakeDialog } = await import('../app/make-dialog-sync')
 const { clickVideo } = await import('../app/video-controller')
@@ -233,4 +234,51 @@ it('opening Make on an episode reads who presents its series', async () => {
   request.mockRejectedValue(new Error('The studio is restarting'))
   await clickVideo(app as never, button as never, 'make-video')
   expect(chosen(document, 'presence')).toBe('high')
+})
+
+const page = (series: Record<string, unknown>) => ({
+  series: {
+    id: 's1',
+    title: 'Caching',
+    about: 'What I learn about caching',
+    createdAt: '',
+    growth: 'one' as const,
+    episodes: [],
+    repos: [],
+    threads: [],
+    ...series
+  },
+  episodes: []
+})
+
+it('the series’ page says who presents it, and changes it for every episode after', async () => {
+  const shown = (series: Record<string, unknown>) =>
+    parseHTML(`<div>${seriesPageView(page(series))}</div>`).document
+  // A content map's series, never asked: told from its notes.
+  expect(chosen(shown({ map: 'n-map' }), 'led')).toBe('notes')
+  expect(chosen(shown({ led: 'presenter' }), 'led')).toBe('presenter')
+  // A series started before it was asked: no answer yet, one is needed.
+  const before = shown({})
+  expect(chosen(before, 'led')).toBeUndefined()
+  expect(
+    before
+      .querySelector('#led-form input[name="led"]')
+      ?.hasAttribute('required')
+  ).toBe(true)
+  // Changed: the series keeps it, and its page shows it.
+  request.mockResolvedValue(page({ map: 'n-map', led: 'presenter' }))
+  const form = shown({ map: 'n-map' }).querySelector<HTMLFormElement>(
+    '#led-form'
+  )!
+  const values = new FormData()
+  values.set('led', 'presenter')
+  const app = { dialog: { dataset: {} }, showDialog: vi.fn() }
+  await submitSeries(app as never, form, values)
+  expect(request).toHaveBeenCalledWith('/series/s1', 'POST', {
+    led: 'presenter'
+  })
+  const after = parseHTML(
+    `<div>${app.showDialog.mock.calls[0][0]}</div>`
+  ).document
+  expect(chosen(after, 'led')).toBe('presenter')
 })

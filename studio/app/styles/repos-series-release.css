@@ -115,7 +115,8 @@
 }
 .series-form,
 .episode-form,
-.threads-form {
+.threads-form,
+.led-form {
   display: grid;
   gap: 8px;
 }
@@ -124,6 +125,29 @@
   margin-left: 6px;
   color: var(--muted);
   font-weight: 400;
+}
+/* Who presents it on the series' page, as at its start, in a dialog or not. */
+.led-form legend {
+  font-size: 13px;
+  font-weight: 600;
+}
+.led-form .series-led label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  margin: 6px 0;
+  font-size: 13px;
+}
+.led-form .series-led input {
+  width: auto;
+  margin: 0;
+}
+.led-form .series-led small {
+  flex-basis: 100%;
+  margin-left: 21px;
+  font-size: 12px;
+  color: var(--muted);
 }
 .series-growth,
 .series-led {
