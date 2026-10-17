@@ -102,8 +102,9 @@ export class MapCanvas {
   toldRun: string | null = null
   /** The organising stop last said, by when it stopped. */
   toldStop = ''
-  /** The bar asks for a note (from the Add menu, or to fill a gap). */
-  noteAsk: { text: string; gap?: string } | null = null
+  /** The bar asks for a note (from the Add menu, or to fill a gap); while
+   * it saves, its Add is off. */
+  noteAsk: { text: string; gap?: string; sending?: boolean } | null = null
   /** The bar asks for the series' outcome or audience. */
   briefing: 'outcome' | 'audience' | null = null
   private adding = false

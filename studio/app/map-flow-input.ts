@@ -635,26 +635,53 @@ export const flowSubmit = async (map: MapCanvas, form: HTMLFormElement) => {
     return true
   }
   if (kind === 'flow-note') {
+    // One at a time: a second Add while the note saves sends nothing (review
+    // 8, round 3's audit: a double-click saved it twice, and sorted it twice).
+    if (map.noteAsk?.sending) return true
     const text = String(data.get('note') || '').trim()
     const gap = map.noteAsk?.gap
-    map.noteAsk = null
     if (!text) {
+      map.noteAsk = null
       map.paint()
       return true
     }
-    // A refused note comes back in its form, its words kept, on its own map
-    // only (review 7).
     const mapId = map.mapId
+    const sending = { text, gap, sending: true }
+    map.noteAsk = sending
+    const press = () =>
+      map.root.querySelector<HTMLButtonElement>(
+        '[data-map-form="flow-note"] button[type="submit"]'
+      )
+    const button = press()
+    if (button) button.disabled = true
+    // The words in the form now: what was typed while it saved.
+    const typed = () =>
+      map.root
+        .querySelector<HTMLTextAreaElement>(
+          '[data-map-form="flow-note"] textarea'
+        )
+        ?.value.trim() || ''
+    const after = (words: string) => {
+      // Its own form only: Cancel, Esc or another map took it away.
+      if (map.noteAsk !== sending) return
+      const own = map.isOpen && map.mapId === mapId
+      map.noteAsk = own && words ? { text: words, gap } : null
+      map.paint()
+      const again = press()
+      if (again) again.disabled = false
+    }
     try {
       await mapApi.note(mapId, text, gap)
     } catch (reason) {
-      if (map.isOpen && map.mapId === mapId) {
-        map.noteAsk = { text, gap }
-        map.paint()
-      }
+      // A refused note comes back in its form, its words kept, on its own
+      // map only (review 7).
+      after(typed() || text)
       map.hooks.error(reason)
       return true
     }
+    // Only the words sent are cleared: words typed while it saved stay.
+    const left = typed()
+    after(left === text ? '' : left)
     // Kept: Undo still reaches the cards moved before it (review 8).
     await map.run(
       async () => {},

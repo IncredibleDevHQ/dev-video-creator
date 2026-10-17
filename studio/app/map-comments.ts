@@ -120,6 +120,9 @@ export class MapComments {
     )
   }
   private sending: Place[] = []
+  /** The comments with a next step on its way: a second press sends nothing
+   * (review 8, round 3's audit: a double-click made two notes). */
+  private acting = new Set<string>()
   private ticker = 0
   private audio: HTMLAudioElement | null = null
   private playing = ''
@@ -246,9 +249,10 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
   /** The other next steps, and Delete, behind More. */
   private moreHtml(
     comment: MapComment,
-    others: ReadonlyArray<readonly [string, string]>
+    others: ReadonlyArray<readonly [string, string]>,
+    off = ''
   ) {
-    return `<details class="map-thread-more"><summary>More</summary><div>${others.map(([action, label]) => `<button type="button" data-comment="${action}:${comment.id}">${label}</button>`).join('')}<button type="button" class="danger" data-comment="remove:${comment.id}">Delete</button></div></details>`
+    return `<details class="map-thread-more"><summary>More</summary><div>${others.map(([action, label]) => `<button type="button" data-comment="${action}:${comment.id}"${off}>${label}</button>`).join('')}<button type="button" class="danger" data-comment="remove:${comment.id}"${off}>Delete</button></div></details>`
   }
 
   private threadHtml(comment: MapComment) {
@@ -265,10 +269,11 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
       Object.values(NEXT) as ReadonlyArray<readonly [string, string]>
     ).filter(([action]) => action !== next?.[0])
     const recording = this.recording?.for === 'reply'
+    const off = this.acting.has(comment.id) ? ' disabled' : ''
     return `<section class="map-pop map-thread" role="dialog" aria-label="Comment" style="${this.popStyle(at, 330)}">
 <header><span>On ${escape(targetWords(comment.target, this.map.snapshot, this.map.view))}</span>${kind}<button type="button" class="map-pop-x" data-comment="close" aria-label="Close">${voiceIcon('close', 14)}</button></header>
 <ol class="map-thread-list">${[comment, ...comment.replies].map((entry) => this.entryHtml(entry)).join('')}</ol>
-<div class="map-thread-actions">${next ? `<button type="button" class="primary" data-comment="${next[0]}:${comment.id}">${next[1]}</button>` : ''}<button type="button" class="quiet" data-comment="resolve:${comment.id}">Resolve</button>${this.moreHtml(comment, others)}</div>
+<div class="map-thread-actions">${next ? `<button type="button" class="primary" data-comment="${next[0]}:${comment.id}"${off}>${next[1]}</button>` : ''}<button type="button" class="quiet" data-comment="resolve:${comment.id}"${off}>Resolve</button>${this.moreHtml(comment, others, off)}</div>
 <form class="map-reply" data-comment-form="reply">${recording ? this.recordingHtml() : `<button type="button" class="map-hold is-small" data-comment-mic="reply" title="Hold to talk, or click to start and stop">${voiceIcon('mic', 14)}</button><input name="text" autocomplete="off" placeholder="Reply…" aria-label="Reply"><button type="submit" class="map-call-btn" aria-label="Send">${voiceIcon('send', 14)}</button>`}</form>
 </section>`
   }
@@ -475,7 +480,20 @@ ${recording ? this.recordingHtml() : `<div class="map-compose-row"><button type=
     this.map.paint()
   }
 
+  /** One next step at a time for a comment, its buttons off meanwhile. */
   private async act(action: string, id: string) {
+    if (this.acting.has(id) || !this.open.some((c) => c.id === id)) return
+    this.acting.add(id)
+    this.paint()
+    try {
+      await this.step(action, id)
+    } finally {
+      this.acting.delete(id)
+      this.paint()
+    }
+  }
+
+  private async step(action: string, id: string) {
     const comment = this.open.find((c) => c.id === id)
     if (!comment) return
     const mapId = this.map.mapId
