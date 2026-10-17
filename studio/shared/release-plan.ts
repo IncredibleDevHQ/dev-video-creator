@@ -205,6 +205,14 @@ export const chapters = (project: Project) => {
     : []
 }
 
+/** The video's title on YouTube: an episode says its series and number,
+ * in the bundle and the upload alike. */
+export const youtubeTitle = (project: Project, series?: string | null) =>
+  (series && project.episode
+    ? `${project.title} | ${series}, episode ${project.episode.number}`
+    : project.title
+  ).slice(0, 100)
+
 /** The description's words, then its chapters. */
 export const youtubeDescription = (project: Project, words?: string) => {
   const lines = chapters(project)

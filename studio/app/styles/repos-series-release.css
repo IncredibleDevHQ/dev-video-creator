@@ -318,6 +318,51 @@
 .release-section a.button {
   justify-self: start;
 }
+/* The thumbnail at about the size YouTube lists it, and its other choices. */
+.release-cover {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  margin: 0;
+}
+.release-cover img {
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  background: #000;
+}
+.release-cover figcaption {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.cover-choices summary {
+  cursor: pointer;
+  font-size: 13px;
+}
+.cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.cover-choice {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: none;
+}
+.cover-choice[aria-pressed='true'] {
+  border-color: var(--accent, #e11d48);
+}
+.cover-choice img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 4px;
+  background: #000;
+}
 
 /* Accounts and numbers. */
 .account-row {

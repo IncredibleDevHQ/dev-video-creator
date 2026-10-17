@@ -10,6 +10,12 @@ import {
   type Teaser
 } from '../shared/release'
 import { chapters } from '../shared/release-plan'
+import {
+  chosenCover,
+  coverChoices,
+  coverSrc,
+  type CoverChoice
+} from '../shared/release-cover'
 import { dayAndTime } from './campaign-view'
 import { escape } from './ui'
 
@@ -92,6 +98,21 @@ const uploadState = (snapshot: Snapshot) => {
   }</p>${(upload.notes || []).map((note) => `<p class="release-note">${escape(note)}</p>`).join('')}`
 }
 
+/** The thumbnail the bundle and the upload carry, at about the size YouTube
+ * lists it, and the other pictures it can be (review 8: the bundle's was a
+ * frame mid-animation, under half a caption, and nothing showed it). */
+const thumbnailPicker = (snapshot: Snapshot) => {
+  const { project } = snapshot
+  const chosen = chosenCover(project)
+  if (!chosen) return ''
+  const choices = coverChoices(project)
+  const tile = (choice: CoverChoice) =>
+    `<button type="button" class="cover-choice" data-action="choose-cover" ${choice.at === undefined ? `data-frame="${choice.frame}"` : `data-at="${choice.at}"`} aria-pressed="${choice.key === chosen.key}" title="${escape(choice.label)}">` +
+    `<img src="${coverSrc(project.id, choice)}" alt="${escape(choice.label)}" loading="lazy"></button>`
+  return `<figure class="release-cover"><img src="${coverSrc(project.id, chosen)}" alt="The thumbnail, ${escape(chosen.label)}" width="240" height="135"><figcaption>Thumbnail · ${escape(chosen.label)}</figcaption></figure>
+${choices.length > 1 ? `<details class="cover-choices"><summary>Choose another thumbnail</summary><div class="cover-grid">${choices.map(tile).join('')}</div></details>` : ''}`
+}
+
 export const youtubeSection = (snapshot: Snapshot) => {
   const marks = chapters(snapshot.project)
   const upload = snapshot.project.release?.youtube
@@ -102,6 +123,7 @@ export const youtubeSection = (snapshot: Snapshot) => {
   const launchAt = launch ? localTime(launch.at.toISOString()) : ''
   return `<section class="release-section"><h3>YouTube</h3>
 <p class="release-state">${marks.length ? `${marks.length} chapters from the beats` : 'No chapters: YouTube needs three or more, ten seconds each'}</p>
+${thumbnailPicker(snapshot)}
 <a class="button" href="/api/projects/${encodeURIComponent(snapshot.project.id)}/bundle" download>Download the upload bundle</a>
 <p class="release-note">The video, title, description with chapters, thumbnail${snapshot.project.episode ? ' and playlist' : ''}, to upload in YouTube Studio.</p>
 ${uploadState(snapshot)}

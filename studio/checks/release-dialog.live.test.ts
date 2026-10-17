@@ -7,6 +7,7 @@ import type { Browser } from 'puppeteer'
 import type { Snapshot } from '../shared/api'
 import { planCampaign } from '../shared/campaign'
 import { campaignSection } from '../app/campaign-view'
+import { releaseDialog } from '../app/release-view'
 
 // The release dialog in a real browser, with the studio's own stylesheet
 // (review 8), at a desktop's, a tablet's and a phone's width. A synthetic
@@ -169,5 +170,40 @@ it('keeps an overdue step’s Move inside its row, and the dialog no wider than 
     expect(scrolls).toBe(false)
     expect(at.move.right).toBeLessThanOrEqual(at.row.right)
     expect(at.move.bottom).toBeLessThanOrEqual(at.row.bottom)
+  }
+}, 60_000)
+
+it('shows the thumbnail at about the size YouTube lists it, its choices and the publisher’s note inside the dialog (F19, F17)', async () => {
+  const seen = await measure(
+    releaseDialog(snapshot, campaignSection(snapshot, TODAY)),
+    (box) => ({
+      body: box('.dialog-body'),
+      cover: box('.release-cover img'),
+      tiles: box('.cover-choice') as unknown as Box[],
+      input: box('[name="publishAt"]'),
+      note: box('.publish-differs'),
+      form: box('#youtube-publish-form')
+    })
+  )
+  for (const { scrolls, at } of seen) {
+    expect(scrolls).toBe(false)
+    // 240 px wide, or the dialog's width on a phone; 16:9 either way.
+    expect(Math.round(at.cover.width)).toBe(
+      Math.min(240, Math.round(at.body.width - 48))
+    )
+    expect((at.cover.bottom - at.cover.top) / at.cover.width).toBeCloseTo(
+      9 / 16,
+      2
+    )
+    // Every choice inside the dialog, two or more to a row.
+    expect(at.tiles).toHaveLength(7)
+    for (const tile of at.tiles) {
+      expect(tile.right).toBeLessThanOrEqual(at.body.right)
+      expect(tile.width).toBeGreaterThanOrEqual(100)
+    }
+    expect(at.tiles[1].top).toBe(at.tiles[0].top)
+    // The publisher's note on its own line under the time, across the form.
+    expect(at.note.top).toBeGreaterThanOrEqual(at.input.bottom)
+    expect(at.note.width).toBeGreaterThan(at.form.width * 0.9)
   }
 }, 60_000)

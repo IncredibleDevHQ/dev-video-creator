@@ -93,6 +93,9 @@ export type Release = {
   campaign: CampaignItem[]
   /** What the last plan left out or moved, planned close to the release. */
   campaignNote?: string
+  /** The thumbnail the creator chose: a storyboard frame's still, or a
+   * second of the made video (shared/release-cover.ts). */
+  cover?: { frame?: number; at?: number }
   youtube?: YouTubeUpload
   numbers?: NumbersSnapshot[]
 }

@@ -16,6 +16,8 @@ import { enterNumbers, readNumbers, setYouTubeVideo } from './numbers'
 import { changeItem, planCampaignFor, postItem } from './campaign'
 import { captureDemo } from './product-capture'
 import { draftPosts, updateRelease, uploadBundle } from './release'
+import { coverFor } from './release-cover'
+import { loadProject } from './projects'
 import { makeTeaser } from './teasers'
 import { publishToYouTube } from './youtube-publish'
 import { askRepo, setNotebookRepos } from './repo-answers'
@@ -34,7 +36,7 @@ type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
 
 const projectRoute =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle|numbers|campaign|youtube)$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/(repos|repo-answers|captures|teasers|posts|release|bundle|cover|numbers|campaign|youtube)$/
 
 export const studioRoute = (
   url: URL,
@@ -147,6 +149,19 @@ const route = async (
     if (action === 'posts' && method === 'POST') return ok(await draftPosts(id))
     if (action === 'release' && method === 'POST')
       return ok(await updateRelease(id, body))
+    // The thumbnail, or one of the pictures it can be (?frame= or ?at=).
+    if (action === 'cover' && method === 'GET') {
+      const snapshot = await loadProject(id)
+      if (!snapshot) throw new Refusal('Notebook not found')
+      const bytes = await coverFor(snapshot.project, url.searchParams)
+      response.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': bytes.length,
+        'Cache-Control': 'no-cache'
+      })
+      response.end(bytes)
+      return 'sent'
+    }
     if (action === 'bundle' && method === 'GET') {
       const bundle = await uploadBundle(id)
       response.writeHead(200, {

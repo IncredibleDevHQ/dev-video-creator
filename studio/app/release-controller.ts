@@ -120,6 +120,17 @@ export const clickRelease = async (
         follow: true
       })
     )
+  // Another picture for the thumbnail, before the bundle or the upload.
+  if (action === 'choose-cover')
+    update(
+      app,
+      await studioApi.notebook(id, 'release', {
+        cover:
+          target.dataset.frame === undefined
+            ? { at: Number(target.dataset.at) }
+            : { frame: Number(target.dataset.frame) }
+      })
+    )
   // An overdue item moved to the soonest day it can still go out.
   if (action === 'campaign-move')
     update(

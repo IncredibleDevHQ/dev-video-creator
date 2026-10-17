@@ -2,11 +2,13 @@
 // the creator's voice, and the YouTube upload bundle (the file, its title,
 // a description whose timestamps become chapters, a thumbnail, the
 // playlist). Nothing here posts: the creator uploads the bundle.
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import { narrativeById } from '../shared/narratives'
-import { chapters, youtubeDescription } from '../shared/release-plan'
+import {
+  chapters,
+  youtubeDescription,
+  youtubeTitle
+} from '../shared/release-plan'
+import { coverChoices } from '../shared/release-cover'
 import {
   CHANNEL_LABELS,
   emptyRelease,
@@ -28,8 +30,8 @@ import { readAsset } from './persistence'
 import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
+import { coverImage } from './release-cover'
 import { loadSeries } from './series'
-import { runCommand } from './voice'
 import { zipFiles } from './zip'
 
 /** Each channel's limit for a post. */
@@ -197,7 +199,8 @@ export const draftPosts = async (id: string) => {
   return started
 }
 
-/** The release's date and the creator's own changes to the words. */
+/** The release's date, its thumbnail, and the creator's own changes to the
+ * words. */
 export const updateRelease = (id: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
   return changeProject(id, (current) => {
@@ -210,6 +213,19 @@ export const updateRelease = (id: string, raw: unknown) => {
       if (at?.toISOString() !== release.at) delete release.campaignNote
       if (at) release.at = at.toISOString()
       else delete release.at
+    }
+    // The thumbnail the creator picked, one of the pictures offered.
+    if (value.cover === null) delete release.cover
+    else if (value.cover && typeof value.cover === 'object') {
+      const cover = value.cover as { frame?: unknown; at?: unknown }
+      const choice = coverChoices(current.project).find((item) =>
+        cover.frame === undefined
+          ? item.at !== undefined && item.at === Number(cover.at)
+          : item.frame === Number(cover.frame)
+      )
+      if (!choice) throw new Refusal('Choose one of the thumbnails shown')
+      release.cover =
+        choice.frame === undefined ? { at: choice.at } : { frame: choice.frame }
     }
     const posts = value.posts as Partial<Record<Channel, unknown>> | undefined
     if (posts && typeof posts === 'object') {
@@ -228,33 +244,6 @@ export const updateRelease = (id: string, raw: unknown) => {
   })
 }
 
-const thumbnail = async (objectKey: string, posterKey?: string) => {
-  if (posterKey)
-    return { name: 'thumbnail.jpg', bytes: await readAsset(posterKey) }
-  const dir = await mkdtemp(join(tmpdir(), 'studio-thumbnail-'))
-  try {
-    await writeFile(join(dir, 'video.mp4'), await readAsset(objectKey))
-    await runCommand('ffmpeg', [
-      '-y',
-      '-ss',
-      '1.5',
-      '-i',
-      join(dir, 'video.mp4'),
-      '-frames:v',
-      '1',
-      '-vf',
-      'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-      join(dir, 'thumbnail.jpg')
-    ])
-    return {
-      name: 'thumbnail.jpg',
-      bytes: await readFile(join(dir, 'thumbnail.jpg'))
-    }
-  } finally {
-    await rm(dir, { recursive: true, force: true })
-  }
-}
-
 /**
  * The YouTube upload bundle: everything to upload by hand in YouTube Studio
  * while the studio's Google project waits for verification and the audit.
@@ -271,16 +260,13 @@ export const uploadBundle = async (id: string) => {
   const series = project.episode
     ? await loadSeries(project.episode.series)
     : null
-  const title = (
-    series
-      ? `${project.title} | ${series.title}, episode ${project.episode!.number}`
-      : project.title
-  ).slice(0, 100)
+  const title = youtubeTitle(project, series?.title)
   const description = youtubeDescription(
     project,
     project.release?.posts?.youtube
   )
-  const picture = await thumbnail(produced.objectKey, produced.posterKey)
+  // The thumbnail the dialog shows: a settled picture (review 8).
+  const picture = { name: 'thumbnail.jpg', bytes: await coverImage(project) }
   const shorts = (project.release?.teasers || []).filter(
     (item) =>
       item.state === 'ready' && item.channel === 'youtube' && item.objectKey

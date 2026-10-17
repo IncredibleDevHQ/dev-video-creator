@@ -4,13 +4,14 @@
 // publishes it at on its own servers. Until the studio's Google project
 // passes Google's verification and YouTube's audit, YouTube keeps API
 // uploads private; the studio says so, and the bundle stays the way out.
-import { youtubeDescription } from '../shared/release-plan'
+import { youtubeDescription, youtubeTitle } from '../shared/release-plan'
 import { emptyRelease, type YouTubeUpload } from '../shared/release'
 import { accountFetch, canEditPlaylists } from './accounts'
 import { addEvent } from './activity'
 import { readAsset } from './persistence'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
+import { coverImage } from './release-cover'
 import { loadSeries } from './series'
 
 const API = 'https://www.googleapis.com/youtube/v3'
@@ -83,7 +84,8 @@ export const uploadToYouTube = async (
       },
       body: JSON.stringify({
         snippet: {
-          title: project.title.slice(0, 100),
+          // The bundle's title: an episode says its series and number.
+          title: youtubeTitle(project, series?.title),
           description: youtubeDescription(
             project,
             project.release?.posts?.youtube
@@ -121,21 +123,24 @@ export const uploadToYouTube = async (
     notes.push(
       'YouTube kept it private: uploads from the studio stay private until its Google project passes verification and the audit. Change it in YouTube Studio.'
     )
-  if (produced.posterKey) {
+  // The thumbnail the dialog shows and the bundle carries (review 8: a
+  // storyboard episode's upload had none).
+  const cover = await coverImage(project).catch(() => null)
+  if (cover) {
     const thumb = await accountFetch(
       'google',
       `${UPLOAD}/thumbnails/set?videoId=${videoId}`,
       {
         method: 'POST',
         headers: { 'content-type': 'image/jpeg' },
-        body: new Uint8Array(await readAsset(produced.posterKey))
+        body: new Uint8Array(cover)
       }
     )
     if (!thumb.ok)
       notes.push(
         'The thumbnail was not set: custom thumbnails need a channel verified by phone.'
       )
-  }
+  } else notes.push('The thumbnail was not set: set it in YouTube Studio.')
   // The video is up: a playlist YouTube refuses is a note, never a reason
   // to lose the video or upload it twice.
   if (series && !(await canEditPlaylists()))
