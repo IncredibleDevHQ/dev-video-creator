@@ -3,7 +3,7 @@
 // words, so the creator can close it with the card in one step (review 8:
 // the planner asked for what the idempotency card's script already said).
 // A word check, tuned to mark rather than drop: a marked gap stays open.
-import { contentWords, sentencesOf } from './card-words'
+import { polarWords, sentencesOf, turned } from './card-words'
 
 /** A card as the planner reads it (series-plan.ts `cardsOf`). */
 export type GapCard = {
@@ -63,7 +63,7 @@ const pairs = (words: string[]) =>
 const clauseOf = (sentence: string, wanted: Set<string>) => {
   if (sentence.length <= 140) return sentence.replace(/[.!?]+$/, '')
   const met = (text: string) =>
-    contentWords(text).filter((word) => wanted.has(word)).length
+    polarWords(text).filter((word) => wanted.has(word)).length
   const best = sentence
     .split(/\s*[,;:]\s+|\s+[—–]\s+/)
     .map((clause) =>
@@ -93,15 +93,18 @@ const askOf = (missing: string) => {
  * word pairs with them (or one, when nearly all of its words do): a card
  * that only names a thing doesn't cover a gap about it. A "why" gap needs a
  * reason in those words, a "how" gap a method, a "how long" gap a quantity.
- * A gap of fewer than three content words ("what a Durable Object is") is
- * left to the planner. Cards in the gap's episode or before it come first.
+ * A word must be said the same way round: a negated one ("never rejects")
+ * meets only a negated one, and a passage saying any of the gap's words the
+ * other way round is no cover. A gap of fewer than three content words
+ * ("what a Durable Object is") is left to the planner. Cards in the gap's
+ * episode or before it come first.
  */
 export const coveredBy = (
   missing: string,
   cards: GapCard[],
   options: { episode?: number; episodeOf?: Map<string, number> } = {}
 ) => {
-  const words = contentWords(missing)
+  const words = polarWords(missing)
   const wanted = new Set(words)
   if (wanted.size < 3) return null
   const wantedPairs = pairs(words)
@@ -114,7 +117,10 @@ export const coveredBy = (
     for (const passage of passagesOf(card)) {
       const text = passage.sentences.join(' ')
       if (needs && !needs.test(text)) continue
-      const said = contentWords(text)
+      const said = polarWords(text)
+      // A passage that says any of it the other way round ("the server
+      // never rejects…" for a gap on what it rejects) covers none of it.
+      if (said.some((word) => wanted.has(turned(word)))) continue
       const have = new Set(said)
       const met = [...wanted].filter((word) => have.has(word)).length
       const share = met / wanted.size
@@ -127,8 +133,8 @@ export const coveredBy = (
       if (best && score <= best.score) continue
       // The sentence of the two that says most of it is the one to quote.
       const sentence = passage.sentences.reduce((one, other) =>
-        contentWords(other).filter((word) => wanted.has(word)).length >
-        contentWords(one).filter((word) => wanted.has(word)).length
+        polarWords(other).filter((word) => wanted.has(word)).length >
+        polarWords(one).filter((word) => wanted.has(word)).length
           ? other
           : one
       )

@@ -55,6 +55,50 @@ export const contentWords = (text: string) =>
     .filter((word) => !SMALL.has(word) && (word.length > 1 || /\d/.test(word)))
     .map(stem)
 
+/** Words that turn the next content word around: "never rejects", "don't
+ * reuse", "no retry", "without a key". */
+const NEGATORS = new Set([
+  'not',
+  'no',
+  'never',
+  'nor',
+  'neither',
+  'none',
+  'nothing',
+  'nobody',
+  'without',
+  'cannot'
+])
+const negates = (word: string) => NEGATORS.has(word) || word.endsWith('n’t')
+
+/**
+ * A text's content words, as contentWords gives them, each one a negation
+ * turns around marked "¬" ("the server never rejects it" is server, ¬reject):
+ * a passage that says the opposite of what a gap asks doesn't cover it
+ * (review 8, round 2's audit). A negation reaches the next content word of
+ * its clause only, so "don't reuse the first result" is ¬reuse, first,
+ * result.
+ */
+export const polarWords = (text: string) =>
+  String(text || '')
+    .split(/[,;:!?.()—–]+|\s-\s/)
+    .flatMap((clause) => {
+      let negated = false
+      return tokensOf(clause).flatMap((word) => {
+        if (negates(word)) {
+          negated = true
+          return []
+        }
+        if (SMALL.has(word) || (word.length <= 1 && !/\d/.test(word))) return []
+        const said = negated ? `¬${stem(word)}` : stem(word)
+        negated = false
+        return [said]
+      })
+    })
+/** The same word said the other way round. */
+export const turned = (word: string) =>
+  word.startsWith('¬') ? word.slice(1) : `¬${word}`
+
 /** A text's sentences: split at full stops, question and exclamation marks
  * and line breaks; list marks and headings are left out. */
 export const sentencesOf = (text: string) =>

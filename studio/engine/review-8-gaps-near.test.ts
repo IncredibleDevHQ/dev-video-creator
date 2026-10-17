@@ -78,6 +78,46 @@ describe('the audit’s near misses', () => {
   })
 })
 
+// Round 2's audit: "the server never rejects…" counted as covering a gap on
+// what it rejects; the small words, never and not among them, were dropped.
+describe('a card that says it the other way round', () => {
+  const REJECTS =
+    'The server rejects a reused key that carries a different order'
+  it.each([
+    'The server never rejects a reused key that carries a different order.',
+    'The server doesn’t reject a reused key that carries a different order; it replays the first result.',
+    'A reused key that carries a different order is not rejected by the server.',
+    'Retries are cheap. The server cannot reject a reused key that carries a different order.',
+    'No server rejects a reused key that carries a different order.'
+  ])('leaves the gap open against “%s”', (script) => {
+    expect(coveredBy(REJECTS, [{ id: 'card', script }])).toBeNull()
+  })
+
+  it('still marks a card that says it, its negation elsewhere, or negated as the gap is', () => {
+    expect(
+      coveredBy(REJECTS, [
+        {
+          id: 'card',
+          script:
+            'The server rejects a reused key that carries a different order, and never replays the first result.'
+        }
+      ])
+    ).toMatchObject({ page: 'card' })
+    expect(
+      coveredBy(
+        'Why the server never reuses the first result for a different order',
+        [
+          {
+            id: 'card',
+            script:
+              'The server never reuses the first result for a different order, because the request fingerprint differs.'
+          }
+        ]
+      )
+    ).toMatchObject({ page: 'card' })
+  })
+})
+
 it('reads the labels drawn on a card one by one, never run together', () => {
   // Run together, these labels said "key … reused … order"; one by one,
   // none says what is missing.
