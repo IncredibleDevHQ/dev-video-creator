@@ -28,7 +28,7 @@ import {
   scheduleAround,
   scheduleSegues
 } from './map-segues'
-import { copyOf, pageHash, syncEvidence } from './map-copy'
+import { copyOf, pageHash, syncEvidence, updatedCopy } from './map-copy'
 import { schedulePick } from './map-picking'
 import { directionsOf } from './series-directions'
 import { SEGUE } from '../shared/length'
@@ -370,16 +370,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
         now.copyOf = { ...now.copyOf!, kept: pageHash(original) }
         return
       }
-      const fresh = copyOf(mapId, original)
-      current.project.slides[index] = {
-        ...fresh,
-        id: now.id,
-        ...(now.bridge ? { bridge: now.bridge } : {}),
-        ...(now.outro ? { outro: now.outro } : {})
-      }
-      current.project.slides[index].narration = composeNarration(
-        current.project.slides[index]
-      )
+      current.project.slides[index] = updatedCopy(mapId, now, original)
       reconcileVideo(current.project, current, new Set())
       addEvent(current, 'slide', `Updated “${original.title}” from the map`)
     })

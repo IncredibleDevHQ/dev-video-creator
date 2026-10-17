@@ -287,6 +287,43 @@ it('keeps a followed copy’s capture, leaves an episode with any storyboard, an
   expect((await copyIn('planning')).base).toBe(card.narration)
 })
 
+it('keeps a copy’s capture and answers when the creator updates it, as when it follows by itself', async () => {
+  const page: Slide = { ...card, id: 'holds', title: 'What a key holds' }
+  await write('map4', {
+    mapSeries: 's4',
+    slides: [{ ...page, narration: 'A key holds the first response.' }]
+  })
+  await writeRow('series', 's4', {
+    id: 's4',
+    title: 'Payments',
+    mapNotebook: 'map4',
+    episodes: [{ notebookId: 'answered' }]
+  })
+  const capture = {
+    url: 'https://shop.example',
+    steps: [],
+    state: 'ready',
+    objectKey: 'captures/checkout.webm',
+    at: '2026-10-17T00:00:00.000Z'
+  }
+  const answers = [{ what: 'How long a key is kept', answer: '24 hours' }]
+  const behind = { ...copyOf('map4', page), capture, answers } as Slide
+  await write('answered', {
+    copyOfMap: 'map4',
+    episode: { series: 's4', number: 1 },
+    slides: [{ ...behind, bridge: 'Last time, a timeout.' }]
+  })
+  const { changeCopies } = await import('./map-episodes')
+  await changeCopies('answered', { action: 'update', slide: behind.id })
+  expect(await copyIn('answered')).toMatchObject({
+    id: behind.id,
+    base: 'A key holds the first response.',
+    capture,
+    answers,
+    bridge: 'Last time, a timeout.'
+  })
+})
+
 it('leaves no copy on the older card when two changes to it overlap', async () => {
   const third: Slide = { ...card, id: 'expiry', title: 'When a key expires' }
   await write('map3', { mapSeries: 's3', slides: [third] })

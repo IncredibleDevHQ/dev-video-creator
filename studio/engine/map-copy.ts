@@ -83,17 +83,12 @@ export const isMade = (snapshot: Snapshot | null) => {
 export const untouched = (copy: Slide) =>
   pageHash({ ...copy, narration: copy.base || '' }) === copy.copyOf?.hash
 
-/** The map's card as it is now, for a copy that is behind it and was never
- * edited nor kept on purpose: same id, the lines written around it kept. */
-export const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
-  const now = pageHash(original)
-  if (
-    now === copy.copyOf?.hash ||
-    now === copy.copyOf?.kept ||
-    !untouched(copy)
-  )
-    return null
-  // The episode's own capture and answers stay with its copy (review 8).
+/**
+ * A copy brought up to its map card, by the map's Update or by itself: the
+ * same id, and what the episode added to it kept, its lines in and out, its
+ * product capture and the creator's answers (review 8: Update dropped them).
+ */
+export const updatedCopy = (mapId: string, copy: Slide, original: Slide) => {
   const fresh: Slide = {
     ...copyOf(mapId, original),
     id: copy.id,
@@ -104,6 +99,19 @@ export const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
   }
   fresh.narration = composeNarration(fresh)
   return fresh
+}
+
+/** The map's card as it is now, for a copy that is behind it and was never
+ * edited nor kept on purpose. */
+export const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
+  const now = pageHash(original)
+  if (
+    now === copy.copyOf?.hash ||
+    now === copy.copyOf?.kept ||
+    !untouched(copy)
+  )
+    return null
+  return updatedCopy(mapId, copy, original)
 }
 
 /**
