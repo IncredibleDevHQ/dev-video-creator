@@ -299,7 +299,15 @@ export const stoppedLine = (storyboard: Storyboard) => {
       return 'Stopped before the plan was made. Try again plans the episode.'
     case 'stills': {
       const posed = framesPosed(storyboard)
-      const notes = Object.keys(storyboard.frameNotes || {}).length
+      // A note on a still not posed yet is in "the other" already.
+      const stills = new Set(
+        (storyboard.plan?.scenes || []).flatMap((scene) =>
+          scene.frames.filter((f) => f.still).map((f) => f.number)
+        )
+      )
+      const notes = Object.keys(storyboard.frameNotes || {}).filter((n) =>
+        stills.has(Number(n))
+      ).length
       const left = total - posed
       const next = [
         left ? `the other ${left}` : '',

@@ -2,7 +2,9 @@
 // reaches the studio, how many frames are made at once, the notebook's
 // storyboard changed in place, and the harness the notebook chose.
 import type { Snapshot } from '../../shared/api'
-import type { Storyboard } from '../../shared/storyboard'
+import { stoppedLine, type Storyboard } from '../../shared/storyboard'
+import { addEvent } from '../activity'
+import { generationStops } from '../generation-errors'
 import { changeProject, loadProject } from '../projects'
 import { detectedHarness } from '../notebook-intake'
 import { planSummary, type Internal } from './state'
@@ -91,3 +93,32 @@ export type StageInput = {
 /** The skill files a camera or motion scene's shots, stills and frames read. */
 export const LAYOUTS = ['overlay.html', 'pip.html', 'split.html', 'stack.html']
 export const MOTION = ['motion-vocabulary.md']
+
+/** Stopped by the creator: what is made stays, and Try again carries on. */
+export const stopNow = (projectId: string) =>
+  update(projectId, (storyboard, snapshot) => {
+    if (storyboard.status !== 'working') return
+    storyboard.status = 'failed'
+    storyboard.error = generationStops.user
+    delete storyboard.stopping
+    addEvent(snapshot, 'video', stoppedLine(storyboard), { activity: 'failed' })
+  })
+
+/** A stage that threw: the production stops with why, in a line. */
+export const fail = (projectId: string, error: unknown) =>
+  update(projectId, (storyboard, snapshot) => {
+    storyboard.status = 'failed'
+    // A run the creator stopped ends in a refusal: it says it was stopped.
+    storyboard.error = storyboard.stopping
+      ? generationStops.user
+      : error instanceof Error
+        ? error.message
+        : String(error)
+    // The activity says why in one line; the details stay with the error.
+    // Stopped by the creator, it says what was kept (review 8, round 3).
+    const said = storyboard.stopping
+      ? stoppedLine(storyboard)
+      : `Stopped: ${storyboard.error.split('\n')[0]}`
+    delete storyboard.stopping
+    addEvent(snapshot, 'video', said, { activity: 'failed' })
+  })

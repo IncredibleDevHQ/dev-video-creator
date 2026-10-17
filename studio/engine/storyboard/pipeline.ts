@@ -15,7 +15,6 @@ import { addEvent } from '../activity'
 import { claimNote } from '../claims'
 import { episodeMaterial } from '../claims-material'
 import { readAsset, storeAsset } from '../persistence'
-import { generationStops } from '../generation-errors'
 import { loadProject } from '../projects'
 import { resolveVoice } from '../voice-library'
 import { probeSeconds } from '../voice'
@@ -32,16 +31,19 @@ import {
   LAYOUTS,
   MOTION,
   clearFailure,
+  fail,
   concurrency,
   origin,
   pageTitles,
   selectionOf,
   stopAsked,
+  stopNow,
   summaryNow,
   takesOf,
   update,
   type StageInput
 } from './run'
+export { stopNow }
 import {
   assembleEpisode,
   checkEpisode,
@@ -83,16 +85,6 @@ export const settledStoryboard = async (projectId: string) => {
 }
 /** Whether the production is running in this process now. */
 export const storyboardRunning = (projectId: string) => running.has(projectId)
-
-/** Stopped by the creator: what is made stays, and Try again carries on. */
-export const stopNow = (projectId: string) =>
-  update(projectId, (storyboard, snapshot) => {
-    if (storyboard.status !== 'working') return
-    storyboard.status = 'failed'
-    storyboard.error = generationStops.user
-    delete storyboard.stopping
-    addEvent(snapshot, 'video', generationStops.user, { activity: 'failed' })
-  })
 
 /** The most a plan waits for its episode's segues to be written. */
 const SEGUE_WAIT_MS = 5 * 60_000
@@ -188,22 +180,6 @@ const seriesContext = async (
       : {})
   }
 }
-
-const fail = (projectId: string, error: unknown) =>
-  update(projectId, (storyboard, snapshot) => {
-    storyboard.status = 'failed'
-    // A run the creator stopped ends in a refusal: it says it was stopped.
-    storyboard.error = storyboard.stopping
-      ? generationStops.user
-      : error instanceof Error
-        ? error.message
-        : String(error)
-    delete storyboard.stopping
-    // The activity says why in one line; the details stay with the error.
-    addEvent(snapshot, 'video', `Stopped: ${storyboard.error.split('\n')[0]}`, {
-      activity: 'failed'
-    })
-  })
 
 const advance = async (projectId: string) => {
   for (;;) {
