@@ -245,6 +245,9 @@ export type Storyboard = {
   replan?: boolean
   /** The creator stopped it: the work in flight ends and what is made stays. */
   stopping?: boolean
+  /** Its wireframes' fingerprint when it went stale or was marked to plan
+   * again: once they are so again (an Undo), the mark goes. */
+  changedFrom?: string
   /** The production: one Hyperframes project on disk. */
   id: string
   /** The pages this episode tells, in order. */

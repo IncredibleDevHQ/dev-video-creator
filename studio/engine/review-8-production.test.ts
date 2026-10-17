@@ -275,6 +275,26 @@ it('plans a stale production again with a note from the wireframes as they are, 
   expect((await stored('stale-note')).stage).toBe('stills')
 })
 
+it('is no longer stale once its lines are put back as they were, by an Undo (F15, round 3)', async () => {
+  await seed('put-back', {
+    stage: 'board',
+    status: 'waiting',
+    waitingFor: 'approval',
+    approved: true,
+    plan: planSummary({ plan })
+  })
+  await rewrite('put-back', 'A line a reorder wrote.')
+  expect((await stored('put-back')).stale).toBe(true)
+  // Another change keeps it stale; the lines it was made from clear it.
+  await rewrite('put-back', 'Another line.')
+  expect((await stored('put-back')).stale).toBe(true)
+  await rewrite('put-back', 'The first outro.')
+  const board = await stored('put-back')
+  expect([board.stale, board.replan]).toEqual([undefined, undefined])
+  await approveStoryboard('put-back', {})
+  expect((await stored('put-back')).stage).toBe('voice')
+})
+
 it('stops at once while the first plan waits for its segues (F11, round 2)', async () => {
   await seed('segue-stop', {})
   // The episode's segues are still being written, and take long.
