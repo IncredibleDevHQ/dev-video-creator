@@ -186,6 +186,9 @@ export const tryFrame = async (input: {
   media?: string
   /** When to check and look, in seconds; a still is looked at once. */
   at?: number[]
+  /** The canvas, when not the episode's 16:9 (a teaser drawn for its
+   * shape). */
+  format?: string
 }) => {
   const trial = join(input.dir, '.studio', 'trial', input.frameId)
   await rm(trial, { recursive: true, force: true })
@@ -201,7 +204,7 @@ export const tryFrame = async (input: {
     join(trial, 'STORYBOARD.md'),
     [
       '---',
-      'format: 1920x1080',
+      `format: ${input.format || '1920x1080'}`,
       '---',
       '',
       `## Frame 1 — ${input.frameId}`,

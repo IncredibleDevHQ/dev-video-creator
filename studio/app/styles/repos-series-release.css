@@ -339,7 +339,23 @@ dialog:has(#series-form) {
 }
 .teaser-row .teaser-small {
   grid-column: 1 / -1;
+  margin: 0;
   color: var(--danger, #b91c1c);
+}
+/* A draft, its text small: drawn again for its shape, or kept as it is. */
+.teaser-row .teaser-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+.teaser-row :is(.teaser-cost, .teaser-note, .teaser-status) {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+.teaser-row .teaser-actions .teaser-cost {
+  grid-column: auto;
 }
 .posts-form {
   display: grid;

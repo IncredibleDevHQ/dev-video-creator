@@ -10,6 +10,7 @@ import {
   youtubeTitle
 } from '../shared/release-plan'
 import { coverChoices } from '../shared/release-cover'
+import { needsShapeCut } from '../shared/teaser-shape'
 import {
   CHANNEL_LABELS,
   emptyRelease,
@@ -288,9 +289,14 @@ export const uploadBundle = async (id: string) => {
   )
   // The thumbnail the dialog shows: a settled picture (review 8).
   const picture = { name: 'thumbnail.jpg', bytes: await coverImage(project) }
+  // A teaser whose text stays small is a draft: out until drawn again for
+  // its shape or kept as it is (review 8, round 1).
   const shorts = (project.release?.teasers || []).filter(
     (item) =>
-      item.state === 'ready' && item.channel === 'youtube' && item.objectKey
+      item.state === 'ready' &&
+      item.channel === 'youtube' &&
+      item.objectKey &&
+      !needsShapeCut(item)
   )
   const files: Record<string, Buffer | string> = {
     'video.mp4': await readAsset(produced.objectKey),

@@ -22,7 +22,12 @@ let shown = ''
 const progress = (snapshot: Snapshot) => {
   const release = snapshot.project.release
   return JSON.stringify([
-    release?.teasers.map((item) => [item.id, item.state]),
+    release?.teasers.map((item) => [
+      item.id,
+      item.state,
+      item.rebuild?.state,
+      item.rebuild?.done
+    ]),
     release?.drafting?.state,
     release?.youtube?.state,
     release?.campaign.map((item) => item.state)
@@ -118,6 +123,33 @@ export const clickRelease = async (
         action: 'change',
         item: target.dataset.item,
         follow: true
+      })
+    )
+  // A teaser drawn again for its shape: an AI run for each of its frames,
+  // so the creator says yes first (review 8, round 1).
+  if (action === 'teaser-rebuild') {
+    const frames = Number(target.dataset.frames) || 0
+    const sure = await confirmAction({
+      title: 'Draw its frames again?',
+      detail: `The frame agent draws each of its ${frames} frame${frames === 1 ? '' : 's'} again for a phone, keeping its words and pictures: ${frames} AI run${frames === 1 ? '' : 's'}. The teaser is then cut from them.`,
+      action: 'Rebuild'
+    })
+    if (sure)
+      update(
+        app,
+        await studioApi.notebook(id, 'teasers', {
+          action: 'rebuild',
+          teaser: target.dataset.teaser
+        })
+      )
+    return
+  }
+  if (action === 'teaser-keep')
+    update(
+      app,
+      await studioApi.notebook(id, 'teasers', {
+        action: 'keep',
+        teaser: target.dataset.teaser
       })
     )
   // Another picture for the thumbnail, before the bundle or the upload.

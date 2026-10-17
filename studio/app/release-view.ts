@@ -17,6 +17,13 @@ import {
   coverSrc,
   type CoverChoice
 } from '../shared/release-cover'
+import {
+  canRebuild,
+  needsShapeCut,
+  shapeName,
+  teaserFrames
+} from '../shared/teaser-shape'
+import type { Project } from '../shared/model'
 import { dayAndTime } from './campaign-view'
 import { escape } from './ui'
 
@@ -40,16 +47,12 @@ const length = (teaser: Teaser) =>
     teaser.segments.reduce((sum, part) => sum + part.to - part.from, 0)
   )
 
-/** Whether a teaser reads on a phone: one whose text stays small says so
- * before it is posted (review 8). */
-const readability = (teaser: Teaser) => {
+/** How long a teaser's text stays small on a phone, in a sentence. */
+const smallWords = (teaser: Teaser) => {
   const small = Math.round(teaser.small || 0)
-  if (small < 1) return ''
-  return `<small class="teaser-small">${
-    small >= length(teaser)
-      ? 'Its text stays small on a phone: the frames are wide.'
-      : `Its text stays small on a phone for ${small} of its ${length(teaser)} seconds.`
-  }</small>`
+  return small >= length(teaser)
+    ? 'Its text stays small on a phone: the frames are wide.'
+    : `Its text stays small on a phone for ${small} of its ${length(teaser)} seconds.`
 }
 
 /** The preview at about a phone's width, sized before it loads. */
@@ -60,13 +63,43 @@ const PREVIEW: Record<Teaser['aspect'], string> = {
   '16:9': 'width="270" height="152"'
 }
 
-const teaserRow = (teaser: Teaser) =>
-  `<li class="teaser-row"><span>${CHANNEL_LABELS[teaser.channel]} · ${teaser.aspect} · ${length(teaser)}s</span>${
+/**
+ * What a cut teaser offers. One whose text stays small for more than a
+ * fifth of it is a draft that needs a cut for its shape: the frame agent
+ * can draw its frames again (an AI run for each), or the creator keeps it
+ * as it is; until then it is neither downloaded nor bundled (review 8,
+ * round 1).
+ */
+const teaserOffer = (project: Project, teaser: Teaser) => {
+  const shape = shapeName(teaser.aspect)
+  const id = escape(teaser.id)
+  const rebuild = teaser.rebuild
+  if (rebuild?.state === 'rebuilding')
+    return `<small class="teaser-status" role="status">Drawing its frames again for ${shape}: ${rebuild.done} of ${rebuild.frames}…</small>`
+  const draft = needsShapeCut(teaser)
+  const frames = teaserFrames(project, teaser.segments).frames.length
+  const offer = canRebuild(project, teaser)
+    ? `<button type="button" class="${draft ? 'primary' : 'quiet'}" data-action="teaser-rebuild" data-teaser="${id}" data-frames="${frames}">Rebuild for ${shape}</button><small class="teaser-cost">An AI run for each of its ${frames} frame${frames === 1 ? '' : 's'}</small>`
+    : ''
+  const failed =
+    rebuild?.state === 'failed'
+      ? `<small class="release-failed">${escape(rebuild.error || 'It could not be drawn again')}</small>`
+      : ''
+  const download = `<a href="/objects/${escape(teaser.objectKey || '')}" download="teaser-${teaser.channel}-${teaser.aspect.replace(':', 'x')}.mp4">Download</a>`
+  if (draft)
+    return `<p class="teaser-small"><b>Needs a ${shape} cut.</b> ${smallWords(teaser)}</p>${failed}<div class="teaser-actions">${offer}<button type="button" class="quiet" data-action="teaser-keep" data-teaser="${id}">Keep it as it is</button></div>`
+  if (rebuild?.state === 'ready')
+    return `<small class="teaser-note">Its frames drawn again for ${shape}.</small>${download}`
+  return `${(teaser.small || 0) >= 1 ? `<small class="teaser-small">${smallWords(teaser)}</small>` : ''}${failed}${offer ? `<div class="teaser-actions">${offer}</div>` : ''}${download}`
+}
+
+const teaserRow = (project: Project) => (teaser: Teaser) =>
+  `<li class="teaser-row${needsShapeCut(teaser) ? ' is-draft' : ''}"><span>${CHANNEL_LABELS[teaser.channel]} · ${teaser.aspect} · ${length(teaser)}s</span>${
     teaser.state === 'cutting'
       ? '<small role="status">Cutting…</small>'
       : teaser.state === 'failed'
         ? `<small class="release-failed">${escape(teaser.error || 'Could not cut it')}</small>`
-        : `<video src="/objects/${escape(teaser.objectKey || '')}" ${PREVIEW[teaser.aspect]} muted controls playsinline preload="metadata"></video>${readability(teaser)}<a href="/objects/${escape(teaser.objectKey || '')}" download="teaser-${teaser.channel}-${teaser.aspect.replace(':', 'x')}.mp4">Download</a>`
+        : `<video src="/objects/${escape(teaser.objectKey || '')}" ${PREVIEW[teaser.aspect]} muted controls playsinline preload="metadata"></video>${teaserOffer(project, teaser)}`
   }</li>`
 
 export const teasersSection = (snapshot: Snapshot) => {
@@ -82,7 +115,7 @@ export const teasersSection = (snapshot: Snapshot) => {
   ).join('')}</select>
 <input name="moment" type="number" min="0" step="0.5" placeholder="From second (optional)" aria-label="Start the beat at this second">
 <button class="primary">Cut a teaser</button></form>
-${teasers.length ? `<ul class="teaser-list">${teasers.map(teaserRow).join('')}</ul>` : ''}</section>`
+${teasers.length ? `<ul class="teaser-list">${teasers.map(teaserRow(snapshot.project)).join('')}</ul>` : ''}</section>`
 }
 
 /** A post that still promises past the creator's words after one rewrite:
@@ -190,7 +223,9 @@ export const releaseBusy = (snapshot: Snapshot) => {
   const release = snapshot.project.release
   return Boolean(
     release?.drafting?.state === 'drafting' ||
-    release?.teasers.some((item) => item.state === 'cutting') ||
+    release?.teasers.some(
+      (item) => item.state === 'cutting' || item.rebuild?.state === 'rebuilding'
+    ) ||
     release?.youtube?.state === 'uploading' ||
     release?.campaign.some((item) => item.state === 'posting')
   )

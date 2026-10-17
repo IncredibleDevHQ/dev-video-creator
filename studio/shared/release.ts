@@ -32,6 +32,17 @@ export type Teaser = {
   objectKey?: string
   /** Seconds in which its text stays below reading size on a phone. */
   small?: number
+  /** Kept as it is though its text stays small: the creator's call. */
+  kept?: boolean
+  /** Its frames drawn again for its shape by the frame agent, one run for
+   * each frame it uses, and the teaser cut from them (review 8, round 1). */
+  rebuild?: {
+    state: 'rebuilding' | 'ready' | 'failed'
+    frames: number
+    done: number
+    error?: string
+    at: string
+  }
   error?: string
   at: string
 }

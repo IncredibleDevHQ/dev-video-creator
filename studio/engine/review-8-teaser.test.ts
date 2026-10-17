@@ -428,8 +428,16 @@ it('cuts a 9:16 teaser whose lesson fills the screen, measured, and says where i
       events: []
     })}</div>`
   ).document
+  // Small for more than a fifth of it: a draft until its frames are drawn
+  // again for a phone, or the creator keeps it (round 1).
   expect(row.querySelector('.teaser-small')?.textContent).toBe(
-    'Its text stays small on a phone for 7 of its 12 seconds.'
+    'Needs a portrait cut. Its text stays small on a phone for 7 of its 12 seconds.'
   )
+  expect(
+    row
+      .querySelector('[data-action="teaser-rebuild"]')
+      ?.getAttribute('data-frames')
+  ).toBe('3')
+  expect(row.querySelector('a[download]')).toBeNull()
   expect(row.querySelector('video')?.getAttribute('height')).toBe('480')
 }, 180_000)

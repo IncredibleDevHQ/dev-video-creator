@@ -16,6 +16,7 @@ const { zipFiles } = await import('./zip')
 const { draftPosts, uploadBundle, updateRelease, validatePosts } =
   await import('./release')
 const { makeTeaser } = await import('./teasers')
+const { keepTeaser } = await import('./teaser-portrait')
 const { storeAsset, readAsset, writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
 const { default: puppeteer } = await import('puppeteer')
@@ -276,6 +277,10 @@ it.skipIf(!tools)(
     expect(info.streams[0]).toMatchObject({ width: 1080, height: 1920 })
     expect(Number(info.format.duration)).toBeGreaterThanOrEqual(15)
     expect(Number(info.format.duration)).toBeLessThanOrEqual(17)
+    // The slides are wide, so the Short's text stays small: the creator
+    // keeps it as it is, and the bundle carries it (review 8, round 1).
+    expect(teaser.small).toBeGreaterThan(3)
+    await keepTeaser('release', { teaser: teaser.id })
     // The bundle: the video, its words and chapters, a thumbnail, the Short.
     await updateRelease('release', {
       posts: { x: 'x', linkedin: 'l', youtube: 'What broke and why.' }

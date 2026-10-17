@@ -11,6 +11,7 @@ import {
   withUtm
 } from '../shared/campaign'
 import { emptyRelease, type CampaignItem } from '../shared/release'
+import { needsShapeCut, shapeName } from '../shared/teaser-shape'
 import { addEvent } from './activity'
 import { readAsset } from './persistence'
 import { postToLinkedIn, postToX } from './posting'
@@ -120,7 +121,10 @@ const teaserOf = (
   item: CampaignItem
 ) => {
   if (item.asset === 'episode' || item.asset === 'quote') return null
-  const ready = release.teasers.filter((entry) => entry.state === 'ready')
+  // A draft (its text small, neither drawn again nor kept) never goes out.
+  const ready = release.teasers.filter(
+    (entry) => entry.state === 'ready' && !needsShapeCut(entry)
+  )
   return (
     ready.find((entry) => entry.id === item.asset) ||
     ready.find((entry) => entry.channel === item.channel) ||
@@ -182,7 +186,11 @@ export const postItem = async (id: string, raw: unknown) => {
       )
     const teaser = teaserOf(release, found)
     if (found.kind === 'teaser' && !teaser)
-      throw new Refusal('Cut a teaser for it first')
+      throw new Refusal(
+        release.teasers.some(needsShapeCut)
+          ? `Its teaser needs a ${shapeName(release.teasers.find(needsShapeCut)!.aspect)} cut: rebuild it, or keep it as it is, first`
+          : 'Cut a teaser for it first'
+      )
     videoKey = teaser?.objectKey
     title = current.project.title
     before = found.state

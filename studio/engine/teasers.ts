@@ -129,7 +129,7 @@ const shotFilter = (
 }
 
 /** Each caption as a transparent PNG, sized for the frame. */
-const drawCaptions = async (
+export const drawCaptions = async (
   dir: string,
   cues: Array<{ text: string }>,
   width: number

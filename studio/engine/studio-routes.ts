@@ -19,6 +19,7 @@ import { draftPosts, updateRelease, uploadBundle } from './release'
 import { coverFor } from './release-cover'
 import { loadProject } from './projects'
 import { makeTeaser } from './teasers'
+import { keepTeaser, rebuildTeaser } from './teaser-portrait'
 import { publishToYouTube } from './youtube-publish'
 import { askRepo, setNotebookRepos } from './repo-answers'
 import { inspectRepo } from './repo-git'
@@ -145,7 +146,13 @@ const route = async (
     if (action === 'youtube' && method === 'POST')
       return ok(await publishToYouTube(id, body))
     if (action === 'teasers' && method === 'POST')
-      return ok(await makeTeaser(id, body))
+      return ok(
+        body.action === 'rebuild'
+          ? await rebuildTeaser(id, body)
+          : body.action === 'keep'
+            ? await keepTeaser(id, body)
+            : await makeTeaser(id, body)
+      )
     if (action === 'posts' && method === 'POST') return ok(await draftPosts(id))
     if (action === 'release' && method === 'POST')
       return ok(await updateRelease(id, body))

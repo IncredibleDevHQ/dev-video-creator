@@ -120,7 +120,9 @@ const measure = async <T>(
           '.publish-differs',
           '#youtube-publish-form',
           '.teaser-row video',
-          '.teaser-small'
+          '.teaser-small',
+          '[data-action="teaser-rebuild"]',
+          '[data-action="teaser-keep"]'
         ].map((selector) => {
           const node = document.querySelector(selector)
           const r = node?.getBoundingClientRect()
@@ -235,7 +237,9 @@ it('previews a portrait teaser at about a phone’s width, with where it reads s
     (box) => ({
       body: box('.dialog-body'),
       video: box('.teaser-row video'),
-      note: box('.teaser-small')
+      note: box('.teaser-small'),
+      rebuild: box('[data-action="teaser-rebuild"]'),
+      keep: box('[data-action="teaser-keep"]')
     })
   )
   for (const { scrolls, at } of seen) {
@@ -249,6 +253,11 @@ it('previews a portrait teaser at about a phone’s width, with where it reads s
     )
     expect(at.note.top).toBeGreaterThanOrEqual(at.video.bottom)
     expect(at.note.right).toBeLessThanOrEqual(at.body.right)
+    // A draft: its rebuild and keep under the note, inside the dialog.
+    for (const button of [at.rebuild, at.keep]) {
+      expect(button.top).toBeGreaterThanOrEqual(at.note.bottom)
+      expect(button.right).toBeLessThanOrEqual(at.body.right)
+    }
   }
 }, 60_000)
 
