@@ -11,6 +11,7 @@ import { seekSavedMedia } from './media-seek'
 import { movePlayhead } from './moment-timeline'
 import { notebookOpeningView } from './notebook-opening'
 import { notebookScreen } from './notebook-screen'
+import { watchNotes } from './note-landing'
 import { replacePlayerView } from './player-view'
 import { paintPracticeActions } from './recording-controller'
 import { syncPresenterLayout } from './presenter-motion'
@@ -275,6 +276,8 @@ ${escape(project.title)}</h1>
     }
   }
   app.syncMediaRecovery()
+  // The Notebook lists where its notes went: read from the map now and then.
+  if (app.stage === 'notebook') watchNotes(app)
   app.syncAnimation()
   app.syncLayeredPlayback()
   followTranscript(

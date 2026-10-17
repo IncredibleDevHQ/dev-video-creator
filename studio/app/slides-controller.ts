@@ -1,6 +1,7 @@
 import { api } from './api'
 import { mapApi } from './map-api'
 import { noteDialog } from './notebook-notes'
+import { followNotes } from './note-landing'
 import type { AppContext } from './app-context'
 import { downloadPresentation, notice } from './download'
 import { saveBeforeLeaving } from './notebook-editor'
@@ -117,7 +118,14 @@ export const submitSlides = async (
     if (press) press.disabled = true
     try {
       const { project } = app.snapshot
-      const saved = await mapApi.note(project.copyOfMap || project.id, text)
+      // From an episode, it goes to its series' map, written there: the
+      // episode lists it, and where it went.
+      const saved = await mapApi.note(
+        project.copyOfMap || project.id,
+        text,
+        undefined,
+        project.copyOfMap ? project.id : undefined
+      )
       // Only the words sent are cleared: words typed while it saved stay.
       const own = form.querySelector?.<HTMLTextAreaElement>('textarea')
       if (!own || own.value.trim() === text) form.reset()
@@ -135,6 +143,11 @@ export const submitSlides = async (
           : 'Note saved: it joins the map once the wireframes are drawn',
         true
       )
+      // Where it went is said once it lands, and listed where it was written.
+      const added = [...(saved.project.notes || [])]
+        .reverse()
+        .find((note) => note.text === text)?.id
+      void followNotes(app, project.id, added)
     } finally {
       sendingNotes.delete(form.id)
       if (press) press.disabled = false
@@ -174,7 +187,8 @@ export const clickSlides = async (
   const slideId = app.snapshot.project.slides[app.selected]?.id
   if (action === 'add-note') {
     closePopover()
-    app.showDialog(noteDialog())
+    app.showDialog(noteDialog(app.snapshot))
+    void followNotes(app, id)
     app.dialog.querySelector<HTMLTextAreaElement>('#note-dialog-text')?.focus()
     return
   }

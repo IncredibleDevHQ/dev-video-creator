@@ -12,7 +12,7 @@ import {
   setAside,
   startMapSeries
 } from './map-episodes'
-import { addNote, retryNote } from './map-notes'
+import { addNote, noteViews, retryNote } from './map-notes'
 import { changeComment } from './map-comments'
 import { retryPick } from './map-picking'
 import { planSeries } from './series-plan'
@@ -61,6 +61,7 @@ const route = async (
   if (!project) return null
   const [, id, action] = project
   if (action === 'map' && method === 'GET') return ok(await mapView(id))
+  if (action === 'notes' && method === 'GET') return ok(await noteViews(id))
   if (method !== 'POST') return null
   if (action === 'notes')
     return ok(

@@ -1,55 +1,31 @@
 import type { Snapshot } from '../shared/api'
-import type { MapNote } from '../shared/content-map'
+import { noteList, notesOf } from './note-landing'
 import { button, escape } from './ui'
 
 // The Notebook keeps taking notes once its wireframes are made (review 8
 // F02: it became a read-only page, and later thoughts had to find the map's
 // Notes). A note here is the map's own: kept at once, then sorted into the
-// content map, and the latest say where they landed.
+// content map, and the latest say where they landed: the card, and the
+// episodes that hold it; an episode lists the notes written in it.
 
 const NOTE_LIMIT = 8000
-
-const landed = (note: MapNote) => {
-  if (note.state === 'waiting')
-    return 'Saved · sorted into the map once the wireframes are drawn'
-  if (note.state === 'sorting') return 'Sorting into the map…'
-  if (note.state === 'failed') return note.error || 'Could not sort this note'
-  const said = (note.results || []).map((result) =>
-    result.kind === 'new'
-      ? `New card “${result.title}”`
-      : result.kind === 'adds'
-        ? `Added to “${result.title}”`
-        : `Already covered by “${result.title}”`
-  )
-  const more = said.length > 2 ? ` · ${said.length - 2} more` : ''
-  return said.length ? `${said.slice(0, 2).join(' · ')}${more}` : 'Sorted'
-}
 
 /** The Notebook's note field, where notes go, and the latest notes. */
 export const notebookNotes = (snapshot: Snapshot) => {
   const { project } = snapshot
-  // An episode's notes go to the series' map, which shows them.
-  const recent = project.copyOfMap ? [] : (project.notes || []).slice(-3)
-  const list = recent.length
-    ? `<ul class="notebook-note-list">${recent
-        .reverse()
-        .map(
-          (note) =>
-            `<li class="is-${note.state}"><p>${escape(note.text.length > 140 ? `${note.text.slice(0, 139)}…` : note.text)}</p><small>${escape(landed(note))}</small></li>`
-        )
-        .join('')}</ul>`
-    : ''
   return `<section class="notebook-notes" aria-label="Notes">
 <form id="notebook-note" class="notebook-note-form"><label class="sr" for="notebook-note-text">Add a note</label><textarea id="notebook-note-text" name="note" rows="2" maxlength="${NOTE_LIMIT}" placeholder="Add a note: something you learned, a link, a half-thought…"></textarea><button type="submit" class="primary">Add note</button></form>
 <p class="notebook-notes-where">Notes go to the content map: each becomes a new card, adds to one, or is already covered. ${button('Open the map', 'open-map')}</p>
-${list}</section>`
+${noteList(project.id, notesOf(snapshot))}</section>`
 }
 
-/** The note any stage opens from the header's More (review 8 F02). */
-export const noteDialog = () => `<h2>Add a note</h2>
+/** The note any stage opens from the header's More (review 8 F02), with
+ * where the latest notes written here went. */
+export const noteDialog = (snapshot: Snapshot) => `<h2>Add a note</h2>
 <p class="sb-meta">It goes to the content map: a new card, an addition to one, or already covered.</p>
 <form id="note-dialog" class="sb-change"><label class="sr" for="note-dialog-text">Your note</label><textarea id="note-dialog-text" name="note" rows="4" maxlength="${NOTE_LIMIT}" placeholder="Something you learned, a link, a half-thought…"></textarea>
-<div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Add note</button></div></form>`
+<div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Add note</button></div></form>
+${noteList(snapshot.project.id, notesOf(snapshot))}`
 
 /** Notes kept while no wireframes are drawn, in the notebook's own editor
  * when a first drawing stopped (review 8 F01: they could not be seen). */

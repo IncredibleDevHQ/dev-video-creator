@@ -126,7 +126,19 @@ export const addNote = async (id: string, raw: unknown) => {
   if (!(await loadProject(id))) throw new Refusal('Notebook not found')
   const at = new Date().toISOString()
   const gap = String((raw as { gap?: unknown })?.gap || '')
-  const note: MapNote = { id: randomUUID(), at, text, state: 'sorting' }
+  // Written in one of the map's episodes: that episode lists it, and where
+  // it went (review 8 F02).
+  const from = String((raw as { from?: unknown })?.from || '')
+  const written =
+    /^[a-zA-Z0-9_-]+$/.test(from) &&
+    (await loadProject(from))?.project.copyOfMap === id
+  const note: MapNote = {
+    id: randomUUID(),
+    at,
+    text,
+    state: 'sorting',
+    ...(written ? { from } : {})
+  }
   let entered = false
   const snapshot = await changeProject(id, async (current) => {
     if (!drawnMap(current)) {
@@ -213,6 +225,52 @@ export const sortWaitingNotes = async (id: string) => {
     })
     if (entered) await startSorting(id, saved, waiting.id)
   }
+}
+
+/**
+ * The latest notes, as the notebook they were written in shows them: the
+ * map's own on the map, an episode's on that episode, each card a note made
+ * or changed with the episodes that hold it now (review 8 F02, round 2's
+ * audit: an episode listed none, and the map named cards, never episodes).
+ */
+export const noteViews = async (id: string): Promise<MapNote[]> => {
+  const notebook = await loadProject(id)
+  if (!notebook) throw new Refusal('Notebook not found')
+  const mapId = notebook.project.copyOfMap || id
+  const map = mapId === id ? notebook : await loadProject(mapId)
+  const notes = (map?.project.notes || [])
+    .filter((note) => mapId === id || note.from === id)
+    .slice(-3)
+  const series =
+    notes.length && map?.project.mapSeries
+      ? await loadSeries(map.project.mapSeries)
+      : null
+  const holders = new Map<string, Set<number>>()
+  for (const episode of series?.episodes || []) {
+    const copy =
+      episode.notebookId === id
+        ? notebook
+        : await loadProject(episode.notebookId)
+    for (const slide of copy?.project.slides || [])
+      if (slide.copyOf?.notebook === mapId)
+        holders.set(
+          slide.copyOf.slide,
+          (holders.get(slide.copyOf.slide) || new Set()).add(episode.number)
+        )
+  }
+  return notes.map((note) => ({
+    ...note,
+    ...(note.results
+      ? {
+          results: note.results.map((result) => ({
+            ...result,
+            episodes: [...(holders.get(result.slideId) || [])].sort(
+              (one, other) => one - other
+            )
+          }))
+        }
+      : {})
+  }))
 }
 
 const sorting = new Map<string, Promise<void>>()

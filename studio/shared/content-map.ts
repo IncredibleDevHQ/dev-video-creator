@@ -15,6 +15,8 @@ export type MapNote = {
   state: 'waiting' | 'sorting' | 'sorted' | 'failed'
   results?: NoteResult[]
   error?: string
+  /** The episode it was written in, when not on the map itself. */
+  from?: string
 }
 export type NoteResult = {
   kind: 'new' | 'adds' | 'covered'
@@ -24,6 +26,8 @@ export type NoteResult = {
   line: string
   /** The series gap a new page answers, for organising to close. */
   fills?: string
+  /** Read, never kept: the episodes holding the card now, by number. */
+  episodes?: number[]
 }
 
 /** Where a copied page came from: the map, its page, and that page then. */

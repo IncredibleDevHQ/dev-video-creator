@@ -1,7 +1,7 @@
 // The content map's requests: the map's view, notes, topics, the series made
 // from it, and its episodes' copies, beside api.ts and studio-api.ts.
 import type { Snapshot } from '../shared/api'
-import type { MapView } from '../shared/content-map'
+import type { MapNote, MapView } from '../shared/content-map'
 import type { Series } from '../shared/series'
 import type { MapComment } from '../shared/voice'
 import { studioApi } from './studio-api'
@@ -10,8 +10,11 @@ const { request } = studioApi
 
 export const mapApi = {
   view: (id: string) => request<MapView>(`/projects/${id}/map`),
-  note: (id: string, text: string, gap?: string) =>
-    request<Snapshot>(`/projects/${id}/notes`, 'POST', { text, gap }),
+  /** A note to the map `id`; `from` the episode it was written in. */
+  note: (id: string, text: string, gap?: string, from?: string) =>
+    request<Snapshot>(`/projects/${id}/notes`, 'POST', { text, gap, from }),
+  /** The latest notes written in a notebook, each with where it went. */
+  notes: (id: string) => request<MapNote[]>(`/projects/${id}/notes`),
   resortNote: (id: string, note: string) =>
     request<Snapshot>(`/projects/${id}/notes`, 'POST', { retry: note }),
   pick: (episode: string) =>

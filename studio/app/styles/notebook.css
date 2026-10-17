@@ -350,3 +350,7 @@
 .notebook-note-list .is-failed small {
   color: var(--danger, #b42318);
 }
+/* More's note: the notes written here, under its form. */
+#note-dialog + .notebook-note-list {
+  margin-top: 14px;
+}
