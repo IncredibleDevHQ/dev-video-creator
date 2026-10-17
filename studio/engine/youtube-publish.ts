@@ -4,6 +4,7 @@
 // publishes it at on its own servers. Until the studio's Google project
 // passes Google's verification and YouTube's audit, YouTube keeps API
 // uploads private; the studio says so, and the bundle stays the way out.
+import { markYouTubeUp } from '../shared/campaign'
 import { youtubeDescription, youtubeTitle } from '../shared/release-plan'
 import { emptyRelease, type YouTubeUpload } from '../shared/release'
 import { accountFetch, canEditPlaylists } from './accounts'
@@ -240,12 +241,11 @@ export const publishToYouTube = async (id: string, raw: unknown) => {
         at: new Date().toISOString()
       }
       // The launch on YouTube is this upload: YouTube publishes it itself.
-      for (const item of release.campaign)
-        if (item.channel === 'youtube' && item.kind === 'launch') {
-          item.state = 'posted'
-          item.postedAt = publishAt?.toISOString() || new Date().toISOString()
-          item.postUrl = `https://www.youtube.com/watch?v=${videoId}`
-        }
+      markYouTubeUp(
+        release.campaign,
+        videoId,
+        publishAt?.toISOString() || new Date().toISOString()
+      )
       current.project.release = release
       addEvent(
         current,

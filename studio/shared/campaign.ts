@@ -56,6 +56,27 @@ const youtubeItem = (campaign: CampaignItem[]) =>
       item.state !== 'dropped'
   )
 
+/** YouTube's launch once the video is up, however it went up: the studio's
+ * upload, or the bundle uploaded by hand and its link pasted (review 8,
+ * round 2: the hand upload left the launch overdue for good). */
+export const markYouTubeUp = (
+  campaign: CampaignItem[],
+  videoId: string | undefined,
+  at: string
+) => {
+  for (const item of campaign)
+    if (
+      item.channel === 'youtube' &&
+      item.kind === 'launch' &&
+      item.state !== 'posted'
+    ) {
+      item.state = 'posted'
+      item.postedAt = at
+      if (videoId) item.postUrl = `https://www.youtube.com/watch?v=${videoId}`
+      delete item.note
+    }
+}
+
 /** When the video is out: an upload's own schedule, else the campaign's
  * YouTube launch, else the release. */
 export const launchMoment = (release: Timed) =>
@@ -298,6 +319,10 @@ export const campaignPlan = (
     }
     note = fitNote(at, now, moved, gone.length - moved)
   }
+  // Planned once the video is up, YouTube's launch has happened.
+  const up = release.youtube
+  if (up?.state === 'uploaded' && up.videoId)
+    markYouTubeUp(fresh, up.videoId, up.publishAt || up.at)
   const all = [...kept, ...fresh]
   return {
     items: at

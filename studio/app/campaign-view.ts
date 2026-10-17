@@ -84,7 +84,9 @@ const itemRow = (
         item.state === 'unknown'
         ? `<a href="${feed}" target="_blank" rel="noopener">Check your feed</a><button type="button" class="quiet" data-action="campaign-state" data-item="${escape(item.id)}" data-state="posted">It went out</button><button type="button" class="quiet" data-action="campaign-post" data-item="${escape(item.id)}" data-channel="${item.channel}" data-again="1">Post again</button>`
         : item.state === 'posted'
-          ? `<a href="${escape(item.postUrl || '#')}" target="_blank" rel="noopener">Posted</a>`
+          ? item.postUrl
+            ? `<a href="${escape(item.postUrl)}" target="_blank" rel="noopener">Posted</a>`
+            : '<small>Posted</small>'
           : item.state === 'dropped'
             ? `<button type="button" class="quiet" data-action="campaign-state" data-item="${escape(item.id)}" data-state="draft">Restore</button>`
             : `${moveTo}${
@@ -97,7 +99,11 @@ const itemRow = (
                   : `<button type="button" class="quiet" data-action="campaign-state" data-item="${escape(item.id)}" data-state="approved">Approve</button>`
               }<button type="button" class="quiet" data-action="campaign-state" data-item="${escape(item.id)}" data-state="dropped">Drop</button>${
                 item.channel === 'youtube'
-                  ? ''
+                  ? // Uploaded by hand, the launch is up when the creator
+                    // says so, or pastes its link (review 8, round 2).
+                    item.kind === 'launch'
+                    ? `<button type="button" ${overdue ? 'class="primary"' : 'class="quiet"'} data-action="campaign-state" data-item="${escape(item.id)}" data-state="posted">It is up</button>`
+                    : ''
                   : `<button type="button" ${due ? 'class="primary"' : 'class="quiet"'} data-action="campaign-post" data-item="${escape(item.id)}" data-channel="${item.channel}">Post now</button>`
               }`
   return `<li class="campaign-item is-${item.state}${due ? ' is-due' : ''}${overdue ? ' is-overdue' : ''}">

@@ -7,6 +7,7 @@ import {
   LINK,
   campaignPlan,
   clockOf,
+  markYouTubeUp,
   timed,
   withUtm
 } from '../shared/campaign'
@@ -95,6 +96,18 @@ export const changeItem = (id: string, raw: unknown) => {
       item.state = 'posted'
       delete item.note
     }
+    // YouTube's launch is up, uploaded by hand: the creator says so
+    // (review 8, round 2: it stayed overdue for good).
+    if (
+      value.state === 'posted' &&
+      item.channel === 'youtube' &&
+      item.kind === 'launch'
+    )
+      markYouTubeUp(
+        [item],
+        current.project.release?.youtube?.videoId,
+        new Date().toISOString()
+      )
   })
 }
 

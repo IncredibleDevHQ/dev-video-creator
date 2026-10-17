@@ -2,6 +2,7 @@
 // the episode's video, X's numbers for the posts the studio sent, and
 // LinkedIn's as the creator enters them (its analytics need vetted access).
 // The studio keeps its own snapshots: X keeps detail for 30 days only.
+import { markYouTubeUp } from '../shared/campaign'
 import { emptyRelease, type NumbersSnapshot } from '../shared/release'
 import { accountFetch } from './accounts'
 import { changeProject, loadProject } from './projects'
@@ -26,17 +27,15 @@ export const youtubeId = (raw: unknown) => {
   return match[1]
 }
 
-/** The video the bundle became, once the creator uploaded it by hand. */
+/** The video the bundle became, once the creator uploaded it by hand: its
+ * link says YouTube's launch has happened. */
 export const setYouTubeVideo = async (id: string, raw: unknown) => {
   const videoId = youtubeId((raw as { video?: unknown })?.video)
   return changeProject(id, (current) => {
     const release = current.project.release || emptyRelease()
-    release.youtube = {
-      ...release.youtube,
-      state: 'uploaded',
-      videoId,
-      at: new Date().toISOString()
-    }
+    const at = new Date().toISOString()
+    release.youtube = { ...release.youtube, state: 'uploaded', videoId, at }
+    markYouTubeUp(release.campaign, videoId, release.youtube.publishAt || at)
     current.project.release = release
   })
 }
