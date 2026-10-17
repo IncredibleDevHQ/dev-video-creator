@@ -1,6 +1,6 @@
 // Starting a series, its page, the arc, and adding the next episode.
 import type { Snapshot } from '../shared/api'
-import type { Series, SeriesSummary } from '../shared/series'
+import { ledBy, type Series, type SeriesSummary } from '../shared/series'
 import type { AppContext } from './app-context'
 import {
   looseNotebooks,
@@ -27,6 +27,18 @@ export const seriesApi = {
       'POST',
       body
     )
+}
+
+/** Who presents the series a notebook is an episode of, for its Make; a
+ * series that cannot be read leaves Make as it always started. */
+export const episodeLed = (snapshot: Snapshot) => {
+  const id = snapshot.project.episode?.series
+  return id
+    ? seriesApi.page(id).then(
+        (page) => ledBy(page.series),
+        () => undefined
+      )
+    : Promise.resolve(undefined)
 }
 
 let watching: ReturnType<typeof setTimeout> | null = null
@@ -108,6 +120,7 @@ export const submitSeries = async (
         title: values.get('title'),
         about: values.get('about'),
         growth: values.get('growth'),
+        led: values.get('led'),
         ...(from
           ? { from }
           : { repos: path ? [{ path, ...(branch ? { branch } : {}) }] : [] })

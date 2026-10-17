@@ -91,8 +91,9 @@ const seriesFrom = (notebooks: NotebookSummary[], chosen: string) => {
 }
 
 /** The switch at the start: what the series is about, the notes it starts
- * from, and how it grows; a repo only for a series that follows code
- * (review 8: the form asked for structure and a repo first). */
+ * from, how it grows and who presents it, asked once for every episode; a
+ * repo only for a series that follows code (review 8: the form asked for
+ * structure and a repo first, and each episode for camera and voice). */
 export const newSeriesDialog = (notebooks: NotebookSummary[] = []) => {
   const chosen =
     notebooks[0] && startsSeries(notebooks[0]) ? notebooks[0] : undefined
@@ -106,6 +107,10 @@ ${seriesFrom(notebooks, chosen?.id ?? '')}
 <fieldset class="series-growth"><legend>How it grows</legend>
 <label><input type="radio" name="growth" value="arc" checked> The studio plans the episodes <small>From your notes or what it is about; nothing is fixed.</small></label>
 <label><input type="radio" name="growth" value="one"> One episode at a time <small>You add each one as you go.</small></label>
+</fieldset>
+<fieldset class="series-led"><legend>Who presents it</legend>
+<label><input type="radio" name="led" value="notes" checked> A generated voice <small>Nothing for you to record.</small></label>
+<label><input type="radio" name="led" value="presenter"> You, on camera <small>You record your camera and voice for each episode.</small></label>
 </fieldset>
 <details class="series-code"${chosen ? ' hidden' : ''}><summary>From a code repository</summary>
 <label for="series-repo">Repo <small>its folder on this computer</small></label>

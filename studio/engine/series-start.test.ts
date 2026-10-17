@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
 import type { Snapshot } from '../shared/api'
+import { ledBy } from '../shared/series'
 // Starting a series from home (review 8, F03). The planner is a stand-in
 // that stops once asked: these checks prove which series starts and that
 // its plan is asked for, with the creator's words, not what a model plans.
@@ -100,6 +101,36 @@ it('one episode at a time asks for no plan; no notebook starts from what it is a
   })
   expect(fresh).toMatchObject({ title: 'Retries', about, growth: 'one' })
   expect(fresh.map).toBeUndefined()
+})
+
+it('keeps who presents the series, as the creator said (review 8, F05)', async () => {
+  await notes('presented')
+  const presented = await startSeries({
+    from: 'presented',
+    about,
+    growth: 'one',
+    led: 'presenter'
+  })
+  expect((await loadSeries(presented.id))?.led).toBe('presenter')
+  const fresh = await startSeries({
+    title: 'Retries',
+    about,
+    growth: 'one',
+    led: 'notes'
+  })
+  expect((await loadSeries(fresh.id))?.led).toBe('notes')
+  expect(
+    (await startSeries({ title: 'Odd', about, growth: 'one', led: 'camera' }))
+      .led
+  ).toBeUndefined()
+  // Started on its map before it was asked: told from its notes. A series
+  // from nothing started before it keeps Make as it always started.
+  await notes('on-the-map')
+  const { startMapSeries } = await import('./map-episodes')
+  const mapped = await startMapSeries('on-the-map', {})
+  expect([mapped.led, ledBy(mapped)]).toEqual([undefined, 'notes'])
+  const before = await startSeries({ title: 'Old', about, growth: 'one' })
+  expect(ledBy(before)).toBeUndefined()
 })
 
 it('home’s Start the series reaches the notebook through the route', async () => {

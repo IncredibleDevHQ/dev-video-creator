@@ -125,12 +125,22 @@
   color: var(--muted);
   font-weight: 400;
 }
-.series-growth {
+.series-growth,
+.series-led {
   display: grid;
   gap: 6px;
   margin: 4px 0;
   padding: 0;
   border: 0;
+}
+/* The start asks more in one view (review 8): its sections sit closer, the
+ * form's gap between them. */
+.dialog-body .series-form fieldset {
+  margin: 8px 0;
+}
+.dialog-body .series-form textarea {
+  height: auto;
+  padding: 10px 12px;
 }
 /* The notebooks a series can start from, in a short list (review 8). */
 .series-from > div {

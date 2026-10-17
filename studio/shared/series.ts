@@ -101,6 +101,9 @@ export type Series = {
   createdAt: string
   /** One episode at a time, or an arc planned up front. */
   growth: 'one' | 'arc'
+  /** Who presents the episodes, asked once when the series starts: each
+   * episode's Make starts from it. Read with `ledBy()`. */
+  led?: SeriesLed
   /** What the series is about, in the creator's words. */
   about: string
   arc?: { episodes: [number, number]; parts: SeriesPart[]; at: string }
@@ -146,6 +149,16 @@ export type Series = {
 /** New cards organise themselves into the episodes, unless turned off. */
 export const organizes = (series: Pick<Series, 'organize' | 'autoplan'>) =>
   series.organize ?? series.autoplan ?? true
+
+/** The episodes told from the notes in a generated voice, or presented by
+ * the creator on camera and in their own voice. */
+export type SeriesLed = 'notes' | 'presenter'
+export const seriesLed = (value: unknown): SeriesLed | undefined =>
+  value === 'notes' || value === 'presenter' ? value : undefined
+/** Who presents a series' episodes: as the creator said, else a content
+ * map's series is told from its notes (review 8). */
+export const ledBy = (series: Pick<Series, 'led' | 'map'>) =>
+  series.led ?? (series.map ? ('notes' as const) : undefined)
 
 /** On a notebook: the series it belongs to and what it carries over. */
 export type EpisodeRef = {

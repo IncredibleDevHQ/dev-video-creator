@@ -229,6 +229,16 @@
 .voice-rows .is-missing {
   color: var(--danger, #b91c1c);
 }
+/* Under the voices: what the camera and voice ask you to record (review 8),
+ * and the two-voices warning, alike. */
+.dialog-body .make-records {
+  margin: -14px 0 0;
+  font-size: 13px;
+}
+.dialog-body .make-records + .two-voices {
+  margin-top: 4px;
+  font-size: 13px;
+}
 .scene-choice-number {
   min-width: 20px;
   color: var(--muted);

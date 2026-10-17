@@ -40,6 +40,7 @@ import { momentViewKey } from '../shared/model'
 import { videoOpens, whyNoRecording } from '../shared/state'
 import type { Moment, Scene, Slide, VideoSettings } from '../shared/model'
 import { voiceRows } from './voice-choice'
+import { makeStart, plannedStory, type MakePlan } from './make-start'
 import type { Snapshot } from '../shared/api'
 import type { Recording } from './recording'
 import { cameraAt } from '../shared/camera-window'
@@ -750,18 +751,17 @@ export const makeVideoDialog = (
     done?: Set<string>
   },
   look?: Branding,
-  /** The template the wireframes were planned from, chosen by default. */
-  planned?: Pick<VideoSettings, 'narrative' | 'direction' | 'length'>,
+  /** The template the wireframes were planned from, and the series' say. */
+  planned?: MakePlan,
   /** A wireframe of this notebook for the template's card, when no
    * wireframes are chosen here (the video's settings). */
   preview?: string
 ) => {
-  const presence = current?.presence || 'high'
-  const voice = current?.voice || settings.voice.selected
+  const { presence, voice } = makeStart(settings, current, planned?.led)
   // With a template, its direction says how much you are on camera.
   const story = current?.narrative
     ? { narrative: current.narrative, direction: current.direction }
-    : (takePickedTemplate() ?? (planned?.narrative ? planned : undefined))
+    : (takePickedTemplate() ?? plannedStory(planned))
   return `<h2>Make the video</h2>
 <form id="video-form">
 ${templatePicker(story, look, preview ?? choice?.slides.find((slide) => slide.svg)?.svg ?? undefined)}${onCameraChoice(story)}
@@ -785,7 +785,7 @@ ${templatePicker(story, look, preview ?? choice?.slides.find((slide) => slide.sv
 <fieldset class="voice-rows"><legend>Voice when you are off camera</legend><div>${voiceRows(
     settings,
     voice
-  )}</div></fieldset><p class="two-voices" ${
+  )}</div></fieldset><p class="make-records" aria-live="polite" hidden></p><p class="two-voices" ${
     voice.kind !== 'ai' || presence === 'off' ? 'hidden' : ''
   }>Your voice on camera and an AI voice elsewhere will sound different.</p>${
     choice

@@ -8,6 +8,7 @@ import { NARRATIVES, narrativeById } from '../shared/narratives'
 import {
   ARC_RANGE,
   nextPart,
+  seriesLed,
   type Series,
   type SeriesPart,
   type SeriesSummary
@@ -61,18 +62,21 @@ const reposOf = async (raw: unknown) => {
   return repos
 }
 
-/** A new series: its title, what it is about, and how it grows. */
+/** A new series: its title, what it is about, how it grows, and who
+ * presents it. */
 export const createSeries = async (raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
   const title = words(value.title, 120)
   const about = words(value.about, 4000)
   if (!title) throw new Refusal('Give the series a title')
   if (!about) throw new Refusal('Say what the series is about')
+  const led = seriesLed(value.led)
   const series: Series = {
     id: randomUUID(),
     title,
     about,
     growth: value.growth === 'arc' ? 'arc' : 'one',
+    ...(led ? { led } : {}),
     createdAt: new Date().toISOString(),
     episodes: [],
     repos: await reposOf(value.repos ?? []),

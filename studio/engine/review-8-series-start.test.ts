@@ -181,6 +181,7 @@ it('offers only the notebooks no series uses, and opens the map it starts', asyn
   values.set('from', 'n-new')
   values.set('title', '')
   values.set('growth', 'arc')
+  values.set('led', 'notes')
   values.set('path', '/code/limiter')
   await submitSeries(app as never, shown as never, values)
   // Its notebook's repos are the series': none is sent from the form.
@@ -188,6 +189,7 @@ it('offers only the notebooks no series uses, and opens the map it starts', asyn
     title: '',
     about: 'What I learn about retries',
     growth: 'arc',
+    led: 'notes',
     from: 'n-new'
   })
   expect(app.dialog.close).toHaveBeenCalled()
@@ -221,6 +223,7 @@ it('a series from nothing yet sends its repo and opens its page', async () => {
   values.set('from', '')
   values.set('title', 'Limits')
   values.set('growth', 'one')
+  values.set('led', 'presenter')
   values.set('path', '/code/limiter')
   values.set('branch', 'fix-burst')
   await submitSeries(app as never, formOf(newSeriesDialog()) as never, values)
@@ -228,6 +231,7 @@ it('a series from nothing yet sends its repo and opens its page', async () => {
     title: 'Limits',
     about: 'How we limit requests',
     growth: 'one',
+    led: 'presenter',
     repos: [{ path: '/code/limiter', branch: 'fix-burst' }]
   })
   expect(app.mapCanvas.open).not.toHaveBeenCalled()

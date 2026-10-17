@@ -25,6 +25,7 @@ import { syncMakeDialog } from './make-dialog-sync'
 import { videoSettingsPreview } from './video-settings-preview'
 import { parseVoice } from './voice-choice'
 import { restoreMakeChoices } from './template-picker'
+import { episodeLed } from './series-controller'
 import { wireLengthRanges } from './length-range'
 
 export const createSyncLayeredPlayback = (app: AppContext) =>
@@ -438,9 +439,14 @@ ${button('Try again', 'video-settings', true)}`
       app.render()
     } else {
       const onWireframe = app.stage === 'presentation'
+      // An episode starts as its series is presented (review 8).
+      const [settings, led] = await Promise.all([
+        api.settings(),
+        episodeLed(app.snapshot)
+      ])
       app.showDialog(
         makeVideoDialog(
-          await api.settings(),
+          settings,
           undefined,
           {
             slides: app.snapshot.project.slides,
@@ -456,7 +462,8 @@ ${button('Try again', 'video-settings', true)}`
             narrative: app.snapshot.project.narrative,
             direction: app.snapshot.project.direction,
             // An episode runs as long as its series asks.
-            length: app.snapshot.project.episode?.length
+            length: app.snapshot.project.episode?.length,
+            led
           }
         )
       )
