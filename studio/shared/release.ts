@@ -43,6 +43,10 @@ export type Teaser = {
     /** The frames whose words stayed small as drawn again: the next
      * rebuild draws them (review 8, round 2). */
     smallFrames?: number[]
+    /** Cut, but its words could not be measured (the browser failed): a
+     * draft until the creator keeps it or a rebuild measures it, its paid
+     * frames kept (review 8, round 3). */
+    unchecked?: boolean
     error?: string
     at: string
   }

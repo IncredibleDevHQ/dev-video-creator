@@ -240,7 +240,9 @@ export const rebuildTeaser = async (id: string, raw: unknown) => {
       state: 'rebuilding',
       frames: frames.length,
       done: 0,
-      at: new Date().toISOString()
+      at: new Date().toISOString(),
+      // A cut not measured stays so until a rebuild measures it.
+      ...(claimed.rebuild?.unchecked ? { unchecked: true } : {})
     }
   })
   const step = (change: (teaser: Teaser) => void) =>
@@ -276,7 +278,12 @@ export const rebuildTeaser = async (id: string, raw: unknown) => {
     await Promise.all(
       Array.from({ length: Math.min(concurrency(), frames.length) }, lane)
     )
-    const measured = await measureShape({ dir, frames, pieces, canvas })
+    // A browser that fails to measure never throws the paid frames away:
+    // the teaser is cut all the same, and says its text was not checked
+    // (review 8, round 3).
+    const measured = await measureShape({ dir, frames, pieces, canvas }).catch(
+      () => null
+    )
     const render = await renderShape(
       dir,
       canvas,
@@ -299,27 +306,35 @@ export const rebuildTeaser = async (id: string, raw: unknown) => {
       kind: 'teaser',
       projectId: id
     })
-    // Its words measured: a teaser still small is a draft again, and its
-    // small frames are drawn again by the next rebuild.
+    // Its small frames are drawn again by the next rebuild: their files go
+    // before it is said to be ready, so a rebuild clicked then finds them
+    // gone, never half there (round 3).
+    for (const frame of frames)
+      if (measured?.small.includes(frame.number))
+        await rm(
+          join(dir, 'compositions', 'frames', `${frameId(frame)}.html`),
+          { force: true }
+        )
+    // Its words measured: a teaser still small is a draft again. Not
+    // measured, it is a draft until the creator keeps it or rebuilds it,
+    // which draws nothing again and measures it anew.
     await step((current) => {
       current.objectKey = asset.objectKey
       current.rebuild = {
         ...current.rebuild!,
         state: 'ready',
-        done: frames.length,
-        ...(measured.small.length ? { smallFrames: measured.small } : {})
+        done: frames.length
       }
-      if (!measured.small.length) delete current.rebuild.smallFrames
-      if (measured.seconds) current.small = measured.seconds
-      else delete current.small
+      delete current.rebuild.smallFrames
+      delete current.rebuild.unchecked
+      if (!measured) current.rebuild.unchecked = true
+      else {
+        if (measured.small.length) current.rebuild.smallFrames = measured.small
+        if (measured.seconds) current.small = measured.seconds
+        else delete current.small
+      }
       delete current.kept
     })
-    for (const frame of frames)
-      if (measured.small.includes(frame.number))
-        await rm(
-          join(dir, 'compositions', 'frames', `${frameId(frame)}.html`),
-          { force: true }
-        )
     await changeProject(id, (current) =>
       addEvent(
         current,

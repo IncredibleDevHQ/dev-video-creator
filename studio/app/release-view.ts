@@ -54,6 +54,11 @@ const length = (teaser: Teaser) =>
 /** How long a teaser's text stays small on a phone, in a sentence; drawn
  * again for its shape, it says so (measured as the first cut is). */
 const smallWords = (teaser: Teaser) => {
+  // The browser that measures it failed: said, never taken as readable.
+  if (teaser.rebuild?.state === 'ready' && teaser.rebuild.unchecked)
+    return teaser.kept
+      ? 'Drawn again; its text size could not be checked.'
+      : 'Drawn again, but its text size could not be checked: watch it, then keep it or rebuild.'
   const small = Math.round(teaser.small || 0)
   const again = teaser.rebuild?.state === 'ready'
   if (small >= length(teaser))
@@ -74,9 +79,11 @@ const noRebuild = (project: Project, teaser: Teaser) =>
 /** What a rebuild costs: an AI run for each frame it draws, after one that
  * left some small only those. */
 const costWords = (teaser: Teaser, frames: number) =>
-  teaser.rebuild?.state === 'ready' && teaser.rebuild.smallFrames?.length
-    ? `An AI run for ${frames === 1 ? 'the frame' : `each of the ${frames} frames`} still small`
-    : `An AI run for each of its ${frames} frame${frames === 1 ? '' : 's'}`
+  !frames
+    ? 'Its frames are kept: no AI run unless the episode changed since'
+    : teaser.rebuild?.state === 'ready' && teaser.rebuild.smallFrames?.length
+      ? `An AI run for ${frames === 1 ? 'the frame' : `each of the ${frames} frames`} still small`
+      : `An AI run for each of its ${frames} frame${frames === 1 ? '' : 's'}`
 
 /** The preview at about a phone's width, sized before it loads. */
 const PREVIEW: Record<Teaser['aspect'], string> = {

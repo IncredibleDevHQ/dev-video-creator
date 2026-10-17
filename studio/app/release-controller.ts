@@ -156,11 +156,22 @@ export const clickRelease = async (
   // so the creator says yes first (review 8, round 1).
   if (action === 'teaser-rebuild') {
     const frames = Number(target.dataset.frames) || 0
-    const sure = await confirmAction({
-      title: 'Draw its frames again?',
-      detail: `The frame agent draws each of its ${frames} frame${frames === 1 ? '' : 's'} again for a phone, keeping its words and pictures: ${frames} AI run${frames === 1 ? '' : 's'}. The teaser is then cut from them.`,
-      action: 'Rebuild'
-    })
+    // Its frames drawn already and only its text unmeasured: none drawn
+    // again, and it says so (round 3).
+    const sure = await confirmAction(
+      frames
+        ? {
+            title: 'Draw its frames again?',
+            detail: `The frame agent draws each of its ${frames} frame${frames === 1 ? '' : 's'} again for a phone, keeping its words and pictures: ${frames} AI run${frames === 1 ? '' : 's'}. The teaser is then cut from them.`,
+            action: 'Rebuild'
+          }
+        : {
+            title: 'Check and cut it again?',
+            detail:
+              'Its frames drawn for a phone are kept: their text is measured again and the teaser cut again from them, with no AI run unless the episode changed since.',
+            action: 'Rebuild'
+          }
+    )
     if (sure)
       update(
         app,
