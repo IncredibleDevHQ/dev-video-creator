@@ -91,6 +91,10 @@ export const installSlidesController = (app: AppContext) => {
   })
 }
 
+/** The note forms whose note is on its way: a second press while it saves
+ * sends nothing (round 2's audit: a double-click sent the note twice). */
+const sendingNotes = new Set<string>()
+
 export const submitSlides = async (
   app: AppContext,
   form: HTMLFormElement,
@@ -105,24 +109,36 @@ export const submitSlides = async (
   // map (review 8 F02), and says it was saved.
   if (['notebook-note', 'note-dialog'].includes(form.id) && app.snapshot) {
     const text = String(values.get('note') || '').trim()
-    if (!text) return
-    const { project } = app.snapshot
-    const saved = await mapApi.note(project.copyOfMap || project.id, text)
-    form.reset()
-    if (form.id === 'note-dialog') app.dialog.close()
-    if (app.snapshot?.project.id === saved.project.id) app.snapshot = saved
-    app.render()
-    // The page was drawn again while it saved: its field may have kept the words.
-    const field = app.root.querySelector<HTMLTextAreaElement>(
-      '#notebook-note-text'
+    if (!text || sendingNotes.has(form.id)) return
+    sendingNotes.add(form.id)
+    const press = form.querySelector?.<HTMLButtonElement>(
+      'button[type="submit"]'
     )
-    if (field) field.value = ''
-    notice(
-      saved.status === 'ready'
-        ? 'Note saved: it is sorted into the content map'
-        : 'Note saved: it joins the map once the wireframes are drawn',
-      true
-    )
+    if (press) press.disabled = true
+    try {
+      const { project } = app.snapshot
+      const saved = await mapApi.note(project.copyOfMap || project.id, text)
+      // Only the words sent are cleared: words typed while it saved stay.
+      const own = form.querySelector?.<HTMLTextAreaElement>('textarea')
+      if (!own || own.value.trim() === text) form.reset()
+      if (form.id === 'note-dialog') app.dialog.close()
+      if (app.snapshot?.project.id === saved.project.id) app.snapshot = saved
+      app.render()
+      // The page was drawn again while it saved: its field may have kept the words.
+      const field = app.root.querySelector<HTMLTextAreaElement>(
+        '#notebook-note-text'
+      )
+      if (field?.value.trim() === text) field.value = ''
+      notice(
+        saved.status === 'ready'
+          ? 'Note saved: it is sorted into the content map'
+          : 'Note saved: it joins the map once the wireframes are drawn',
+        true
+      )
+    } finally {
+      sendingNotes.delete(form.id)
+      if (press) press.disabled = false
+    }
   }
   if (form.matches('.evidence-ask') && app.snapshot) {
     const answer = String(values.get('answer') || '').trim()

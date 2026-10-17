@@ -143,7 +143,7 @@ it('offers a note on every stage’s More, saves it to the map, and says so', as
     headerMore(notebook('draft', 'draft', { slides: [] }), 'notebook')
   ).not.toContain('Add a note…')
   const doc = parseHTML(
-    '<html><body><main><textarea id="notebook-note-text">Typed words</textarea></main></body></html>'
+    '<html><body><main><textarea id="notebook-note-text">Consumers deduplicate by event id</textarea></main></body></html>'
   ).document
   vi.stubGlobal('document', doc)
   vi.mocked(mapApi.note).mockClear()
@@ -161,13 +161,58 @@ it('offers a note on every stage’s More, saves it to the map, and says so', as
     'Consumers deduplicate by event id'
   )
   expect(app.dialog.close).toHaveBeenCalled()
-  // The page drawn again while it saved keeps no typed words.
+  // The page drawn again while it saved keeps the sent words no more.
   expect(
     doc.querySelector<HTMLTextAreaElement>('#notebook-note-text')!.value
   ).toBe('')
   expect(doc.getElementById('download-status')?.textContent).toBe(
     'Note saved: it is sorted into the content map'
   )
+  // Words typed in the Notebook's field meanwhile are not the note's: kept.
+  doc.querySelector<HTMLTextAreaElement>('#notebook-note-text')!.value =
+    'A half-thought'
+  await submitSlides(app as never, form as never, values as never)
+  expect(
+    doc.querySelector<HTMLTextAreaElement>('#notebook-note-text')!.value
+  ).toBe('A half-thought')
+  vi.unstubAllGlobals()
+})
+
+// Round 2's audit: a double-click on Add note sent the note twice.
+it('sends a note once however often its form is pressed while it saves, and again after', async () => {
+  const doc = parseHTML(
+    '<html><body><main><form id="notebook-note"><textarea name="note">The outbox pattern</textarea><button type="submit">Add note</button></form></main></body></html>'
+  ).document
+  vi.stubGlobal('document', doc)
+  let land!: () => void
+  vi.mocked(mapApi.note).mockClear()
+  vi.mocked(mapApi.note).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        land = () => resolve(notebook('map', 'ready'))
+      })
+  )
+  const app = {
+    snapshot: notebook('map', 'ready'),
+    root: doc.querySelector('main'),
+    render: vi.fn()
+  }
+  const form = doc.querySelector<HTMLFormElement>('#notebook-note')!
+  form.reset = () => {}
+  const values = { get: () => 'The outbox pattern' }
+  const first = submitSlides(app as never, form, values as never)
+  const second = submitSlides(app as never, form, values as never)
+  expect(
+    form.querySelector<HTMLButtonElement>('button')!.hasAttribute('disabled')
+  ).toBe(true)
+  land()
+  await Promise.all([first, second])
+  expect(mapApi.note).toHaveBeenCalledTimes(1)
+  expect(
+    form.querySelector<HTMLButtonElement>('button')!.hasAttribute('disabled')
+  ).toBe(false)
+  await submitSlides(app as never, form, values as never)
+  expect(mapApi.note).toHaveBeenCalledTimes(2)
   vi.unstubAllGlobals()
 })
 
