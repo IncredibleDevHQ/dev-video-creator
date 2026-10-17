@@ -78,14 +78,16 @@ export const mapApi = {
       'POST',
       body
     ),
-  /** A card added, moved (and the copy it became), removed or updated (and
-   * how many were). */
+  /** A card added, moved (the copy it became, or whether its segues are
+   * being rewritten), removed or updated (and how many were). */
   copies: (episode: string, body: Record<string, unknown>) =>
-    request<{ as?: string; shared?: boolean; cut?: boolean; updated?: number }>(
-      `/projects/${episode}/copies`,
-      'POST',
-      body
-    ),
+    request<{
+      as?: string
+      shared?: boolean
+      cut?: boolean
+      rewriting?: boolean
+      updated?: number
+    }>(`/projects/${episode}/copies`, 'POST', body),
   renameEpisode: (episode: string, title: string) =>
     request<Snapshot>(`/projects/${episode}/episode-title`, 'POST', { title }),
   renameSeries: (series: string, title: string) =>

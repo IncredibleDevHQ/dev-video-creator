@@ -232,6 +232,10 @@ export type Project = {
    * and the creator's notes after one rewrite, by page: the line, and what
    * to check in it. */
   segueChecks?: Record<string, { bridge?: SegueCheck; outro?: SegueCheck }>
+  /** An episode's lines in and out it had, by what each was written for
+   * (a bridgeFor or outroFor key): an order put back, by Undo or by hand,
+   * takes its lines again rather than new words (review 8, round 2). */
+  segueLines?: Record<string, string>
   /** An episode whose pages the agent is choosing from what it is about. */
   picking?: {
     state: 'picking' | 'failed'

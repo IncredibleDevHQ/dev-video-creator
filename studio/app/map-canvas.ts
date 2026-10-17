@@ -38,7 +38,7 @@ import {
   restoreView
 } from './map-chrome'
 import { VoiceCall } from './map-voice'
-import { keyOf, MapHistory, placed } from './map-history'
+import { keyOf, MapHistory, placed, reordered } from './map-history'
 
 export type MapSel =
   | { t: 'page'; id: string }
@@ -455,8 +455,10 @@ export class MapCanvas {
       index
     )
     if (within && after.join() === before.join()) return true
-    // The copy it becomes in another episode, for Undo to take back.
+    // The copy it becomes in another episode, for Undo to take back; in its
+    // own, whether a segue is being written for the order it went into.
     let as = ''
+    let rewriting: boolean | undefined
     const moved = await this.run(
       async () => {
         const result = await mapApi.copies(from.notebook, {
@@ -466,6 +468,7 @@ export class MapCanvas {
           index
         })
         as = result.as || ''
+        rewriting = result.rewriting
       },
       undefined,
       true
@@ -474,7 +477,7 @@ export class MapCanvas {
     if (within)
       this.history.record(
         { kind: 'order', episode: to, copy, before, after },
-        'Moved. The segues around it are being rewritten.'
+        reordered('Moved', rewriting)
       )
     else if (as)
       this.history.record(

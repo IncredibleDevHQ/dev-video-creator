@@ -323,6 +323,42 @@ it('writes a line again once a later note is sorted and brings a limit it goes p
   expect((await loadProject(one))!.project.segueChecks).toBeUndefined()
 })
 
+it('never brings back, with an order put back, a line a later note has put past the creator’s words (review 8, round 2)', async () => {
+  replies['Write Segues'] = writer((brief) =>
+    (brief.limits as Array<{ says: string }>).some((limit) =>
+      limit.says.startsWith('Do not promise')
+    )
+      ? SCOPED
+      : OVER
+  )
+  const { ids, one } = await twoEpisodes('m-back', LOG)
+  expect((await lastOf(one)).outro).toBe(OVER)
+  const move = async (page: string, index: number) => {
+    const slides = (await loadProject(one))!.project.slides
+    const card = slides.find((slide) => slide.copyOf?.slide === page)!
+    return episodes.changeCopies(one, {
+      action: 'move',
+      slide: card.id,
+      to: one,
+      index
+    })
+  }
+  // Reordered, then the note brings its limit.
+  await move(ids[0], 1)
+  await segues.settledAllSegues()
+  replies['Sort Note'] = () => ({
+    items: [{ kind: 'adds', line: NOTE, page: ids[2] }]
+  })
+  await notes.addNote('m-back', { text: NOTE })
+  await notes.settledNotes()
+  await segues.settledAllSegues()
+  // Put back: the outro that order had goes past the note now, so it is
+  // written again, within it, and the map is told so.
+  expect(await move(ids[0], 0)).toMatchObject({ rewriting: true })
+  await segues.settledAllSegues()
+  expect((await lastOf(one)).outro).toBe(SCOPED)
+})
+
 it('writes a line again in an episode whose plan still waits for approval, and marks the plan to be made again (round 2)', async () => {
   replies['Write Segues'] = writer((brief) =>
     (brief.limits as Array<{ says: string }>).some((limit) =>

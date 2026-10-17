@@ -3,9 +3,10 @@
 // the map or a Keep. ⌘Z undoes the last of them, ⇧⌘Z does it again, as the
 // Undo in its toast does (review 8). Any other change to the map ends the
 // history: Undo never reaches back past something it can't undo. A card
-// that has changed since says so rather than undoing something else.
-// Segues are rewritten as for any reorder; one still running is run again
-// on the order put back.
+// that has changed since says so rather than undoing something else. An
+// order put back takes the segues it had again, with no new words; only
+// lines it never had are written, and only then does the toast say they
+// are (round 2).
 import type { MapCopy, MapEpisode } from '../shared/content-map'
 import { api } from './api'
 import { mapApi } from './map-api'
@@ -41,7 +42,7 @@ type Update = {
   copies: string[]
 }
 export type MapEdit = Order | Move | Removal | Update
-type Step = { work: () => Promise<unknown>; said: string }
+type Step = { work: () => Promise<unknown>; said: string | (() => string) }
 
 /** What an Update or a Keep says, done or done again. */
 const updateSaid = (edit: Update, n = edit.copies.length) =>
@@ -86,6 +87,12 @@ export const updateCopies = async (
   return true
 }
 
+/** What a reorder says, from what the engine answered: "rewritten" only
+ * when a segue is being written (round 2). */
+export const reordered = (what: string, rewriting?: boolean) =>
+  rewriting === false
+    ? `${what}, with the segues this order had.`
+    : `${what}. The segues around it are being rewritten.`
 /** A card in its episode, by the map page it copies (or its own id). */
 export const keyOf = (copy: MapCopy) => copy.copyOf?.slide ?? copy.id
 /** An episode's cards in order, by key, as they would be with one moved. */
@@ -165,7 +172,7 @@ export class MapHistory {
       if (at < 0) return
       from.splice(at, 1)
       to.push(edit)
-      this.map.toast(step.said, {
+      this.map.toast(typeof step.said === 'string' ? step.said : step.said(), {
         label: back ? 'Redo' : 'Undo',
         map: `${back ? 'redo' : 'undo'}:${edit.id}`
       })
@@ -214,17 +221,18 @@ export class MapHistory {
         .map(keyOf)
       const key = keyOf(lane.copies.find((copy) => copy.id === edit.copy)!)
       const index = placeAfter(back ? edit.before : edit.after, key, rest)
+      let rewriting: boolean | undefined
       return {
-        work: () =>
-          mapApi.copies(edit.episode, {
+        work: async () => {
+          const moved = await mapApi.copies(edit.episode, {
             action: 'move',
             slide: edit.copy,
             to: edit.episode,
             index
-          }),
-        said: back
-          ? 'Put back. The segues around it are being rewritten.'
-          : 'Moved again. The segues around it are being rewritten.'
+          })
+          rewriting = moved.rewriting
+        },
+        said: () => reordered(back ? 'Put back' : 'Moved again', rewriting)
       }
     }
     if (edit.kind === 'move') {

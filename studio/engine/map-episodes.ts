@@ -25,6 +25,7 @@ import { changeSeries, loadSeries, previouslyOf } from './series'
 import {
   composeNarration,
   planScenes,
+  restoreAround,
   scheduleAround,
   scheduleSegues
 } from './map-segues'
@@ -293,9 +294,12 @@ export const changeCopies = async (id: string, raw: unknown) => {
         slides.splice(position(slides.length), 0, moved)
         reconcileVideo(current.project, current, new Set())
       })
+      // The lines this order had come back first: only new ones are written,
+      // and the map says "rewritten" only for those (review 8, round 2).
+      const rewriting = await restoreAround(id)
       await planScenes(id)
       await scheduleAround(id)
-      return { moved: true }
+      return { moved: true, rewriting }
     }
     const target = await episodeOf(to)
     if (target.project.copyOfMap !== mapId)

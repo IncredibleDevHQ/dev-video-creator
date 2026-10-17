@@ -492,13 +492,17 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
   /** The engine's copies, kept in the view the map reads back: a move (a
    * card moved to another episode is a new card there, the one that left
    * kept to come back), a removal (an episode keeps its last, as it says
-   * when loaded), and bringing either back. */
+   * when loaded), and bringing either back. A reorder into an order the
+   * episode had takes its segues again: only a new one rewrites them. */
   const serve = (shown: MapView) => {
     let made = 0
     type Kept = { copy: Copies[number]; index: number }
     const kept: Record<string, Kept> = {}
     const moved: Record<string, Kept & { to: string; as: string }> = {}
     const lane = (id: string) => shown.episodes.find((e) => e.notebook === id)!
+    const orders = new Set(
+      shown.episodes.map((e) => `${e.notebook}:${e.copies.map((c) => c.id)}`)
+    )
     vi.mocked(mapApi.copies).mockImplementation(async (episode, body) => {
       const { action, slide, to, index } = body as {
         action: string
@@ -545,6 +549,10 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
           }
           return { as: copy.id }
         }
+        const order = `${episode}:${from.copies.map((c) => c.id)}`
+        const rewriting = !orders.has(order)
+        orders.add(order)
+        return { moved: true, rewriting } as never
       }
       return {}
     })
@@ -588,13 +596,18 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
     click(map.slot('toast')!.querySelector('button'))
     await settle()
     expect(order('e1')).toEqual(['x', 'y', 'w'])
+    // The order it had takes its segues again: nothing is rewritten, and
+    // the toast doesn't say so (round 2).
     expect(toast(map)).toEqual([
-      'Put back. The segues around it are being rewritten.',
+      'Put back, with the segues this order had.',
       'Redo'
     ])
     await press('z', true)
     expect(order('e1')).toEqual(['x', 'w', 'y'])
-    expect(toast(map)[1]).toBe('Undo')
+    expect(toast(map)).toEqual([
+      'Moved again, with the segues this order had.',
+      'Undo'
+    ])
     await press('z')
     expect(order('e1')).toEqual(['x', 'y', 'w'])
     expect(vi.mocked(mapApi.copies).mock.calls.at(-1)).toEqual([

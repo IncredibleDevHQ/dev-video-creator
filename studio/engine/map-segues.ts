@@ -1,6 +1,7 @@
 // An episode's own lines: a cold open or "last time", a turn into each page
 // from the one before, and "next time" after the last. They belong to the
 // episode, never to the map, and are written again when its pages change.
+import type { Snapshot } from '../shared/api'
 import type { Project, SegueCheck, Slide } from '../shared/model'
 import { addEvent } from './activity'
 import {
@@ -82,6 +83,8 @@ export const validateSegues = (raw: unknown, ids: string[]) => {
 }
 
 const writing = new Map<string, Promise<void>>()
+/** The order (its pages' ids) a run is writing lines for, while it waits. */
+const writingFor = new Map<string, string>()
 const again = new Set<string>()
 const forced = new Set<string>()
 /**
@@ -96,6 +99,7 @@ export const scheduleSegues = (id: string, force = false) => {
   }
   const job = writeSegues(id).finally(() => {
     writing.delete(id)
+    writingFor.delete(id)
     if (again.delete(id)) scheduleSegues(id)
   })
   writing.set(id, job)
@@ -107,14 +111,31 @@ export const scheduleSegues = (id: string, force = false) => {
  */
 export const scheduleAround = async (id: string) => {
   scheduleSegues(id)
+  for (const other of await neighboursOf(id)) scheduleSegues(other)
+}
+/** The episodes either side of one in its series. */
+const neighboursOf = async (id: string) => {
   const snapshot = await loadProject(id)
   const series = snapshot?.project.episode
     ? await loadSeries(snapshot.project.episode.series)
     : null
   const order = series?.episodes || []
   const at = order.findIndex((item) => item.notebookId === id)
-  if (at > 0) scheduleSegues(order[at - 1].notebookId)
-  if (at >= 0 && at < order.length - 1) scheduleSegues(order[at + 1].notebookId)
+  return [order[at - 1], at >= 0 ? order[at + 1] : undefined]
+    .filter((item) => item !== undefined)
+    .map((item) => item.notebookId)
+}
+/**
+ * After a card is reordered: the lines the episode and its neighbours had
+ * for the order they have now are put back at once (an Undo, a card
+ * dragged back), so only what is new is written. True while any line still
+ * needs writing, so the map says "rewritten" only then (round 2).
+ */
+export const restoreAround = async (id: string) => {
+  let left = await restoreSegues(id)
+  for (const other of await neighboursOf(id))
+    if (await restoreSegues(other)) left = true
+  return left
 }
 
 /**
@@ -139,10 +160,13 @@ export const answerSegueCheck = async (id: string, raw: unknown) => {
       addEvent(current, 'slide', `Kept ${where} as it is`)
       return
     }
-    // Only this line is written again: its key goes, the others stay.
+    // Only this line is written again: its key goes, the others stay, and
+    // it is not kept to come back for its order.
     delete checks[line]
     if (!checks.bridge && !checks.outro)
       delete current.project.segueChecks![slideId]
+    const key = line === 'bridge' ? slide.bridgeFor : slide.outroFor
+    if (key) delete current.project.segueLines?.[key]
     if (line === 'bridge') delete slide.bridgeFor
     else delete slide.outroFor
     again = true
@@ -246,17 +270,45 @@ export const waitsForCreator = (snapshot: {
   )
 }
 
-const writeSegues = async (id: string) => {
-  const snapshot = await loadProject(id)
-  if (!snapshot?.project.copyOfMap) return
+/** Lines an episode keeps for orders it had, by what each was written for:
+ * an Undo history's worth of reorders, never without bound. */
+const KEPT_LINES = 80
+/** Keeps a line under what it was written for, the newest last. */
+const keepLine = (project: Project, key?: string, text?: string) => {
+  if (!key || !text) return
+  const kept = (project.segueLines ||= {})
+  delete kept[key]
+  kept[key] = text
+  for (const old of Object.keys(kept).slice(0, -KEPT_LINES)) delete kept[old]
+}
+/** Gives a page a line, the one it replaces kept for the order it had. */
+const setLine = (
+  project: Project,
+  slide: Slide,
+  line: Line,
+  text: string,
+  key: string
+) => {
+  const forKey = line === 'bridge' ? 'bridgeFor' : 'outroFor'
+  keepLine(project, slide[forKey], slide[line])
+  slide[line] = text
+  slide[forKey] = key
+  keepLine(project, key, text)
+  slide.narration = composeNarration(slide)
+}
+/** Takes "next time" off a page no longer last, kept for its order. */
+const dropOutro = (project: Project, slide: Slide) => {
+  keepLine(project, slide.outroFor, slide.outro)
+  delete slide.outro
+  delete slide.outroFor
+  slide.narration = composeNarration(slide)
+}
+
+/** What each of an episode's lines is written for: its pages, the episode
+ * before and the one after. */
+const keysOf = async (snapshot: Snapshot) => {
+  const id = snapshot.project.id
   const slides = snapshot.project.slides
-  if (!slides.length) {
-    if (snapshot.project.segues)
-      await changeProject(id, (current) => {
-        delete current.project.segues
-      })
-    return
-  }
   const series = snapshot.project.episode
     ? await loadSeries(snapshot.project.episode.series)
     : null
@@ -285,8 +337,29 @@ const writeSegues = async (id: string) => {
         })
       : null
   )
+  return { series, at, before, after, opens, keys, endKey }
+}
+/** Whether an episode's lines are still written for what a plan was: its
+ * pages in that order, and the same episodes either side. */
+const stillFor = async (id: string, plan: Plan) => {
+  const now = await loadProject(id)
+  if (!now?.project.slides.length || !sameOrder(now.project, plan)) return false
+  const { keys, endKey } = await keysOf(now)
+  return keys.join() === plan.keys.join() && endKey === plan.endKey
+}
+
+/**
+ * What an episode's lines are written for now (a line into each page, one
+ * out of the last), which are stale, and which of those it had already for
+ * the very same pages around them and still within the creator's words: an
+ * order put back, by Undo or by hand, takes those again with no model call
+ * (round 2). Forced, none is taken.
+ */
+const planLines = async (snapshot: Snapshot, force: boolean) => {
+  const slides = snapshot.project.slides
+  const { series, at, before, after, opens, keys, endKey } =
+    await keysOf(snapshot)
   const last = slides[slides.length - 1]
-  const force = forced.delete(id)
   const stale = slides.map(
     (slide, index) =>
       slide.base !== undefined &&
@@ -297,7 +370,7 @@ const writeSegues = async (id: string) => {
     (force || !last.outro || last.outroFor !== endKey)
   // What the creator wrote for these lines: the map's source with every
   // note, these pages, the episode before, the page the next one opens with.
-  const map = await loadProject(snapshot.project.copyOfMap)
+  const map = await loadProject(snapshot.project.copyOfMap!)
   const original = (slide: Slide) =>
     map?.project.slides.find((page) => page.id === slide.copyOf?.slide)
   const next = opens ? (original(opens) ?? opens) : undefined
@@ -311,6 +384,19 @@ const writeSegues = async (id: string) => {
     map?.project.source ?? snapshot.project.source,
     around
   )
+  // Lines it had for these very pages around them, still within the
+  // creator's words: taken again, not written anew.
+  const store = snapshot.project.segueLines || {}
+  const holds = (text?: string) =>
+    !force && text && !overclaims(text, material).length ? text : undefined
+  const kept = slides.map((_, index) =>
+    stale[index] ? holds(store[keys[index]]) : undefined
+  )
+  kept.forEach((text, index) => {
+    if (text) stale[index] = false
+  })
+  const keptOutro = outroStale ? holds(store[endKey]) : undefined
+  if (keptOutro) outroStale = false
   // A line kept that now promises more than that (a note brought a limit
   // since) is written again, once, while the video hasn't started; under a
   // started video it is flagged instead. A line flagged already stays.
@@ -325,27 +411,122 @@ const writeSegues = async (id: string) => {
     return Boolean(claim) && !made
   }
   slides.forEach((slide, index) => {
-    if (slide.base === undefined || stale[index]) return
+    if (slide.base === undefined || stale[index] || kept[index]) return
     if (recheck(slide, 'bridge')) stale[index] = true
   })
-  if (last.base !== undefined && !outroStale)
+  if (last.base !== undefined && !outroStale && !keptOutro)
     outroStale = recheck(last, 'outro')
-  const ids = slides.map((slide) => slide.id)
-  // Nothing around any page changed: only a stray "next time" goes.
+  return {
+    ids: slides.map((slide) => slide.id),
+    // The lines as they were, so one put back meanwhile is told apart.
+    was: slides.map((slide) => [slide.bridge, slide.outro]),
+    series,
+    at,
+    before,
+    after,
+    opens,
+    next,
+    keys,
+    endKey,
+    stale,
+    outroStale,
+    kept,
+    keptOutro,
+    material,
+    around,
+    flagNow
+  }
+}
+type Plan = Awaited<ReturnType<typeof planLines>>
+/** How many lines a plan takes again, none written. */
+const keptCount = (plan: Plan) =>
+  plan.kept.filter(Boolean).length + (plan.keptOutro ? 1 : 0)
+/** Puts back the lines kept for this order, on pages still in it. */
+const putBack = (current: Snapshot, plan: Plan) => {
+  const { project } = current
+  let count = 0
+  project.slides.forEach((slide, index) => {
+    const text = plan.kept[index]
+    if (!text || slide.bridgeFor === plan.keys[index]) return
+    setLine(project, slide, 'bridge', text, plan.keys[index])
+    count++
+  })
+  const last = project.slides[project.slides.length - 1]
+  if (plan.keptOutro && last.outroFor !== plan.endKey) {
+    setLine(project, last, 'outro', plan.keptOutro, plan.endKey)
+    count++
+  }
+  if (count)
+    addEvent(
+      current,
+      'slide',
+      `Put back ${count} segue${count === 1 ? '' : 's'} this order had`
+    )
+}
+const sameOrder = (project: Project, plan: Plan) =>
+  project.slides.map((slide) => slide.id).join() === plan.ids.join()
+
+/**
+ * Puts back at once the lines an episode had for the order it has now;
+ * true while any line still needs writing. A run still writing for
+ * another order no longer says this one is being written.
+ */
+const restoreSegues = async (id: string) => {
+  const snapshot = await loadProject(id)
+  if (!snapshot?.project.copyOfMap || !snapshot.project.slides.length)
+    return false
+  const plan = await planLines(snapshot, false)
+  const left = plan.stale.some(Boolean) || plan.outroStale
+  const settled =
+    !left &&
+    snapshot.project.segues?.state === 'writing' &&
+    writingFor.get(id) !== plan.ids.join()
+  const putting = keptCount(plan) > 0
+  if (!putting && !settled) return left
+  await changeProject(id, (current) => {
+    if (!sameOrder(current.project, plan)) return
+    if (settled && current.project.segues?.state === 'writing')
+      delete current.project.segues
+    if (!putting) return
+    putBack(current, plan)
+    reconcileVideo(current.project, current, new Set())
+  })
+  if (putting) await planScenes(id)
+  return left
+}
+
+const writeSegues = async (id: string) => {
+  const snapshot = await loadProject(id)
+  if (!snapshot?.project.copyOfMap) return
+  const slides = snapshot.project.slides
+  if (!slides.length) {
+    if (snapshot.project.segues)
+      await changeProject(id, (current) => {
+        delete current.project.segues
+      })
+    return
+  }
+  const force = forced.delete(id)
+  const plan = await planLines(snapshot, force)
+  const { ids, keys, endKey, stale, outroStale, flagNow, material } = plan
+  const { series, at, before, after, opens, next, around } = plan
+  const last = slides[slides.length - 1]
+  const putting = keptCount(plan) > 0
+  // Nothing around any page changed, or it had these lines before: only a
+  // stray "next time" goes.
   if (!stale.some(Boolean) && !outroStale) {
     if (
+      putting ||
       snapshot.project.segues ||
       flagNow.length ||
       slides.slice(0, -1).some((s) => s.outro)
     )
       await changeProject(id, (current) => {
         const now = current.project.slides
-        if (now.map((s) => s.id).join() !== ids.join()) return
+        if (!sameOrder(current.project, plan)) return
+        putBack(current, plan)
         now.slice(0, -1).forEach((slide) => {
-          if (!slide.outro) return
-          delete slide.outro
-          delete slide.outroFor
-          slide.narration = composeNarration(slide)
+          if (slide.outro) dropOutro(current.project, slide)
         })
         if (flagNow.length) {
           current.project.segueChecks = flagsAfter(
@@ -359,15 +540,20 @@ const writeSegues = async (id: string) => {
         delete current.project.segues
         reconcileVideo(current.project, current, new Set())
       })
+    if (putting) await planScenes(id)
     return
   }
-  const pages = slides.map((slide, index) => ({
-    id: slide.id,
-    title: slide.title,
-    idea: slide.idea || '',
-    script: slide.base ?? slide.narration ?? '',
-    ...(stale[index] || !slide.bridge ? {} : { keep: slide.bridge })
-  }))
+  const pages = slides.map((slide, index) => {
+    const keep = plan.kept[index] ?? (stale[index] ? undefined : slide.bridge)
+    return {
+      id: slide.id,
+      title: slide.title,
+      idea: slide.idea || '',
+      script: slide.base ?? slide.narration ?? '',
+      ...(keep ? { keep } : {})
+    }
+  })
+  const keepOutro = plan.keptOutro ?? (outroStale ? undefined : last.outro)
   const brief = {
     series: series?.title || null,
     episode: { number: at + 1 || 1, title: snapshot.project.title },
@@ -393,7 +579,7 @@ const writeSegues = async (id: string) => {
         }
       : null,
     pages,
-    ...(outroStale || !last.outro ? {} : { keepOutro: last.outro }),
+    ...(keepOutro ? { keepOutro } : {}),
     // The creator's own limits on what these lines may promise.
     limits: limitsFor(
       material,
@@ -433,6 +619,7 @@ const writeSegues = async (id: string) => {
       : item.slide === slides[0]
         ? 'The cold open'
         : `The line into “${item.slide.title}”`
+  writingFor.set(id, ids.join())
   await changeProject(id, (current) => {
     current.project.segues = { state: 'writing' }
   })
@@ -459,29 +646,44 @@ const writeSegues = async (id: string) => {
       )
     })
     const left = claimsIn(segues)
+    const still = await stillFor(id, plan)
     await changeProject(id, (current) => {
       const now = current.project.slides
-      // Pages changed meanwhile: run again on the pages as they are now.
-      if (now.map((slide) => slide.id).join() !== ids.join()) {
+      // Its pages, or an episode either side, changed meanwhile (an Undo,
+      // another move): what was written is kept for what it was written
+      // for, so going back to it needs no model; run again on things as
+      // they are now (round 2).
+      if (!still || !sameOrder(current.project, plan)) {
+        stale.forEach((yes, index) => {
+          if (yes)
+            keepLine(current.project, keys[index], segues.pages[index].bridge)
+        })
+        if (outroStale) keepLine(current.project, endKey, segues.outro)
         again.add(id)
         return
       }
+      putBack(current, plan)
       now.forEach((slide, index) => {
         // A script the creator wrote is theirs: it keeps no segue.
         if (slide.base === undefined) return
-        if (stale[index]) {
-          slide.bridge = segues.pages[index].bridge
-          slide.bridgeFor = keys[index]
-        }
+        // A line put back meanwhile for this very order stays.
+        const [bridge, outro] = plan.was[index]
+        const back = (line: Line, key: string) =>
+          !force &&
+          slide[line === 'bridge' ? 'bridgeFor' : 'outroFor'] === key &&
+          slide[line] !== (line === 'bridge' ? bridge : outro)
+        if (stale[index] && !back('bridge', keys[index]))
+          setLine(
+            current.project,
+            slide,
+            'bridge',
+            segues.pages[index].bridge,
+            keys[index]
+          )
         if (index === now.length - 1) {
-          if (outroStale) {
-            slide.outro = segues.outro
-            slide.outroFor = endKey
-          }
-        } else {
-          delete slide.outro
-          delete slide.outroFor
-        }
+          if (outroStale && !back('outro', endKey))
+            setLine(current.project, slide, 'outro', segues.outro, endKey)
+        } else dropOutro(current.project, slide)
         slide.narration = composeNarration(slide)
       })
       const checked = flagsAfter(
@@ -505,7 +707,13 @@ const writeSegues = async (id: string) => {
     })
     await planScenes(id)
   } catch (error) {
+    const still = await stillFor(id, plan).catch(() => true)
     await changeProject(id, (current) => {
+      // Changed meanwhile: the run for things as they are now says.
+      if (!still || !sameOrder(current.project, plan)) {
+        again.add(id)
+        return
+      }
       current.project.segues = {
         state: 'failed',
         error:
