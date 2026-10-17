@@ -33,14 +33,12 @@ export const graphPanel = (
     aria-label="Question graph"
   >
     <div class="research-panel-heading">
-      <h2>
-        Research graph <span class="research-count">${nodes.length}</span>
-      </h2>
+      <h2>Question map <span class="research-count">${nodes.length}</span></h2>
       ${control(
         'graph-expand',
         layout.expanded ? '↙' : '↗',
         `aria-label="${layout.expanded ? 'Restore workspace' : 'Expand graph'}" title="${layout.expanded ? 'Restore workspace' : 'Expand graph'}"`
-      )}
+      )}${control('toggle-graph', '×', 'aria-label="Close question map"')}
     </div>
     <label class="sr" for="research-search">Find a question</label
     ><input

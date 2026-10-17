@@ -264,3 +264,76 @@ collaboration.
 
 This change is committed locally on `codex/projects-research`, with Karthic Rao
 `<kartronics85@gmail.com>` as author and committer. It has not been pushed.
+
+## Simplification after the clutter report
+
+The user's screenshot showed the question map, conversation, notebook, full chat
+list and full notebook list competing simultaneously. This pass changes the
+information hierarchy and default behavior, rather than adding onboarding copy.
+
+- **Notes / Chat / Create** are the three primary destinations. Notes shows the
+  notebook list; Chat shows the chat list; Create shows the notebook outputs.
+  The same navigation remains around wireframes and the shared canvas.
+- Opening a project defaults to its focused notebook. Saving the first note opens
+  that notebook immediately. Home capture also supports an existing project,
+  avoiding a new project for every pasted note. Capture waits for destinations to
+  load, and the selected notebook opens after saving.
+- Chat opens as one conversation. The notebook and question map are optional,
+  mutually exclusive supporting panels at every screen size, with explicit close
+  controls. “Branch from here” becomes “Ask a follow-up”.
+- **Minimize chat / Resume chat** preserve the selected question, notebook, unsent
+  draft and exact reading position. A minimized chat continues its AI work.
+  An unsent first conversation can also be resumed before a chat record exists.
+- Create shows one compact row per notebook with real progress and a clear next
+  action. The visual project canvas remains a secondary series-planning action.
+- New chat asks for a name and uses the current project/notebook. Project,
+  notebook and agent choices are disclosed on demand; repository/branch setup
+  remains available. The original Incredible logo is unchanged.
+- Fixed a project menu that remained open after Rename and intercepted the next
+  navigation click.
+
+Revisited the running local Macro workspace and its split-layout README,
+SplitBottomPanel and SplitDrawer implementation. The applied principle is a
+stable workspace frame, with supporting tools opened explicitly and context
+retained between surfaces. This does not claim that Macro's local document sync
+or AI integrations were functioning.
+
+### Browser verification
+
+[Before/after annotated screenshots](projects-research-evidence/simple-workspace-annotated.html)
+show the actual application. Only the parallel stack was used; 4187 was untouched.
+
+1. Reloaded the exact reported research URL: only the conversation was visible.
+   Opened Question map, then Notebook: opening the second closed the first.
+   Explicit Close controls restored the focused conversation.
+2. Minimized and resumed a draft on desktop and at **390 × 844**. Draft text was
+   unchanged. Found and fixed a resume-to-bottom issue; the longer transcript
+   then returned to **345.5 px before and after**. Temporary drafts were cleared.
+3. Created `Simple workflow check` from a pasted first note. Added another note
+   while AI was working. Captured a third note from home into the same project;
+   no duplicate project was created, and the saved notebook opened.
+4. Created `Learning to explain` through the simplified setup and selected Kimi
+   K3. Sent a real question in the visible browser, minimized the conversation,
+   continued taking notes, and returned to the completed answer. Saved the
+   answer into the notebook and verified its View source link.
+   - Project: `7c484f29-d0a4-4bd1-824c-4eac2fcaee5a`
+   - Notebook: `d6033da0-a63d-416e-8e1f-36f5226a39a6`
+   - Chat: `00522d83-2739-46a3-be4f-8e2b06f3a403`
+   - Completed node: `2874363b-8b9f-4fb0-876c-c46400d2eb3d`
+   - Persisted harness: `kimi`, `kimi-code/k3`; state: `done`.
+   - Saved block `71270add-dbbb-4b51-9e41-670c51721064` points to that node.
+5. Opened existing Connected learning wireframes and the shared project canvas.
+   Used the common Notes destination to return to the same notebook, then resumed
+   its chat. Existing generated assets were used; no new video was generated.
+6. On mobile, tested navigation drawer, minimize/resume and Create. Page width
+   equalled viewport width (**390 px**), with no horizontal overflow. The viewport
+   override was reset after validation.
+
+### Validation
+
+- Final `yarn test --maxWorkers=2`: **233 files / 1,538 tests passed**.
+- TypeScript, production build, formatting, source-size limits and `git diff --check`: passed.
+- Added coverage for contextual navigation, first/returning capture, mutually
+  exclusive support panels, draft minimization and reading-position restoration.
+- No storage schema or engine behavior changes. Existing bundle-size advisory
+  remains. Feature work is committed locally, not pushed.

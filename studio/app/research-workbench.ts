@@ -116,17 +116,15 @@ export class ResearchWorkbench {
     else if (action === 'toggle-graph') {
       this.state.graphOpen = !this.state.graphOpen
       this.state.expanded = false
-      if (this.state.graphOpen && window.innerWidth < 1200)
-        this.state.notesOpen = false
+      if (this.state.graphOpen) this.state.notesOpen = false
     } else if (action === 'graph-expand') {
       this.state.graphOpen = true
       this.state.expanded = !this.state.expanded
-      if (window.innerWidth < 1200) this.state.notesOpen = false
+      this.state.notesOpen = false
     } else if (action === 'toggle-notebook') {
       this.state.notesOpen = !this.state.notesOpen
       this.state.expanded = false
-      if (this.state.notesOpen && window.innerWidth < 1200)
-        this.state.graphOpen = false
+      if (this.state.notesOpen) this.state.graphOpen = false
     } else return false
     this.save()
     this.changed()
@@ -139,12 +137,7 @@ export class ResearchWorkbench {
     this.changed()
   }
   private constrainPanes() {
-    if (
-      window.innerWidth >= 1200 ||
-      !this.state.graphOpen ||
-      !this.state.notesOpen
-    )
-      return false
+    if (!this.state.graphOpen || !this.state.notesOpen) return false
     if (this.state.expanded) this.state.notesOpen = false
     else this.state.graphOpen = false
     return true

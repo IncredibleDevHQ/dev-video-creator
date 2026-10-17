@@ -24,6 +24,7 @@ export type ResearchViewState = {
   sidebarOpen?: boolean
   contentOpen?: boolean
   documentExpanded?: boolean
+  chatMinimized?: boolean
   project: ResearchProjectView
   tab: 'notes' | 'research' | 'wireframes' | 'canvas'
   notebook: string
@@ -108,24 +109,36 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
     aria-label="Notebook"
   >
     <div class="research-panel-heading">
-      ${compact ? notebookPicker(s) : `<h1>${escape(n.title)}</h1>`}
+      ${compact && !s.documentExpanded
+        ? notebookPicker(s)
+        : `<h1>${escape(n.title)}</h1>`}
       <div class="project-document-actions">
         ${action(
           'expand-document',
-          s.documentExpanded ? '↙' : '⤢',
+          s.documentExpanded ? 'Chat beside notes' : '⤢',
           '',
-          `aria-label="${s.documentExpanded ? 'Read beside chat' : 'Expand notebook'}"`
+          `aria-label="${s.documentExpanded ? 'Chat beside notes' : 'Expand notebook'}"`
         )}${action(
           'rename-notebook',
           '···',
           '',
           'aria-label="Rename notebook"'
         )}
+        ${!s.documentExpanded
+          ? action(
+              'open-notebook',
+              '×',
+              '',
+              'aria-label="Close notebook panel"'
+            )
+          : ''}
       </div>
     </div>
     ${wireframes
       ? `<div class="project-notebook-outputs"><span>${wireframes} wireframes from these notes</span><a href="${projectLink(s.project.id, { ...s, notebook: n.id }, { detail: '1', notebook: n.id, view: 'presentation' })}">Open wireframes →</a></div>`
-      : ''}
+      : s.documentExpanded && n.blocks.length
+        ? '<div class="project-notebook-outputs"><span>Ready to turn these notes into a story?</span><button data-research-action="open-content">Create from notes →</button></div>'
+        : ''}
     <div class="research-note-scroll">
       ${n.blocks.length
         ? n.blocks
@@ -277,7 +290,7 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
             <button type="button" data-save-answer="${n.id}">
               Save to notebook</button
             ><button type="button" data-branch-answer="${n.id}">
-              Branch from here ↗
+              Ask a follow-up ↗
             </button>
           </div>`
       : n.state === 'working'

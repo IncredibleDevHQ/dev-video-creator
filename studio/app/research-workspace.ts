@@ -14,7 +14,11 @@ import {
   ResearchReturn
 } from './research-render'
 import { captureResearchSelection } from './research-selection'
-import { researchHome, researchProjectCards } from './research-home'
+import {
+  researchHome,
+  populateResearchHome,
+  saveHomeNote
+} from './research-home'
 import { researchNameDialog } from './research-dialog'
 import { researchChatSetup } from './research-chat-setup'
 import { showResearchTurn, toggleProjectPanel } from './research-navigation'
@@ -30,6 +34,7 @@ import './styles/research-notebooks.css'
 import './styles/research-spatial.css'
 import './styles/research-sessions.css'
 import './styles/project-workspace.css'
+import './styles/project-simple.css'
 
 export class ResearchWorkspace {
   isOpen = false
@@ -63,6 +68,7 @@ export class ResearchWorkspace {
             if (other !== menu) other.removeAttribute('open')
           })
       const target = element.closest<HTMLElement>('button')
+      if (target) target.closest('.project-switcher')?.removeAttribute('open')
       if (target) void this.click(target).catch((e) => this.error(e))
     })
     root.addEventListener('submit', (event) => {
@@ -100,10 +106,6 @@ export class ResearchWorkspace {
           label.textContent = `${s.adapter === 'claude-code' ? 'Claude Code' : s.adapter === 'kimi' ? 'Kimi' : 'Codex'}${s.model ? ` · ${modelName(s.model)}` : ''} ⌄`
         void this.saveChatSettings().catch((e) => this.error(e))
       }
-      if (field.id === 'research-jump' && field.value)
-        this.root
-          .querySelector(`#wireframes-${CSS.escape(field.value)}`)
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
     root.addEventListener('input', (event) => {
       const field = event.target as HTMLInputElement
@@ -201,8 +203,7 @@ export class ResearchWorkspace {
     try {
       const projects = await researchApi.list()
       if (revision !== this.revision) return
-      const list = this.root.querySelector('#research-projects')!
-      list.innerHTML = researchProjectCards(projects)
+      populateResearchHome(this.root, projects)
     } catch (error) {
       this.error(error)
     }
@@ -233,7 +234,8 @@ export class ResearchWorkspace {
       project,
       tab: 'research',
       contentOpen: tab === 'wireframes' || tab === 'canvas',
-      documentExpanded: tab === 'notes',
+      documentExpanded:
+        tab === 'notes' || (!tab && !node && !url.searchParams.has('chat')),
       notebook:
         project.notebooks.find((n) => n.id === url.searchParams.get('book'))
           ?.id || project.notebooks[0].id,
@@ -260,14 +262,11 @@ export class ResearchWorkspace {
       project.notebooks.some((n) => n.id === url.searchParams.get('book'))
     )
       this.state.notebook = url.searchParams.get('book')!
-    if (this.state.contentOpen || tab === 'notes' || !project.chats?.length) {
-      this.workbench.state.graphOpen = false
-      this.workbench.state.notesOpen = true
-    }
-    if (tab === 'research' && matchMedia('(max-width: 700px)').matches) {
-      this.workbench.state.notesOpen = false
-      this.workbench.state.graphOpen = false
-    }
+    this.workbench.state.graphOpen = false
+    this.workbench.state.expanded = false
+    this.workbench.state.notesOpen = Boolean(
+      this.state.contentOpen || this.state.documentExpanded
+    )
     this.render()
     if (tab === 'research') this.showSelectedTurn()
     this.returning.restore(this.root, this.state)
@@ -444,10 +443,14 @@ export class ResearchWorkspace {
     await this.settingsSave.catch(() => {})
     await this.mutation(async () => {
       if (formId === 'research-start-form') {
-        const p = await researchApi.create({ text: values.get('text') })
+        const p = await saveHomeNote(values)
         this.drafts['research-first-note'] = ''
         this.persistDrafts()
-        history.pushState(null, '', `/?space=${p.id}`)
+        history.pushState(
+          null,
+          '',
+          `/?space=${p.id}&projectView=notes&book=${p.notebooks[0].id}`
+        )
         await this.open(p.id)
         return
       }
@@ -657,7 +660,9 @@ export class ResearchWorkspace {
       return
     }
     if (!action) return
+    this.returning.save(this.root, s)
     if (toggleProjectPanel(action, s, this.workbench, () => this.render())) {
+      this.returning.restore(this.root, s)
       this.navigate()
       return
     }
@@ -724,6 +729,8 @@ export class ResearchWorkspace {
           await this.change('notebooks', { title: name })
           s.notebook = s.project.notebooks.at(-1)!.id
           s.contentOpen = false
+          s.documentExpanded = true
+          s.sidebarOpen = false
           this.workbench.state.notesOpen = false
           this.workbench.handle('toggle-notebook')
           await this.saveChatSettings()

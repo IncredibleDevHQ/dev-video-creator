@@ -141,13 +141,14 @@ export class ProjectShell {
     }
     const action = button.dataset.researchAction
     if (action === 'open-content') target.projectView = 'canvas'
+    if (action === 'open-notes') target.projectView = 'notes'
     if (
       !(await this.go(
         new URL(projectLink(this.project.id, context, target), location.href)
       ))
     )
       return
-    if (action && action !== 'open-content')
+    if (action && !['open-content', 'open-notes', 'open-chat'].includes(action))
       await this.app.researchWorkspace.command(button)
   }
   async go(url: URL, push = true): Promise<boolean> {
@@ -257,7 +258,7 @@ export class ProjectShell {
       <button class="project-sidebar-toggle" data-research-action="toggle-sidebar" aria-label="Toggle project navigation" aria-expanded="${this.frame.classList.contains('sidebar-open')}">☰</button>
       <div class="project-chat-title"><div class="project-tool-breadcrumb"><a href="${projectLink(project.id, context, { projectView: 'canvas' })}">${escape(project.title)}</a><span aria-hidden="true">/</span><h1>${escape(name)}</h1></div>
       <span class="project-tool-origin">${isMap ? `Ideas from all ${project.notebooks.length} notebooks · one shared story` : 'From your notebook · connected to your research'}</span></div>
-      <div class="project-chat-actions"><a href="${notes}">${notebook ? 'Read notes' : 'All content'}</a><a href="${back}">Back to chat</a></div></header>`
+      <div class="project-chat-actions"><a href="${notes}">${notebook ? 'Read notes' : 'All creations'}</a><a href="${back}" class="project-resume-chat">Resume chat ↗</a></div></header>`
     const key = markup + (notebook?.id || '')
     if (this.rendered === key) return
     this.rendered = key
@@ -267,8 +268,8 @@ export class ProjectShell {
         project,
         notebook: notebook?.id || '',
         chat: null,
-        contentOpen: !notebook,
-        documentExpanded: Boolean(notebook)
+        contentOpen: true,
+        documentExpanded: false
       }) +
       '<button class="project-sidebar-scrim" aria-label="Close project navigation" data-research-action="toggle-sidebar"></button>'
   }

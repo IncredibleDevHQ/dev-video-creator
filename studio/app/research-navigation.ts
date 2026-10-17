@@ -32,6 +32,14 @@ export const toggleProjectPanel = (
 ) => {
   if (action === 'toggle-sidebar') {
     s.sidebarOpen = !s.sidebarOpen
+  } else if (['open-notes', 'open-chat', 'minimize-chat'].includes(action)) {
+    s.sidebarOpen = false
+    s.contentOpen = false
+    s.documentExpanded = action !== 'open-chat'
+    s.chatMinimized = action === 'minimize-chat'
+    workbench.state.notesOpen = s.documentExpanded
+    workbench.state.graphOpen = false
+    workbench.state.expanded = false
   } else if (action === 'expand-document') {
     s.documentExpanded = !s.documentExpanded
   } else if (action === 'open-content' || action === 'close-content') {

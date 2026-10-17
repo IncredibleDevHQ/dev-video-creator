@@ -81,21 +81,24 @@ it('starts with a focused conversation and does not reopen a legacy graph', () =
   ).toMatchObject({ graphOpen: false, expanded: false, graphWidth: 410 })
 })
 
-it('opens either supporting pane on compact screens and resets graph expansion', () => {
-  const { workbench } = setup(1000)
-  workbench.handle('toggle-notebook')
-  expect(workbench.state).toMatchObject({ notesOpen: true, graphOpen: false })
-  workbench.handle('toggle-graph')
-  expect(workbench.state).toMatchObject({ graphOpen: true, notesOpen: false })
-  workbench.handle('graph-expand')
-  expect(workbench.state.expanded).toBe(true)
-  workbench.handle('toggle-notebook')
-  expect(workbench.state).toMatchObject({
-    graphOpen: false,
-    notesOpen: true,
-    expanded: false
-  })
-})
+it.each([390, 1000, 1400, 2000])(
+  'opens one supporting pane at a time at %spx and resets graph expansion',
+  (width) => {
+    const { workbench } = setup(width)
+    workbench.handle('toggle-notebook')
+    expect(workbench.state).toMatchObject({ notesOpen: true, graphOpen: false })
+    workbench.handle('toggle-graph')
+    expect(workbench.state).toMatchObject({ graphOpen: true, notesOpen: false })
+    workbench.handle('graph-expand')
+    expect(workbench.state.expanded).toBe(true)
+    workbench.handle('toggle-notebook')
+    expect(workbench.state).toMatchObject({
+      graphOpen: false,
+      notesOpen: true,
+      expanded: false
+    })
+  }
+)
 
 it.each([false, true])(
   'restores one support pane on a narrow viewport (expanded graph: %s)',
@@ -123,6 +126,7 @@ it('updates support pane state on viewport resize without replacing unsent draft
   const note = root.querySelector<HTMLTextAreaElement>('#research-note-input')!
   question.value = 'Continue this research'
   note.value = 'An unfinished note'
+  workbench.state.graphOpen = true // Recover older saved layouts with both panels open.
   changed.mockClear()
   resizeViewport(1000, 850)
   expect(workbench.state).toMatchObject({ graphOpen: false, notesOpen: true })
@@ -144,17 +148,17 @@ it('updates support pane state on viewport resize without replacing unsent draft
   expect(workbench.state.graphOpen).toBe(false)
 })
 
-it('persists independent desktop panes and leaves graph expansion explicitly', () => {
+it('persists one desktop support pane and closes it explicitly', () => {
   const { workbench, stored } = setup()
   workbench.handle('toggle-graph')
   workbench.handle('toggle-notebook')
-  expect(workbench.state).toMatchObject({ graphOpen: true, notesOpen: true })
+  expect(workbench.state).toMatchObject({ graphOpen: false, notesOpen: true })
   workbench.handle('graph-expand')
   workbench.handle('toggle-graph')
   expect(workbench.state).toMatchObject({ graphOpen: false, expanded: false })
   expect(JSON.parse(stored.get('research-layout:project')!)).toMatchObject({
     graphOpen: false,
-    notesOpen: true,
+    notesOpen: false,
     expanded: false
   })
 })
@@ -279,4 +283,55 @@ it('restores reading position only for the same project, branch and notebook', (
   expect(transcript.scrollTop).toBe(0)
   returning.restore(root, state)
   expect(transcript.scrollTop).toBe(412)
+})
+
+it('minimizes and resumes chat while keeping the same draft and selected context', () => {
+  const { workbench, root, changed } = setup()
+  const state = {
+    notebook: 'notes',
+    chat: 'conversation',
+    node: 'follow-up',
+    contentOpen: false,
+    documentExpanded: false
+  } as ResearchViewState
+  const composer =
+    root.querySelector<HTMLTextAreaElement>('#research-question')!
+  composer.value = 'Continue my question'
+  workbench.handle('toggle-graph')
+  toggleProjectPanel('minimize-chat', state, workbench, changed)
+  expect(state.documentExpanded).toBe(true)
+  expect(workbench.state).toMatchObject({ graphOpen: false, notesOpen: true })
+  toggleProjectPanel('open-chat', state, workbench, changed)
+  expect(state).toMatchObject({
+    documentExpanded: false,
+    notebook: 'notes',
+    chat: 'conversation',
+    node: 'follow-up'
+  })
+  expect(workbench.state).toMatchObject({ graphOpen: false, notesOpen: false })
+  expect(root.querySelector('#research-question')).toBe(composer)
+  expect(composer.value).toBe('Continue my question')
+})
+
+it('preserves a reading position across minimizing, background updates, and resuming', () => {
+  const { root } = setup()
+  root.innerHTML = '<div class="research-transcript"></div>'
+  const transcript = root.querySelector<HTMLElement>('.research-transcript')!
+  const state = {
+    project: { id: 'project' },
+    chat: 'chat',
+    node: 'question',
+    notebook: 'book',
+    documentExpanded: false
+  } as ResearchViewState
+  const returning = new ResearchReturn()
+  transcript.scrollTop = 345.5
+  returning.save(root, state)
+  state.documentExpanded = true
+  transcript.scrollTop = 0
+  returning.save(root, state)
+  state.documentExpanded = false
+  transcript.scrollTop = 787
+  returning.restore(root, state)
+  expect(transcript.scrollTop).toBe(345.5)
 })

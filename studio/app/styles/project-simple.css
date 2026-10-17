@@ -1,0 +1,197 @@
+/* A single working surface, with supporting tools opened deliberately. */
+.project-sidebar .project-primary-nav {
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.project-sidebar .project-primary-nav > button {
+  font-size: 14px;
+  padding: 10px;
+}
+.project-primary-nav button > span:first-child {
+  font-size: 19px;
+  width: 22px;
+}
+.project-primary-nav small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
+.project-sidebar .project-notebooks {
+  flex: 1;
+  max-height: none;
+  min-height: 0;
+}
+.project-chat-actions .project-resume-chat {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 7px 12px;
+}
+.project-document-actions button {
+  font-size: 12px;
+}
+.project-workspace .document-expanded .research-panel-heading h1 {
+  font-size: 28px;
+  letter-spacing: -0.6px;
+  margin: 8px 0;
+}
+.project-notebook-outputs button {
+  color: var(--accent);
+  padding: 0;
+  font-size: 12px;
+}
+.project-content-board {
+  gap: 12px;
+}
+.project-creation-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+}
+.project-creation-row .project-content-preview,
+.project-creation-placeholder {
+  width: 128px;
+  flex: 0 0 128px;
+  aspect-ratio: 16/9;
+  margin: 0;
+}
+.project-creation-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 26px;
+}
+.project-creation-description {
+  flex: 1;
+  min-width: 0;
+}
+.project-creation-description h3 {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.project-creation-description p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0;
+}
+.project-creation-status {
+  font-size: 11px;
+  color: var(--muted);
+}
+.project-creation-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.project-creation-actions :is(a, button) {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.project-creation-actions .research-primary {
+  white-space: nowrap;
+  padding: 10px 14px;
+}
+.project-canvas-entry {
+  margin-top: 24px;
+  margin-bottom: 0;
+  padding: 20px;
+  background: transparent;
+  border-style: dashed;
+}
+.project-canvas-entry h3 {
+  font-size: 15px;
+  margin-top: 0;
+}
+.project-canvas-entry :is(a, button) {
+  color: var(--accent);
+}
+.chat-setup-default {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.chat-setup-options {
+  margin-top: 20px;
+}
+.chat-setup-options summary {
+  font-size: 12px;
+  cursor: pointer;
+}
+.chat-setup-options > div[id] {
+  margin-top: 16px;
+}
+.chat-setup-options > [hidden] {
+  display: none;
+}
+.research-save-to {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.research-save-to select {
+  max-width: 230px;
+  font-size: 12px;
+  padding: 6px;
+}
+.research-home-tools {
+  position: relative;
+  font-size: 12px;
+  color: var(--muted);
+}
+.research-home-tools summary {
+  cursor: pointer;
+}
+.research-home-tools a {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  width: 230px;
+  background: var(--panel);
+  padding: 12px;
+  border: 1px solid var(--line);
+  z-index: 2;
+}
+@media (max-width: 700px) {
+  .project-creation-row {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px;
+  }
+  .project-creation-row .project-content-preview,
+  .project-creation-placeholder {
+    width: 80px;
+    flex-basis: 80px;
+  }
+  .project-creation-actions {
+    flex-direction: row;
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .project-creation-description h3 {
+    font-size: 13px;
+  }
+  .research-save-to {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .research-save-to select {
+    max-width: 180px;
+  }
+  .project-workspace .document-expanded .research-panel-heading h1 {
+    font-size: 23px;
+  }
+}

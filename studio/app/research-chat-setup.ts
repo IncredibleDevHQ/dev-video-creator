@@ -47,84 +47,95 @@ export const researchChatSetup = async (
         maxlength="160"
         required
       />
-      <div class="chat-setup-pair">
-        <div>
-          <label for="chat-project">Project</label>
-          <select id="chat-project" ${edit ? 'disabled' : ''}>
-            ${projects
-              .map(
-                (p) =>
-                  html`<option
-                    value="${p.id}"
-                    ${p.id === project.id ? 'selected' : ''}
-                  >
-                    ${escape(p.title)}
-                  </option>`
-              )
-              .join('')}
-            <option value="new">+ New project</option>
-          </select>
-        </div>
-        <div>
-          <label for="chat-notebook">Save notes to</label
-          ><select id="chat-notebook"></select>
-        </div>
-      </div>
-      <div id="chat-new-project" hidden>
-        <label for="chat-project-title">New project name</label
-        ><input
-          id="chat-project-title"
-          maxlength="160"
-          placeholder="A home for this work"
-        />
-      </div>
-      <div id="chat-new-notebook" hidden>
-        <label for="chat-notebook-title">New notebook name</label
-        ><input
-          id="chat-notebook-title"
-          maxlength="160"
-          placeholder="Research notes"
-        />
-      </div>
-      <p class="chat-setup-hint">
-        Notebooks organize your notes. The project brings them together into one
-        shared canvas.
+      <p class="chat-setup-default">
+        In ${escape(project.title)} · saves to
+        ${escape(
+          project.notebooks.find(
+            (n) => n.id === (current?.notebookId || state.notebook)
+          )?.title || 'your notebook'
+        )}
       </p>
-      <div class="chat-setup-pair">
-        <div>
-          <label for="chat-agent">Agent</label
-          ><select id="chat-agent">
-            ${[
-              ['kimi', 'Kimi'],
-              ['claude-code', 'Claude Code'],
-              ['codex', 'Codex']
-            ]
-              .map(
-                ([id, name]) =>
-                  html`<option
-                    value="${id}"
-                    ${id === (current?.harness?.adapter || state.adapter)
-                      ? 'selected'
-                      : ''}
-                  >
-                    ${name}
-                  </option>`
-              )
-              .join('')}
-          </select>
+      <details class="chat-setup-options" ${edit ? 'open' : ''}>
+        <summary>Project, notebook & agent</summary>
+        <div class="chat-setup-pair">
+          <div>
+            <label for="chat-project">Project</label>
+            <select id="chat-project" ${edit ? 'disabled' : ''}>
+              ${projects
+                .map(
+                  (p) =>
+                    html`<option
+                      value="${p.id}"
+                      ${p.id === project.id ? 'selected' : ''}
+                    >
+                      ${escape(p.title)}
+                    </option>`
+                )
+                .join('')}
+              <option value="new">+ New project</option>
+            </select>
+          </div>
+          <div>
+            <label for="chat-notebook">Save notes to</label
+            ><select id="chat-notebook"></select>
+          </div>
         </div>
-        <div>
-          <label for="chat-model">Model</label
+        <div id="chat-new-project" hidden>
+          <label for="chat-project-title">New project name</label
           ><input
-            id="chat-model"
-            maxlength="200"
-            placeholder="Agent default"
-            value="${escape(current?.harness?.model || state.model)}"
+            id="chat-project-title"
+            maxlength="160"
+            placeholder="A home for this work"
           />
         </div>
-      </div>
+        <div id="chat-new-notebook" hidden>
+          <label for="chat-notebook-title">New notebook name</label
+          ><input
+            id="chat-notebook-title"
+            maxlength="160"
+            placeholder="Research notes"
+          />
+        </div>
+        <p class="chat-setup-hint">
+          Notebooks organize your notes. The project brings them together into
+          one shared canvas.
+        </p>
+        <div class="chat-setup-pair">
+          <div>
+            <label for="chat-agent">Agent</label
+            ><select id="chat-agent">
+              ${[
+                ['kimi', 'Kimi'],
+                ['claude-code', 'Claude Code'],
+                ['codex', 'Codex']
+              ]
+                .map(
+                  ([id, name]) =>
+                    html`<option
+                      value="${id}"
+                      ${id === (current?.harness?.adapter || state.adapter)
+                        ? 'selected'
+                        : ''}
+                    >
+                      ${name}
+                    </option>`
+                )
+                .join('')}
+            </select>
+          </div>
+          <div>
+            <label for="chat-model">Model</label
+            ><input
+              id="chat-model"
+              maxlength="200"
+              placeholder="Agent default"
+              value="${escape(current?.harness?.model || state.model)}"
+            />
+          </div>
+        </div>
+      </details>
       <details class="chat-setup-repos" ${repos.length ? 'open' : ''}>
-        <summary>Repositories <span>optional</span></summary>
+        <summary>Add repositories <span>optional</span></summary>
         <p>
           Point the agent at local repositories and branches. You can change
           these later.
@@ -207,6 +218,19 @@ export const researchChatSetup = async (
   }
   updateNotebook(current?.notebookId || state.notebook)
   updateRepos()
+  const updateSummary = () => {
+    dialog.querySelector('.chat-setup-default')!.textContent =
+      `In ${projectPicker.selectedOptions[0]?.textContent?.trim()} · saves to ${notebook.selectedOptions[0]?.textContent?.trim()}`
+  }
+  dialog.addEventListener(
+    'invalid',
+    (event) => {
+      ;(event.target as HTMLElement)
+        .closest('details')
+        ?.setAttribute('open', '')
+    },
+    true
+  )
   dialog.addEventListener('change', async (event) => {
     const target = event.target as HTMLInputElement
     if (target.id === 'chat-project') {
@@ -238,6 +262,7 @@ export const researchChatSetup = async (
     }
     if (target.id === 'chat-agent')
       field('chat-model').value = target.value === 'kimi' ? 'kimi-code/k3' : ''
+    updateSummary()
   })
   dialog.addEventListener('input', (event) => {
     if ((event.target as HTMLElement).id === 'chat-repo-path') {

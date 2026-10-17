@@ -117,7 +117,7 @@ it('opens tools in the same project frame and stops previous subscriptions', asy
     document.querySelector('[aria-label="Project workspace"]')
   ).not.toBeNull()
   const back = [...document.querySelectorAll('a')].find(
-    (a) => a.textContent === 'Back to chat'
+    (a) => a.textContent === 'Resume chat ↗'
   )!
   expect(
     new URL(back.getAttribute('href')!, address).searchParams.get('node')

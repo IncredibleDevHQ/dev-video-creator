@@ -1,3 +1,4 @@
+import { researchApi } from './research-api'
 import { html } from '../shared/html'
 import { escape } from './ui'
 import type { ResearchProjectSummary } from '../shared/research'
@@ -10,7 +11,11 @@ export const researchHome = (draft: string) =>
         class="research-brand"
         aria-label="Incredible Studio: all projects"
         ><img src="${incredibleLogo}" alt="" /><span>Incredible</span></a
-      ><a href="/?legacy=1">Earlier notebooks & studio tools ↗</a>
+      >
+      <details class="research-home-tools">
+        <summary>More</summary>
+        <a href="/?legacy=1">Earlier notebooks & studio tools ↗</a>
+      </details>
     </header>
     <main>
       <span class="research-eyebrow">A PLACE FOR YOUR CURIOSITY</span>
@@ -19,7 +24,7 @@ export const researchHome = (draft: string) =>
         Collect notes. Explore questions. Turn what you learn into a series.
       </p>
       <form id="research-start-form">
-        <label class="sr" for="research-first-note">Your first note</label
+        <label class="sr" for="research-first-note">Your note</label
         ><textarea
           id="research-first-note"
           name="text"
@@ -31,8 +36,11 @@ export const researchHome = (draft: string) =>
 ${escape(draft)}</textarea
         >
         <div class="research-composer-footer">
-          <small>We’ll create a project and your first notebook.</small
-          ><button class="research-primary">Get started ↗</button>
+          <span id="research-note-destination"
+            ><small
+              >We’ll create a project and your first notebook.</small
+            ></span
+          ><button class="research-primary" disabled>Save note →</button>
         </div>
       </form>
       <div class="research-home-error" role="alert"></div>
@@ -64,3 +72,36 @@ export const researchProjectCards = (projects: ResearchProjectSummary[]) =>
           .join('')}
       </div>`
     : '<p>Your first project starts with the note above. No setup needed.</p>'
+
+/** Returning users can capture a note without making another project. */
+export const populateResearchHome = (
+  root: HTMLElement,
+  projects: ResearchProjectSummary[]
+) => {
+  root.querySelector<HTMLButtonElement>(
+    '#research-start-form button'
+  )!.disabled = false
+  root.querySelector('#research-projects')!.innerHTML =
+    researchProjectCards(projects)
+  const destination = root.querySelector('#research-note-destination')!
+  if (projects.length)
+    destination.innerHTML = html`<label class="research-save-to"
+      >Save to
+      <select name="projectId" aria-label="Save note to project">
+        ${projects
+          .map((p) => html`<option value="${p.id}">${escape(p.title)}</option>`)
+          .join('')}
+        <option value="">＋ New project</option>
+      </select></label
+    >`
+}
+export const saveHomeNote = async (values: FormData) => {
+  const id = String(values.get('projectId') || '')
+  const text = values.get('text')
+  if (!id) return researchApi.create({ text })
+  const project = await researchApi.load(id)
+  return researchApi.change(id, 'notes', {
+    notebookId: project.notebooks[0].id,
+    text
+  })
+}

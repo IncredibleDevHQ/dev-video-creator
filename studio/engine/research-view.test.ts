@@ -150,14 +150,68 @@ it('shows notebook content from real data and keeps draft notebooks actionable',
     doc.querySelectorAll('.project-content-scroll .project-content-notebook')
   ).toHaveLength(2)
   expect(
-    doc.querySelectorAll('.project-notebook-flow > .project-visual-card')
-  ).toHaveLength(4)
+    doc.querySelectorAll('.project-creation-actions .research-primary')
+  ).toHaveLength(2)
   expect(
     doc.querySelector('[data-notebook-id="notes"]')?.hasAttribute('disabled')
   ).toBe(false)
   expect(
-    doc.querySelector('[data-notebook-id="empty"]')?.hasAttribute('disabled')
-  ).toBe(true)
+    doc.querySelector(
+      '.project-creation-actions [data-select-notebook="empty"]'
+    )?.textContent
+  ).toContain('Add a note')
   expect(doc.querySelector('empty')).toBeNull()
   expect(doc.querySelectorAll('.project-content-preview')).toHaveLength(0)
+})
+
+it('shows only the context list for the selected task and offers chat minimize and resume', () => {
+  const current = structuredClone(state)
+  current.chat = 'chat'
+  current.project.chats = [
+    {
+      id: 'chat',
+      title: 'Learning',
+      notebookId: 'notes',
+      repos: [],
+      createdAt: '',
+      updatedAt: ''
+    }
+  ]
+  let doc = parseHTML(researchWorkspaceView(current)).document
+  expect(doc.querySelectorAll('.project-primary-nav button')).toHaveLength(3)
+  expect(
+    doc
+      .querySelector('[data-research-action="open-chat"]')
+      ?.getAttribute('aria-current')
+  ).toBe('page')
+  expect(doc.querySelector('[aria-label="Project chats"]')).not.toBeNull()
+  expect(doc.querySelector('#project-notebooks')).toBeNull()
+  expect(doc.querySelector('[aria-label="Minimize chat"]')).not.toBeNull()
+  current.documentExpanded = true
+  doc = parseHTML(researchWorkspaceView(current)).document
+  expect(doc.querySelector('[aria-label="Project chats"]')).toBeNull()
+  expect(doc.querySelector('#project-notebooks')).not.toBeNull()
+  expect(doc.querySelector('.project-resume-chat')?.textContent).toContain(
+    'Resume chat'
+  )
+  current.contentOpen = true
+  doc = parseHTML(researchWorkspaceView(current)).document
+  expect(doc.querySelector('#project-notebooks')).toBeNull()
+  expect(
+    doc
+      .querySelector('[data-research-action="open-content"]')
+      ?.getAttribute('aria-current')
+  ).toBe('page')
+})
+
+it('can resume a minimized draft before its first question creates a chat', () => {
+  const fresh = structuredClone(state)
+  fresh.project.chats = []
+  fresh.chat = null
+  fresh.documentExpanded = true
+  fresh.chatMinimized = true
+  const doc = parseHTML(researchWorkspaceView(fresh)).document
+  expect(doc.querySelector('.project-resume-chat')?.textContent).toContain(
+    'Resume chat'
+  )
 })
