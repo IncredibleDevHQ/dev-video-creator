@@ -776,6 +776,72 @@ it('marks an open gap a placed card says, for the creator to close with it, when
   })
 })
 
+it('marks a gap a card drawn with Organise off says, placing nothing, and marks it again once that card is gone (round 3)', async () => {
+  const map = await drawnMap('m-cov3')
+  const ids = map.project.slides.map((s) => s.id)
+  const series = await episodes.startMapSeries('m-cov3', {})
+  const one = await episodes.addMapEpisode(series.id, {
+    title: 'Keys',
+    slides: [ids[0], ids[1]]
+  })
+  const e1 = one.notebook.project.id
+  const { changeSeries } = await import('./series')
+  await changeSeries(series.id, (current) => {
+    current.organize = false
+    current.gaps = [
+      {
+        id: 'fp',
+        missing:
+          'What a request fingerprint is made from and how the server computes it',
+        episode: e1,
+        why: 'w',
+        ask: 'a',
+        state: 'open'
+      }
+    ]
+  })
+  replies['Place Pages'] = () => {
+    throw new Error('should not run')
+  }
+  const says = (id: string): Slide => ({
+    ...card(id, 'What the fingerprint is'),
+    narration:
+      'The server computes the request fingerprint as a SHA-256 hash of the method, the path and the body.'
+  })
+  const gap = async () => (await loadSeries(series.id))!.gaps![0]
+  // Drawn with Organise off: the gap is marked, and nothing is placed.
+  await changeProject('m-cov3', (current) => {
+    current.project.slides.push(says('m-cov3-9'))
+  })
+  await organize.organizeNewPages('m-cov3')
+  await organize.settledOrganize(series.id)
+  expect((await gap()).covered?.page).toBe('m-cov3-9')
+  expect(await pagesIn(e1)).toEqual([ids[0], ids[1]])
+  // Its card deleted: the map offers no Covered for it.
+  await changeProject('m-cov3', (current) => {
+    current.project.slides = current.project.slides.filter(
+      (s) => s.id !== 'm-cov3-9'
+    )
+  })
+  const shown = (await episodes.mapView('m-cov3')).series!.gaps[0]
+  expect(shown.state).toBe('open')
+  expect(shown.covered).toBeUndefined()
+  // Another card that says it marks it again, and Covered closes it.
+  await changeProject('m-cov3', (current) => {
+    current.project.slides.push(says('m-cov3-10'))
+  })
+  await organize.organizeNewPages('m-cov3')
+  expect((await gap()).covered?.page).toBe('m-cov3-10')
+  const closed = await directions.setGap(series.id, {
+    id: 'fp',
+    state: 'covered'
+  })
+  expect(closed.gaps![0]).toMatchObject({
+    state: 'closed',
+    closedBy: 'm-cov3-10'
+  })
+})
+
 it('refuses a placement into a made episode, before the last made one, or twice', () => {
   const rules = {
     fresh: ['n1', 'n2'],

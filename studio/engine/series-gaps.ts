@@ -3,6 +3,8 @@
 // words, so the creator can close it with the card in one step (review 8:
 // the planner asked for what the idempotency card's script already said).
 // A word check, tuned to mark rather than drop: a marked gap stays open.
+import type { Slide } from '../shared/model'
+import type { SeriesGap } from '../shared/series'
 import { againstOf, polarWords, sentencesOf } from './card-words'
 
 /** A card as the planner reads it (series-plan.ts `cardsOf`). */
@@ -165,3 +167,18 @@ export const markCovered = <T extends { missing: string; episode?: number }>(
     })
     return covered ? { ...gap, covered } : gap
   })
+
+/** The cards a gap's mark can name: drawn on the map. */
+export const onMapOf = (slides: Slide[]) =>
+  new Set(slides.filter((slide) => slide.svg).map((slide) => slide.id))
+
+/** The series' gaps as the map shows them: a mark whose card has left the
+ * map is no mark, so Covered is never offered for it. */
+export const gapsOnMap = (gaps: SeriesGap[], slides: Slide[]) => {
+  const onMap = onMapOf(slides)
+  return gaps.map((gap) => {
+    if (!gap.covered || onMap.has(gap.covered.page)) return gap
+    const { covered: _gone, ...rest } = gap
+    return rest
+  })
+}

@@ -33,6 +33,7 @@ import { copyOf, pageHash, syncEvidence } from './map-copy'
 import { undoUpdate, updateCopies } from './map-updates'
 import { schedulePick } from './map-picking'
 import { directionsOf } from './series-directions'
+import { gapsOnMap } from './series-gaps'
 import { SEGUE } from '../shared/length'
 import { cardSeconds } from './storyboard/plan-check'
 export { copyOf, pageHash, syncEvidence } from './map-copy'
@@ -767,7 +768,7 @@ export const mapView = async (mapId: string): Promise<MapView> => {
           ...(series.suggested?.length ? { suggested: series.suggested } : {}),
           directions: directionsOf(series),
           lines: series.lines || [],
-          gaps: series.gaps || [],
+          gaps: gapsOnMap(series.gaps || [], map.project.slides),
           flags: series.flags || [],
           left: series.left || [],
           // A held card placed by hand since is no longer waiting.
