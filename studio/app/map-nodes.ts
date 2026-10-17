@@ -38,6 +38,10 @@ export const lengthWords = (length: LengthGoal) =>
 export const lengthChip = (length: LengthGoal = DEFAULT_LENGTH) =>
   `<button type="button" class="quiet map-length" data-map="length" data-popover="series-length" title="How long each episode runs">${lengthWords(length)}</button>`
 
+/** What Organise new cards does, and what follows its card either way. */
+export const ORGANIZE_SAYS =
+  'New cards find their episode; copies you haven’t edited follow their card either way.'
+
 /** A plan has been made once it named the lines through the series. */
 export const seriesPlanned = (series: NonNullable<MapView['series']>) =>
   Boolean(series.lines?.length)
@@ -73,7 +77,7 @@ export const seriesHead = (view: MapView) => {
   const again = planned
     ? `${lengthChip(series.length)}${planning ? '' : '<button type="button" class="quiet" data-map="plan-series">Plan again</button>'}`
     : ''
-  const organize = `<label class="map-organize" title="New cards place themselves into the episodes"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label>`
+  const organize = `<label class="map-organize" title="${ORGANIZE_SAYS}"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label>`
   return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${again}${organize}</span></div><div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}</div>${
     planned
       ? lines

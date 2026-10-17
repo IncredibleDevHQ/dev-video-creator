@@ -829,3 +829,18 @@ describe('a cut or a copy waiting, said once in the bar (round 1)', () => {
     ])
   })
 })
+
+describe('what Organise new cards does (round 1)', () => {
+  it('says its scope in one line, on the series and in the plan bar', async () => {
+    const { map, root } = await openMap()
+    const line =
+      'New cards find their episode; copies you haven’t edited follow their card either way.'
+    const head = root.querySelector('[data-k="B:series"] .map-organize')!
+    expect(head.getAttribute('title')).toBe(line)
+    expect(head.querySelector('[data-map-organize]')).not.toBeNull()
+    map.askPlan()
+    const plan = map.slot('bar')!.querySelector('.map-plan-check')!
+    expect(plan.textContent).toBe('Organise new cards')
+    expect(plan.getAttribute('title')).toBe(line)
+  })
+})

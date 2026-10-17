@@ -3,7 +3,7 @@
 // waits behind "More". It also asks for a new episode, a new title, and a
 // change to a page.
 import type { MapCanvas } from './map-canvas'
-import { lengthChip, seriesPlanned } from './map-nodes'
+import { lengthChip, ORGANIZE_SAYS, seriesPlanned } from './map-nodes'
 import { colorOf } from './map-view'
 import { escape } from './ui'
 
@@ -69,13 +69,18 @@ const content = (map: MapCanvas) => {
   }
   if (map.askingPlan) {
     const series = view?.series
-    const check = (name: string, label: string, on: boolean) =>
-      `<label class="map-plan-check"><input name="${name}" type="checkbox" ${on ? 'checked' : ''}>${label}</label>`
+    const check = (name: string, label: string, on: boolean, title: string) =>
+      `<label class="map-plan-check" title="${title}"><input name="${name}" type="checkbox" ${on ? 'checked' : ''}>${label}</label>`
     return [
       '<form class="map-ask map-plan" data-map-form="plan">',
       `<label>Plan the series<input name="ideas" maxlength="600" value="${escape(series?.directions.find((d) => d.id === 'ideas')?.text || '')}" placeholder="A direction for the whole series, or leave it to the plan" autocomplete="off"></label>`,
       lengthChip(series?.length),
-      check('organize', 'Organise new cards', series?.organize !== false),
+      check(
+        'organize',
+        'Organise new cards',
+        series?.organize !== false,
+        ORGANIZE_SAYS
+      ),
       '<button type="submit" class="primary">Plan</button>',
       '<button type="button" class="quiet" data-map="cancel">Cancel</button></form>'
     ].join('')
