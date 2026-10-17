@@ -51,23 +51,87 @@ export const seriesSection = (
     ? `<section class="saved-notebooks saved-series" aria-labelledby="series-heading"><div class="saved-notebooks-heading"><h2 id="series-heading">Your series</h2></div><div class="series-rows">${list.map((item) => seriesRow(item, notebooks)).join('')}</div></section>`
     : ''
 
-/** The switch at the start: a series, its subject, and how it grows. */
-export const newSeriesDialog = () => `<h2>Start a series</h2>
+/** The notebooks no series uses yet, newest first: home's loose tiles, and
+ * the notes a new series can start from. */
+export const looseNotebooks = (
+  notebooks: NotebookSummary[],
+  series: SeriesSummary[]
+) => {
+  const grouped = new Set(
+    series.flatMap((item) =>
+      [
+        item.map,
+        ...(item.members || []).map((member) => member.notebookId)
+      ].filter(Boolean)
+    )
+  )
+  return notebooks.filter((item) => !item.archived && !grouped.has(item.id))
+}
+
+/** A notebook starts a series once its wireframes are drawn, as its map's
+ * own Start asks. */
+const startsSeries = (item: NotebookSummary) =>
+  item.status === 'ready' && Boolean(item.preview)
+
+/** The creator's notebooks to start from; the one just made is chosen once
+ * it is drawn. */
+const seriesFrom = (notebooks: NotebookSummary[], chosen: string) => {
+  if (!notebooks.length) return ''
+  const rows = notebooks
+    .map((item) => {
+      const ready = startsSeries(item)
+      return `<label${ready ? '' : ' class="is-waiting"'}><input type="radio" name="from" value="${escape(item.id)}" data-title="${escape(item.title)}"${item.id === chosen ? ' checked' : ''}${ready ? '' : ' disabled'}> ${escape(item.title)}${ready ? '' : ` <small>${escape(notebookState(item))}</small>`}</label>`
+    })
+    .join('')
+  return `<fieldset class="series-from"><legend>From your notes</legend><div>${rows}<label><input type="radio" name="from" value=""${chosen ? '' : ' checked'}> Nothing yet</label></div>${
+    notebooks.every(startsSeries)
+      ? ''
+      : '<p>A notebook can start a series once its wireframes are drawn.</p>'
+  }</fieldset>`
+}
+
+/** The switch at the start: what the series is about, the notes it starts
+ * from, and how it grows; a repo only for a series that follows code
+ * (review 8: the form asked for structure and a repo first). */
+export const newSeriesDialog = (notebooks: NotebookSummary[] = []) => {
+  const chosen =
+    notebooks[0] && startsSeries(notebooks[0]) ? notebooks[0] : undefined
+  return `<h2>Start a series</h2>
 <form id="series-form" class="series-form">
-<label for="series-title">Title</label>
-<input id="series-title" name="title" required maxlength="120" autocomplete="off">
 <label for="series-about">What it is about</label>
-<textarea id="series-about" name="about" required rows="4" placeholder="The work it follows, who it is for, where it is going"></textarea>
+<textarea id="series-about" name="about" required rows="3" placeholder="What you are learning or building, and who it is for"></textarea>
+${seriesFrom(notebooks, chosen?.id ?? '')}
+<label for="series-title">Title</label>
+<input id="series-title" name="title" maxlength="120" autocomplete="off"${chosen ? ` placeholder="${escape(chosen.title)}"` : ' required'}>
 <fieldset class="series-growth"><legend>How it grows</legend>
-<label><input type="radio" name="growth" value="one" checked> One episode at a time</label>
-<label><input type="radio" name="growth" value="arc"> Plan the arc first <small>3–5 episodes, nothing fixed</small></label>
+<label><input type="radio" name="growth" value="arc" checked> The studio plans the episodes <small>From your notes or what it is about; nothing is fixed.</small></label>
+<label><input type="radio" name="growth" value="one"> One episode at a time <small>You add each one as you go.</small></label>
 </fieldset>
-<label for="series-repo">Repo <small>optional, its folder on this computer</small></label>
+<details class="series-code"${chosen ? ' hidden' : ''}><summary>From a code repository</summary>
+<label for="series-repo">Repo <small>its folder on this computer</small></label>
 <input id="series-repo" name="path" placeholder="/Users/you/code/project" autocomplete="off">
 <label for="series-branch">Branch <small>the episodes start from it</small></label>
 <input id="series-branch" name="branch" placeholder="The repo’s current branch" autocomplete="off">
+</details>
 <div class="dialog-actions"><button type="button" class="quiet" data-action="close">Cancel</button><button class="primary">Start the series</button></div>
 </form>`
+}
+
+/** Keeps the start in step with the notes chosen: a notebook names the
+ * series unless it is given a title, and a repo is for a series from code. */
+export const syncSeriesForm = (root: ParentNode) => {
+  const form = root.querySelector<HTMLFormElement>('#series-form')
+  if (!form) return
+  const from = form.querySelector<HTMLInputElement>(
+    'input[name="from"]:checked'
+  )
+  const named = from?.value ? from.dataset.title || '' : ''
+  const title = form.querySelector<HTMLInputElement>('#series-title')
+  title?.toggleAttribute('required', !from?.value)
+  title?.setAttribute('placeholder', named)
+  const code = form.querySelector<HTMLElement>('.series-code')
+  if (code) code.hidden = Boolean(from?.value)
+}
 
 const arcView = (page: SeriesPageData) => {
   const { series } = page

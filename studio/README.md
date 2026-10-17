@@ -37,6 +37,10 @@ Before slides exist, Refresh article re-reads the original link in the same
 notebook; a failed refresh preserves its saved text. Figures arrive as their
 pictures above their captions. The home page lists your notebooks under the
 field; the demo shows until the first notebook exists, then behind How it works.
+Start a series asks what the series is about, then offers the notebooks it can
+start from. Started from one, it is that notebook's content map series and the
+map opens, where the studio plans the episodes, unless you add them one at a
+time. A repo and branch wait under From a code repository.
 
 Create wireframes, top right, starts straight away. Under the notebook's title,
 one line shows the choices it will use: the agent and model, about 6, 10 or 14

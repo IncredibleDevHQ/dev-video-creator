@@ -7,6 +7,7 @@ import { seekSavedMedia } from './media-seek'
 import { clickRecording } from './recording-controller'
 import { clickRepos, submitRepos } from './repo-controller'
 import { clickSeries, submitSeries } from './series-controller'
+import { syncSeriesForm } from './series-view'
 import { clickRelease, submitRelease } from './release-controller'
 import { clickAccounts, submitAccounts } from './accounts-controller'
 import { clickSlides, submitSlides } from './slides-controller'
@@ -327,6 +328,7 @@ export const installAppActions = (app: AppContext) => {
     void changeStoryboard(app, event.target as Element).catch(app.error)
   })
   app.dialog.addEventListener('change', (event) => {
+    syncSeriesForm(app.dialog)
     const target = event.target as HTMLSelectElement
     const form = app.dialog.querySelector<HTMLFormElement>(
       '#video-form, #video-settings-form'

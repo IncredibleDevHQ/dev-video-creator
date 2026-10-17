@@ -23,12 +23,12 @@ import { inspectRepo } from './repo-git'
 import { Refusal } from './refusal'
 import {
   addEpisode,
-  createSeries,
   listSeries,
   planArc,
   seriesPage,
   updateSeries
 } from './series'
+import { startSeries } from './series-start'
 
 type Reply = { status: number; value: unknown } | null
 const ok = (value: unknown): Reply => ({ status: 200, value })
@@ -96,7 +96,7 @@ const route = async (
   }
   if (url.pathname === '/api/series')
     return method === 'POST'
-      ? ok(await createSeries(body))
+      ? ok(await startSeries(body))
       : ok(await listSeries())
   const series = url.pathname.match(
     /^\/api\/series\/([a-zA-Z0-9_-]+)(?:\/(arc|episodes))?$/

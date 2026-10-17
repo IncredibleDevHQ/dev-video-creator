@@ -13,7 +13,7 @@ import { rollingHeadline } from './rolling-headline'
 import { replacePlayerView } from './player-view'
 import { button, escape } from './ui'
 import { seriesApi } from './series-controller'
-import { seriesSection } from './series-view'
+import { looseNotebooks, seriesSection } from './series-view'
 import { notebookState } from './notebook-state'
 import { installNotebookEditor, saveBeforeLeaving } from './notebook-editor'
 import { confirmAction } from './confirm-action'
@@ -82,18 +82,8 @@ export const createRenderStartScreen = (app: AppContext) => () => {
   const previousPlayer = app.root.querySelector<HTMLMediaElement>(
     '[data-scene-player]'
   )
-  const grouped = new Set(
-    app.series.flatMap((series) =>
-      [
-        series.map,
-        ...(series.members || []).map((member) => member.notebookId)
-      ].filter(Boolean)
-    )
-  )
   const archived = app.notebooks.filter((item) => item.archived)
-  const loose = app.notebooks.filter(
-    (item) => !item.archived && !grouped.has(item.id)
-  )
+  const loose = looseNotebooks(app.notebooks, app.series)
   const recent = app.showAllRecent ? loose : loose.slice(0, 8)
   // Your work is the home page: the notebooks sit straight under the field,
   // and the demo shows only until there is a notebook (review 5).

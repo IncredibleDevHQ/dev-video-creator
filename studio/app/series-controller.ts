@@ -3,6 +3,7 @@ import type { Snapshot } from '../shared/api'
 import type { Series, SeriesSummary } from '../shared/series'
 import type { AppContext } from './app-context'
 import {
+  looseNotebooks,
   newSeriesDialog,
   seriesPageView,
   type SeriesPageData
@@ -73,7 +74,7 @@ export const clickSeries = async (
   action: string | undefined
 ) => {
   if (action === 'new-series') {
-    app.showDialog(newSeriesDialog())
+    app.showDialog(newSeriesDialog(looseNotebooks(app.notebooks, app.series)))
     return true
   }
   if (
@@ -98,6 +99,8 @@ export const submitSeries = async (
   values: FormData
 ) => {
   if (form.id === 'series-form') {
+    // From a notebook, its pages are the episodes' and its repos theirs.
+    const from = String(values.get('from') || '')
     const path = String(values.get('path') || '').trim()
     const branch = String(values.get('branch') || '').trim()
     const created = (await busy(form.querySelector('button.primary')!, () =>
@@ -105,10 +108,18 @@ export const submitSeries = async (
         title: values.get('title'),
         about: values.get('about'),
         growth: values.get('growth'),
-        repos: path ? [{ path, ...(branch ? { branch } : {}) }] : []
+        ...(from
+          ? { from }
+          : { repos: path ? [{ path, ...(branch ? { branch } : {}) }] : [] })
       })
     )) as Series
     app.series = await seriesApi.list()
+    if (from) {
+      // Its map shows the series, and the episodes as they are planned.
+      app.dialog.close()
+      void app.mapCanvas.open(from)
+      return
+    }
     // The home page behind the dialog shows the new series' tile.
     app.render()
     await showSeries(app, created.id)

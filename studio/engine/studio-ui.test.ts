@@ -169,11 +169,12 @@ it('lists the series, and shows one’s arc, episodes and the next', async () =>
       { id: 's', title: 'Rate limits', episodes: 1, planned: 4, updatedAt: '' }
     ])
   ).toContain('1 episode of 4 planned')
+  // The studio proposes the episodes unless told otherwise (review 8).
   expect(
     doc(newSeriesDialog()).querySelector<HTMLInputElement>(
       'input[name="growth"][checked]'
     )?.value
-  ).toBe('one')
+  ).toBe('arc')
   const series = {
     id: 's',
     title: 'Rate limits',

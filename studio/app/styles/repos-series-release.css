@@ -132,6 +132,38 @@
   padding: 0;
   border: 0;
 }
+/* The notebooks a series can start from, in a short list (review 8). */
+.series-from > div {
+  display: grid;
+  gap: 2px;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+.dialog-body .series-from label {
+  margin: 0;
+  padding: 5px 2px;
+  font-size: 13px;
+}
+.dialog-body .series-from label.is-waiting {
+  color: var(--muted);
+}
+.dialog-body .series-from small {
+  flex-basis: auto;
+  margin-left: auto;
+}
+.dialog-body .series-from p {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+.series-code {
+  margin: 4px 0 12px;
+}
+.series-code summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
 .series-about {
   color: var(--muted);
 }
