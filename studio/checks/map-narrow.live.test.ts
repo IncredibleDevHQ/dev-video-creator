@@ -184,3 +184,85 @@ it('puts the notes in a sheet on a phone, the bar and the toast above it, the ma
   expect.soft(at.undo, 'Undo can be pressed').toBe(true)
   expect.soft(at.add, 'the sheet’s Add can be pressed').toBe(true)
 }, 120_000)
+
+it('keeps the plan bar’s field, length, Organise and buttons apart, with Notes open, at every width', async () => {
+  const file = join(dir, 'plan.html')
+  await writeFile(
+    file,
+    `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="file://${style}"></head><body>${await painted(
+      (map) => map.askPlan()
+    )}</body></html>`
+  )
+  const tab = await browser.newPage()
+  await tab.emulateMediaFeatures([
+    { name: 'prefers-reduced-motion', value: 'reduce' }
+  ])
+  for (const width of [1206, 1024, 900, 800, 390]) {
+    await tab.setViewport({ width, height: 860 })
+    await tab.goto(`file://${file}`, { waitUntil: 'load' })
+    const at = await tab.evaluate(() => {
+      const bar = document.querySelector('[data-map-slot="bar"]')!
+      const box = (node: Element) => {
+        const r = node.getBoundingClientRect()
+        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom }
+      }
+      const form = bar.querySelector('[data-map-form="plan"]')!
+      const field = form.querySelector('input[name="ideas"]')!
+      const parts = {
+        field,
+        length: form.querySelector('[data-map="length"]')!,
+        organise: form.querySelector('.map-plan-check')!,
+        plan: form.querySelector('button[type="submit"]')!,
+        cancel: form.querySelector('[data-map="cancel"]')!
+      }
+      const hits = (node: Element) => {
+        const r = node.getBoundingClientRect()
+        return node.contains(
+          document.elementFromPoint(
+            (r.left + r.right) / 2,
+            (r.top + r.bottom) / 2
+          )
+        )
+      }
+      return {
+        bar: box(bar),
+        rail: box(document.querySelector('.map-rail')!),
+        label: box(field.closest('label')!),
+        parts: Object.fromEntries(
+          Object.entries(parts).map(([name, node]) => [name, box(node)])
+        ),
+        pressed: Object.fromEntries(
+          Object.entries(parts).map(([name, node]) => [name, hits(node)])
+        )
+      }
+    })
+    const where = `${width} px`
+    const names = Object.keys(at.parts) as Array<keyof typeof at.parts>
+    // None draws over another, all inside the bar, each can be pressed.
+    for (const [i, one] of names.entries())
+      for (const other of names.slice(i + 1))
+        expect
+          .soft(
+            meets(at.parts[one], at.parts[other]),
+            `${where}: ${one}, ${other}`
+          )
+          .toBe(false)
+    for (const name of names) {
+      expect.soft(at.pressed[name], `${where}: ${name} pressed`).toBe(true)
+      expect
+        .soft(at.parts[name].left, `${where}: ${name} in the bar`)
+        .toBeGreaterThanOrEqual(at.bar.left)
+      expect
+        .soft(at.parts[name].right, `${where}: ${name} in the bar`)
+        .toBeLessThanOrEqual(at.bar.right)
+    }
+    // The field keeps room to type, inside its label.
+    expect
+      .soft(at.parts.field.right - at.parts.field.left, `${where}: field`)
+      .toBeGreaterThanOrEqual(120)
+    expect
+      .soft(at.parts.field.right, `${where}: field in its label`)
+      .toBeLessThanOrEqual(at.label.right + 0.5)
+    expect.soft(meets(at.bar, at.rail), `${where}: bar, notes`).toBe(false)
+  }
+}, 120_000)

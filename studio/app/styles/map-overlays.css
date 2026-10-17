@@ -313,3 +313,17 @@
   width: auto;
   min-width: 0;
 }
+/* Narrow (the notes open, a phone), the question keeps its field whole and
+   the rest wraps under it, never over it (round 1: at 900 px the field ran
+   over the length; it is where the length is set before the first plan). */
+.map-plan {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+.map-plan > label:first-child {
+  flex: 1 1 280px;
+  min-width: min(100%, 240px);
+}
+.map-plan > .map-length {
+  flex: none;
+}
