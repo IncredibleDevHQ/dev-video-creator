@@ -15,16 +15,20 @@ process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { parseHTML } = await import('linkedom')
 const plan = await import('../shared/campaign')
 const { changeItem, planCampaignFor } = await import('./campaign')
+const { updateRelease } = await import('./release')
 const { writeRow } = await import('./persistence')
 const { campaignSection } = await import('../app/campaign-view')
 const { youtubeSection, localTime } = await import('../app/release-view')
-const { submitRelease, syncPublishForm } =
+const { clickRelease, submitRelease, syncPublishForm } =
   await import('../app/release-controller')
 afterAll(() => rm(root, { recursive: true, force: true }))
 
 const doc = (html: string) => parseHTML(`<div>${html}</div>`).document
 // The release the reviewer saved: 20 October 2026 at 18:00, their time.
 const RELEASE = new Date(2026, 9, 20, 18, 0).toISOString()
+// Planned in good time, three weeks out; the reviewer planned on 17 October.
+const EARLY = new Date(2026, 8, 29, 9, 0)
+const TODAY = new Date(2026, 9, 17, 8, 53)
 const project = (
   release: Partial<NonNullable<Project['release']>> = {}
 ): Project => ({
@@ -54,7 +58,7 @@ const launchOf = (value: Project, channel: string) =>
   )!
 
 it('launches YouTube at the saved release time, the posts after it, and moves them with the release (F17)', () => {
-  const items = plan.planCampaign(project())
+  const items = plan.planCampaign(project(), { now: EARLY })
   const at = (channel: string) =>
     plan.dueAt(
       RELEASE,
@@ -182,7 +186,7 @@ it('says when the time chosen to publish is not the campaign’s launch (F17)', 
 })
 
 it('says when YouTube publishes the upload away from the campaign’s launch (F17)', () => {
-  const items = plan.planCampaign(project())
+  const items = plan.planCampaign(project(), { now: EARLY })
   const youtube = items.find((item) => item.id === 'launch-youtube-0')!
   youtube.state = 'posted'
   youtube.postUrl = 'https://www.youtube.com/watch?v=vid123'
@@ -207,7 +211,7 @@ it('says when YouTube publishes the upload away from the campaign’s launch (F1
 })
 
 it('sends a launch’s day and time only when they were changed (F17)', async () => {
-  const items = plan.planCampaign(project())
+  const items = plan.planCampaign(project(), { now: EARLY })
   const value = project({ campaign: items })
   const app = {
     snapshot: snapshot(value),
@@ -237,5 +241,151 @@ it('sends a launch’s day and time only when they were changed (F17)', async ()
   expect(notebook.mock.calls.at(-1)![2]).toMatchObject({
     time: '17:30',
     offsetDays: 0
+  })
+})
+
+it('plans around today: teasers whose day has gone move closer or are left out, and it says so (F18)', () => {
+  const ids = (items: Array<{ id: string }>) => items.map((item) => item.id)
+  // On 17 October, three days out: no step dated before today.
+  const near = plan.campaignPlan(project(), { now: TODAY })
+  expect(near.items.every((item) => plan.dueAt(RELEASE, item) > TODAY)).toBe(
+    true
+  )
+  expect(ids(near.items)).not.toContain('teaser-x--14')
+  expect(ids(near.items)).toContain('teaser-x--2')
+  // LinkedIn's only teaser moves to the soonest day still ahead.
+  expect(
+    near.items.find((item) => item.id === 'teaser-linkedin--2')
+  ).toMatchObject({ offsetDays: -2, words: 'One tap? Out soon.' })
+  expect(near.note).toBe(
+    'The release is in 3 days: 1 teaser moved closer, 1 left out.'
+  )
+  // In good time, the plan is whole and says nothing.
+  const early = plan.campaignPlan(project(), { now: EARLY })
+  expect(ids(early.items).slice(0, 3)).toEqual([
+    'teaser-x--14',
+    'teaser-linkedin--7',
+    'teaser-x--2'
+  ])
+  expect(early.note).toBeUndefined()
+  // Two days out, the countdown moves and says "tomorrow".
+  const two = plan.campaignPlan(project(), {
+    now: new Date(2026, 9, 18, 10, 0)
+  })
+  expect(two.items.find((item) => item.id === 'teaser-x--1')?.words).toBe(
+    'One click, two lattes: tomorrow.'
+  )
+  expect(two.note).toBe(
+    'The release is in 2 days: 2 teasers moved closer, 1 left out.'
+  )
+  // The day before, too late for any teaser; and after it.
+  expect(
+    plan.campaignPlan(project(), { now: new Date(2026, 9, 19, 10, 0) }).note
+  ).toBe('The release is tomorrow: 3 teasers left out.')
+  expect(
+    plan.campaignPlan(project(), { now: new Date(2026, 9, 21, 9, 0) }).note
+  ).toBe('The release date has passed: 3 teasers left out.')
+  // A channel that has posted its teaser gets no second one moved closer.
+  const posted = {
+    ...early.items[0],
+    state: 'posted' as const,
+    postUrl: 'https://x.com/i/web/status/1'
+  }
+  const after = plan.campaignPlan(project({ campaign: [posted] }), {
+    now: new Date(2026, 9, 18, 10, 0)
+  })
+  expect(ids(after.items)).toContain('teaser-x--14')
+  expect(
+    after.items.filter((item) => item.channel === 'x' && item.offsetDays < 0)
+  ).toHaveLength(1)
+})
+
+it('keeps what the plan left out with the campaign until the release moves (F18)', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(TODAY)
+  try {
+    await save({ ...project(), id: 'r8-note' })
+    const planned = await planCampaignFor('r8-note')
+    expect(planned.project.release!.campaignNote).toBe(
+      'The release is in 3 days: 1 teaser moved closer, 1 left out.'
+    )
+    expect(
+      doc(campaignSection(planned, TODAY)).querySelector(
+        '.campaign > .release-note'
+      )?.textContent
+    ).toBe('The release is in 3 days: 1 teaser moved closer, 1 left out.')
+    const moved = await updateRelease('r8-note', {
+      at: new Date(2026, 10, 20, 18, 0).toISOString()
+    })
+    expect(moved.project.release!.campaignNote).toBeUndefined()
+    const again = await planCampaignFor('r8-note')
+    expect(again.project.release!.campaignNote).toBeUndefined()
+    expect(again.project.release!.campaign).toHaveLength(8)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('marks every step whose time has gone, approved or not, with a way to move it (F18)', async () => {
+  // A plan made in good time, opened on 17 October.
+  const items = plan.planCampaign(project(), { now: EARLY })
+  items.find((item) => item.id === 'launch-x-0')!.state = 'approved'
+  const old = { ...items[0], id: 'teaser-x-old', state: 'approved' as const }
+  const value = project({ campaign: [...items, old] })
+  const page = doc(campaignSection(snapshot(value), TODAY))
+  const row = (id: string) =>
+    page
+      .querySelector(`.campaign-edit[data-item="${id}"]`)!
+      .closest('.campaign-item')!
+  for (const id of ['teaser-x--14', 'teaser-linkedin--7']) {
+    expect(row(id).classList.contains('is-overdue')).toBe(true)
+    expect(row(id).querySelector('.campaign-when small')?.textContent).toBe(
+      'overdue'
+    )
+    const move = row(id).querySelector<HTMLElement>(
+      '[data-action="campaign-move"]'
+    )!
+    expect(move.dataset.days).toBe('-2')
+    expect(move.textContent).toMatch(/^Move to /)
+  }
+  // An approved X teaser before the release is due: post it now.
+  expect(row('teaser-x-old').classList.contains('is-due')).toBe(true)
+  expect(row('teaser-x-old').classList.contains('is-overdue')).toBe(false)
+  // What is still ahead carries no mark.
+  expect(row('teaser-x--2').className).toBe('campaign-item is-draft')
+  // Once the release is out, a teaser is no longer due but overdue, and so
+  // is YouTube's launch never uploaded; neither can move closer.
+  const later = new Date(2026, 9, 21, 9, 0)
+  const out = doc(campaignSection(snapshot(value), later))
+  const stale = out
+    .querySelector('.campaign-edit[data-item="teaser-x-old"]')!
+    .closest('.campaign-item')!
+  expect(stale.classList.contains('is-overdue')).toBe(true)
+  expect(stale.querySelector('[data-action="campaign-move"]')).toBeNull()
+  expect(plan.dueItems(value.release, later).map((item) => item.id)).toEqual([
+    'launch-x-0'
+  ])
+  const youtube = out
+    .querySelector('.campaign-edit[data-item="launch-youtube-0"]')!
+    .closest('.campaign-item')!
+  expect(youtube.classList.contains('is-overdue')).toBe(true)
+  // Moving it asks for the soonest day.
+  const app = {
+    snapshot: snapshot(value),
+    dialog: { open: false, dataset: {}, querySelector: () => null },
+    showDialog: vi.fn()
+  }
+  notebook.mockResolvedValue(snapshot(value))
+  await clickRelease(
+    app as never,
+    row('teaser-x--14').querySelector<HTMLButtonElement>(
+      '[data-action="campaign-move"]'
+    )!,
+    'campaign-move'
+  )
+  expect(notebook.mock.calls.at(-1)![2]).toEqual({
+    action: 'change',
+    item: 'teaser-x--14',
+    offsetDays: -2
   })
 })

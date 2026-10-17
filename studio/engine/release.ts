@@ -206,6 +206,8 @@ export const updateRelease = (id: string, raw: unknown) => {
       const at = value.at ? new Date(String(value.at)) : null
       if (at && Number.isNaN(at.getTime()))
         throw new Refusal('Give the release a date')
+      // What the last plan said about its days no longer holds.
+      if (at?.toISOString() !== release.at) delete release.campaignNote
       if (at) release.at = at.toISOString()
       else delete release.at
     }

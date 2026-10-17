@@ -47,11 +47,72 @@ export const dueAt = (releaseAt: string, item: CampaignItem) => {
 export const clockOf = (releaseAt: string, item: CampaignItem) =>
   clockAt(dueAt(releaseAt, item))
 
+/** How soon a step can still be planned for: an hour from now, time to
+ * approve and post it. */
+const LEAD_MS = 60 * 60_000
+const late = (releaseAt: string, item: CampaignItem, now: Date) =>
+  dueAt(releaseAt, item).getTime() <= now.getTime() + LEAD_MS
+
+/** The soonest day an item can still go out at its time, from now: before
+ * the release for a teaser, within 60 days of it otherwise; null if none. */
+export const nextDay = (
+  releaseAt: string,
+  item: CampaignItem,
+  now = new Date()
+) => {
+  for (
+    let days = item.offsetDays + 1;
+    days <= (item.offsetDays < 0 ? -1 : 60);
+    days++
+  )
+    if (!late(releaseAt, { ...item, offsetDays: days }, now)) return days
+  return null
+}
+
+const midnight = (at: Date) =>
+  new Date(at.getFullYear(), at.getMonth(), at.getDate()).getTime()
+
+/** What a plan made close to the release left out or moved, in a line. */
+const fitNote = (releaseAt: string, now: Date, moved: number, left: number) => {
+  if (!moved && !left) return undefined
+  const days = Math.round(
+    (midnight(new Date(releaseAt)) - midnight(now)) / 86_400_000
+  )
+  const when =
+    days < 0
+      ? 'The release date has passed'
+      : days === 0
+        ? 'The release is today'
+        : days === 1
+          ? 'The release is tomorrow'
+          : `The release is in ${days} days`
+  const teasers = (count: number) => `${count} teaser${count === 1 ? '' : 's'}`
+  return `${when}: ${
+    moved && left
+      ? `${teasers(moved)} moved closer, ${left} left out`
+      : moved
+        ? `${teasers(moved)} moved closer`
+        : `${teasers(left)} left out`
+  }.`
+}
+
 /** The default plan; posted items are the creator's and stay as they are. */
 export const planCampaign = (
   project: Project,
-  options: { lastOfRun?: boolean } = {}
-): CampaignItem[] => {
+  options: { lastOfRun?: boolean; now?: Date } = {}
+): CampaignItem[] => campaignPlan(project, options).items
+
+/**
+ * The plan, made today: teasers whose day has gone are moved to the soonest
+ * day still before the release, one for each channel that has no later one,
+ * and the rest left out, with a line saying so (review 8: a plan made three
+ * days out offered teasers dated 6 and 13 October as ordinary drafts).
+ */
+export const campaignPlan = (
+  project: Project,
+  options: { lastOfRun?: boolean; now?: Date } = {}
+): { items: CampaignItem[]; note?: string } => {
+  const now = options.now || new Date()
   const release: Release = project.release || { teasers: [], campaign: [] }
   const posts = release.posts
   const ready = release.teasers.filter((item) => item.state === 'ready')
@@ -93,10 +154,12 @@ export const planCampaign = (
   }
   const coming = (channel: Channel) =>
     `${firstLine(posts?.[channel]) || project.title} Out soon.`
+  const countdown = (days: number) =>
+    `${project.title}: ${days === -1 ? 'tomorrow' : days === -2 ? 'in two days' : `in ${-days} days`}.`
   const plan = [
     item('teaser', 'x', -14, teaserFor('x'), coming('x')),
     item('teaser', 'linkedin', -7, teaserFor('linkedin'), coming('linkedin')),
-    item('teaser', 'x', -2, teaserFor('x'), `${project.title}: in two days.`),
+    item('teaser', 'x', -2, teaserFor('x'), countdown(-2)),
     launch('youtube', posts?.youtube || project.title),
     launch('x', `${posts?.x || project.title} ${LINK}`),
     launch('linkedin', `${posts?.linkedin || project.title}\n\n${LINK}`),
@@ -124,15 +187,44 @@ export const planCampaign = (
   const kept = release.campaign.filter(
     (entry) => entry.state === 'posted' || entry.state === 'unknown'
   )
-  const all = [
-    ...kept,
-    ...plan.filter((entry) => !kept.some((done) => done.id === entry.id))
-  ]
-  return release.at
-    ? all.sort(byDue(release.at))
-    : all.sort(
-        (a, b) => a.offsetDays - b.offsetDays || a.time.localeCompare(b.time)
+  let fresh = plan.filter((entry) => !kept.some((done) => done.id === entry.id))
+  let note: string | undefined
+  const at = release.at
+  if (at) {
+    const gone = fresh.filter(
+      (entry) => entry.offsetDays < 0 && late(at, entry, now)
+    )
+    fresh = fresh.filter((entry) => !gone.includes(entry))
+    let moved = 0
+    for (const channel of new Set(gone.map((entry) => entry.channel))) {
+      const covered = [...fresh, ...kept].some(
+        (entry) => entry.channel === channel && entry.offsetDays < 0
       )
+      const latest = gone.filter((entry) => entry.channel === channel).at(-1)!
+      const days = covered ? null : nextDay(at, latest, now)
+      if (days === null) continue
+      moved++
+      fresh.push({
+        ...latest,
+        id: `${latest.kind}-${channel}-${days}`,
+        offsetDays: days,
+        words:
+          latest.words === countdown(latest.offsetDays)
+            ? countdown(days)
+            : latest.words
+      })
+    }
+    note = fitNote(at, now, moved, gone.length - moved)
+  }
+  const all = [...kept, ...fresh]
+  return {
+    items: at
+      ? all.sort(byDue(at))
+      : all.sort(
+          (a, b) => a.offsetDays - b.offsetDays || a.time.localeCompare(b.time)
+        ),
+    ...(note ? { note } : {})
+  }
 }
 
 /** The campaign in the order it goes out. */
@@ -167,14 +259,30 @@ export const youtubeLaunch = (release: Release | undefined) => {
     : { at: new Date(release.at), own: false }
 }
 
+/** An approved X or LinkedIn item whose time has come: the creator posts it
+ * now. A teaser stops being one once the release is out. */
+const isDue = (releaseAt: string, item: CampaignItem, now: Date) =>
+  item.state === 'approved' &&
+  item.channel !== 'youtube' &&
+  dueAt(releaseAt, item) <= now &&
+  !(item.offsetDays < 0 && new Date(releaseAt) <= now)
+
 /** Approved items whose time has come and which have not gone out. */
 export const dueItems = (release: Release | undefined, now = new Date()) =>
   release?.at
+    ? release.campaign.filter((item) => isDue(release.at!, item, now))
+    : []
+
+/** Every other item whose time has gone without it going out, whether it was
+ * approved or not: a draft, YouTube's launch, a teaser after the release
+ * (review 8: past drafts looked like upcoming work). */
+export const overdueItems = (release: Release | undefined, now = new Date()) =>
+  release?.at
     ? release.campaign.filter(
         (item) =>
-          item.state === 'approved' &&
-          item.channel !== 'youtube' &&
-          dueAt(release.at!, item) <= now
+          (item.state === 'draft' || item.state === 'approved') &&
+          dueAt(release.at!, item) <= now &&
+          !isDue(release.at!, item, now)
       )
     : []
 

@@ -120,6 +120,16 @@ export const clickRelease = async (
         follow: true
       })
     )
+  // An overdue item moved to the soonest day it can still go out.
+  if (action === 'campaign-move')
+    update(
+      app,
+      await studioApi.notebook(id, 'campaign', {
+        action: 'change',
+        item: target.dataset.item,
+        offsetDays: Number(target.dataset.days)
+      })
+    )
   if (action === 'campaign-state')
     update(
       app,

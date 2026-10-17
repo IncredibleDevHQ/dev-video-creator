@@ -91,6 +91,8 @@ export type Release = {
   posts?: PostWords
   drafting?: { state: 'drafting' | 'failed'; error?: string; at: string }
   campaign: CampaignItem[]
+  /** What the last plan left out or moved, planned close to the release. */
+  campaignNote?: string
   youtube?: YouTubeUpload
   numbers?: NumbersSnapshot[]
 }

@@ -13,6 +13,9 @@ const { saveSetting, storeAsset, writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
 afterAll(() => rm(root, { recursive: true, force: true }))
 afterEach(() => vi.unstubAllGlobals())
+// A release a month out: every teaser's day is still ahead (review 8 plans
+// around today, leaving out the days gone by).
+const LATER = new Date(Date.now() + 30 * 86_400_000).toISOString()
 
 const project = (
   release: Partial<NonNullable<Project['release']>> = {}
@@ -93,7 +96,10 @@ it('dates each item from the release, and knows which are due', () => {
     ...project().release!,
     at: new Date(2026, 9, 20, 12).toISOString()
   }
-  const [first] = plan.planCampaign({ ...project(), release })
+  const [first] = plan.planCampaign(
+    { ...project(), release },
+    { now: new Date(2026, 9, 1) }
+  )
   expect(plan.dueAt(release.at, first)).toEqual(new Date(2026, 9, 6, 9, 0))
   release.campaign = [
     { ...first, state: 'approved' },
@@ -135,7 +141,7 @@ it('changes, approves and posts an item only when asked, with its tagged link', 
   await writeRow('projects', 'launch', {
     project: {
       ...base,
-      release: { ...base.release!, at: '2026-10-20T09:00:00.000Z' }
+      release: { ...base.release!, at: LATER }
     },
     status: 'ready',
     error: null,
@@ -208,7 +214,7 @@ it('changes, approves and posts an item only when asked, with its tagged link', 
 
 it('claims an item before posting it, finds a teaser cut later, and checks the length', async () => {
   const base = project({
-    at: '2026-10-20T09:00:00.000Z',
+    at: LATER,
     youtube: { state: 'uploaded', videoId: 'dQw4w9WgXcQ', at: '' }
   })
   base.id = 'claims'
@@ -313,7 +319,7 @@ it('posts the words on screen, and treats a post with no answer as maybe out', a
       ...base,
       release: {
         ...base.release!,
-        at: '2026-10-20T09:00:00.000Z',
+        at: LATER,
         youtube: { state: 'uploaded', videoId: 'dQw4w9WgXcQ', at: '' }
       }
     },

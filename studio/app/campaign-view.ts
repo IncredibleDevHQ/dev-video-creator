@@ -8,6 +8,8 @@ import {
   dueAt,
   dueItems,
   launchWords,
+  nextDay,
+  overdueItems,
   ownLaunchTime,
   whenWords
 } from '../shared/campaign'
@@ -37,12 +39,22 @@ const editForm = (item: CampaignItem, clock: string) =>
 const itemRow = (
   item: CampaignItem,
   releaseAt: string,
-  due: boolean,
-  publishAt?: string
+  mark: { due: boolean; overdue: boolean; now: Date; publishAt?: string }
 ) => {
+  const { due, overdue, publishAt } = mark
   const at = dueAt(releaseAt, item)
   const clock = clockOf(releaseAt, item)
   const when = `${dayAndTime(at)} · ${item.afterRelease === undefined ? whenWords(item.offsetDays) : launchWords(item.afterRelease)}`
+  // Its day gone by: moved to the soonest day it can still go out, or
+  // dropped; a launch post moves with the release instead (review 8).
+  const move =
+    overdue && item.afterRelease === undefined
+      ? nextDay(releaseAt, item, mark.now)
+      : null
+  const moveTo =
+    move === null
+      ? ''
+      : `<button type="button" class="quiet" data-action="campaign-move" data-item="${escape(item.id)}" data-days="${move}">Move to ${escape(dueAt(releaseAt, { ...item, offsetDays: move }).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }))}</button>`
   // A launch post away from the release says so, and can go back to it.
   const own =
     ['draft', 'approved', 'dropped'].includes(item.state) &&
@@ -70,7 +82,7 @@ const itemRow = (
           ? `<a href="${escape(item.postUrl || '#')}" target="_blank" rel="noopener">Posted</a>`
           : item.state === 'dropped'
             ? `<button type="button" class="quiet" data-action="campaign-state" data-item="${escape(item.id)}" data-state="draft">Restore</button>`
-            : `${
+            : `${moveTo}${
                 own
                   ? `<button type="button" class="quiet" data-action="campaign-follow" data-item="${escape(item.id)}">Move with the release</button>`
                   : ''
@@ -83,8 +95,8 @@ const itemRow = (
                   ? ''
                   : `<button type="button" ${due ? 'class="primary"' : 'class="quiet"'} data-action="campaign-post" data-item="${escape(item.id)}" data-channel="${item.channel}">Post now</button>`
               }`
-  return `<li class="campaign-item is-${item.state}${due ? ' is-due' : ''}">
-<p class="campaign-when"><b>${KIND_WORDS[item.kind]}</b> ${CHANNEL_LABELS[item.channel]} · ${escape(when)}${own ? ' <small class="campaign-own">its own time</small>' : ''}${due ? ' <small>due</small>' : ''}</p>
+  return `<li class="campaign-item is-${item.state}${due ? ' is-due' : ''}${overdue ? ' is-overdue' : ''}">
+<p class="campaign-when"><b>${KIND_WORDS[item.kind]}</b> ${CHANNEL_LABELS[item.channel]} · ${escape(when)}${own ? ' <small class="campaign-own">its own time</small>' : ''}${due ? ' <small>due</small>' : ''}${overdue ? ' <small>overdue</small>' : ''}</p>
 ${
   ['posted', 'dropped', 'posting', 'unknown'].includes(item.state)
     ? `<p class="campaign-words">${escape(item.words)}</p>`
@@ -95,17 +107,28 @@ ${scheduled ? `<p class="campaign-note">YouTube publishes it ${escape(dayAndTime
 <div class="campaign-actions">${actions}</div></li>`
 }
 
-export const campaignSection = (snapshot: Snapshot) => {
+export const campaignSection = (snapshot: Snapshot, now = new Date()) => {
   const release = snapshot.project.release
   if (!release?.at)
     return `<section class="release-section"><h3>Campaign</h3><p class="release-state">Set when it goes out to plan the campaign around it.</p></section>`
-  const due = new Set(dueItems(release).map((item) => item.id))
+  const due = new Set(dueItems(release, now).map((item) => item.id))
+  const overdue = new Set(overdueItems(release, now).map((item) => item.id))
   // In the order things go out: a moved release moves the launch posts.
   const items = [...release.campaign].sort(byDue(release.at))
   return `<section class="release-section campaign"><h3>Campaign <small>nothing posts on its own</small></h3>
+${release.campaignNote ? `<p class="release-note">${escape(release.campaignNote)}</p>` : ''}
 ${
   items.length
-    ? `<ol class="campaign-list">${items.map((item) => itemRow(item, release.at!, due.has(item.id), release.youtube?.publishAt)).join('')}</ol>`
+    ? `<ol class="campaign-list">${items
+        .map((item) =>
+          itemRow(item, release.at!, {
+            due: due.has(item.id),
+            overdue: overdue.has(item.id),
+            now,
+            publishAt: release.youtube?.publishAt
+          })
+        )
+        .join('')}</ol>`
     : ''
 }
 <p class="release-note">Only YouTube schedules on its own. An approved X or LinkedIn item waits here when its time comes; ${'{link}'} becomes the video’s tagged link.</p>

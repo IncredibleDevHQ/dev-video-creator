@@ -440,7 +440,8 @@
   border: 1px solid var(--line);
   border-radius: 10px;
 }
-.campaign-item.is-due {
+.campaign-item.is-due,
+.campaign-item.is-overdue {
   border-color: var(--accent, #e11d48);
 }
 .campaign-item.is-dropped {
@@ -477,6 +478,7 @@
 }
 .campaign-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   justify-content: flex-end;
 }

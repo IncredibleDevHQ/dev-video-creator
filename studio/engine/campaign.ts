@@ -5,8 +5,8 @@
 import {
   LAUNCH_AFTER,
   LINK,
+  campaignPlan,
   clockOf,
-  planCampaign,
   withUtm
 } from '../shared/campaign'
 import { emptyRelease, type CampaignItem } from '../shared/release'
@@ -32,7 +32,11 @@ export const planCampaignFor = async (id: string) => {
   )
   return changeProject(id, (current) => {
     const release = current.project.release || emptyRelease()
-    release.campaign = planCampaign(current.project, { lastOfRun })
+    // Planned today: what has gone by is moved closer or left out, and said.
+    const plan = campaignPlan(current.project, { lastOfRun })
+    release.campaign = plan.items
+    if (plan.note) release.campaignNote = plan.note
+    else delete release.campaignNote
     current.project.release = release
   })
 }
