@@ -6,19 +6,22 @@ import type { Snapshot } from '../shared/api'
 import type { Project } from '../shared/model'
 // Review 8, round 2: the campaign after the first fixes. Nothing posts: the
 // campaign is planned, changed and shown, all on throwaway notebooks.
-const { notebook, confirm } = vi.hoisted(() => ({
+const { notebook, confirm, request } = vi.hoisted(() => ({
   notebook: vi.fn(),
-  confirm: vi.fn()
+  confirm: vi.fn(),
+  request: vi.fn()
 }))
 vi.mock('../app/studio-api', () => ({
-  studioApi: { request: vi.fn(), notebook }
+  studioApi: { request, notebook }
 }))
 vi.mock('../app/confirm-action', () => ({ confirmAction: confirm }))
 const root = await mkdtemp(join(tmpdir(), 'minimal-review-8-campaign-3-'))
 process.env.MINIMAL_STUDIO_DATA_DIR = root
 const { parseHTML } = await import('linkedom')
 const plan = await import('../shared/campaign')
-const { changeItem, planCampaignFor } = await import('./campaign')
+const { campaignLoss, changeItem, planCampaignFor } = await import('./campaign')
+// The page asks the engine what a plan leaves out (round 3).
+request.mockImplementation((path: string) => campaignLoss(path.split('/')[2]))
 const { setYouTubeVideo } = await import('./numbers')
 const { writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')

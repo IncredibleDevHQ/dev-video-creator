@@ -9,7 +9,8 @@ import {
   clockOf,
   markYouTubeUp,
   timed,
-  withUtm
+  withUtm,
+  type Lost
 } from '../shared/campaign'
 import { emptyRelease, type CampaignItem } from '../shared/release'
 import { needsShapeCut, shapeName } from '../shared/teaser-shape'
@@ -22,12 +23,10 @@ import { Refusal } from './refusal'
 import { UncertainPost } from './posting'
 import { loadSeries } from './series'
 
-/** Plans (or re-plans) the campaign; posted items stay as they went out,
- * and the rest keep what the creator made of them. A plan that would leave
- * out a step the creator approved, wrote or timed waits for their yes
- * (review 8, round 2: Plan again dropped them without a word). */
-export const planCampaignFor = async (id: string, raw: unknown = {}) => {
-  const sure = (raw as { confirmed?: unknown })?.confirmed === true
+/** Whether a plan made now closes a run: the episode is the last of its
+ * series' arc. The one place this is decided, for the plan and for what the
+ * page asks before it. */
+const planOptions = async (id: string) => {
   const snapshot = await loadProject(id)
   if (!snapshot) throw new Refusal('Notebook not found')
   if (!snapshot.project.release?.at)
@@ -37,6 +36,25 @@ export const planCampaignFor = async (id: string, raw: unknown = {}) => {
   const lastOfRun = Boolean(
     series?.arc && episode && episode.number >= series.arc.parts.length
   )
+  return { project: snapshot.project, lastOfRun }
+}
+
+/** What planning again now would leave out of what the creator made, as
+ * the plan itself reckons it: the page asks this before it plans, and says
+ * it (review 8, round 3: the page guessed the run's end from a recap, so a
+ * series grown since never asked, and every click was refused). */
+export const campaignLoss = async (id: string): Promise<{ lost: Lost[] }> => {
+  const { project, lastOfRun } = await planOptions(id)
+  return { lost: campaignPlan(project, { lastOfRun }).lost }
+}
+
+/** Plans (or re-plans) the campaign; posted items stay as they went out,
+ * and the rest keep what the creator made of them. A plan that would leave
+ * out a step the creator approved, wrote or timed waits for their yes
+ * (review 8, round 2: Plan again dropped them without a word). */
+export const planCampaignFor = async (id: string, raw: unknown = {}) => {
+  const sure = (raw as { confirmed?: unknown })?.confirmed === true
+  const { lastOfRun } = await planOptions(id)
   return changeProject(id, (current) => {
     const release = current.project.release || emptyRelease()
     // Planned today: what has gone by is moved closer or left out, and said.

@@ -1,7 +1,7 @@
 // The release dialog: teasers, words, the bundle, and what follows it.
 import type { Snapshot } from '../shared/api'
 import type { AppContext } from './app-context'
-import { campaignPlan, timed } from '../shared/campaign'
+import { timed, type Lost } from '../shared/campaign'
 import { campaignSection, lostWords } from './campaign-view'
 import { confirmAction } from './confirm-action'
 import { numbersSection } from './numbers-view'
@@ -116,14 +116,17 @@ export const clickRelease = async (
   const id = app.snapshot.project.id
   if (action === 'release-dialog') showRelease(app)
   // Planned again, each step keeps what the creator made of it; one the
-  // new plan leaves out is said first (review 8, round 2).
+  // new plan leaves out is said first (review 8, round 2), as the engine
+  // reckons it: it alone knows where the series' run ends (round 3).
   if (action === 'plan-campaign') {
     const release = timed(app.snapshot.project.release)
-    const lost = release
-      ? campaignPlan(app.snapshot.project, {
-          lastOfRun: release.campaign.some((item) => item.kind === 'recap')
-        }).lost
-      : []
+    const { lost } = release
+      ? await studioApi.request<{ lost: Lost[] }>(
+          `/projects/${encodeURIComponent(id)}/campaign`,
+          'POST',
+          { action: 'lost' }
+        )
+      : { lost: [] as Lost[] }
     if (lost.length) {
       const sure = await confirmAction({
         title: 'Plan the campaign again?',

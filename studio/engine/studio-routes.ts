@@ -13,7 +13,7 @@ import {
   validProvider
 } from './accounts'
 import { enterNumbers, readNumbers, setYouTubeVideo } from './numbers'
-import { changeItem, planCampaignFor, postItem } from './campaign'
+import { campaignLoss, changeItem, planCampaignFor, postItem } from './campaign'
 import { captureDemo } from './product-capture'
 import { draftPosts, updateRelease, uploadBundle } from './release'
 import { coverFor } from './release-cover'
@@ -143,7 +143,9 @@ const route = async (
           ? await postItem(id, body)
           : body.action === 'change'
             ? await changeItem(id, body)
-            : await planCampaignFor(id, body)
+            : body.action === 'lost'
+              ? await campaignLoss(id)
+              : await planCampaignFor(id, body)
       )
     if (action === 'youtube' && method === 'POST')
       return ok(await publishToYouTube(id, body))
