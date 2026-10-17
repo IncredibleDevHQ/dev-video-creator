@@ -78,3 +78,37 @@ Final checks: 230 test files / 1,504 tests passed. After the final composer/layo
 
 
 ![Ten completed wireframes generated from the saved research outline](projects-research-evidence/project-chat-wireframes.png)
+
+
+## Explicit Kimi K3 validation
+
+The visible parallel stack on 4291/4391 was configured to use Kimi with the explicit model ID `kimi-code/k3`. The research chat and a new **Kimi K3 validation** notebook both persist that selection; the new-notebook default was saved through Settings → Agent & model. Existing historical answers retain their original agents.
+
+- K3 read `studio/engine/research-sessions.ts` in this worktree and `docs/AGENT_GUIDE/ai-chat.md` in Macro through the repository tools. The real research run completed successfully in approximately 89 seconds, with no harness failure.
+- The answer cited both repositories and distinguished implemented behavior from a proposed improvement. Its cited claims were checked against the local source files.
+- **Save answer to notebook** retained the answer and its origin, including the source question and pinned revisions (`df72afc` and `9b4a0a5`). **View source** returned to the correct K3 question.
+- Started real wireframe generation from this saved K3 answer. The target notebook persists `{ adapter: "kimi", model: "kimi-code/k3", label: "K3" }`. Engine records confirm both the requested and reported model are `kimi-code/k3` for research, source analysis, story planning, and drawing.
+- Source analysis and story planning completed successfully. K3 produced the first visible wireframe in a planned ten-wireframe sequence. Drawing was still running when this evidence was captured; this test does not claim all ten wireframes, a finished video, or a YouTube upload.
+- Navigating out of the editor and reloading retained the K3 chat configuration, source-linked note, and running generation. Returning through the generic Back to project link initially selects Notebook 1; the K3 notebook remains available in the notebook selector.
+
+![Explicit Kimi K3 harness selection](projects-research-evidence/kimi-k3-test-settings.png)
+
+![K3 research, source-linked notebook capture, and branching graph](projects-research-evidence/kimi-k3-research-note.png)
+
+
+### K3 test finding: unchanged agent picker cannot close with Done
+
+**Severity: P2 · reproducible · not fixed in this testing pass.** While K3 is generating wireframes, open the agent picker, leave Kimi and K3 unchanged, and click **Done**. The picker remains open with “Wait for the current generation to finish before changing agents.” Escape does dismiss it, and generation continues.
+
+Expected: Done should dismiss an unchanged selection. Actual: `studio/app/agent-menu.ts` always submits settings, and `setNotebookHarness` in `studio/engine/notebook-intake.ts` rejects any submission while generation is active. This makes a harmless inspection look like a failed agent change.
+
+Screenshot annotations: **1 — Kimi/K3 remain selected; no change was made. 2 — Done produces the generation-lock error instead of closing.** See the [annotated evidence](projects-research-evidence/kimi-k3-agent-picker-annotated.html).
+
+![Unchanged K3 agent picker reports an error when Done is clicked during generation](projects-research-evidence/kimi-k3-agent-picker-done-error.png)
+
+
+![First K3-generated wireframe while the remaining sequence is being drawn](projects-research-evidence/kimi-k3-first-wireframe.png)
+
+![The running notebook explicitly selects Kimi K3](projects-research-evidence/kimi-k3-wireframe-harness.png)
+
+This pass changed test settings and added review evidence only. No application source was modified. The earlier automated suite/build results above remain the latest code checks; `git diff --check` passes for this documentation update.
