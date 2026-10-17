@@ -526,9 +526,12 @@ dialog:has(#series-form) {
   border: 1px solid var(--line);
   border-radius: 10px;
 }
-.campaign-item.is-due,
-.campaign-item.is-overdue {
+.campaign-item.is-due {
   border-color: var(--accent, #e11d48);
+}
+/* Overdue is a warning, never the green of what is ready to post. */
+.campaign-item.is-overdue {
+  border-color: var(--warn-line, #e6c58c);
 }
 .campaign-item.is-dropped {
   opacity: 0.55;
@@ -545,6 +548,9 @@ dialog:has(#series-form) {
 }
 .campaign-when small.campaign-own {
   color: var(--muted);
+}
+.campaign-when small.campaign-overdue {
+  color: var(--warn, #9a6512);
 }
 .campaign-edit {
   display: grid;

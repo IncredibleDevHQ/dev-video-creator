@@ -251,3 +251,61 @@ it('previews a portrait teaser at about a phone’s width, with where it reads s
     expect(at.note.right).toBeLessThanOrEqual(at.body.right)
   }
 }, 60_000)
+
+/** Each selector's text colour, its contrast on the dialog, in a theme. */
+const contrasts = async (
+  body: string,
+  theme: 'light' | 'dark',
+  selectors: string[]
+) => {
+  const file = join(dir, `colours-${Math.random()}.html`)
+  await writeFile(
+    file,
+    `<!doctype html><html data-theme="${theme}"><head><meta charset="utf-8"><link rel="stylesheet" href="file://${style}"></head><body><dialog id="dialog" open><div class="dialog-body">${body}</div></dialog></body></html>`
+  )
+  const tab = await browser.newPage()
+  await tab.goto(`file://${file}`, { waitUntil: 'load' })
+  const seen = await tab.evaluate((list) => {
+    const light = (colour: string) => {
+      const [r, g, b] = colour
+        .match(/\d+(\.\d+)?/g)!
+        .slice(0, 3)
+        .map((value) => {
+          const v = Number(value) / 255
+          return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+        })
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+    const ground = getComputedStyle(
+      document.querySelector('#dialog')!
+    ).backgroundColor
+    return Object.fromEntries(
+      list.map((selector) => {
+        const node = document.querySelector(selector)
+        if (!node) return [selector, null]
+        const colour = getComputedStyle(node).color
+        const [high, low] = [light(colour), light(ground)].sort((a, b) => b - a)
+        return [selector, { colour, ratio: (high + 0.05) / (low + 0.05) }]
+      })
+    )
+  }, selectors)
+  await tab.close()
+  return seen as Record<string, { colour: string; ratio: number } | null>
+}
+
+it('marks overdue in a warning colour of its own, readable in either theme (F18, round 1)', async () => {
+  const value: Snapshot = structuredClone(snapshot)
+  value.project.release!.campaign.find(
+    (item) => item.id === 'teaser-x--14'
+  )!.state = 'approved'
+  for (const theme of ['light', 'dark'] as const) {
+    const seen = await contrasts(campaignSection(value, TODAY), theme, [
+      '.is-due .campaign-when small',
+      '.campaign-when small.campaign-overdue'
+    ])
+    const due = seen['.is-due .campaign-when small']!
+    const overdue = seen['.campaign-when small.campaign-overdue']!
+    expect(overdue.colour).not.toBe(due.colour)
+    expect(overdue.ratio).toBeGreaterThanOrEqual(4.5)
+  }
+}, 60_000)

@@ -49,10 +49,11 @@ const itemRow = (
   const at = dueAt(release, item)
   const clock = clockOf(release, item)
   const when = `${dayAndTime(at)} · ${item.afterRelease === undefined ? whenWords(item.offsetDays) : launchWords(release, item)}`
-  // Its day gone by: moved to the soonest day it can still go out, or
-  // dropped; a launch post moves with the release instead (review 8).
+  // Its day gone by, approved or not: moved to the soonest day it can still
+  // go out, or dropped; a launch post moves with the release instead
+  // (review 8; round 1: an approved teaser past its day had no Move).
   const move =
-    overdue && item.afterRelease === undefined
+    (overdue || due) && item.afterRelease === undefined
       ? nextDay(release, item, mark.now)
       : null
   const moveTo =
@@ -100,7 +101,7 @@ const itemRow = (
                   : `<button type="button" ${due ? 'class="primary"' : 'class="quiet"'} data-action="campaign-post" data-item="${escape(item.id)}" data-channel="${item.channel}">Post now</button>`
               }`
   return `<li class="campaign-item is-${item.state}${due ? ' is-due' : ''}${overdue ? ' is-overdue' : ''}">
-<p class="campaign-when"><b>${KIND_WORDS[item.kind]}</b> ${CHANNEL_LABELS[item.channel]} · ${escape(when)}${own ? ' <small class="campaign-own">its own time</small>' : ''}${due ? ' <small>due</small>' : ''}${overdue ? ' <small>overdue</small>' : ''}</p>
+<p class="campaign-when"><b>${KIND_WORDS[item.kind]}</b> ${CHANNEL_LABELS[item.channel]} · ${escape(when)}${own ? ' <small class="campaign-own">its own time</small>' : ''}${due ? ' <small>due</small>' : ''}${overdue ? ' <small class="campaign-overdue">overdue</small>' : ''}</p>
 ${
   ['posted', 'dropped', 'posting', 'unknown'].includes(item.state)
     ? `<p class="campaign-words">${escape(item.words)}</p>`
@@ -146,3 +147,15 @@ ${
 /** How many approved items are due, for the Release button. */
 export const dueCount = (snapshot: Snapshot) =>
   dueItems(snapshot.project.release).length
+
+/** The Release button: what is due, and what is overdue, drafts among it
+ * (review 8, round 1: it counted only what was approved). */
+export const releaseLabel = (snapshot: Snapshot, now = new Date()) => {
+  const due = dueItems(snapshot.project.release, now).length
+  const overdue = overdueItems(snapshot.project.release, now).length
+  return [
+    'Release',
+    ...(due ? [`${due} due`] : []),
+    ...(overdue ? [`${overdue} overdue`] : [])
+  ].join(' · ')
+}

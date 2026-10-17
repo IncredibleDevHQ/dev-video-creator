@@ -154,3 +154,74 @@ it('posts on X and LinkedIn after YouTube’s launch, and warns of one set befor
       .textContent
   ).toContain('2 hours after the release')
 })
+
+const TODAY = new Date(2026, 9, 17, 8, 53)
+it('offers Move to an approved teaser past its day, marks overdue apart from due, and counts both on the Release button (F18, round 1)', async () => {
+  const { releaseLabel } = await import('../app/campaign-view')
+  const { videoHeader } = await import('../app/video-screen')
+  const items = plan.planCampaign(project([]), { now: EARLY })
+  items.find((item) => item.id === 'teaser-x--14')!.state = 'approved'
+  const value = project(items)
+  const page = doc(campaignSection(snapshot(value), TODAY))
+  const row = (id: string) =>
+    page
+      .querySelector(`.campaign-edit[data-item="${id}"]`)!
+      .closest('.campaign-item')!
+  // Approved and past its day: due, and it can still move to Sun, Oct 18.
+  expect(row('teaser-x--14').classList.contains('is-due')).toBe(true)
+  expect(
+    row('teaser-x--14').querySelector<HTMLElement>(
+      '[data-action="campaign-move"]'
+    )?.dataset.days
+  ).toBe('-2')
+  // A draft past its day is overdue, marked as a warning of its own.
+  expect(
+    row('teaser-linkedin--7').querySelector('.campaign-when small')?.className
+  ).toBe('campaign-overdue')
+  expect(releaseLabel(snapshot(value), TODAY)).toBe(
+    'Release · 1 due · 1 overdue'
+  )
+  expect(releaseLabel(snapshot(project([])), TODAY)).toBe('Release')
+  // The header uses it.
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(TODAY)
+  try {
+    const made = snapshot({
+      ...value,
+      video: {
+        settings: { presence: 'off', voice: { kind: 'record' } },
+        scenes: [],
+        transitions: [],
+        inputKey: '',
+        produced: { inputKey: '', objectKey: 'v.mp4', clock: [] }
+      } as never
+    })
+    expect(
+      doc(videoHeader(made)).querySelector('[data-action="release-dialog"]')
+        ?.textContent
+    ).toBe('Release · 1 due · 1 overdue')
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it('ends a teaser’s first words as a sentence before "Out soon." (F18, round 1)', () => {
+  const words = plan
+    .planCampaign(project([]), { now: EARLY })
+    .slice(0, 2)
+    .map((item) => item.words)
+  expect(words).toEqual([
+    'One click, two lattes. Out soon.',
+    'One click, two lattes. Out soon.'
+  ])
+  // A drafted line that ends already keeps its own mark.
+  const asked = project([], {
+    posts: { x: 'One tap?', linkedin: 'Why two lattes!', youtube: 'Y', at: '' }
+  })
+  expect(
+    plan
+      .planCampaign(asked, { now: EARLY })
+      .slice(0, 2)
+      .map((item) => item.words)
+  ).toEqual(['One tap? Out soon.', 'Why two lattes! Out soon.'])
+})

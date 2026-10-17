@@ -35,6 +35,9 @@ export const timed = (release: Release | undefined): Timed | null =>
   release?.at ? (release as Timed) : null
 
 const firstLine = (text = '') => text.split(/\n+/)[0]?.trim() || ''
+/** Words that end as a sentence does, so another can follow them. */
+const sentence = (text: string) =>
+  /[.!?…]["”’)]*$/.test(text) ? text : `${text}.`
 const slug = (text: string) =>
   text
     .toLowerCase()
@@ -213,7 +216,7 @@ export const campaignPlan = (
     }
   }
   const coming = (channel: Channel) =>
-    `${firstLine(posts?.[channel]) || project.title} Out soon.`
+    `${sentence(firstLine(posts?.[channel]) || project.title)} Out soon.`
   const countdown = (days: number) =>
     `${project.title}: ${days === -1 ? 'tomorrow' : days === -2 ? 'in two days' : `in ${-days} days`}.`
   const plan = [

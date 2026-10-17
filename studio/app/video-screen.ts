@@ -11,7 +11,7 @@ const cameraToggle = (on: boolean) =>
 <path d="m15 10 6-3v10l-6-3z"/>${on ? '' : '<path d="m2 2 20 20"/>'}</svg>
 <span>${on ? 'Camera on' : 'Camera off'}</span>
 </button>`
-import { dueCount } from './campaign-view'
+import { releaseLabel } from './campaign-view'
 import { transcriptWords } from './transcript-follow'
 import { standInControls } from './stand-in-playback'
 import { layeredControls } from './layered-playback'
@@ -120,11 +120,7 @@ export const videoHeader = (snapshot: Snapshot) => {
       // The same test as the Wireframe header's (review 6).
       !videoOpens(snapshot)
     )
-  const due = dueCount(snapshot)
-  const release = button(
-    due ? `Release · ${due} due` : 'Release',
-    'release-dialog'
-  )
+  const release = button(releaseLabel(snapshot), 'release-dialog')
   // A made storyboard video is released the same way (review 7).
   if (video.storyboard)
     return storyboardHeader(snapshot, video.storyboard, release)
