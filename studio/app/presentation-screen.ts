@@ -1,6 +1,6 @@
 import { html } from './ui'
 import type { Snapshot } from '../shared/api'
-import type { ChangeTarget, SlideChange } from '../shared/model'
+import type { ChangeTarget, Slide, SlideChange } from '../shared/model'
 import { agentNames } from './agent-setup'
 import { escape, button } from './ui'
 import { presentationProgress } from './progress'
@@ -8,6 +8,19 @@ import { wireframeStatus } from './wireframe-copy'
 import { sceneBadge, sceneLink } from './scene-link'
 import { pageStory, storyGaps } from './wireframe-story'
 import { doneCount, pageWork } from './wireframe-progress'
+
+/** A line in or out that still promises more than the creator's notes
+ * after one rewrite: what to check, under it (review 8). */
+const segueCheck = (
+  snapshot: Snapshot,
+  slide: Slide,
+  line: 'bridge' | 'outro'
+) => {
+  const check = snapshot.project.segueChecks?.[slide.id]?.[line]
+  return check && check.line === slide[line]
+    ? `<p class="page-check">Check this line <small>${escape(check.note)}</small></p>`
+    : ''
+}
 
 /** A rail entry: a drawn wireframe, or an outline scene not drawn yet. */
 export type WireframeTile =
@@ -314,8 +327,9 @@ export const presentationScreen = (
             </h3>
             ${slide?.bridge
               ? html`<p class="script-segue">
-                  Said before it: “${escape(slide.bridge)}”
-                </p>`
+                    Said before it: “${escape(slide.bridge)}”
+                  </p>
+                  ${segueCheck(snapshot, slide, 'bridge')}`
               : ''}
             <textarea
               id="script-${escape(slide?.id || planTile?.id || '')}"
@@ -328,8 +342,9 @@ ${escape(script)}</textarea
             >
             ${slide?.outro
               ? html`<p class="script-segue">
-                  Said after it: “${escape(slide.outro)}”
-                </p>`
+                    Said after it: “${escape(slide.outro)}”
+                  </p>
+                  ${segueCheck(snapshot, slide, 'outro')}`
               : ''}
           </section>`
         : ''}

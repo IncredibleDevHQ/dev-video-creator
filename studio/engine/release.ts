@@ -7,8 +7,21 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { narrativeById } from '../shared/narratives'
 import { chapters, youtubeDescription } from '../shared/release-plan'
-import { emptyRelease, type Channel, type PostWords } from '../shared/release'
+import {
+  CHANNEL_LABELS,
+  emptyRelease,
+  type Channel,
+  type PostWords
+} from '../shared/release'
 import { addEvent } from './activity'
+import {
+  askOnce,
+  claimNote,
+  claimProblem,
+  limitsFor,
+  materialOf,
+  overclaims
+} from './claims'
 import { runValidatedJsonStage } from './creative/stage'
 import { detectedHarness } from './notebook-intake'
 import { readAsset } from './persistence'
@@ -77,6 +90,17 @@ export const draftPosts = async (id: string) => {
     release.drafting = { state: 'drafting', at: new Date().toISOString() }
     current.project.release = release
   })
+  // What the creator wrote: the map's source with every note, and the
+  // pages' own words, not the lines the studio wrote around them.
+  const map = project.copyOfMap ? await loadProject(project.copyOfMap) : null
+  const material = materialOf(map?.project.source ?? project.source, [
+    ...project.slides,
+    ...project.slides.flatMap(
+      (slide) =>
+        map?.project.slides.find((page) => page.id === slide.copyOf?.slide) ??
+        []
+    )
+  ])
   const brief = {
     title: project.title,
     template: narrativeById(project.narrative)?.name || null,
@@ -92,8 +116,26 @@ export const draftPosts = async (id: string) => {
           number: project.episode.number,
           series: (await loadSeries(project.episode.series))?.title
         }
-      : null
+      : null,
+    // The creator's own limits on what the posts may promise.
+    limits: limitsFor(
+      material,
+      project.slides
+        .map(
+          (slide) =>
+            `${slide.title} ${slide.idea || ''} ${slide.base ?? slide.narration ?? ''}`
+        )
+        .join(' ')
+    )
   }
+  // Each post that promises more than the material, and where.
+  const claimsIn = (words: Record<Channel, string>) =>
+    (Object.keys(POST_LIMITS) as Channel[]).flatMap((channel) =>
+      overclaims(words[channel] || '', material).map((claim) => ({
+        channel,
+        claim
+      }))
+    )
   const asked = new Date().toISOString()
   void (async () => {
     const words = await runValidatedJsonStage<Record<Channel, string>>({
@@ -115,8 +157,14 @@ export const draftPosts = async (id: string) => {
       origin:
         process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
         `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`,
-      validate: validatePosts
+      // A post that promises more than the creator wrote goes back once.
+      validate: askOnce(validatePosts, (words) =>
+        claimsIn(words).map(({ channel, claim }) =>
+          claimProblem(`The ${CHANNEL_LABELS[channel]} post`, claim)
+        )
+      )
     })
+    const left = claimsIn(words)
     await changeProject(id, (current) => {
       const release = current.project.release || emptyRelease()
       release.posts = { ...words, at: new Date().toISOString() }
@@ -127,6 +175,13 @@ export const draftPosts = async (id: string) => {
         'video',
         'Drafted the posts for X, LinkedIn and YouTube'
       )
+      // Still past the creator's words after the rewrite: said, to check.
+      for (const { channel, claim } of left)
+        addEvent(
+          current,
+          'video',
+          `Check the ${CHANNEL_LABELS[channel]} post. ${claimNote(claim)}`
+        )
     })
   })().catch((error: Error) =>
     changeProject(id, (current) => {

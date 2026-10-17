@@ -1,8 +1,17 @@
 // An episode's own lines: a cold open or "last time", a turn into each page
 // from the one before, and "next time" after the last. They belong to the
 // episode, never to the map, and are written again when its pages change.
-import type { Slide } from '../shared/model'
+import type { Project, SegueCheck, Slide } from '../shared/model'
 import { addEvent } from './activity'
+import {
+  askOnce,
+  claimNote,
+  claimProblem,
+  limitsFor,
+  materialOf,
+  overclaims,
+  type Overclaim
+} from './claims'
 import { runValidatedJsonStage } from './creative/stage'
 import { detectedHarness } from './notebook-intake'
 import { fingerprintOf } from './planning/fingerprint'
@@ -139,6 +148,58 @@ const bridgeKey = (slides: Slide[], index: number, before: string | null) =>
 const outroKey = (slides: Slide[], next: string | null) =>
   fingerprintOf({ last: pageKey(slides[slides.length - 1]), next })
 
+type Checks = NonNullable<Project['segueChecks']>
+type Line = 'bridge' | 'outro'
+/** A line that promises more than the creator wrote, and where. */
+type Flag = { slide: Slide; line: Line; text: string; claim: Overclaim }
+/**
+ * The lines flagged after a write: each found now (written and still past
+ * the creator's words after its one rewrite, or kept under a started video
+ * and past a new limit), and each line flagged before while it is the same
+ * line and wasn't written again. None: undefined.
+ */
+const flagsAfter = (
+  slides: Slide[],
+  before: Checks,
+  written: (index: number, line: Line) => boolean,
+  found: Flag[]
+) => {
+  const flags: Checks = {}
+  slides.forEach((slide, index) => {
+    const mark = (line: Line): SegueCheck | undefined => {
+      if (line === 'outro' && index !== slides.length - 1) return undefined
+      const now = found.find(
+        (item) => item.slide.id === slide.id && item.line === line
+      )
+      if (now) return { line: now.text, note: claimNote(now.claim) }
+      if (written(index, line)) return undefined
+      const kept = before[slide.id]?.[line]
+      return kept && kept.line === slide[line] ? kept : undefined
+    }
+    const bridge = mark('bridge')
+    const outro = mark('outro')
+    if (bridge || outro)
+      flags[slide.id] = {
+        ...(bridge ? { bridge } : {}),
+        ...(outro ? { outro } : {})
+      }
+  })
+  return Object.keys(flags).length ? flags : undefined
+}
+/** What the creator's activity says about a flagged line. */
+const checkWords = (flag: Flag) =>
+  `Check the line ${flag.line === 'outro' ? 'after' : 'before'} “${flag.slide.title}”. ${claimNote(flag.claim)}`
+/** An episode whose video has started, as series-apply's isMade reads it:
+ * its scenes keep their script, so a line is flagged there, not rewritten
+ * for a note. */
+const started = (video: Project['video']) =>
+  Boolean(
+    video &&
+    (video.produced ||
+      video.storyboard ||
+      video.scenes.some((scene) => scene.phase !== 'idle' || scene.produced))
+  )
+
 const writeSegues = async (id: string) => {
   const snapshot = await loadProject(id)
   if (!snapshot?.project.copyOfMap) return
@@ -185,13 +246,52 @@ const writeSegues = async (id: string) => {
       slide.base !== undefined &&
       (force || !slide.bridge || slide.bridgeFor !== keys[index])
   )
-  const outroStale =
+  let outroStale =
     last.base !== undefined &&
     (force || !last.outro || last.outroFor !== endKey)
+  // What the creator wrote for these lines: the map's source with every
+  // note, these pages, the episode before, the page the next one opens with.
+  const map = await loadProject(snapshot.project.copyOfMap)
+  const original = (slide: Slide) =>
+    map?.project.slides.find((page) => page.id === slide.copyOf?.slide)
+  const next = opens ? (original(opens) ?? opens) : undefined
+  const around = [
+    ...slides,
+    ...slides.map(original),
+    ...(before?.project.slides || []),
+    ...(next ? [next] : [])
+  ].filter((page): page is Slide => Boolean(page))
+  const material = materialOf(
+    map?.project.source ?? snapshot.project.source,
+    around
+  )
+  // A line kept that now promises more than that (a note brought a limit
+  // since) is written again, once, while the video hasn't started; under a
+  // started video it is flagged instead. A line flagged already stays.
+  const checks = snapshot.project.segueChecks || {}
+  const made = started(snapshot.project.video)
+  const flagNow: Flag[] = []
+  const recheck = (slide: Slide, line: Line) => {
+    const text = slide[line]
+    if (!text || checks[slide.id]?.[line]?.line === text) return false
+    const [claim] = overclaims(text, material)
+    if (claim && made) flagNow.push({ slide, line, text, claim })
+    return Boolean(claim) && !made
+  }
+  slides.forEach((slide, index) => {
+    if (slide.base === undefined || stale[index]) return
+    if (recheck(slide, 'bridge')) stale[index] = true
+  })
+  if (last.base !== undefined && !outroStale)
+    outroStale = recheck(last, 'outro')
   const ids = slides.map((slide) => slide.id)
   // Nothing around any page changed: only a stray "next time" goes.
   if (!stale.some(Boolean) && !outroStale) {
-    if (snapshot.project.segues || slides.slice(0, -1).some((s) => s.outro))
+    if (
+      snapshot.project.segues ||
+      flagNow.length ||
+      slides.slice(0, -1).some((s) => s.outro)
+    )
       await changeProject(id, (current) => {
         const now = current.project.slides
         if (now.map((s) => s.id).join() !== ids.join()) return
@@ -201,6 +301,15 @@ const writeSegues = async (id: string) => {
           delete slide.outroFor
           slide.narration = composeNarration(slide)
         })
+        if (flagNow.length) {
+          current.project.segueChecks = flagsAfter(
+            now,
+            current.project.segueChecks || {},
+            () => false,
+            flagNow
+          )
+          addEvent(current, 'slide', checkWords(flagNow[0]))
+        }
         delete current.project.segues
         reconcileVideo(current.project, current, new Set())
       })
@@ -223,11 +332,61 @@ const writeSegues = async (id: string) => {
         }
       : null,
     next: after
-      ? { title: after.project.title, opens: opens?.title ?? null }
+      ? {
+          title: after.project.title,
+          opens: opens?.title ?? null,
+          // What it opens with says what "next time" may promise.
+          ...(next
+            ? {
+                page: {
+                  idea: next.idea || '',
+                  script: next.base ?? next.narration ?? ''
+                }
+              }
+            : {})
+        }
       : null,
     pages,
-    ...(outroStale || !last.outro ? {} : { keepOutro: last.outro })
+    ...(outroStale || !last.outro ? {} : { keepOutro: last.outro }),
+    // The creator's own limits on what these lines may promise.
+    limits: limitsFor(
+      material,
+      around
+        .map(
+          (page) =>
+            `${page.title} ${page.idea || ''} ${page.base ?? page.narration ?? ''}`
+        )
+        .join(' ')
+    )
   }
+  // Each line written now that promises more than the material, where it is.
+  const claimsIn = (written: Segues) => [
+    ...slides.flatMap((slide, index) => {
+      const bridge = written.pages[index]
+      return stale[index] && bridge?.id === slide.id
+        ? overclaims(bridge.bridge, material).map((claim) => ({
+            slide,
+            line: 'bridge' as const,
+            text: bridge.bridge,
+            claim
+          }))
+        : []
+    }),
+    ...(outroStale
+      ? overclaims(written.outro, material).map((claim) => ({
+          slide: last,
+          line: 'outro' as const,
+          text: written.outro,
+          claim
+        }))
+      : [])
+  ]
+  const told = (item: ReturnType<typeof claimsIn>[number]) =>
+    item.line === 'outro'
+      ? 'The outro'
+      : item.slide === slides[0]
+        ? 'The cold open'
+        : `The line into “${item.slide.title}”`
   await changeProject(id, (current) => {
     current.project.segues = { state: 'writing' }
   })
@@ -246,8 +405,14 @@ const writeSegues = async (id: string) => {
       packet: { 'packet/EPISODE.json': JSON.stringify(brief, null, 1) },
       selection: snapshot.project.harness ?? (await detectedHarness()),
       origin: origin(),
-      validate: (raw) => validateSegues(raw, ids)
+      // A line that promises more than the creator wrote goes back once.
+      validate: askOnce(
+        (raw) => validateSegues(raw, ids),
+        (written) =>
+          claimsIn(written).map((item) => claimProblem(told(item), item.claim))
+      )
     })
+    const left = claimsIn(segues)
     await changeProject(id, (current) => {
       const now = current.project.slides
       // Pages changed meanwhile: run again on the pages as they are now.
@@ -273,6 +438,14 @@ const writeSegues = async (id: string) => {
         }
         slide.narration = composeNarration(slide)
       })
+      const checked = flagsAfter(
+        now,
+        current.project.segueChecks || {},
+        (index, line) => (line === 'bridge' ? stale[index] : outroStale),
+        [...left, ...flagNow]
+      )
+      if (checked) current.project.segueChecks = checked
+      else delete current.project.segueChecks
       delete current.project.segues
       reconcileVideo(current.project, current, new Set())
       const written = stale.filter(Boolean).length + (outroStale ? 1 : 0)
@@ -281,6 +454,8 @@ const writeSegues = async (id: string) => {
         'slide',
         `Wrote ${written} segue${written === 1 ? '' : 's'} between the pages`
       )
+      const flag = left[0] ?? flagNow[0]
+      if (flag) addEvent(current, 'slide', checkWords(flag))
     })
     await planScenes(id)
   } catch (error) {

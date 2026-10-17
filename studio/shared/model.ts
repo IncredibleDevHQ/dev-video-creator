@@ -175,6 +175,9 @@ export type Slide = {
   bridgeFor?: string
   outroFor?: string
 }
+/** A segue line flagged for the creator: the line as written, and what
+ * goes past their words. */
+export type SegueCheck = { line: string; note: string }
 export type Transition =
   | 'none'
   | 'crossfade'
@@ -222,6 +225,10 @@ export type Project = {
   grouping?: { state: 'grouping' | 'failed'; error?: string }
   /** An episode's segues: being written, or why they could not be. */
   segues?: { state: 'writing' | 'failed'; error?: string }
+  /** An episode's lines in and out that still promise more than the pages
+   * and the creator's notes after one rewrite, by page: the line, and what
+   * to check in it. */
+  segueChecks?: Record<string, { bridge?: SegueCheck; outro?: SegueCheck }>
   /** An episode whose pages the agent is choosing from what it is about. */
   picking?: {
     state: 'picking' | 'failed'

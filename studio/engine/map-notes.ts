@@ -16,6 +16,7 @@ import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
 import { scheduleChanges, withDeck } from './slide-changes'
 import { syncEvidence } from './map-copy'
+import { scheduleSegues } from './map-segues'
 import { loadSeries } from './series'
 
 const NOTE_LIMIT = 8000
@@ -172,12 +173,15 @@ const intoMap = async (id: string, note: MapNote) => {
     current.project.source = noted(current.project.source, note)
     addEvent(current, 'slide', 'Sorting your note into the map')
   })
-  // The map's episodes quote the same evidence.
+  // The map's episodes quote the same evidence, and their lines are checked
+  // against it again: a note can bring a limit a line goes past (review 8).
   const series = snapshot.project.mapSeries
     ? await loadSeries(snapshot.project.mapSeries)
     : null
-  for (const episode of series?.episodes || [])
+  for (const episode of series?.episodes || []) {
     await syncEvidence(id, episode.notebookId)
+    scheduleSegues(episode.notebookId)
+  }
   const job = sortNote(id, note.id).finally(() => {
     if (sorting.get(note.id) === job) sorting.delete(note.id)
   })

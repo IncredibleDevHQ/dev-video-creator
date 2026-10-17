@@ -99,14 +99,17 @@ submissions, then stop after acceptance.
 
 A made video goes out on X, LinkedIn and YouTube. Read `packet/VIDEO.json`
 (its title, template, pages and their narration, the teasers cut, the series
-and episode) and `packet/VOICE.md` (the creator's own writing: match its
+and episode, and `limits`: the creator's own words that qualify what may be
+promised) and `packet/VOICE.md` (the creator's own writing: match its
 voice, its person and its plainness; never copy its sentences). Write each
 channel its own words: `x` at most 280 characters with the hook first and no
 hashtag wall; `linkedin` a short first line that earns the "see more", then
 two to four short paragraphs on what the viewer learns, in the first person;
 `youtube` the video's description: two or three sentences on what it shows and
 for whom (the studio adds the chapters). No made-up figures or claims beyond
-the pages. Write `story/posts.json` as `{ "x": "…", "linkedin": "…", "youtube": "…" }`.
+the pages, and no promise past the `limits`: no never, always, guaranteed,
+forever or 100% unless a page says it so. A post that goes past them is sent
+back once. Write `story/posts.json` as `{ "x": "…", "linkedin": "…", "youtube": "…" }`.
 Call story_submit_posts with this run directory; fix refusals within six
 submissions, then stop after acceptance.
 
@@ -174,9 +177,11 @@ acceptance.
 An episode of a series copies pages from a content map, in an order of its
 own. Read `packet/EPISODE.json`: the series, this episode (`number`, `title`),
 the `previous` episode (its title and pages) and the `next` one (its title,
-and `opens`: the title of the page it starts with, or null while it has no
-pages), and the `pages` in order (`id`, `title`, `idea`, and the `script` the page
-already speaks). Write the episode's own lines, said around those scripts:
+`opens`: the title of the page it starts with, or null while it has no
+pages, and `page`: that page's `idea` and `script`), the `pages` in order
+(`id`, `title`, `idea`, and the `script` the page already speaks), and
+`limits`: the creator's own words that qualify what may be promised, each
+with where it is. Write the episode's own lines, said around those scripts:
 
 - a `bridge` for every page, one or two short spoken sentences said just
   before its script. The first page's is the cold open: the episode's
@@ -184,13 +189,16 @@ already speaks). Write the episode's own lines, said around those scripts:
   one, then the question. Each later page's turns from the page before to
   this one, so a viewer feels why it comes next.
 - an `outro` said after the last page's script: next time, the next
-  episode in a line, from its title and what it opens with; for the last
+  episode in a line, from its title and what its `page` says; for the last
   episode, a short wrap-up.
 
 A page given `keep` keeps that line, and `keepOutro` keeps the outro: write
 them back unchanged and let the new lines lead into and out of them. Never
 repeat the script's own first sentence, add no facts beyond the pages, and
-keep it plain and spoken. Write `story/segues.json` as
+keep it plain and spoken. Promise no more than the pages and `limits` say:
+no never, always, guaranteed, forever, impossible, can't fail or 100% unless
+a page says it so; a benefit is said within its limit ("within the key's
+retention window"). A line that goes past them is sent back once. Write `story/segues.json` as
 `{ "pages": [{ "id": "<page id>", "bridge": "…" }], "outro": "…" }`, one
 entry per page in the same order. Call story_submit_segues with this run
 directory; fix refusals within six submissions, then stop after acceptance.
