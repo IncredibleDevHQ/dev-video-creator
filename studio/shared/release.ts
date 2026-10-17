@@ -40,6 +40,9 @@ export type Teaser = {
     state: 'rebuilding' | 'ready' | 'failed'
     frames: number
     done: number
+    /** The frames whose words stayed small as drawn again: the next
+     * rebuild draws them (review 8, round 2). */
+    smallFrames?: number[]
     error?: string
     at: string
   }

@@ -18,6 +18,7 @@ import {
 import { join } from 'node:path'
 import type { BuildType } from '../shared/storyboard'
 import { HarnessStageError } from './generation-errors'
+import { PHONE_TYPE, smallType, smallTypeLine, typeSizes } from './teaser-type'
 import { creativeContext, type CreativeSelection } from './creative/stage'
 import { runEngineStage } from './harness/runtime'
 import { readSubmission, submissionSchema } from './harness/submissions'
@@ -85,7 +86,7 @@ export const shapeDispatch = (input: {
     `- Canvas: ${width}×${height}. The root carries data-width="${width}" data-height="${height}".`,
     `- Captions: enabled. Keep every element above y = ${height - band(input.canvas) - 20} (the bottom ${band(input.canvas)} px is the caption band).`,
     `- Reference: the frame as the episode shows it, 1920×1080, is production/reference/${input.frameId}.html, and its still production/reference/${input.frameId}.png. Keep its words, figures, data, colours, fonts, logo and media exactly; rearrange them for this canvas (stack what sat side by side, give the subject the width), and never add, drop or change what it says.`,
-    '- Type for a phone: headlines 96 px or more, body 48 px or more, labels 36 px or more on this canvas; the lesson fills most of the picture above the caption band.',
+    `- Type for a phone: headlines ${PHONE_TYPE.headline} px or more, body ${PHONE_TYPE.body} px or more, labels ${PHONE_TYPE.label} px or more on this canvas (each frame's words are measured, and one under ${PHONE_TYPE.label} px keeps the teaser a draft); the lesson fills most of the picture above the caption band.`,
     '- Paths: a file under PROJECT_DIR is referenced from the composition by its path inside it (assets/…), never with production/ in front.',
     `- GSAP: load it inside the template with <script src="${GSAP_URL}"></script>.`
   ].join('\n')
@@ -183,6 +184,12 @@ export const drawFrameForShape = async (input: {
       duration: input.duration,
       format
     })
+    // Words drawn under a phone's label size, said while it can be fixed.
+    const small = smallTypeLine(
+      smallType(
+        (await typeSizes([html], input.canvas).catch(() => [[]]))[0] || []
+      )
+    )
     const shown: string[] = []
     await mkdir(join(runDir, 'production', 'snapshots'), { recursive: true })
     for (const [index, path] of tried.snapshots.entries()) {
@@ -190,7 +197,12 @@ export const drawFrameForShape = async (input: {
       await copyFile(path, join(runDir, name))
       shown.push(name)
     }
-    return { html, ...tried, snapshots: shown }
+    return {
+      html,
+      ...tried,
+      warnings: small ? [...tried.warnings, small] : tried.warnings,
+      snapshots: shown
+    }
   }
   const submit = async (runDir: string) => {
     if (++attempts > 8)

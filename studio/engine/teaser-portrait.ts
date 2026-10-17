@@ -4,8 +4,9 @@
 // frame the teaser uses again for the teaser's shape (one AI run a frame,
 // teaser-portrait-run.ts); Hyperframes renders them; the teaser is cut from
 // that render with the episode's own sound for its stretches and its own
-// captions in the caption band. "Keep it as it is" is the creator's other
-// way out of a draft.
+// captions in the caption band, and its words measured as drawn: still
+// small, it stays a draft (round 2). "Keep it as it is" is the creator's
+// other way out of a draft.
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -34,7 +35,41 @@ import {
   renderShape
 } from './teaser-portrait-run'
 import { FRAME, drawCaptions } from './teasers'
+import { smallType, typeSizes } from './teaser-type'
 import { runCommand } from './voice'
+
+/**
+ * The frames whose words stay small as drawn for the shape, measured in a
+ * browser on its canvas, and the teaser's seconds that show them: what the
+ * first cut measures from its crops, the rebuilt cut measures from its
+ * frames (review 8, round 2: a rebuild dropped "small" unmeasured).
+ */
+export const measureShape = async (input: {
+  dir: string
+  frames: TeaserFrame[]
+  pieces: TeaserPiece[]
+  canvas: { width: number; height: number }
+}) => {
+  const html = await Promise.all(
+    input.frames.map((frame) =>
+      readFile(
+        join(input.dir, 'compositions', 'frames', `${frameId(frame)}.html`),
+        'utf8'
+      )
+    )
+  )
+  const sizes = await typeSizes(html, input.canvas)
+  const small = input.frames
+    .filter((_, index) => smallType(sizes[index]).length)
+    .map((frame) => frame.number)
+  const seconds = input.pieces
+    .filter((piece) => small.includes(piece.frame))
+    .reduce(
+      (sum, piece) => sum + piece.to - piece.from + piece.before + piece.after,
+      0
+    )
+  return { small, seconds: Math.round(seconds * 10) / 10 }
+}
 
 const changeTeaser = (
   id: string,
@@ -241,6 +276,7 @@ export const rebuildTeaser = async (id: string, raw: unknown) => {
     await Promise.all(
       Array.from({ length: Math.min(concurrency(), frames.length) }, lane)
     )
+    const measured = await measureShape({ dir, frames, pieces, canvas })
     const render = await renderShape(
       dir,
       canvas,
@@ -263,16 +299,27 @@ export const rebuildTeaser = async (id: string, raw: unknown) => {
       kind: 'teaser',
       projectId: id
     })
+    // Its words measured: a teaser still small is a draft again, and its
+    // small frames are drawn again by the next rebuild.
     await step((current) => {
       current.objectKey = asset.objectKey
       current.rebuild = {
         ...current.rebuild!,
         state: 'ready',
-        done: frames.length
+        done: frames.length,
+        ...(measured.small.length ? { smallFrames: measured.small } : {})
       }
-      delete current.small
+      if (!measured.small.length) delete current.rebuild.smallFrames
+      if (measured.seconds) current.small = measured.seconds
+      else delete current.small
       delete current.kept
     })
+    for (const frame of frames)
+      if (measured.small.includes(frame.number))
+        await rm(
+          join(dir, 'compositions', 'frames', `${frameId(frame)}.html`),
+          { force: true }
+        )
     await changeProject(id, (current) =>
       addEvent(
         current,

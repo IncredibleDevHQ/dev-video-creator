@@ -158,3 +158,59 @@ it('tells the frame agent to draw the frame again for the teaser’s canvas, fro
     })
   ).rejects.toThrow('Frame 4 was not drawn again')
 })
+
+it('tells the frame agent which words it drew too small for a phone, while it can fix them (F16, round 2)', async () => {
+  const dir = productionDir('dispatch', 'sb')
+  const canvas = { width: 1080, height: 1920 }
+  const target = await real.prepareShape(dir, canvas)
+  const frame = (label: number) =>
+    `<template id="f04-frame-4-template"><div data-composition-id="f04-frame-4" data-width="1080" data-height="1920"><h1 style="font-size:96px">Two lattes</h1><p style="font-size:${label}px">per tap</p></div><script>window.__timelines["f04-frame-4"] = gsap.timeline({ paused: true })</script></template>`
+  tried.mockResolvedValue({
+    problems: [],
+    warnings: ['A check warning'],
+    fill: [],
+    snapshots: []
+  })
+  const heard: string[][] = []
+  run.mockImplementation(async (input) => {
+    const runDir = await mkdtemp(join(root, 'run-'))
+    const file = join(
+      runDir,
+      'production',
+      'compositions',
+      'frames',
+      'f04-frame-4.html'
+    )
+    await mkdir(join(file, '..'), { recursive: true })
+    const [tryIt, submit] = input.tools(runDir)
+    await writeFile(file, frame(24))
+    heard.push((await tryIt.call({})).warnings)
+    await writeFile(file, frame(40))
+    heard.push((await tryIt.call({})).warnings)
+    await submit.call({})
+    return { status: 'done' }
+  })
+  await real.drawFrameForShape({
+    projectId: 'dispatch',
+    episodeDir: dir,
+    dir: target,
+    frameId: 'f04-frame-4',
+    number: 4,
+    build: 'faceless',
+    duration: 4.846,
+    canvas,
+    selection: { adapter: 'claude-code' },
+    origin: 'http://127.0.0.1:1'
+  })
+  expect(heard).toEqual([
+    [
+      'A check warning',
+      'Words under 36 px, too small on a phone: “per tap” 24 px. Make labels 36 px or more, body 48 px or more.'
+    ],
+    ['A check warning']
+  ])
+  // The dispatch says the words are measured.
+  expect(run.mock.calls.at(-1)![0].packet['packet/DISPATCH.md']).toContain(
+    'one under 36 px keeps the teaser a draft'
+  )
+}, 60_000)

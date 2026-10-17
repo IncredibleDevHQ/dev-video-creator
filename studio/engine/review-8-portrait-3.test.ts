@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -29,6 +30,8 @@ const { storeAsset, writeRow } = await import('./persistence')
 const { loadProject } = await import('./projects')
 const { productionDir } = await import('./storyboard/workspace')
 const { teasersSection } = await import('../app/release-view')
+const { needsShapeCut } = await import('../shared/teaser-shape')
+const { smallType, smallTypeLine, typeSizes } = await import('./teaser-type')
 const { parseHTML } = await import('linkedom')
 afterAll(() => rm(root, { recursive: true, force: true }))
 
@@ -225,3 +228,110 @@ it('stops a rebuild cut off by a restart, and a new one picks up from the frames
     'f04-frame-4'
   ])
 }, 120_000)
+
+const view = (project: Project) =>
+  parseHTML(
+    `<div>${teasersSection({ project, status: 'ready', error: null, events: [] })}</div>`
+  ).document
+
+it('reads how large a frame’s words are drawn: its own size, scaled as its parents scale it, scripts left out (F16, round 2)', async () => {
+  const frame = `<template id="f-template"><div data-composition-id="f" data-width="1080" data-height="1920" style="width:1080px;height:1920px"><style>.big{font-size:96px}.label{font-size:28px}</style><h1 class="big">Two lattes</h1><p class="label">per tap</p><div style="transform:scale(0.5);transform-origin:0 0"><span style="font-size:48px">halved</span></div><svg width="1080" height="400" viewBox="0 0 540 200"><text x="10" y="50" font-size="20">doubled</text></svg></div><script>document.body.innerHTML = '<p>gone</p>'</script></template>`
+  const [words] = await typeSizes([frame], { width: 1080, height: 1920 })
+  expect(words).toEqual([
+    { text: 'Two lattes', px: 96 },
+    { text: 'per tap', px: 28 },
+    { text: 'halved', px: 24 },
+    { text: 'doubled', px: 40 }
+  ])
+  expect(smallType(words).map((item) => item.text)).toEqual([
+    'per tap',
+    'halved'
+  ])
+  expect(smallTypeLine(smallType(words))).toBe(
+    'Words under 36 px, too small on a phone: “per tap” 28 px, “halved” 24 px. Make labels 36 px or more, body 48 px or more.'
+  )
+}, 60_000)
+
+it('measures a rebuilt teaser’s words, keeps it a draft while they stay small, and draws only those frames again (F16, round 2)', async () => {
+  await save(episode('measured', [teaser()]))
+  const dir = await production('measured')
+  // The frame agent's stand-in: frame 3 keeps a 28 px label the first time.
+  let label = 28
+  drawn.mockReset()
+  drawn.mockImplementation(async (input) =>
+    writeFile(
+      join(input.dir, 'compositions', 'frames', `${input.frameId}.html`),
+      `<template><h1 style="font-size:96px">${input.frameId}</h1>${input.number === 3 ? `<p style="font-size:${label}px">per tap</p>` : ''}</template>`
+    )
+  )
+  rendered.mockImplementation(whiteRender)
+  const now = async () =>
+    (await loadProject('measured'))!.project.release!.teasers[0]
+  await rebuildTeaser('measured', { teaser: 't' })
+  await vi.waitFor(
+    async () => expect((await now()).rebuild?.state).toBe('ready'),
+    { timeout: 60_000, interval: 200 }
+  )
+  // Frame 3's three seconds of thirteen are over a fifth: still a draft.
+  const first = await now()
+  expect(first.small).toBe(3)
+  expect(first.rebuild?.smallFrames).toEqual([3])
+  expect(needsShapeCut(first)).toBe(true)
+  const draft = view((await loadProject('measured'))!.project)
+  expect(draft.querySelector('.teaser-small')?.textContent).toBe(
+    'Needs a portrait cut. Drawn again, its text still stays small on a phone for 3 of its 13 seconds.'
+  )
+  const again = draft.querySelector('[data-action="teaser-rebuild"]')!
+  expect(again.getAttribute('data-frames')).toBe('1')
+  expect(draft.querySelector('.teaser-cost')?.textContent).toBe(
+    'An AI run for the frame still small'
+  )
+  expect(draft.querySelector('a[download]')).toBeNull()
+  // The small frame is drawn again by the next rebuild, the rest kept.
+  const shape = join(dir, 'shapes', '1080x1920', 'compositions', 'frames')
+  expect(existsSync(join(shape, 'f03-frame-3.html'))).toBe(false)
+  expect(existsSync(join(shape, 'f02-frame-2.html'))).toBe(true)
+  label = 40
+  drawn.mockClear()
+  await rebuildTeaser('measured', { teaser: 't' })
+  await vi.waitFor(
+    async () => {
+      const current = await now()
+      expect(current.rebuild?.state).toBe('ready')
+      expect(current.objectKey).not.toBe(first.objectKey)
+    },
+    { timeout: 60_000, interval: 200 }
+  )
+  expect(drawn.mock.calls.map(([input]) => input.frameId)).toEqual([
+    'f03-frame-3'
+  ])
+  const readable = await now()
+  expect(readable.small).toBeUndefined()
+  expect(readable.rebuild?.smallFrames).toBeUndefined()
+  expect(needsShapeCut(readable)).toBe(false)
+  const done = view((await loadProject('measured'))!.project)
+  expect(done.querySelector('.teaser-note')?.textContent).toBe(
+    'Its frames drawn again for portrait.'
+  )
+  expect(done.querySelector('a[download]')).not.toBeNull()
+}, 180_000)
+
+it('says why a video made scene by scene cannot be drawn again, and what to do (F16, round 2)', () => {
+  const project = episode('scenes', [teaser()])
+  delete project.video!.storyboard
+  const youtube = view(project)
+  expect(youtube.querySelector('[data-action="teaser-rebuild"]')).toBeNull()
+  expect(youtube.querySelector('.teaser-why')?.textContent).toBe(
+    'Made scene by scene, its pictures are drawn for 16:9 only: make the video again as a storyboard for a portrait cut or keep it as it is.'
+  )
+  expect(youtube.querySelector('[data-action="teaser-keep"]')).not.toBeNull()
+  // X takes 16:9 too: a 16:9 teaser is the other readable way.
+  project.release!.teasers = [teaser({ channel: 'x', aspect: '1:1' })]
+  expect(view(project).querySelector('.teaser-why')?.textContent).toBe(
+    'Made scene by scene, its pictures are drawn for 16:9 only: make the video again as a storyboard for a square cut, cut a 16:9 teaser, or keep it as it is.'
+  )
+  // A storyboard episode's draft offers the rebuild instead.
+  expect(
+    view(episode('board', [teaser()])).querySelector('.teaser-why')
+  ).toBeNull()
+})

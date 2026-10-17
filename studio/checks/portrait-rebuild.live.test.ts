@@ -8,10 +8,10 @@ import { tryFrame } from '../engine/storyboard/check'
 import { createWorkspace } from '../engine/storyboard/workspace'
 import { storeAsset } from '../engine/persistence'
 import { prepareShape, renderShape } from '../engine/teaser-portrait-run'
-import { cutFromShape } from '../engine/teaser-portrait'
+import { cutFromShape, measureShape } from '../engine/teaser-portrait'
 
-// Review 8, round 1: a teaser's frames drawn again for 9:16. The machinery
-// alone, no model: the pinned CLI makes the project, Hyperframes checks a
+// Review 8, rounds 1 and 2: a teaser's frames drawn again for 9:16. The
+// machinery alone, no model: the pinned CLI makes the project, Hyperframes checks a
 // frame on the 1080×1920 canvas and renders the shape's frames, and the
 // teaser is cut from that render with the episode's sound and the teaser's
 // captions; then measured. The frames are stubs written here, standing in
@@ -305,4 +305,18 @@ it('checks and renders a teaser’s frames on a 1080×1920 canvas and cuts the t
   // the gap between the two.
   expect(teaserLook.litIn(1600, 1920)).toBe(true)
   expect(luma(cut, 1080, 1920, 2.9).litIn(1600, 1920)).toBe(false)
+  // Its words measured as drawn (round 2): every one phone-sized; a list
+  // left at 28 px keeps its frame's seconds small.
+  expect(await measureShape({ dir: shape, frames, pieces, canvas })).toEqual({
+    small: [],
+    seconds: 0
+  })
+  await writeFile(
+    join(shape, 'compositions', 'frames', `${ids[1]}.html`),
+    portrait(ids[1], 3).replace('font-size: 64px', 'font-size: 28px')
+  )
+  expect(await measureShape({ dir: shape, frames, pieces, canvas })).toEqual({
+    small: [2],
+    seconds: 3
+  })
 }, 900_000)

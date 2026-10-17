@@ -134,7 +134,12 @@ it('holds a teaser whose text stays small for over a fifth of it as a draft, unt
   expect(shape.needsShapeCut({ ...base, small: 6.1 })).toBe(true)
   expect(shape.needsShapeCut({ ...base, kept: true })).toBe(false)
   const ready = { state: 'ready' as const, frames: 7, done: 7, at: '' }
-  expect(shape.needsShapeCut({ ...base, rebuild: ready })).toBe(false)
+  // Drawn again, it is measured again (round 2): readable, it is finished;
+  // still small, it is still a draft.
+  expect(
+    shape.needsShapeCut({ ...base, small: undefined, rebuild: ready })
+  ).toBe(false)
+  expect(shape.needsShapeCut({ ...base, rebuild: ready })).toBe(true)
   expect(
     shape.needsShapeCut({ ...base, rebuild: { ...ready, state: 'failed' } })
   ).toBe(true)
@@ -494,7 +499,7 @@ it('keeps a draft out of the bundle and the campaign until it is drawn again, th
     progress.push((await current()).rebuild!.done)
     await writeFile(
       join(input.dir, 'compositions', 'frames', `${input.frameId}.html`),
-      `<template>${input.frameId}</template>`
+      `<template><h1 style="font-size:96px">${input.frameId}</h1></template>`
     )
   })
   // The first render fails: the rebuild says so and can be tried again.

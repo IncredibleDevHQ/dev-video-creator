@@ -19,9 +19,9 @@ import {
 } from '../shared/release-cover'
 import {
   canRebuild,
+  framesToDraw,
   needsShapeCut,
-  shapeName,
-  teaserFrames
+  shapeName
 } from '../shared/teaser-shape'
 import type { Project } from '../shared/model'
 import { dayAndTime } from './campaign-view'
@@ -47,13 +47,32 @@ const length = (teaser: Teaser) =>
     teaser.segments.reduce((sum, part) => sum + part.to - part.from, 0)
   )
 
-/** How long a teaser's text stays small on a phone, in a sentence. */
+/** How long a teaser's text stays small on a phone, in a sentence; drawn
+ * again for its shape, it says so (measured as the first cut is). */
 const smallWords = (teaser: Teaser) => {
   const small = Math.round(teaser.small || 0)
-  return small >= length(teaser)
-    ? 'Its text stays small on a phone: the frames are wide.'
-    : `Its text stays small on a phone for ${small} of its ${length(teaser)} seconds.`
+  const again = teaser.rebuild?.state === 'ready'
+  if (small >= length(teaser))
+    return again
+      ? 'Drawn again, its text still stays small on a phone.'
+      : 'Its text stays small on a phone: the frames are wide.'
+  return `${again ? 'Drawn again, its text still stays small' : 'Its text stays small'} on a phone for ${small} of its ${length(teaser)} seconds.`
 }
+
+/** Why a teaser whose text stays small cannot be drawn again for its
+ * shape, and what to do instead (review 8, round 2: a video made scene by
+ * scene could only keep its blurred strip, and nothing said why). */
+const noRebuild = (project: Project, teaser: Teaser) =>
+  project.video?.storyboard?.plan
+    ? ''
+    : `<small class="teaser-why">Made scene by scene, its pictures are drawn for 16:9 only: make the video again as a storyboard for a ${shapeName(teaser.aspect)} cut${CHANNEL_ASPECTS[teaser.channel].includes('16:9') ? ', cut a 16:9 teaser,' : ''} or keep it as it is.</small>`
+
+/** What a rebuild costs: an AI run for each frame it draws, after one that
+ * left some small only those. */
+const costWords = (teaser: Teaser, frames: number) =>
+  teaser.rebuild?.state === 'ready' && teaser.rebuild.smallFrames?.length
+    ? `An AI run for ${frames === 1 ? 'the frame' : `each of the ${frames} frames`} still small`
+    : `An AI run for each of its ${frames} frame${frames === 1 ? '' : 's'}`
 
 /** The preview at about a phone's width, sized before it loads. */
 const PREVIEW: Record<Teaser['aspect'], string> = {
@@ -77,9 +96,9 @@ const teaserOffer = (project: Project, teaser: Teaser) => {
   if (rebuild?.state === 'rebuilding')
     return `<small class="teaser-status" role="status">Drawing its frames again for ${shape}: ${rebuild.done} of ${rebuild.frames}…</small>`
   const draft = needsShapeCut(teaser)
-  const frames = teaserFrames(project, teaser.segments).frames.length
+  const frames = framesToDraw(project, teaser)
   const offer = canRebuild(project, teaser)
-    ? `<button type="button" class="${draft ? 'primary' : 'quiet'}" data-action="teaser-rebuild" data-teaser="${id}" data-frames="${frames}">Rebuild for ${shape}</button><small class="teaser-cost">An AI run for each of its ${frames} frame${frames === 1 ? '' : 's'}</small>`
+    ? `<button type="button" class="${draft ? 'primary' : 'quiet'}" data-action="teaser-rebuild" data-teaser="${id}" data-frames="${frames}">Rebuild for ${shape}</button><small class="teaser-cost">${costWords(teaser, frames)}</small>`
     : ''
   const failed =
     rebuild?.state === 'failed'
@@ -87,10 +106,11 @@ const teaserOffer = (project: Project, teaser: Teaser) => {
       : ''
   const download = `<a href="/objects/${escape(teaser.objectKey || '')}" download="teaser-${teaser.channel}-${teaser.aspect.replace(':', 'x')}.mp4">Download</a>`
   if (draft)
-    return `<p class="teaser-small"><b>Needs a ${shape} cut.</b> ${smallWords(teaser)}</p>${failed}<div class="teaser-actions">${offer}<button type="button" class="quiet" data-action="teaser-keep" data-teaser="${id}">Keep it as it is</button></div>`
-  if (rebuild?.state === 'ready')
+    return `<p class="teaser-small"><b>Needs a ${shape} cut.</b> ${smallWords(teaser)}</p>${failed}${offer ? '' : noRebuild(project, teaser)}<div class="teaser-actions">${offer}<button type="button" class="quiet" data-action="teaser-keep" data-teaser="${id}">Keep it as it is</button></div>`
+  const small = (teaser.small || 0) >= 1
+  if (rebuild?.state === 'ready' && !small)
     return `<small class="teaser-note">Its frames drawn again for ${shape}.</small>${download}`
-  return `${(teaser.small || 0) >= 1 ? `<small class="teaser-small">${smallWords(teaser)}</small>` : ''}${failed}${offer ? `<div class="teaser-actions">${offer}</div>` : ''}${download}`
+  return `${small ? `<small class="teaser-small">${smallWords(teaser)}</small>` : ''}${failed}${offer ? `<div class="teaser-actions">${offer}</div>` : ''}${download}`
 }
 
 const teaserRow = (project: Project) => (teaser: Teaser) =>

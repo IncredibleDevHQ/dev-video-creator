@@ -21,23 +21,31 @@ export const shapeName = (aspect: Aspect) =>
   aspect === '1:1' ? 'square' : 'portrait'
 
 /** A teaser not offered as finished: its text stays small for more than a
- * fifth of it, and it was neither drawn again for its shape nor kept. */
+ * fifth of it, as cut or as drawn again for its shape (each measured), and
+ * the creator has not kept it (review 8, round 2: a rebuild was taken as
+ * readable unmeasured). */
 export const needsShapeCut = (teaser: Teaser) =>
   teaser.state === 'ready' &&
   teaser.aspect !== '16:9' &&
   !teaser.kept &&
-  teaser.rebuild?.state !== 'ready' &&
   (teaser.small || 0) > SMALL_SHARE * teaserSeconds(teaser)
 
 /** Whether the frame agent can draw a teaser's frames again for its shape:
- * a storyboard episode's, narrower than the video, with small text. */
+ * a storyboard episode's, narrower than the video, with small text, drawn
+ * again already or not. */
 export const canRebuild = (project: Project, teaser: Teaser) =>
   teaser.state === 'ready' &&
   teaser.aspect !== '16:9' &&
   Boolean(project.video?.storyboard?.plan) &&
   (teaser.small || 0) >= 1 &&
-  teaser.rebuild?.state !== 'ready' &&
   teaser.rebuild?.state !== 'rebuilding'
+
+/** How many frames a rebuild draws: after one that left some small, those;
+ * else every frame the teaser shows. */
+export const framesToDraw = (project: Project, teaser: Teaser) =>
+  teaser.rebuild?.state === 'ready' && teaser.rebuild.smallFrames?.length
+    ? teaser.rebuild.smallFrames.length
+    : teaserFrames(project, teaser.segments).frames.length
 
 export type TeaserFrame = Pick<
   FrameSummary,

@@ -350,7 +350,7 @@ dialog:has(#series-form) {
   align-items: center;
   gap: 6px 10px;
 }
-.teaser-row :is(.teaser-cost, .teaser-note, .teaser-status) {
+.teaser-row :is(.teaser-cost, .teaser-note, .teaser-status, .teaser-why) {
   grid-column: 1 / -1;
   color: var(--muted);
 }
