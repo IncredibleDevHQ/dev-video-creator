@@ -4,7 +4,7 @@ import { sourceMarkdown } from './source-markdown'
 import { noteRevision } from './notebook-editor'
 import { notebookToolbar } from './notebook-toolbar'
 import { notebookHint } from './notebook-next-step'
-import { notebookNotes } from './notebook-notes'
+import { notebookNotes, waitingNotes } from './notebook-notes'
 export const notebookScreen = (snapshot: Snapshot, pending: boolean) => {
   const { project, status } = snapshot
   const editable =
@@ -38,7 +38,7 @@ ${titled ? '' : `<h1>${escape(title)}</h1>`}
 </div>
 ${notebookHint(snapshot, editable)}</div>
 ${editable ? notebookToolbar() : ''}
-${editable || snapshot.sourceOnly || snapshot.readOnly ? '' : notebookNotes(snapshot)}
+${editable ? waitingNotes(snapshot) : snapshot.sourceOnly || snapshot.readOnly ? '' : notebookNotes(snapshot)}
 <div class="notebook-body">
 ${status === 'reading' ? '<p class="source-reading" role="status"><span class="spinner" aria-hidden="true"></span> Reading the source…</p>' : ''}
 ${snapshot.sourceOnly && snapshot.error ? `<div class="source-error" role="alert"><p>${escape(snapshot.error)}</p>${snapshot.sourceFailure ? button('Paste article text', 'paste-source', true) : ''}</div>` : ''}

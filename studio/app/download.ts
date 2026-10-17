@@ -1,7 +1,8 @@
 const active = new Set<string>()
 
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
-const notice = (text: string, finished = false) => {
+/** One line saying what an action did, read out and gone after a while. */
+export const notice = (text: string, finished = false) => {
   clearTimeout(noticeTimer)
   let status = document.getElementById('download-status')
   if (!status) {

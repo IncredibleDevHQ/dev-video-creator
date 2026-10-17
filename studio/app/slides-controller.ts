@@ -1,7 +1,8 @@
 import { api } from './api'
 import { mapApi } from './map-api'
+import { noteDialog } from './notebook-notes'
 import type { AppContext } from './app-context'
-import { downloadPresentation } from './download'
+import { downloadPresentation, notice } from './download'
 import { saveBeforeLeaving } from './notebook-editor'
 import { createPresentation } from './start-controller'
 import { closePopover, openPopover } from './popover'
@@ -100,15 +101,28 @@ export const submitSlides = async (
     if (!instruction) return
     await app.sendChat({ anchor: { stage: 'notebook' }, instruction })
   }
-  // A note from the Notebook goes to its content map (review 8 F02).
-  if (form.id === 'notebook-note' && app.snapshot) {
+  // A note from the Notebook, or from any stage's More, goes to the content
+  // map (review 8 F02), and says it was saved.
+  if (['notebook-note', 'note-dialog'].includes(form.id) && app.snapshot) {
     const text = String(values.get('note') || '').trim()
     if (!text) return
     const { project } = app.snapshot
     const saved = await mapApi.note(project.copyOfMap || project.id, text)
     form.reset()
+    if (form.id === 'note-dialog') app.dialog.close()
     if (app.snapshot?.project.id === saved.project.id) app.snapshot = saved
     app.render()
+    // The page was drawn again while it saved: its field may have kept the words.
+    const field = app.root.querySelector<HTMLTextAreaElement>(
+      '#notebook-note-text'
+    )
+    if (field) field.value = ''
+    notice(
+      saved.status === 'ready'
+        ? 'Note saved: it is sorted into the content map'
+        : 'Note saved: it joins the map once the wireframes are drawn',
+      true
+    )
   }
   if (form.matches('.evidence-ask') && app.snapshot) {
     const answer = String(values.get('answer') || '').trim()
@@ -142,6 +156,12 @@ export const clickSlides = async (
   if (!app.snapshot) return
   const id = app.snapshot.project.id
   const slideId = app.snapshot.project.slides[app.selected]?.id
+  if (action === 'add-note') {
+    closePopover()
+    app.showDialog(noteDialog())
+    app.dialog.querySelector<HTMLTextAreaElement>('#note-dialog-text')?.focus()
+    return
+  }
   if (action === 'stop-slides') {
     target.setAttribute('disabled', '')
     target.textContent = 'Stopping…'

@@ -114,7 +114,14 @@ it('sends a Notebook note to its content map, an episode’s to its series’ ma
     [notebook('episode-1', 'ready', { copyOfMap: 'map' }), 'map']
   ] as const) {
     vi.mocked(mapApi.note).mockClear()
-    const app = { snapshot, render: vi.fn(), sendChat: vi.fn() }
+    const doc = parseHTML('<html><body><main></main></body></html>').document
+    vi.stubGlobal('document', doc)
+    const app = {
+      snapshot,
+      root: doc.querySelector('main'),
+      render: vi.fn(),
+      sendChat: vi.fn()
+    }
     const form = { id: 'notebook-note', matches: () => false, reset: vi.fn() }
     const values = {
       get: (name: string) =>
@@ -124,5 +131,58 @@ it('sends a Notebook note to its content map, an episode’s to its series’ ma
     expect(mapApi.note).toHaveBeenCalledWith(map, 'A new thing I learned')
     expect(form.reset).toHaveBeenCalled()
     expect(app.render).toHaveBeenCalled()
+    vi.unstubAllGlobals()
   }
+})
+
+it('offers a note on every stage’s More, saves it to the map, and says so', async () => {
+  const { headerMore } = await import('../app/workspace-header')
+  for (const stage of ['notebook', 'presentation', 'video'])
+    expect(headerMore(notebook('map', 'ready'), stage)).toContain('Add a note…')
+  expect(
+    headerMore(notebook('draft', 'draft', { slides: [] }), 'notebook')
+  ).not.toContain('Add a note…')
+  const doc = parseHTML(
+    '<html><body><main><textarea id="notebook-note-text">Typed words</textarea></main></body></html>'
+  ).document
+  vi.stubGlobal('document', doc)
+  vi.mocked(mapApi.note).mockClear()
+  const app = {
+    snapshot: notebook('episode-2', 'ready', { copyOfMap: 'map' }),
+    root: doc.querySelector('main'),
+    render: vi.fn(),
+    dialog: { close: vi.fn() }
+  }
+  const form = { id: 'note-dialog', matches: () => false, reset: vi.fn() }
+  const values = { get: () => 'Consumers deduplicate by event id' }
+  await submitSlides(app as never, form as never, values as never)
+  expect(mapApi.note).toHaveBeenCalledWith(
+    'map',
+    'Consumers deduplicate by event id'
+  )
+  expect(app.dialog.close).toHaveBeenCalled()
+  // The page drawn again while it saved keeps no typed words.
+  expect(
+    doc.querySelector<HTMLTextAreaElement>('#notebook-note-text')!.value
+  ).toBe('')
+  expect(doc.getElementById('download-status')?.textContent).toBe(
+    'Note saved: it is sorted into the content map'
+  )
+  vi.unstubAllGlobals()
+})
+
+it('lists notes kept while no wireframes are drawn in the notebook’s editor', () => {
+  vi.stubGlobal('document', parseHTML('<main></main>').document)
+  const stopped = notebook('stopped', 'failed', {
+    slides: [],
+    notes: [note('The outbox pattern', 'waiting')]
+  })
+  const doc = page(stopped)
+  expect(doc.querySelector('.notebook-notes-where')?.textContent).toContain(
+    'A note waits: each is sorted into the map once the wireframes are drawn.'
+  )
+  expect(doc.querySelector('.notebook-note-list li')?.textContent).toBe(
+    'The outbox pattern'
+  )
+  vi.unstubAllGlobals()
 })

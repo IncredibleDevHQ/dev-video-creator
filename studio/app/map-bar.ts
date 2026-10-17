@@ -12,6 +12,11 @@ const act = (action: string, label: string, kbd = '', primary = false) =>
   `<button type="button" class="${primary ? 'primary' : 'quiet'}" data-map="${action}">${escape(label)}${kbd ? `<kbd>${kbd}</kbd>` : ''}</button>`
 const more = (menu: string) =>
   `<button type="button" class="quiet map-more" data-map="menu:${menu}" aria-label="More" title="More">⋯</button>`
+/** What a note does: it becomes cards, or waits for the map to be drawn. */
+const noteLabel = (map: MapCanvas) =>
+  map.snapshot?.status === 'ready'
+    ? 'A note for the map: it becomes cards'
+    : 'A note: it joins the map once the wireframes are drawn'
 const SEP = '<i class="map-sep"></i>'
 
 const content = (map: MapCanvas) => {
@@ -21,7 +26,7 @@ const content = (map: MapCanvas) => {
     const gap = map.noteAsk.gap
       ? view?.series?.gaps.find((g) => g.id === map.noteAsk!.gap)
       : undefined
-    return `<form class="map-ask" data-map-form="flow-note"><label>${gap ? `Fill the gap · ${escape(gap.ask)}` : 'A note for the map: it becomes cards'}<textarea name="note" rows="2" maxlength="20000" placeholder="${gap ? 'Say it in your words, or paste a link' : 'An idea, a link, a half-thought…'}">${escape(map.noteAsk.text)}</textarea></label><button type="submit" class="primary">Add</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
+    return `<form class="map-ask" data-map-form="flow-note"><label>${gap ? `Fill the gap · ${escape(gap.ask)}` : noteLabel(map)}<textarea name="note" rows="2" maxlength="20000" placeholder="${gap ? 'Say it in your words, or paste a link' : 'An idea, a link, a half-thought…'}">${escape(map.noteAsk.text)}</textarea></label><button type="submit" class="primary">Add</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
   }
   if (map.briefing) {
     const key = map.briefing

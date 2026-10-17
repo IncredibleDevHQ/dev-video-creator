@@ -12,6 +12,8 @@ import incredibleLogo from './assets/incredible-logo.svg'
 
 const chevron =
   '<svg class="agent-chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>'
+const noteIcon =
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>'
 const exportIcon =
   '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 16v4h16v-4"/></svg>'
 const palette =
@@ -34,10 +36,15 @@ const wireframeTools = (snapshot: Snapshot) => {
   )
 }
 
-/** What waits behind ••• in the header: the theme, and the wireframes'
- * export on the Wireframe stage. */
+/** What waits behind ••• in the header: a note for the map on every stage
+ * once the notebook is past its draft (review 8 F02), the theme, and the
+ * wireframes' export on the Wireframe stage. */
 export const headerMore = (snapshot: Snapshot, stage: string) =>
   `<div class="header-more-list" role="menu" aria-label="More">${
+    snapshot.status === 'draft' && !snapshot.project.copyOfMap
+      ? ''
+      : `<button type="button" role="menuitem" data-action="add-note">${noteIcon}<span>Add a note…</span></button>`
+  }${
     stage === 'presentation'
       ? `<button type="button" role="menuitem" data-action="export" ${snapshot.status !== 'ready' ? 'disabled' : ''}>${exportIcon}<span>Export wireframes (PDF)</span></button>`
       : ''

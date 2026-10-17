@@ -100,3 +100,12 @@ it('keeps the Notes field open while the first map is drawn, and says when a not
     'Note saved: it joins the map once the wireframes are drawn'
   )
 })
+
+it('says a canvas note joins the map once it is drawn', async () => {
+  const { map, root } = await openMap()
+  map.noteAsk = { text: '' }
+  map.paint()
+  expect(
+    root.querySelector('[data-map-form="flow-note"] label')?.textContent
+  ).toContain('A note: it joins the map once the wireframes are drawn')
+})

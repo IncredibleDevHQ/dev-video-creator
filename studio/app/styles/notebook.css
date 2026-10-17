@@ -284,11 +284,18 @@
   text-align: center;
 }
 
-/* Notes go on once the wireframes are made: the map's own notes (review 8). */
+/* Notes go on once the wireframes are made: the map's own notes (review 8),
+   in line with the notebook's text. */
 .notebook-notes {
   display: grid;
   gap: 8px;
   margin: 4px 0 20px;
+  padding: 0 48px;
+}
+@media (max-width: 600px) {
+  .notebook-notes {
+    padding: 0 24px;
+  }
 }
 .notebook-note-form {
   display: flex;
