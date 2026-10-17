@@ -13,6 +13,7 @@ import type { Project } from '../shared/model'
 import type { Branding } from '../shared/settings'
 import {
   chosenCover,
+  coverBrand,
   coverChoices,
   coverTitled,
   coverWords,
@@ -77,34 +78,15 @@ const fitted = async (source: Buffer, name: string, at?: number, share = 1) => {
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"]/g, (char) => `&#${char.charCodeAt(0)};`)
 
-/**
- * The title set over a picture: the episode's title large on the left over
- * a shade that keeps it readable at the size YouTube lists it, its number
- * in a series above it, the picture showing on the right. Drawn by a
- * browser, as the teasers' captions are.
- */
-/** How bright a #rrggbb colour is, 0–255. */
-const brightness = (hex: string) => {
-  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
-  if (!match) return 0
-  const n = parseInt(match[1], 16)
-  return (
-    0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)
-  )
-}
-
 /** The brand on a titled cover: its display face (from its own files, else
  * the studio's Inter) and its accent for the kicker when that reads on the
- * dark shade (round 2: system fonts and a fixed yellow, whatever the brand). */
+ * dark shade (round 2: system fonts and a fixed yellow, whatever the brand).
+ * What it is made of comes from the shared `coverBrand`, so the approval's
+ * stamp and the picture read the brand the same way. */
 export const coverLook = async (branding?: Branding) => {
-  const name = String(branding?.fonts?.display || '')
-    .split(',')[0]
-    .replace(/['"]/g, '')
-    .trim()
+  const { face: name, files, accent, panel } = coverBrand(branding)
   const faces: string[] = []
-  for (const file of (branding?.fontFiles || []).filter(
-    (item) => item.family === name
-  )) {
+  for (const file of files) {
     try {
       const data = (await readAsset(file.objectKey)).toString('base64')
       const weight = [file.weight].flat().join(' ')
@@ -119,34 +101,24 @@ export const coverLook = async (branding?: Branding) => {
     faces.push(
       `@font-face{font-family:"Inter";src:url(data:font/woff2;base64,${(await readFile(INTER)).toString('base64')});font-weight:100 900}`
     )
-  const accent = branding?.useAccent ? branding.accent : ''
-  const ground = branding?.palette?.ground || ''
   return {
     faces: faces.join(''),
     // Single quotes: the stack goes into a style attribute.
     font: `${name ? `'${name.replace(/['"]/g, '')}',` : ''}Inter,-apple-system,'Segoe UI',Arial,sans-serif`,
-    accent: /^#[0-9a-f]{6}$/i.test(accent) ? lightened(accent) : '#ffd84d',
+    accent,
     // The title's panel: the brand's own ground when it is dark.
-    panel:
-      /^#[0-9a-f]{6}$/i.test(ground) && brightness(ground) < 60
-        ? ground
-        : '#0f1115'
+    panel,
+    /** The face's files: a face replaced under its name is drawn anew. */
+    files: files.map((file) => file.objectKey).join(',')
   }
 }
 
-/** The accent made light enough to read on the dark panel, its hue kept:
- * mixed with white until it does (round 2: a dark accent fell back to a
- * yellow that was not the brand's). */
-const lightened = (hex: string) => {
-  const n = parseInt(hex.slice(1), 16)
-  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-  for (let mix = 0; mix <= 1; mix += 0.05) {
-    const out = rgb.map((c) => Math.round(c + (255 - c) * mix))
-    const value = `#${out.map((c) => c.toString(16).padStart(2, '0')).join('')}`
-    if (brightness(value) >= 150) return value
-  }
-  return '#ffffff'
-}
+/**
+ * The title set over a picture: the episode's title large on the left over
+ * a shade that keeps it readable at the size YouTube lists it, its number
+ * in a series above it, the picture showing on the right. Drawn by a
+ * browser, as the teasers' captions are.
+ */
 
 export const titledCover = async (
   picture: Buffer,
@@ -266,7 +238,7 @@ const coverOf = async (
   if (!titled) return picture
   const words = coverWords(project)
   const look = await coverLook(project.branding)
-  const key = `${createHash('sha1').update(picture).digest('hex')}:${words.kicker}/${words.title}:${look.font}/${look.accent}`
+  const key = `${createHash('sha1').update(picture).digest('hex')}:${words.kicker}/${words.title}:${look.font}/${look.files}/${look.accent}/${look.panel}`
   return made.get(key) || keep(key, await titledCover(picture, words, look))
 }
 

@@ -8,6 +8,7 @@
 // approves it (round 2).
 import type { Project } from './model'
 import { sceneTimes } from './release-plan'
+import type { Branding } from './settings'
 
 export type CoverChoice = {
   key: string
@@ -118,10 +119,57 @@ export const coverWords = (project: Project) => ({
 export const coverTitled = (project: Project) =>
   Boolean(project.release?.cover?.titled)
 
+/** How bright a #rrggbb colour is, 0–255. */
+const brightness = (hex: string) => {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+  if (!match) return 0
+  const n = parseInt(match[1], 16)
+  return (
+    0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)
+  )
+}
+
+/** The accent made light enough to read on the dark panel, its hue kept:
+ * mixed with white until it does (round 2: a dark accent fell back to a
+ * yellow that was not the brand's). */
+const lightened = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16)
+  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  for (let mix = 0; mix <= 1; mix += 0.05) {
+    const out = rgb.map((c) => Math.round(c + (255 - c) * mix))
+    const value = `#${out.map((c) => c.toString(16).padStart(2, '0')).join('')}`
+    if (brightness(value) >= 150) return value
+  }
+  return '#ffffff'
+}
+
+/** What of the brand a titled cover is drawn with: its display face and
+ * that face's files, its accent for the kicker (lightened to read on the
+ * panel) and its ground for the panel when that is dark (round 2). */
+export const coverBrand = (branding?: Branding) => {
+  const face = String(branding?.fonts?.display || '')
+    .split(',')[0]
+    .replace(/['"]/g, '')
+    .trim()
+  const accent = branding?.useAccent ? branding.accent : ''
+  const ground = branding?.palette?.ground || ''
+  return {
+    face,
+    files: (branding?.fontFiles || []).filter((file) => file.family === face),
+    accent: /^#[0-9a-f]{6}$/i.test(accent) ? lightened(accent) : '#ffd84d',
+    panel:
+      /^#[0-9a-f]{6}$/i.test(ground) && brightness(ground) < 60
+        ? ground
+        : '#0f1115'
+  }
+}
+
 /**
  * What the thumbnail's picture is made from: the choice, its still, the
- * made video, and the title when it is set over it. The creator's approval
- * holds for this, so any change to it asks for approval again.
+ * made video, and when the title is set over it, the title, its kicker and
+ * the brand it is drawn in (F19, round 3: a brand changed after approval
+ * sent a picture the creator never saw). The creator's approval holds for
+ * this, so any change to it asks for approval again.
  */
 export const coverStamp = (project: Project) => {
   const chosen = chosenCover(project)
@@ -130,11 +178,20 @@ export const coverStamp = (project: Project) => {
     .flatMap((scene) => scene.frames)
     .find((frame) => frame.number === chosen.frame)?.still
   const words = coverWords(project)
+  const brand = coverBrand(project.branding)
+  const titled = [
+    words.kicker,
+    words.title,
+    brand.face,
+    brand.files.map((file) => file.objectKey).join(','),
+    brand.accent,
+    brand.panel
+  ].join('/')
   return [
     chosen.key,
     still || '',
     project.video?.produced?.objectKey || '',
-    coverTitled(project) ? `${words.kicker}/${words.title}` : ''
+    coverTitled(project) ? titled : ''
   ].join('|')
 }
 
