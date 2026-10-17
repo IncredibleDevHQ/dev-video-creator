@@ -17,6 +17,7 @@
     --line: #383e3b;
     --muted: #a6afaa;
     --accent: #4dba72;
+    --danger: #f59a91;
     --selected: #24382b;
   }
   button:hover {

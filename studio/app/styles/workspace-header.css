@@ -148,6 +148,22 @@
     border: 0;
     padding-left: 0;
   }
+  /* The actions never run off a phone: a long Release label ("Release ·
+     1 due · 2 overdue") takes the stage's actions onto a row of their own
+     (review 8, round 1: Export MP4 sat 33 px off a 390 px screen). */
+  .workspace-header .header-actions {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+    row-gap: 6px;
+    justify-content: flex-end;
+  }
+  .workspace-header .header-stage-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 100%;
+  }
 }
 /* The header's ••• menu: the wireframes' export, and the theme. */
 .header-more-list {

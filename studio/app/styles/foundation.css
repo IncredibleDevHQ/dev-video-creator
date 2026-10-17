@@ -15,6 +15,8 @@
   --muted: #626a66;
   --line: #dcdedb;
   --accent: #21783d;
+  /* What went wrong or needs care, readable on either theme's panel. */
+  --danger: #b91c1c;
   --rail: #fafaf9;
   --selected: #f0f7f2;
   /* One motion curve for the interface, as Open Slide keeps one. */

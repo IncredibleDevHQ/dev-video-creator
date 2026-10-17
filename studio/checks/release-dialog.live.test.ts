@@ -309,3 +309,35 @@ it('marks overdue in a warning colour of its own, readable in either theme (F18,
     expect(overdue.ratio).toBeGreaterThanOrEqual(4.5)
   }
 }, 60_000)
+
+it('says what needs care in a red that reads in either theme (review 8, round 1)', async () => {
+  const value: Snapshot = structuredClone(snapshot)
+  const release = value.project.release!
+  release.teasers = [
+    {
+      id: 't',
+      channel: 'youtube',
+      aspect: '9:16',
+      segments: [{ from: 0, to: 30 }],
+      state: 'ready',
+      objectKey: 't.mp4',
+      small: 26.5,
+      at: ''
+    }
+  ]
+  release.campaign[0].note = 'The post on X was refused (403)'
+  const body = releaseDialog(value, campaignSection(value, TODAY))
+  for (const theme of ['light', 'dark'] as const) {
+    const seen = await contrasts(body, theme, [
+      '.teaser-small',
+      '.publish-differs',
+      '.campaign-note'
+    ])
+    for (const [selector, found] of Object.entries(seen)) {
+      expect(found, selector).not.toBeNull()
+      expect(found!.ratio, `${selector} in ${theme}`).toBeGreaterThanOrEqual(
+        4.5
+      )
+    }
+  }
+}, 60_000)
