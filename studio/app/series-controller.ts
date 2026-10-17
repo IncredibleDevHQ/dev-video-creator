@@ -30,10 +30,25 @@ export const seriesApi = {
 
 let watching: ReturnType<typeof setTimeout> | null = null
 /** Shows a series' page, and follows it while the arc is planned. */
-export const showSeries = async (app: AppContext, id: string) => {
+export const showSeries = async (
+  app: AppContext,
+  id: string,
+  standalone = false
+) => {
   const page = await seriesApi.page(id)
-  app.showDialog(seriesPageView(page))
-  app.dialog.dataset.series = id
+  if (standalone || app.seriesPage?.series.id === id) {
+    app.dialog.close()
+    app.closeStream?.()
+    app.closeStream = null
+    app.snapshot = null
+    app.opening.reset()
+    app.seriesPage = page
+    history.replaceState(null, '', `/?series=${encodeURIComponent(id)}`)
+    app.render()
+  } else {
+    app.showDialog(seriesPageView(page))
+    app.dialog.dataset.series = id
+  }
   if (watching) clearTimeout(watching)
   if (page.series.planning?.state === 'planning') watchSeries(app, id)
 }
@@ -42,8 +57,12 @@ export const showSeries = async (app: AppContext, id: string) => {
 const watchSeries = (app: AppContext, id: string) => {
   watching = setTimeout(() => {
     watching = null
-    if (!app.dialog.open || app.dialog.dataset.series !== id) return
-    if (typingIn(app.dialog)) watchSeries(app, id)
+    if (
+      app.seriesPage?.series.id !== id &&
+      (!app.dialog.open || app.dialog.dataset.series !== id)
+    )
+      return
+    if (typingIn(app.seriesPage ? app.root : app.dialog)) watchSeries(app, id)
     else void showSeries(app, id).catch(app.error)
   }, 3000)
 }
@@ -57,8 +76,11 @@ export const clickSeries = async (
     app.showDialog(newSeriesDialog())
     return true
   }
-  if (action === 'open-series' && target.dataset.series) {
-    await showSeries(app, target.dataset.series)
+  if (
+    (action === 'open-series' || action === 'open-series-page') &&
+    target.dataset.series
+  ) {
+    await showSeries(app, target.dataset.series, action === 'open-series-page')
     return true
   }
   if (action === 'plan-arc' && target.dataset.series) {
@@ -112,7 +134,12 @@ export const submitSeries = async (
     const page = await seriesApi.update(form.dataset.series, {
       threads: String(values.get('threads') || '').split('\n')
     })
-    app.showDialog(seriesPageView(page))
-    app.dialog.dataset.series = form.dataset.series
+    if (app.seriesPage?.series.id === form.dataset.series) {
+      app.seriesPage = page
+      app.render()
+    } else {
+      app.showDialog(seriesPageView(page))
+      app.dialog.dataset.series = form.dataset.series
+    }
   }
 }

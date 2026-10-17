@@ -135,14 +135,16 @@ export const videoView = (project: Project) => {
   const storyboard = video.storyboard
   if (storyboard)
     return {
-      action: storyboard.produced
-        ? ('export' as const)
-        : ('produce-video' as const),
-      enabled: Boolean(storyboard.produced),
-      producedScenes: storyboard.produced ? 1 : 0,
+      action:
+        storyboard.produced && !storyboard.stale
+          ? ('export' as const)
+          : ('produce-video' as const),
+      enabled: Boolean(storyboard.produced) && !storyboard.stale,
+      producedScenes: storyboard.produced && !storyboard.stale ? 1 : 0,
       madeScenes: 1,
-      state:
-        storyboard.status === 'failed'
+      state: storyboard.stale
+        ? 'Wireframes changed — remake the video'
+        : storyboard.status === 'failed'
           ? 'Stopped'
           : storyboard.status === 'waiting'
             ? storyboard.waitingFor === 'takes'
@@ -273,8 +275,9 @@ export const videoDisplay = (
   if (video.storyboard) {
     const storyboard = video.storyboard
     return {
-      label:
-        storyboard.status === 'working'
+      label: storyboard.stale
+        ? 'Changed since build'
+        : storyboard.status === 'working'
           ? STAGE_LABELS[storyboard.stage]
           : storyboard.status === 'waiting'
             ? storyboard.waitingFor === 'takes'
@@ -286,8 +289,9 @@ export const videoDisplay = (
               ? 'Stopped'
               : 'Made',
       active: storyboard.status === 'working',
-      actionLabel:
-        storyboard.status === 'failed'
+      actionLabel: storyboard.stale
+        ? 'Remake video'
+        : storyboard.status === 'failed'
           ? 'Try again'
           : storyboard.waitingFor === 'approval'
             ? storyboard.stage === 'board'

@@ -235,6 +235,8 @@ export const TAKE_TYPES: Record<string, string> = {
 
 /** A storyboard video's state, kept on the notebook (project.video). */
 export type Storyboard = {
+  /** The wireframes changed after this production began. */
+  stale?: boolean
   /** The production: one Hyperframes project on disk. */
   id: string
   /** The pages this episode tells, in order. */

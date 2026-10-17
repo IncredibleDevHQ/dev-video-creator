@@ -52,7 +52,7 @@ export const teasersSection = (snapshot: Snapshot) => {
       )
   ).join('')}</select>
 <input name="moment" type="number" min="0" step="0.5" placeholder="From second (optional)" aria-label="Start the beat at this second">
-<button>Cut a teaser</button></form>
+<button class="primary">Cut a teaser</button></form>
 ${teasers.length ? `<ul class="teaser-list">${teasers.map(teaserRow).join('')}</ul>` : ''}</section>`
 }
 
@@ -60,18 +60,18 @@ export const postsSection = (snapshot: Snapshot) => {
   const release = snapshot.project.release
   const posts = release?.posts
   const drafting = release?.drafting
-  return `<section class="release-section"><h3>Words <small>each channel its own, in your voice</small></h3>
+  return `<section class="release-section"><h3>Social posts <small>Draft a post for each channel, then review before publishing</small></h3>
 ${
   drafting?.state === 'drafting'
     ? '<p class="release-state" role="status">Drafting…</p>'
-    : `${drafting?.state === 'failed' ? `<p class="release-failed">${escape(drafting.error || 'Could not draft them')}</p>` : ''}<button type="button" class="quiet" data-action="draft-posts">${posts ? 'Draft again' : 'Draft the posts'}</button>`
+    : `${drafting?.state === 'failed' ? `<p class="release-failed">${escape(drafting.error || 'Could not draft them')}</p>` : ''}<button type="button" class="primary" data-action="draft-posts">${posts ? 'Draft again' : 'Draft the posts'}</button>`
 }
 ${
   posts
     ? `<form id="posts-form" class="posts-form">${CHANNELS.map(
         (channel) =>
           `<label for="post-${channel}">${CHANNEL_LABELS[channel]} <small>${posts[channel].length}/${LIMITS[channel]}</small></label><textarea id="post-${channel}" name="${channel}" rows="${channel === 'x' ? 3 : 5}">${escape(posts[channel])}</textarea>`
-      ).join('')}<button class="quiet">Keep the words</button></form>`
+      ).join('')}<button class="quiet">Save posts</button></form>`
     : ''
 }</section>`
 }
@@ -116,8 +116,8 @@ ${
 
 export const releaseDialog = (snapshot: Snapshot, more = '') => {
   const release = snapshot.project.release
-  return `<h2>Release</h2>
-<form id="release-form" class="release-when"><label for="release-at">Goes out</label><input id="release-at" name="at" type="datetime-local" value="${localTime(release?.at)}"><button class="quiet">Set</button></form>
+  return `<h2>Share your video</h2><p>Prepare a short clip and social posts, then download or publish when you are ready. Nothing posts automatically.</p>
+<form id="release-form" class="release-when"><label for="release-at">Release date and time</label><input id="release-at" name="at" type="datetime-local" value="${localTime(release?.at)}"><button class="button">Save date</button></form>
 ${teasersSection(snapshot)}${postsSection(snapshot)}${youtubeSection(snapshot)}${more}
 <div class="dialog-actions"><button type="button" class="quiet" data-action="close">Close</button></div>`
 }

@@ -63,6 +63,10 @@ export const draftPosts = async (id: string) => {
   const snapshot = await loadProject(id)
   if (!snapshot?.project.video?.produced)
     throw new Refusal('Produce the video first')
+  if (snapshot.project.video?.storyboard?.stale)
+    throw new Refusal(
+      'The wireframes changed. Remake the video before exporting it'
+    )
   const project = snapshot.project
   const started = await changeProject(id, (current) => {
     const release = current.project.release || emptyRelease()
@@ -202,6 +206,10 @@ export const uploadBundle = async (id: string) => {
   const snapshot = await loadProject(id)
   const produced = snapshot?.project.video?.produced
   if (!snapshot || !produced) throw new Refusal('Produce the video first')
+  if (snapshot.project.video?.storyboard?.stale)
+    throw new Refusal(
+      'The wireframes changed. Remake the video before exporting it'
+    )
   const project = snapshot.project
   const series = project.episode
     ? await loadSeries(project.episode.series)

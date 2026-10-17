@@ -39,7 +39,7 @@ const seriesRow = (item: SeriesSummary, notebooks: NotebookSummary[]) => {
     )
     .join('')
   const count = `${item.episodes} ${item.episodes === 1 ? 'episode' : 'episodes'}${item.planned ? ` of ${item.planned} planned` : ''}`
-  return `<article class="series-row"><div class="series-row-head"><button type="button" class="series-row-title" data-action="open-series" data-series="${escape(item.id)}">${escape(item.title)}</button><small>${count}</small></div>${map || episodes ? `<ol>${map}${episodes}</ol>` : ''}</article>`
+  return `<article class="series-row"><div class="series-row-head"><button type="button" class="series-row-title" ${item.map ? `data-action="open-map-of" data-map="${escape(item.map)}"` : `data-action="open-series-page" data-series="${escape(item.id)}"`}>${escape(item.title)}</button><small>${count}</small></div>${map || episodes ? `<ol>${map}${episodes}</ol>` : ''}</article>`
 }
 
 /** The creator's series, under their notebooks. */
@@ -96,7 +96,7 @@ const arcView = (page: SeriesPageData) => {
 }
 
 /** The series' page: its arc, its episodes, its threads, the next one. */
-export const seriesPageView = (page: SeriesPageData) => {
+export const seriesPageView = (page: SeriesPageData, standalone = false) => {
   const { series } = page
   const next = nextPart(series)
   const repo = series.repos[0]
@@ -108,7 +108,7 @@ ${series.map ? '' : `<h3>Arc</h3>${arcView(page)}`}
       ? `<ol class="series-episodes">${page.episodes
           .map(
             (item) =>
-              `<li><button type="button" class="quiet" data-notebook="${escape(item.notebookId)}">${escape(item.title)}</button><small>${escape(narrativeById(item.narrative ?? undefined)?.name || 'No template yet')}</small></li>`
+              `<li><button type="button" class="button" data-notebook="${escape(item.notebookId)}">Open episode ${item.number}: ${escape(item.title)}</button><small>Template: ${escape(narrativeById(item.narrative ?? undefined)?.name || 'Not selected')}</small></li>`
           )
           .join('')}</ol>`
       : '<p class="series-none">No episode yet.</p>'
@@ -127,9 +127,9 @@ ${next ? `<input type="hidden" name="part" value="${next.index}">` : ''}
 <form id="threads-form" class="threads-form" data-series="${escape(series.id)}">
 <label for="series-threads">Threads <small>carried from one episode to the next, one a line</small></label>
 <textarea id="series-threads" name="threads" rows="3">${escape(series.threads.join('\n'))}</textarea>
-<button class="quiet">Keep the threads</button>
+<button class="primary">Save threads</button>
 </form>
-<div class="dialog-actions"><button type="button" class="quiet" data-action="close">Close</button></div>`
+${standalone ? '' : '<div class="dialog-actions"><button type="button" class="quiet" data-action="close">Close</button></div>'}`
 }
 
 /** On an episode's notebook: which series, which number. */

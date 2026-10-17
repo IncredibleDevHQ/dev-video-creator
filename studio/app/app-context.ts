@@ -11,6 +11,7 @@ export interface AppContext {
   syncMediaRecovery: () => void
   snapshot: Snapshot | null
   notebooks: NotebookSummary[]
+  seriesPage?: import('./series-view').SeriesPageData
   series: import('../shared/series').SeriesSummary[]
   refreshNotebooks: () => Promise<void>
   selected: number

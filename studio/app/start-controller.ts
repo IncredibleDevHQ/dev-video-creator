@@ -55,6 +55,7 @@ export const createSourceHint = (app: AppContext) => (value: string) => {
 
 export const createFitSource =
   (app: AppContext) => (field: HTMLTextAreaElement) => {
+    app.pendingSource = field.value
     field.style.height = 'auto'
     field.style.height = `${Math.min(field.scrollHeight + 2, 220)}px`
     updateSourceComposer(field, app.pending)
@@ -66,7 +67,7 @@ export const createFitSource =
 const notebookTile = (
   app: AppContext,
   item: NotebookSummary
-) => `<button class="notebook-tile" data-notebook="${escape(item.id)}">
+) => `<article class="notebook-card"><button class="notebook-tile" data-notebook="${escape(item.id)}">
 <span class="tile-picture ${item.status === 'building' ? 'is-building' : ''}" aria-hidden="true">
 ${item.preview || `<span class="tile-empty">${item.status === 'building' ? 'Designing…' : 'No wireframes yet'}</span>`}
 </span>
@@ -75,7 +76,7 @@ ${item.preview || `<span class="tile-empty">${item.status === 'building' ? 'Desi
   item.updatedAt ? ` · ${escape(app.ago(item.updatedAt))}` : ''
 }</span>
 <span class="tile-state ${item.status === 'failed' ? 'is-failed' : ''}">${notebookState(item)}</span>
-</button>`
+</button><button type="button" class="quiet notebook-archive" data-action="archive-notebook" data-id="${escape(item.id)}" aria-label="Archive ${escape(item.title)}">Archive</button></article>`
 
 export const createRenderStartScreen = (app: AppContext) => () => {
   const previousPlayer = app.root.querySelector<HTMLMediaElement>(
@@ -89,7 +90,10 @@ export const createRenderStartScreen = (app: AppContext) => () => {
       ].filter(Boolean)
     )
   )
-  const loose = app.notebooks.filter((item) => !grouped.has(item.id))
+  const archived = app.notebooks.filter((item) => item.archived)
+  const loose = app.notebooks.filter(
+    (item) => !item.archived && !grouped.has(item.id)
+  )
   const recent = app.showAllRecent ? loose : loose.slice(0, 8)
   // Your work is the home page: the notebooks sit straight under the field,
   // and the demo shows only until there is a notebook (review 5).
@@ -126,9 +130,14 @@ ${recent.map((item) => notebookTile(app, item)).join('')}
           ? `<button type="button" class="quiet show-all" data-action="all-recent">Show all ${loose.length}</button>`
           : ''
       }</section>`
-}</main>`,
+}${archived.length ? `<details class="saved-notebooks archived-notebooks"><summary>Archived notebooks (${archived.length})</summary><ul>${archived.map((item) => `<li><span>${escape(item.title)}</span><button type="button" class="button" data-action="restore-notebook" data-id="${escape(item.id)}">Restore</button></li>`).join('')}</ul></details>` : ''}</main>`,
     previousPlayer
   )
+  const source = app.root.querySelector<HTMLTextAreaElement>('#source-input')
+  if (source) {
+    source.value = app.pendingSource
+    app.fitSource(source)
+  }
 }
 
 /** The demo, on request, once the home page shows the creator's notebooks. */
@@ -165,7 +174,10 @@ export const installStartController = (app: AppContext) => {
   installBrandStory(app.root)
   app.root.addEventListener('input', (event) => {
     const field = event.target as HTMLTextAreaElement
-    if (field.id === 'source-input') app.fitSource(field)
+    if (field.id === 'source-input') {
+      app.pendingSource = field.value
+      app.fitSource(field)
+    }
   })
   // A link dragged from another tab becomes the field's text.
   app.root.addEventListener('dragover', (event) => {
@@ -194,7 +206,7 @@ export const installStartController = (app: AppContext) => {
     if (
       field.id === 'source-input' &&
       event.key === 'Enter' &&
-      !event.shiftKey &&
+      (event.metaKey || event.ctrlKey) &&
       !event.isComposing
     ) {
       event.preventDefault()
@@ -210,7 +222,7 @@ export const submitStart = async (
 ) => {
   if (form.id === 'source') {
     if (app.pending) return
-    app.pendingSource = String(values.get('source')).trim()
+    app.pendingSource = String(values.get('source') || '').trim()
     if (!app.pendingSource) return
     app.pending = true
     app.render()
@@ -243,6 +255,20 @@ export const clickStart = async (
   target: HTMLButtonElement,
   action: string | undefined
 ) => {
+  if (
+    (action === 'archive-notebook' || action === 'restore-notebook') &&
+    target.dataset.id
+  ) {
+    target.disabled = true
+    try {
+      await api.archive(target.dataset.id, action === 'archive-notebook')
+      await app.refreshNotebooks()
+      app.render()
+    } finally {
+      target.disabled = false
+    }
+    return true
+  }
   if (!app.snapshot) return
   const id = app.snapshot.project.id
   const slideId = app.snapshot.project.slides[app.selected]?.id

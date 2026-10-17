@@ -24,7 +24,12 @@ import { storeAsset } from '../persistence'
 import { changeProject, loadProject } from '../projects'
 import { Refusal } from '../refusal'
 import { hasPicture, probeSeconds } from '../voice'
-import { missingTakes, scheduleStoryboard, storyboardDir } from './pipeline'
+import {
+  missingTakes,
+  scheduleStoryboard,
+  settledStoryboard,
+  storyboardDir
+} from './pipeline'
 import { readInternal, writeInternal, writeProjectFiles } from './state'
 import { summaryNow, update } from './run'
 import { takeRefusal } from './takes'
@@ -423,4 +428,41 @@ export const showTakeSlots = async (snapshot: Snapshot) => {
     resume = true
   })
   if (resume) scheduleStoryboard(snapshot.project.id)
+}
+
+/** Replan edited wireframes in a fresh workspace, keeping the creator's takes. */
+export const remakeStoryboard = async (projectId: string) => {
+  if (
+    (await loadProject(projectId))?.project.video?.storyboard?.status ===
+    'working'
+  )
+    throw new Refusal(
+      'Wait for the current production to stop before remaking it'
+    )
+  await settledStoryboard(projectId)
+  const snapshot = await changeProject(projectId, (current) => {
+    const old = storyboardOf(current)
+    if (old.status === 'working')
+      throw new Refusal(
+        'Wait for the current production to stop before remaking it'
+      )
+    current.project.video!.storyboard = {
+      ...newStoryboard(old.pages),
+      plan: old.plan && {
+        ...old.plan,
+        scenes: old.plan.scenes.map((scene) => ({
+          ...scene,
+          frames: scene.frames.map(({ still: _still, ...frame }) => ({
+            ...frame,
+            status: 'outline'
+          }))
+        }))
+      },
+      builds: old.builds
+    }
+    current.project.video!.produced = null
+    addEvent(current, 'video', 'Remaking the video from the current wireframes')
+  })
+  scheduleStoryboard(projectId)
+  return snapshot
 }

@@ -20,6 +20,11 @@ const request = <T>(path: string, method = 'GET', body?: unknown): Promise<T> =>
     body: body ? JSON.stringify(body) : undefined
   })
 export const api = {
+  remakeStoryboard: (id: string) =>
+    request<Snapshot>(`/projects/${id}/storyboard/remake`, 'POST', {}),
+  archive: (id: string, archived: boolean) =>
+    request<Snapshot>(`/projects/${id}/archive`, 'POST', { archived }),
+
   applyLook: (
     id: string,
     look: import('../shared/looks').Look,

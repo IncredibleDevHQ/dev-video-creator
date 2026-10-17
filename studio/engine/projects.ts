@@ -1,3 +1,4 @@
+import { storyboardSources } from './storyboard/source-state'
 import { scheduleSource } from './notebook-intake'
 import { addEvent } from './activity'
 export { addEvent } from './activity'
@@ -101,7 +102,16 @@ export const changeProject = async (
     .then(async () => {
       const snapshot = await loadProject(id)
       if (!snapshot) throw new Refusal('Project not found')
+      const boardId = snapshot.project.video?.storyboard?.id
+      const sources = storyboardSources(snapshot.project)
       await update(snapshot)
+      const board = snapshot.project.video?.storyboard
+      if (
+        board &&
+        board.id === boardId &&
+        sources !== storyboardSources(snapshot.project)
+      )
+        board.stale = true
       snapshot.views = projectViews(snapshot.project, snapshot.events)
       snapshot.views.video.display = videoDisplay(snapshot)
       snapshot.views.presentation = presentationDisplay(snapshot)
@@ -753,6 +763,7 @@ export const listNotebooks = async (): Promise<
       result.push({
         id,
         title: saved.project.title,
+        archived: saved.project.archived,
         status: saved.status,
         hasVideo: Boolean(saved.project.video),
         // Finished, as the Video stage counts it: exported and current.

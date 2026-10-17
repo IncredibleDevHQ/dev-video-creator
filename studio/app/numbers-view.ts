@@ -27,7 +27,7 @@ export const numbersSection = (snapshot: Snapshot) => {
     .filter((item) => item !== null)
     .flatMap((item) => Object.entries(item!.posts || {}))
   const videoId = release?.youtube?.videoId
-  return `<section class="release-section numbers"><h3>Numbers ${youtube ? `<small>read ${escape(new Date(youtube.at).toLocaleDateString())}</small>` : ''}</h3>
+  return `<section class="release-section numbers"><h3>Performance ${youtube ? `<small>read ${escape(new Date(youtube.at).toLocaleDateString())}</small>` : ''}</h3>
 <form id="youtube-video-form" class="numbers-video"><label for="youtube-video">YouTube link</label><input id="youtube-video" name="video" value="${videoId ? `https://youtu.be/${escape(videoId)}` : ''}" placeholder="Paste it once the video is up" autocomplete="off"><button class="quiet">Keep</button></form>
 ${
   youtube
@@ -56,8 +56,8 @@ ${
         .join('')}</ul>`
     : ''
 }
-<div class="numbers-actions"><button type="button" class="quiet" data-action="read-numbers">Read the numbers</button><button type="button" class="quiet" data-action="accounts">Accounts</button></div>
-<details class="numbers-hand"><summary>Enter LinkedIn’s numbers</summary><form id="hand-numbers" class="hand-numbers">
-<label>Seen<input name="impressions" type="number" min="0"></label><label>Likes<input name="likes" type="number" min="0"></label><label>Reposts<input name="reposts" type="number" min="0"></label><label>Comments<input name="replies" type="number" min="0"></label>
+<div class="numbers-actions"><button type="button" class="quiet" data-action="read-numbers">Refresh analytics</button><button type="button" class="quiet" data-action="accounts">Accounts</button></div>
+<details class="numbers-hand"><summary>Enter LinkedIn performance manually</summary><form id="hand-numbers" class="hand-numbers">
+<label>Impressions<input name="impressions" type="number" min="0"></label><label>Likes<input name="likes" type="number" min="0"></label><label>Reposts<input name="reposts" type="number" min="0"></label><label>Comments<input name="replies" type="number" min="0"></label>
 <button class="quiet">Keep</button></form></details></section>`
 }

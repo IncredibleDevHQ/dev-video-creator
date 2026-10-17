@@ -87,9 +87,12 @@ export const sceneLink = (
     if (at < 0)
       return line(`${orbit}Planning the episode`, openScene, 'working')
     const entry = scenes[at]
-    const built = entry.frames.every((frame) => frame.status === 'animated')
-    const stills =
-      storyboard.stage === 'stills'
+    const built =
+      !storyboard.stale &&
+      entry.frames.every((frame) => frame.status === 'animated')
+    const stills = storyboard.stale
+      ? 'changed since build'
+      : storyboard.stage === 'stills'
         ? 'stills being posed'
         : storyboard.stage === 'board'
           ? 'stills ready for you'

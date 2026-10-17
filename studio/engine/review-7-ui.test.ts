@@ -470,7 +470,8 @@ describe('Home (UX-10, UX-11)', () => {
     const rows = html.querySelectorAll('.series-row')
     expect(rows).toHaveLength(1)
     expect(
-      rows[0].querySelector('[data-action="open-series"]')?.textContent
+      rows[0].querySelector('.series-row-title[data-action="open-map-of"]')
+        ?.textContent
     ).toBe(series.title)
     const entries = [...rows[0].querySelectorAll('ol > li button')]
     expect(
@@ -506,6 +507,8 @@ describe('Home (UX-10, UX-11)', () => {
       series: [series],
       showAllRecent: false,
       pending: false,
+      pendingSource: '',
+      fitSource: vi.fn(),
       ago: () => ''
     } as unknown as AppContext
     createRenderStartScreen(app)()

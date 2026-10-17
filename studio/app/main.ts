@@ -1,3 +1,5 @@
+import { showSeries } from './series-controller'
+import { dialogContent } from './dialog-content'
 import { TemplateGallery } from './template-gallery'
 import { MapCanvas } from './map-canvas'
 import { useTemplate } from './template-controller'
@@ -209,6 +211,7 @@ app.opening = new NotebookOpening(
   () => app.render()
 )
 app.openNotebook = (id: string, autoStage = false) => {
+  app.seriesPage = undefined
   app.openingAutoStage = autoStage
   const url = new URL(location.href)
   if (url.searchParams.get('notebook') !== id) {
@@ -217,6 +220,7 @@ app.openNotebook = (id: string, autoStage = false) => {
   }
   url.searchParams.set('notebook', id)
   url.searchParams.delete('project')
+  url.searchParams.delete('series')
   history.replaceState(null, '', url)
   return app.opening.open(id)
 }
@@ -224,6 +228,7 @@ app.renderStartScreen = createRenderStartScreen(app)
 app.render = createRender(app)
 app.sendChat = createSendChat(app)
 app.attach = (value: Snapshot) => {
+  app.seriesPage = undefined
   app.liveConnected = true
   if (app.stage === 'video') {
     ;({
@@ -268,8 +273,7 @@ app.attach = (value: Snapshot) => {
 app.error = showError
 app.showDialog = (content: string) => {
   app.dialogRevision++
-  app.dialog.innerHTML = `${button('×', 'close')}<div class="dialog-body">
-${content}</div>`
+  app.dialog.innerHTML = dialogContent(content)
   if (!app.dialog.open) app.dialog.showModal()
 }
 app.playheadFrame = 0
@@ -289,6 +293,8 @@ app.parameters = new URLSearchParams(location.search)
 app.saved = app.parameters.get('notebook') || app.parameters.get('project')
 const mapParameter = app.parameters.get('map')
 if (mapParameter) void app.mapCanvas.open(mapParameter)
+else if (app.parameters.get('series'))
+  void showSeries(app, app.parameters.get('series')!, true).catch(app.error)
 else if (app.saved) void app.openNotebook(app.saved)
 else void app.refreshNotebooks().catch(app.error)
 window.addEventListener('pagehide', () => {

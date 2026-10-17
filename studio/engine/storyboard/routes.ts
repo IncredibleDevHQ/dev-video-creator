@@ -19,6 +19,7 @@ import { productionDir } from './workspace'
 import { stillFile } from './board'
 import {
   approveStoryboard,
+  remakeStoryboard,
   noteStoryboardFrame,
   retryStoryboard,
   saveStoryboardTake,
@@ -27,7 +28,7 @@ import {
 } from './actions'
 
 const ROUTE =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/(approve|retry|sheet|scenes\/([a-zA-Z0-9_-]+)\/(build|take))$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/(approve|retry|remake|sheet|scenes\/([a-zA-Z0-9_-]+)\/(build|take))$/
 
 const FRAME_CHANGE_ROUTE =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(\d{1,3})\/(transition|note)$/
@@ -138,6 +139,8 @@ export const storyboardRoute = async (
   if (request.method !== 'POST') return null
   if (action === 'approve')
     return { status: 200, value: await approveStoryboard(projectId, body) }
+  if (action === 'remake')
+    return { status: 200, value: await remakeStoryboard(projectId) }
   if (action === 'retry')
     return { status: 200, value: await retryStoryboard(projectId) }
   if (sceneAction === 'build')

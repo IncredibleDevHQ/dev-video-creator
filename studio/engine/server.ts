@@ -1,3 +1,4 @@
+import { downloadDisposition } from './download-name'
 import {
   saveTakeRequest,
   storyboardRoute,
@@ -53,6 +54,7 @@ import {
 } from './voice-library'
 import {
   createProject,
+  changeProject,
   replaceBlockedSource,
   listNotebooks,
   editSlide,
@@ -411,7 +413,11 @@ export const createStudioServer = (
         const bytes = await readAsset(scene.produced.objectKey)
         response.writeHead(200, {
           'Content-Type': 'video/mp4',
-          'Content-Disposition': 'attachment; filename="scene.mp4"',
+          'Content-Disposition': downloadDisposition(
+            snapshot!.project.slides.find((slide) => slide.id === scene.slideId)
+              ?.title || 'scene',
+            'mp4'
+          ),
           'Content-Length': bytes.length
         })
         response.end(bytes)
@@ -464,7 +470,7 @@ export const createStudioServer = (
         )
       }
       const match = url.pathname.match(
-        /^\/api\/projects\/([a-zA-Z0-9_-]+)(?:\/(events|slides|export|chat|video|produce|download|transitions|retry|stop|artifacts|source|brand-detection|look|length|template|answers|suggest|coverage))?$/
+        /^\/api\/projects\/([a-zA-Z0-9_-]+)(?:\/(events|slides|export|chat|video|produce|download|transitions|retry|stop|artifacts|source|brand-detection|look|length|template|answers|suggest|coverage|archive))?$/
       )
       if (match) {
         const [, id, action] = match
@@ -504,6 +510,17 @@ export const createStudioServer = (
           })
           return
         }
+        if (action === 'archive' && request.method === 'POST') {
+          if (typeof body.archived !== 'boolean')
+            throw new Refusal('Choose archive or restore')
+          return send(
+            response,
+            200,
+            await changeProject(id, (current) => {
+              current.project.archived = body.archived as boolean
+            })
+          )
+        }
         if (action === 'artifacts' && request.method === 'GET')
           return send(response, 200, await notebookArtifacts(id))
         if (action === 'stop' && request.method === 'POST')
@@ -534,7 +551,10 @@ export const createStudioServer = (
           const bytes = await readAsset(video.produced.objectKey)
           response.writeHead(200, {
             'Content-Type': 'video/mp4',
-            'Content-Disposition': 'attachment; filename="video.mp4"',
+            'Content-Disposition': downloadDisposition(
+              snapshot.project.title,
+              'mp4'
+            ),
             'Content-Length': bytes.length
           })
           response.end(bytes)
@@ -602,7 +622,10 @@ export const createStudioServer = (
           const pdf = await exportPresentation(snapshot.project)
           response.writeHead(200, {
             'Content-Type': 'application/pdf',
-            'Content-Disposition': 'attachment; filename="slides.pdf"',
+            'Content-Disposition': downloadDisposition(
+              snapshot.project.title,
+              'pdf'
+            ),
             'Content-Length': pdf.length
           })
           response.end(pdf)

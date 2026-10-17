@@ -1,3 +1,4 @@
+import { seriesPageView } from './series-view'
 import { syncStoryboardPlayer } from './storyboard-controller'
 import { storyboardScreen } from './storyboard-view'
 import { notesOnly } from './progress'
@@ -35,6 +36,10 @@ export const createRender = (app: AppContext) => () => {
     app.mapCanvas.isOpen
   )
     return
+  if (app.seriesPage) {
+    app.root.innerHTML = `<header><a class="brand" href="/" aria-label="Incredible Studio: all notebooks"><img src="${incredibleLogo}" alt="">All notebooks</a></header><main class="series-page">${seriesPageView(app.seriesPage, true)}</main>`
+    return
+  }
   const selection = getSelection()
   const editSelection =
     document.activeElement?.closest('.dialogue-studio') && selection?.anchorNode

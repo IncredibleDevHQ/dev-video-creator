@@ -1,87 +1,98 @@
 const active = new Set<string>()
-// Keep export failures in the editor; direct navigation would replace it
-// with an API error document. The current PDF is small enough to buffer.
-export const downloadPresentation = async (
-  projectId: string,
-  button: HTMLButtonElement
+
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
+const notice = (text: string, finished = false) => {
+  clearTimeout(noticeTimer)
+  let status = document.getElementById('download-status')
+  if (!status) {
+    status = document.createElement('div')
+    status.id = 'download-status'
+    status.className = 'download-status'
+    status.setAttribute('role', 'status')
+    document.body.append(status)
+  }
+  status.textContent = text
+  if (finished) noticeTimer = setTimeout(() => status?.remove(), 15_000)
+}
+
+const filename = (response: Response, fallback: string) => {
+  const header = response.headers.get('content-disposition') || ''
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(header)?.[1]
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded)
+    } catch {}
+  }
+  return /filename="([^"]+)"/.exec(header)?.[1] || fallback
+}
+
+/** One request per export; keep progress and failures inside the editor. */
+const download = async (
+  key: string,
+  path: string,
+  button: HTMLButtonElement,
+  type: string,
+  fallback: string
 ) => {
-  if (active.has(projectId)) return
-  active.add(projectId)
+  if (active.has(key)) return
+  active.add(key)
   const label = button.textContent
   button.disabled = true
-  button.textContent = 'Preparing PDF…'
+  button.setAttribute('aria-busy', 'true')
+  button.textContent =
+    type === 'application/pdf' ? 'Preparing PDF…' : 'Downloading…'
+  notice(button.textContent)
   try {
-    let response: Response
-    try {
-      response = await fetch(
-        `/api/projects/${encodeURIComponent(projectId)}/export`
-      )
-    } catch {
-      throw new Error(
-        'Studio is unavailable. Try exporting again when it is running.'
-      )
-    }
-    if (
-      !response.ok ||
-      !response.headers.get('content-type')?.includes('application/pdf')
-    ) {
+    const response = await fetch(path)
+    if (!response.ok || !response.headers.get('content-type')?.includes(type)) {
       const result = await response.json().catch(() => null)
       throw new Error(
-        typeof result?.error === 'string'
-          ? result.error
-          : 'Could not export these wireframes. Try again.'
+        result?.error || 'Could not download this file. Try again.'
       )
     }
     const url = URL.createObjectURL(await response.blob())
     const link = document.createElement('a')
     link.href = url
-    link.download = 'wireframes.pdf'
+    const name = filename(response, fallback)
+    link.download = name
     link.hidden = true
     document.body.append(link)
     link.click()
     link.remove()
-    // Give the browser time to consume the download before releasing its bytes.
-    setTimeout(() => URL.revokeObjectURL(url), 60000)
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    notice(`${name} is ready. Check your browser’s downloads.`, true)
+  } catch (error) {
+    notice('Download failed. Please try again.', true)
+    throw error
   } finally {
-    active.delete(projectId)
+    active.delete(key)
     button.disabled = false
+    button.removeAttribute('aria-busy')
     button.textContent = label
   }
 }
 
-export const downloadVideo = async (
+export const downloadPresentation = (
+  projectId: string,
+  button: HTMLButtonElement
+) =>
+  download(
+    `${projectId}:pdf`,
+    `/api/projects/${encodeURIComponent(projectId)}/export`,
+    button,
+    'application/pdf',
+    'wireframes.pdf'
+  )
+
+export const downloadVideo = (
   projectId: string,
   button: HTMLButtonElement,
   sceneId?: string
-) => {
-  const key = `${projectId}:${sceneId || 'video'}`
-  if (active.has(key)) return
-  active.add(key)
-  const label = button.textContent
-  button.disabled = true
-  button.textContent = 'Downloading…'
-  try {
-    const path = `/api/projects/${encodeURIComponent(projectId)}${sceneId ? `/scenes/${encodeURIComponent(sceneId)}` : ''}/download`
-    const response = await fetch(path)
-    if (
-      !response.ok ||
-      !response.headers.get('content-type')?.includes('video/mp4')
-    ) {
-      const result = await response.json().catch(() => null)
-      throw new Error(
-        result?.error || 'Could not download the video. Try again.'
-      )
-    }
-    const link = document.createElement('a')
-    link.href = path
-    link.download = sceneId ? 'scene.mp4' : 'video.mp4'
-    link.hidden = true
-    document.body.append(link)
-    link.click()
-    link.remove()
-  } finally {
-    active.delete(key)
-    button.disabled = false
-    button.textContent = label
-  }
-}
+) =>
+  download(
+    `${projectId}:${sceneId || 'video'}`,
+    `/api/projects/${encodeURIComponent(projectId)}${sceneId ? `/scenes/${encodeURIComponent(sceneId)}` : ''}/download`,
+    button,
+    'video/mp4',
+    sceneId ? 'scene.mp4' : 'video.mp4'
+  )

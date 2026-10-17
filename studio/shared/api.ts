@@ -101,6 +101,7 @@ export type RecordedPart = {
 }
 
 export type NotebookSummary = {
+  archived?: boolean
   id: string
   title: string
   status: Snapshot['status']

@@ -192,6 +192,10 @@ export const publishToYouTube = async (id: string, raw: unknown) => {
   const at = new Date().toISOString()
   // Claimed inside the notebook's queue: two clicks never upload twice.
   const started = await changeProject(id, (current) => {
+    if (current.project.video?.storyboard?.stale)
+      throw new Refusal(
+        'The wireframes changed. Remake the video before publishing it'
+      )
     if (!current.project.video?.produced)
       throw new Refusal('Produce the video first')
     const release = current.project.release || emptyRelease()

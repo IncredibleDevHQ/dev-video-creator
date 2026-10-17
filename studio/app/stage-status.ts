@@ -26,6 +26,7 @@ const caption = (
     if (label === 'Not started') return 'next'
   }
   if (stage === 'video') {
+    if (project.video?.storyboard?.stale) return 'changed'
     // Busy, the tab says the step's verb; the pill says the rest.
     if (active) return label.split(' ')[0].toLowerCase()
     const video = project.video

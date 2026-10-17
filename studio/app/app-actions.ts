@@ -58,8 +58,6 @@ export const installAppActions = (app: AppContext) => {
       await submitAccounts(app, form, values)
     } catch (reason) {
       app.error(reason)
-    } finally {
-      app.pending = false
     }
   })
   document.addEventListener('click', async (event) => {
@@ -75,6 +73,7 @@ export const installAppActions = (app: AppContext) => {
       app.closeStream?.()
       app.closeStream = null
       app.snapshot = null
+      app.seriesPage = undefined
       app.opening.reset()
       localStorage.removeItem('minimal-studio-project')
       history.replaceState(null, '', '/')
@@ -294,6 +293,10 @@ export const installAppActions = (app: AppContext) => {
         // only when the creator says so (review 6).
         if (!(await saveBeforeLeaving(app))) return
         openTemplates(app)
+        return
+      }
+      if (action === 'archive-notebook' || action === 'restore-notebook') {
+        await clickStart(app, target, action)
         return
       }
       if (!app.snapshot) return

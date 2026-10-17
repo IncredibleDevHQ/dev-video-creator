@@ -1,3 +1,4 @@
+import { syncPlayerBar } from './player-bar'
 // The storyboard page's actions: choose a scene or a frame (the made episode
 // seeks to it), approve or change the plan, approve the stills or change one
 // with a note, choose a scene's build, record a camera scene's take in place
@@ -238,6 +239,26 @@ export const clickStoryboard = async (
     app.dialog.querySelector<HTMLTextAreaElement>('#sb-still-note')?.focus()
     return true
   }
+  if (action === 'sb-remake') {
+    app.showDialog(
+      '<h2>Remake from the current wireframes?</h2><p>A new plan will use your edited wireframes and wait for your approval. Your recorded takes are kept. This starts a new AI planning run.</p><div class="dialog-actions"><button type="button" data-action="close">Cancel</button><button type="button" class="primary" data-action="sb-remake-confirm">Remake video</button></div>'
+    )
+    return true
+  }
+  if (action === 'sb-remake-confirm') {
+    target.disabled = true
+    try {
+      const saved = await api.remakeStoryboard(id)
+      app.dialog.close()
+      if (app.snapshot?.project.id === id) {
+        app.snapshot = saved
+        app.render()
+      }
+    } finally {
+      target.disabled = false
+    }
+    return true
+  }
   if (action === 'sb-approve' || action === 'sb-retry') {
     const saved = await (action === 'sb-approve'
       ? api.approveStoryboard(id)
@@ -340,6 +361,7 @@ export const changeStoryboard = async (app: AppContext, element: Element) => {
 
 /** After a render: a seek asked for before the episode was on the page. */
 export const syncStoryboardPlayer = (app: AppContext) => {
+  syncPlayerBar(app.root)
   const video = player(app)
   if (!video || app.sbSeek === null) return
   const at = app.sbSeek

@@ -15,7 +15,7 @@ export const sourceComposer = (pending: boolean) => {
   const label = pending ? 'Opening notebook' : 'Open notebook'
   return `<div class="source-composer" aria-busy="${pending}">
 <textarea id="source-input" name="source" rows="1" placeholder="Paste your notes or blog link…" aria-describedby="source-hint" ${pending ? 'readonly' : ''} required></textarea>
-<button class="source-submit" type="submit" aria-label="${label}" title="${label}${pending ? '…' : ' (Enter)'}" aria-keyshortcuts="Enter" disabled>${arrow}${spinner}</button>
+<button class="source-submit" type="submit" aria-label="${label}" title="${label}${pending ? '…' : ' (⌘/Ctrl+Enter)'}" aria-keyshortcuts="Meta+Enter Control+Enter" disabled>${arrow}${spinner}</button>
 </div>`
 }
 

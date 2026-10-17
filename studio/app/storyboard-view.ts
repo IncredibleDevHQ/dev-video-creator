@@ -105,6 +105,7 @@ const noted = (storyboard: Storyboard) =>
   Object.keys(storyboard.frameNotes || {}).map(Number)
 
 const statusLine = (storyboard: Storyboard) => {
+  if (storyboard.stale) return 'Changed since build'
   const total = frameCount(storyboard)
   const done = framesDone(storyboard)
   const posed = framesPosed(storyboard)
@@ -184,6 +185,8 @@ const working = (label: string) =>
   `<span class="sb-rail-state is-working"><span class="activity-orbit" aria-hidden="true"></span>${label}</span>`
 
 const railState = (storyboard: Storyboard, scene: SceneSummary) => {
+  if (storyboard.stale)
+    return '<span class="sb-rail-state">Changed since build</span>'
   if (scene.frames.some((frame) => posing(storyboard, frame)))
     return working('Posing')
   if (scene.take === null)
@@ -305,8 +308,16 @@ const stage = (
     ['preparing', 'ready', 'countdown', 'recording'].includes(capture.phase)
   const reviewing =
     recording && ['reviewing', 'uploading'].includes(capture.phase)
-  if (storyboard.produced && !recording)
-    return `<div class="stage video-stage sb-stage"><video class="sb-player" data-sb-player src="/objects/${escape(storyboard.produced.objectKey)}"${storyboard.posterKey ? ` poster="/objects/${escape(storyboard.posterKey)}"` : ''} controls playsinline preload="metadata"></video></div>`
+  if (storyboard.produced && !recording) {
+    const key = storyboard.posterKey || storyboard.produced.posterKey
+    const fallback =
+      page?.svg ||
+      '<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720"><rect width="1280" height="720" fill="#15251e"/><text x="640" y="360" fill="white" text-anchor="middle" font-size="48">Video ready — press Play</text></svg>'
+    const poster = key
+      ? `/objects/${key}`
+      : `data:image/svg+xml,${encodeURIComponent(fallback)}`
+    return `<div class="stage video-stage sb-stage"><video class="sb-player" data-sb-player src="/objects/${escape(storyboard.produced.objectKey)}" poster="${escape(poster)}" controls playsinline preload="metadata"></video></div>`
+  }
   const picture =
     !recording && frame?.status === 'animated'
       ? `<img class="sb-shot" src="/api/projects/${escape(snapshot.project.id)}/storyboard/frames/${escape(frameId(frame))}/snapshot?v=${encodeURIComponent(storyboard.updatedAt)}" alt="Frame ${frame.number}, as built">`
@@ -512,6 +523,13 @@ export const storyboardHeader = (
   storyboard: Storyboard,
   release = ''
 ) => {
+  if (storyboard.stale)
+    return button(
+      'Remake video',
+      'sb-remake',
+      true,
+      storyboard.status === 'working'
+    )
   if (storyboard.status === 'failed')
     return button('Try again', 'sb-retry', true)
   // The same test as the page's own Approve, so the two always agree.
@@ -583,6 +601,7 @@ ${
     ? `<div class="focus-heading"><div><strong>${reviewingTake ? 'Review your take' : recordTitle(capture)}</strong><span>Scene ${chosen + 1} · ${reviewingTake ? `${lines.length} ${lines.length === 1 ? 'line' : 'lines'}` : `Frame ${frame?.number ?? 1}${lines.length > 1 ? ` · ${Math.min(capture.current, lines.length - 1) + 1} of ${lines.length}` : ''}`}</span>${recordLight(capture)}</div></div>`
     : band(storyboard)
 }
+${storyboard.stale ? '<p class="sb-stale" role="status"><strong>Changed since build.</strong> These wireframes changed after this video was made. Remake the video before exporting; the preview is the previous cut.</p>' : ''}
 ${storyboard.status === 'failed' && storyboard.error ? stopAlert(storyboard.error) : ''}
 ${stage(snapshot, storyboard, scene, frame, capture, recording)}
 ${takes || heard ? `<div class="sb-take-actions">${heard || voiceTake(scene)}${takes}</div>` : ''}

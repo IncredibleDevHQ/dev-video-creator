@@ -8,7 +8,9 @@ const clock = (seconds: number) =>
     : '0:00'
 
 const paint = (root: HTMLElement) => {
-  const player = root.querySelector<HTMLVideoElement>('[data-scene-player]')
+  const player = root.querySelector<HTMLVideoElement>(
+    '[data-scene-player],[data-sb-player]'
+  )
   const bar = root.querySelector<HTMLElement>('.player-bar')
   if (!player || !bar) return
   const toggle = bar.querySelector<HTMLButtonElement>(
@@ -22,7 +24,9 @@ const paint = (root: HTMLElement) => {
 
 /** Add the bar under a scene player after each render. */
 export const syncPlayerBar = (root: HTMLElement) => {
-  const player = root.querySelector<HTMLVideoElement>('[data-scene-player]')
+  const player = root.querySelector<HTMLVideoElement>(
+    '[data-scene-player],[data-sb-player]'
+  )
   if (!player) return
   player.removeAttribute('controls')
   if (!root.querySelector('.player-bar'))
@@ -38,7 +42,7 @@ export const syncPlayerBar = (root: HTMLElement) => {
 export const installPlayerBar = (app: AppContext) => {
   const toggle = () => {
     const player = app.root.querySelector<HTMLVideoElement>(
-      '[data-scene-player]'
+      '[data-scene-player],[data-sb-player]'
     )
     if (!player) return
     if (player.paused) void player.play().catch(app.error)
@@ -48,7 +52,7 @@ export const installPlayerBar = (app: AppContext) => {
     const target = event.target as Element
     if (
       target.closest('[data-action="player-toggle"]') ||
-      target.closest('[data-scene-player]')
+      target.closest('[data-scene-player],[data-sb-player]')
     )
       toggle()
   })
@@ -56,7 +60,11 @@ export const installPlayerBar = (app: AppContext) => {
     app.root.addEventListener(
       type,
       (event) => {
-        if ((event.target as Element).matches?.('[data-scene-player]'))
+        if (
+          (event.target as Element).matches?.(
+            '[data-scene-player],[data-sb-player]'
+          )
+        )
           paint(app.root)
       },
       true

@@ -192,6 +192,7 @@ export const STORY_SCENES: Record<StoryLength, number> = {
   long: 14
 }
 export type Project = {
+  archived?: boolean
   harness?: HarnessSelection
   branding?: Branding
   length?: StoryLength
