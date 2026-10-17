@@ -974,6 +974,32 @@ describe('what Organise new cards does (round 1)', () => {
     expect(plan.textContent).toBe('Organise new cards')
     expect(plan.getAttribute('title')).toBe(line)
   })
+
+  it('says its scope on the label zoomed out, where the line under it goes, and only there (F08, round 3)', async () => {
+    const { map, root } = await openMap()
+    const line =
+      'New cards only; unedited copies follow their card until their episode is approved.'
+    const box = () => root.querySelector('[data-k="B:series"] .map-organize')!
+    map.camera = { x: 0, y: 0, k: 0.45 }
+    map.applyCamera()
+    expect(box().getAttribute('title')).toBe(line)
+    // Its head painted again while zoomed out: still said.
+    map.view!.series!.title = 'Streamline, again'
+    map.paint()
+    expect(root.querySelector('[data-k="B:series"] h2')!.textContent).toBe(
+      'Streamline, again'
+    )
+    expect(box().getAttribute('title')).toBe(line)
+    // Close up, the line shows: no hover says it twice.
+    map.camera = { x: 0, y: 0, k: 1 }
+    map.applyCamera()
+    expect(box().getAttribute('title')).toBeNull()
+    // Its checkbox is described by the line at any zoom.
+    expect(box().querySelector('input')!.getAttribute('aria-describedby')).toBe(
+      'map-organize-says'
+    )
+    expect(root.querySelector('#map-organize-says')!.textContent).toBe(line)
+  })
 })
 
 describe('an episode’s cards changed on the map (round 1)', () => {

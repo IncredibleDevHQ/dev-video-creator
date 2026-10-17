@@ -16,6 +16,7 @@ const { parseHTML } = await import('linkedom')
 const { api } = await import('../app/api')
 const { mapApi } = await import('../app/map-api')
 const { MapCanvas } = await import('../app/map-canvas')
+const { ORGANIZE_SAYS } = await import('../app/map-nodes')
 
 // The map zoomed out, in a real browser with the studio's own stylesheet
 // (review 8, F12): Tab through the canvas never lands on a control the eye
@@ -266,6 +267,9 @@ it('never tabs to a control the eye can’t see, and keeps Organise new cards in
       const box = document.querySelector('.map-organize')!
       const r = box.getBoundingClientRect()
       return {
+        title: box.getAttribute('title'),
+        says: getComputedStyle(document.querySelector('.map-organize-says')!)
+          .visibility,
         opacity: Number(getComputedStyle(box).opacity),
         visibility: getComputedStyle(box).visibility,
         size: parseFloat(getComputedStyle(box).fontSize),
@@ -281,6 +285,14 @@ it('never tabs to a control the eye can’t see, and keeps Organise new cards in
         })()
       }
     })
+    // What it covers stays reachable: the line under it close up, and its
+    // label's hover once that line is hidden, never both (round 3).
+    expect
+      .soft(label.title, `${where}: organise says it on hover`)
+      .toBe(label.says === 'visible' ? null : ORGANIZE_SAYS)
+    expect
+      .soft(label.says, `${where}: the line under organise`)
+      .toBe(k === 1 ? 'visible' : 'hidden')
     expect.soft(label.visibility, `${where}: organise shown`).toBe('visible')
     expect.soft(label.opacity, `${where}: organise shown`).toBe(1)
     expect.soft(label.inside, `${where}: organise in the series`).toBe(true)

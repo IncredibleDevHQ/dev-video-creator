@@ -7,6 +7,7 @@ import { themeControl } from './appearance'
 import type { MapCanvas } from './map-canvas'
 import { dialogOpen } from './ui'
 import { hideMenu, place, showHelp, showMenu, type MenuItem } from './map-bar'
+import { ORGANIZE_SAYS } from './map-nodes'
 
 const NOTES_KEY = 'incredible-studio-map-notes'
 const VIEW_KEY = 'incredible-studio-map-view:'
@@ -32,6 +33,16 @@ const recall = (key: string) => {
 /** How far out the canvas is: near shows everything. */
 export const detailFor = (k: number) =>
   k < FARTHEST ? 'farthest' : k < FAR ? 'far' : 'near'
+
+/** Zoomed out, the line under Organise new cards goes with the fine print
+ * while its checkbox stays: the label says it on hover then, and only
+ * then, so it is never said twice (review 8 F08). */
+export const sayWhatFarHides = (map: MapCanvas) => {
+  const label = map.canvas?.querySelector<HTMLElement>('.map-organize')
+  if (!label) return
+  if (detailFor(map.camera.k) === 'near') label.removeAttribute('title')
+  else label.setAttribute('title', ORGANIZE_SAYS)
+}
 
 /** The View menu: the map's arrangement, then which cards it shows. */
 export const viewChoices = (map: MapCanvas): MenuItem[] => {
@@ -217,6 +228,7 @@ export const installChrome = (map: MapCanvas) => {
     const canvas = map.canvas
     canvas?.classList.toggle('is-far', next !== 'near')
     canvas?.classList.toggle('is-farthest', next === 'farthest')
+    sayWhatFarHides(map)
   })
   globalThis.addEventListener?.('keydown', (event) => {
     if (!map.isOpen || event.defaultPrevented || dialogOpen()) return

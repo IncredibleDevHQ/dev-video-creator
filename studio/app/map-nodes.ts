@@ -79,8 +79,8 @@ export const seriesHead = (view: MapView) => {
     ? `${lengthChip(series.length)}${planning ? '' : '<button type="button" class="quiet" data-map="plan-series">Plan again</button>'}`
     : ''
   // What it covers, in words under it rather than a tooltip (review 8 F08).
-  const organize = `<label class="map-organize"><input type="checkbox" data-map-organize ${series.organize ? 'checked' : ''}>Organise new cards</label>`
-  const says = `<small class="map-organize-says">${ORGANIZE_SAYS}</small>`
+  const organize = `<label class="map-organize"><input type="checkbox" data-map-organize aria-describedby="map-organize-says" ${series.organize ? 'checked' : ''}>Organise new cards</label>`
+  const says = `<small class="map-organize-says" id="map-organize-says">${ORGANIZE_SAYS}</small>`
   return `<div class="map-series-head" style="height:${planned ? HEAD : HEAD0}px">${ports(true, null)}<div class="map-series-title"><h2>${escape(series.title)}</h2>${status}<span class="map-series-acts">${again}${organize}</span></div><div class="map-brief-row">${field('outcome', 'By the end')}${field('audience', 'For')}${says}</div>${
     planned
       ? lines

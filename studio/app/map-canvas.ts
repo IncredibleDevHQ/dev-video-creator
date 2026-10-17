@@ -35,7 +35,8 @@ import {
   installChrome,
   noteCount,
   restoreChrome,
-  restoreView
+  restoreView,
+  sayWhatFarHides
 } from './map-chrome'
 import { VoiceCall } from './map-voice'
 import { keyOf, MapHistory, placed, reordered } from './map-history'
@@ -277,6 +278,7 @@ export class MapCanvas {
     }
     this.layout = mapLayout(this.snapshot, this.view, this.mode)
     paintWorld(this)
+    sayWhatFarHides(this)
     renderBar(this)
     this.fill(
       'queue',
