@@ -39,13 +39,33 @@ const length = (teaser: Teaser) =>
     teaser.segments.reduce((sum, part) => sum + part.to - part.from, 0)
   )
 
+/** Whether a teaser reads on a phone: one whose text stays small says so
+ * before it is posted (review 8). */
+const readability = (teaser: Teaser) => {
+  const small = Math.round(teaser.small || 0)
+  if (small < 1) return ''
+  return `<small class="teaser-small">${
+    small >= length(teaser)
+      ? 'Its text stays small on a phone: the frames are wide.'
+      : `Its text stays small on a phone for ${small} of its ${length(teaser)} seconds.`
+  }</small>`
+}
+
+/** The preview at about a phone's width, sized before it loads. */
+const PREVIEW: Record<Teaser['aspect'], string> = {
+  '9:16': 'width="270" height="480"',
+  '4:5': 'width="270" height="338"',
+  '1:1': 'width="270" height="270"',
+  '16:9': 'width="270" height="152"'
+}
+
 const teaserRow = (teaser: Teaser) =>
   `<li class="teaser-row"><span>${CHANNEL_LABELS[teaser.channel]} · ${teaser.aspect} · ${length(teaser)}s</span>${
     teaser.state === 'cutting'
       ? '<small role="status">Cutting…</small>'
       : teaser.state === 'failed'
         ? `<small class="release-failed">${escape(teaser.error || 'Could not cut it')}</small>`
-        : `<video src="/objects/${escape(teaser.objectKey || '')}" muted controls playsinline preload="metadata"></video><a href="/objects/${escape(teaser.objectKey || '')}" download="teaser-${teaser.channel}-${teaser.aspect.replace(':', 'x')}.mp4">Download</a>`
+        : `<video src="/objects/${escape(teaser.objectKey || '')}" ${PREVIEW[teaser.aspect]} muted controls playsinline preload="metadata"></video>${readability(teaser)}<a href="/objects/${escape(teaser.objectKey || '')}" download="teaser-${teaser.channel}-${teaser.aspect.replace(':', 'x')}.mp4">Download</a>`
   }</li>`
 
 export const teasersSection = (snapshot: Snapshot) => {

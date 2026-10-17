@@ -293,12 +293,18 @@
   gap: 8px;
   font-size: 13px;
 }
+/* At about a phone's width, so its words are judged as they will be read. */
 .teaser-row video {
   grid-column: 1 / -1;
-  max-width: 260px;
-  max-height: 300px;
+  width: 270px;
+  max-width: 100%;
+  height: auto;
   border-radius: 8px;
   background: #000;
+}
+.teaser-row .teaser-small {
+  grid-column: 1 / -1;
+  color: var(--danger, #b91c1c);
 }
 .posts-form {
   display: grid;

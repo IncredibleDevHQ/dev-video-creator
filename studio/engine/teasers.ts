@@ -1,7 +1,9 @@
 // A teaser, cut from the produced video for one channel: the hook, then the
-// strongest beat, framed for the feed (9:16, 1:1, 4:5 or 16:9) over a blurred
-// fill, with the words burned in, because feeds autoplay muted. Captions are
-// drawn by a browser and laid over with ffmpeg, which needs no font filters.
+// strongest beat, framed for the feed (9:16, 1:1, 4:5 or 16:9), with the
+// words burned in, because feeds autoplay muted. A storyboard episode is
+// cropped to where its lesson sits (teaser-framing.ts); anything else is
+// fitted whole over a blurred fill. Captions are drawn by a browser and
+// laid over with ffmpeg, which needs no font filters.
 import { randomUUID } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -20,6 +22,15 @@ import { addEvent } from './activity'
 import { readAsset, storeAsset } from './persistence'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
+import {
+  BAND_TOP,
+  PATCH,
+  croppedCaptions,
+  frameTeaser,
+  smallSeconds,
+  type Layout,
+  type Shot
+} from './teaser-framing'
 import { runCommand } from './voice'
 
 export const FRAME: Record<
@@ -51,8 +62,71 @@ const hasAudio = (file: string) =>
     )
   )
 
+/** The produced video's picture size; a storyboard's canvas if unread. */
+const pictureSize = (file: string) =>
+  new Promise<{ width: number; height: number }>((done) =>
+    execFile(
+      'ffprobe',
+      [
+        '-v',
+        'error',
+        '-select_streams',
+        'v:0',
+        '-show_entries',
+        'stream=width,height',
+        '-of',
+        'csv=p=0',
+        file
+      ],
+      (error, stdout) => {
+        const [width, height] = stdout.trim().split(',').map(Number)
+        done(
+          error || !width || !height
+            ? { width: 1920, height: 1080 }
+            : { width, height }
+        )
+      }
+    )
+  )
+
 const escapeHtml = (text: string) =>
   text.replace(/[&<>"]/g, (char) => `&#${char.charCodeAt(0)};`)
+
+/** One stretch's picture: cropped and placed on its frame's background, or
+ * fitted whole over a blurred fill. The fill is the picture without its
+ * lowest fifth, where a video's own captions sit: blown up, they showed
+ * again behind the frame. A cropped teaser leaves the caption band out of
+ * its fits too, its captions being its own. */
+const shotFilter = (
+  shot: Shot,
+  index: number,
+  layout: Layout,
+  bandless: boolean
+) => {
+  const { width: W, height: H } = layout
+  const cut = `[0:v]trim=start=${shot.from}:end=${shot.to},setpts=PTS-STARTPTS`
+  const { crop, place, patch } = shot
+  const lesson = crop
+    ? `crop=${crop.w}:${crop.h}:${crop.x}:${crop.y},scale=${place!.w}:${place!.h}:flags=lanczos`
+    : ''
+  // The frame's own background blown up from a corner: no colour is
+  // converted, so it meets the crop without a seam.
+  if (crop && patch)
+    return [
+      `${cut},split[s${index}][p${index}]`,
+      `[p${index}]crop=${PATCH}:${PATCH}:${patch.x}:${patch.y},scale=2:2:flags=area,scale=${W}:${H}:flags=bilinear,setsar=1[c${index}]`,
+      `[s${index}]${lesson},setsar=1[f${index}]`,
+      `[c${index}][f${index}]overlay=${place!.x}:${place!.y},setsar=1[v${index}]`
+    ].join(';')
+  if (crop)
+    return `${cut},${lesson},pad=${W}:${H}:${place!.x}:${place!.y}:color=${shot.color},setsar=1[v${index}]`
+  return [
+    `${cut}${bandless ? `,crop=iw:trunc(ih*${BAND_TOP.toFixed(4)}/2)*2:0:0` : ''},split[b${index}][f${index}]`,
+    `[b${index}]crop=iw:ih*0.8:0:0,scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},gblur=sigma=32,eq=brightness=-0.18[g${index}]`,
+    `[f${index}]scale=${W}:${H}:force_original_aspect_ratio=decrease[k${index}]`,
+    `[g${index}][k${index}]overlay=(W-w)/2:(H-h)/2,setsar=1[v${index}]`
+  ].join(';')
+}
 
 /** Each caption as a transparent PNG, sized for the frame. */
 const drawCaptions = async (
@@ -88,7 +162,8 @@ const drawCaptions = async (
   }
 }
 
-/** Cuts, frames and captions a teaser; returns the MP4's bytes. */
+/** Cuts, frames and captions a teaser: the MP4's bytes, and the seconds in
+ * which its text stays below reading size on a phone. */
 export const cutTeaser = async (
   project: Project,
   teaser: Pick<Teaser, 'aspect' | 'segments'>
@@ -100,29 +175,39 @@ export const cutTeaser = async (
     const source = join(dir, 'video.mp4')
     await writeFile(source, await readAsset(produced.objectKey))
     const frame = FRAME[teaser.aspect]
-    const cues = teaserCues(project, teaser.segments)
+    const size = await pictureSize(source)
+    // A storyboard episode cropped to its lesson, with the teaser's own
+    // captions under it (review 8); else the fit, as before.
+    const cropped = await frameTeaser({
+      project,
+      video: source,
+      segments: teaser.segments,
+      layout: frame,
+      source: size
+    }).catch(() => null)
+    const fit = Math.min(frame.width / size.width, frame.height / size.height)
+    const shots: Shot[] =
+      cropped || teaser.segments.map((segment) => ({ ...segment, scale: fit }))
+    const cues = cropped
+      ? await croppedCaptions(project, teaser.segments)
+      : teaserCues(project, teaser.segments)
     const pictures = await drawCaptions(dir, cues, frame.width)
     const audio = await hasAudio(source)
-    const parts = teaser.segments.map(
-      (segment, index) =>
-        `[0:v]trim=start=${segment.from}:end=${segment.to},setpts=PTS-STARTPTS[v${index}]` +
-        (audio
-          ? `;[0:a]atrim=start=${segment.from}:end=${segment.to},asetpts=PTS-STARTPTS[a${index}]`
-          : '')
-    )
-    const joined = teaser.segments
-      .map((_, index) => `[v${index}]${audio ? `[a${index}]` : ''}`)
-      .join('')
-    const { width: W, height: H } = frame
+    const { height: H } = frame
     const filters = [
-      ...parts,
-      `${joined}concat=n=${teaser.segments.length}:v=1:a=${audio ? 1 : 0}[cv]${audio ? '[ca]' : ''}`,
-      '[cv]split[bgsrc][fgsrc]',
-      // The fill is the picture without its lowest fifth, where a video's own
-      // captions sit: blown up, they showed again behind the frame.
-      `[bgsrc]crop=iw:ih*0.8:0:0,scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},gblur=sigma=32,eq=brightness=-0.18[bg]`,
-      `[fgsrc]scale=${W}:${H}:force_original_aspect_ratio=decrease[fg]`,
-      '[bg][fg]overlay=(W-w)/2:(H-h)/2[c0]',
+      ...shots.map((shot, index) =>
+        shotFilter(shot, index, frame, Boolean(cropped))
+      ),
+      `${shots.map((_, index) => `[v${index}]`).join('')}concat=n=${shots.length}:v=1:a=0[c0]`,
+      ...(audio
+        ? [
+            ...teaser.segments.map(
+              (segment, index) =>
+                `[0:a]atrim=start=${segment.from}:end=${segment.to},asetpts=PTS-STARTPTS[a${index}]`
+            ),
+            `${teaser.segments.map((_, index) => `[a${index}]`).join('')}concat=n=${teaser.segments.length}:v=0:a=1[ca]`
+          ]
+        : []),
       ...cues.map(
         (cue, index) =>
           `[c${index}][${index + 1}:v]overlay=x=(W-w)/2:y=${Math.round(H * frame.captionAt)}:enable='between(t,${cue.start},${cue.end})'[c${index + 1}]`
@@ -155,7 +240,7 @@ export const cutTeaser = async (
       ],
       300_000
     )
-    return await readFile(out)
+    return { bytes: await readFile(out), small: smallSeconds(shots) }
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
@@ -204,7 +289,7 @@ export const makeTeaser = async (id: string, raw: unknown) => {
   }
   const started = await setTeaser(id, teaser)
   void (async () => {
-    const bytes = await cutTeaser(snapshot.project, teaser)
+    const { bytes, small } = await cutTeaser(snapshot.project, teaser)
     const asset = await storeAsset({
       body: bytes,
       contentType: 'video/mp4',
@@ -215,7 +300,8 @@ export const makeTeaser = async (id: string, raw: unknown) => {
     await setTeaser(id, {
       ...teaser,
       state: 'ready',
-      objectKey: asset.objectKey
+      objectKey: asset.objectKey,
+      ...(small ? { small } : {})
     })
     await changeProject(id, (current) =>
       addEvent(current, 'video', `Cut a ${aspect} teaser for ${channel}`)

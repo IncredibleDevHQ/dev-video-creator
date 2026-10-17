@@ -7,7 +7,7 @@ import type { Browser } from 'puppeteer'
 import type { Snapshot } from '../shared/api'
 import { planCampaign } from '../shared/campaign'
 import { campaignSection } from '../app/campaign-view'
-import { releaseDialog } from '../app/release-view'
+import { releaseDialog, teasersSection } from '../app/release-view'
 
 // The release dialog in a real browser, with the studio's own stylesheet
 // (review 8), at a desktop's, a tablet's and a phone's width. A synthetic
@@ -118,7 +118,9 @@ const measure = async <T>(
           '.release-cover img',
           '[name="publishAt"]',
           '.publish-differs',
-          '#youtube-publish-form'
+          '#youtube-publish-form',
+          '.teaser-row video',
+          '.teaser-small'
         ].map((selector) => {
           const node = document.querySelector(selector)
           const r = node?.getBoundingClientRect()
@@ -205,5 +207,47 @@ it('shows the thumbnail at about the size YouTube lists it, its choices and the 
     // The publisher's note on its own line under the time, across the form.
     expect(at.note.top).toBeGreaterThanOrEqual(at.input.bottom)
     expect(at.note.width).toBeGreaterThan(at.form.width * 0.9)
+  }
+}, 60_000)
+
+it('previews a portrait teaser at about a phone’s width, with where it reads small under it (F16)', async () => {
+  const teaser = {
+    id: 't',
+    channel: 'youtube' as const,
+    aspect: '9:16' as const,
+    segments: [
+      { from: 0, to: 4 },
+      { from: 14.5, to: 40.5 }
+    ],
+    state: 'ready' as const,
+    objectKey: 't.mp4',
+    small: 26.5,
+    at: ''
+  }
+  const seen = await measure(
+    teasersSection({
+      ...snapshot,
+      project: {
+        ...project,
+        release: { ...project.release!, teasers: [teaser] }
+      }
+    }),
+    (box) => ({
+      body: box('.dialog-body'),
+      video: box('.teaser-row video'),
+      note: box('.teaser-small')
+    })
+  )
+  for (const { scrolls, at } of seen) {
+    expect(scrolls).toBe(false)
+    expect(Math.round(at.video.width)).toBe(
+      Math.min(270, Math.round(at.body.width - 48))
+    )
+    expect((at.video.bottom - at.video.top) / at.video.width).toBeCloseTo(
+      16 / 9,
+      1
+    )
+    expect(at.note.top).toBeGreaterThanOrEqual(at.video.bottom)
+    expect(at.note.right).toBeLessThanOrEqual(at.body.right)
   }
 }, 60_000)

@@ -30,6 +30,8 @@ export type Teaser = {
   segments: Array<{ from: number; to: number }>
   state: 'cutting' | 'ready' | 'failed'
   objectKey?: string
+  /** Seconds in which its text stays below reading size on a phone. */
+  small?: number
   error?: string
   at: string
 }
