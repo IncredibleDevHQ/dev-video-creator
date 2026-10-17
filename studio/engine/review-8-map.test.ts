@@ -358,7 +358,7 @@ describe('a cut or a copy waiting to be pasted (F13)', () => {
     const paste = bar.querySelector<HTMLButtonElement>('button')!
     expect([paste.textContent, paste.disabled]).toEqual(['Paste', true])
     expect(bar.querySelector('.map-info')?.textContent).toContain(
-      'the cut page is here already'
+      'cut from its episode · this episode has it'
     )
     await press('v')
     expect(mapApi.copies).not.toHaveBeenCalled()
@@ -788,5 +788,44 @@ describe('a phone with the notes open (round 1)', () => {
     map.fit()
     expect(map.camera.k).toBeLessThan(1)
     expect(map.camera.x + (box.x + box.w) * map.camera.k).toBeGreaterThan(78)
+  })
+})
+
+describe('a cut or a copy waiting, said once in the bar (round 1)', () => {
+  it('says it whatever is selected: ⌘V where it can land, why or where otherwise', async () => {
+    const shown = view()
+    shown.series!.gaps = [
+      {
+        id: 'g1',
+        missing: 'How the client sends the key',
+        episode: 'e2',
+        why: 'The episode needs it',
+        ask: 'How does the client send it?',
+        state: 'open'
+      }
+    ]
+    const { map } = await openMap(shown)
+    const bar = map.slot('bar')!
+    const said = () =>
+      [...bar.querySelectorAll('[data-clip]')].map((n) => n.textContent)
+    map.clip = { mode: 'copy', slide: 'd' }
+    const at = (sel: Canvas['sel']) => {
+      map.select(sel)
+      return said()
+    }
+    const where = 'page 4 copied · select an episode to paste'
+    expect(at({ t: 'series' })).toEqual([where])
+    expect(at({ t: 'direction', id: 'd1' })).toEqual([where])
+    expect(at({ t: 'gap', id: 'g1' })).toEqual([where])
+    expect(at({ t: 'page', id: 'a' })).toEqual([where])
+    expect(at(null)).toEqual([where])
+    expect(bar.querySelector('[data-map="clear-clip"]')).not.toBeNull()
+    // Where a paste can land, ⌘V; where the page is already, why not.
+    expect(at({ t: 'lane', id: 'e1' })).toEqual(['page 4 copied · ⌘V to paste'])
+    expect(at({ t: 'copy', id: 'z' })).toEqual(['page 4 copied · ⌘V to paste'])
+    map.clip = { mode: 'copy', slide: 'b' }
+    expect(at({ t: 'lane', id: 'e2' })).toEqual([
+      'page 2 copied · this episode has it'
+    ])
   })
 })

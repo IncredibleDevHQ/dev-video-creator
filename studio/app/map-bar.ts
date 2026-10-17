@@ -91,9 +91,7 @@ const content = (map: MapCanvas) => {
         : 'Rename the episode'
     return `<form class="map-ask" data-map-form="rename"><label>${what}<input name="title" maxlength="120" value="${escape(map.renaming.title)}" autocomplete="off"></label><button type="submit" class="primary">Save</button><button type="button" class="quiet" data-map="cancel">Cancel</button></form>`
   }
-  const clipped = clip
-    ? `<small>${clip.mode === 'move' ? 'cut from its episode' : `page ${snapshot.project.slides.findIndex((s) => s.id === clip.slide) + 1} ${clip.mode === 'cut' ? 'cut' : 'copied'}`} · ⌘V to paste</small>`
-    : ''
+  const clipped = clip ? `<small data-clip>${clipWords(map)}</small>` : ''
   if (sel?.t === 'page') {
     const index = snapshot.project.slides.findIndex((s) => s.id === sel.id)
     const slide = snapshot.project.slides[index]
@@ -158,9 +156,6 @@ const content = (map: MapCanvas) => {
       : here
         ? '<button type="button" class="quiet" disabled title="This episode has that page already">Paste</button>'
         : act('paste', 'Paste', '⌘V', true)
-    const said = here
-      ? `<small>the ${clip?.mode === 'copy' ? 'copied' : 'cut'} page is here already</small>`
-      : clipped
     // Its way into making, as on its lane, here where an open Notes panel
     // never covers it (review 8); a paste or a failed pick leads first.
     const make = act(
@@ -169,7 +164,7 @@ const content = (map: MapCanvas) => {
       '',
       !(clip && !here) && !failed
     )
-    return `<div class="map-info"><b style="color:${colorOf(view, episode.notebook)}">Ep ${episode.number}</b> · ${escape(episode.title)}<small>${episode.copies.length} page${episode.copies.length === 1 ? '' : 's'}${episode.segues === 'failed' ? ' · segues failed' : ''}</small>${said}</div>${paste}${failed ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${make}${act('rename-episode', 'Rename')}${more('lane')}`
+    return `<div class="map-info"><b style="color:${colorOf(view, episode.notebook)}">Ep ${episode.number}</b> · ${escape(episode.title)}<small>${episode.copies.length} page${episode.copies.length === 1 ? '' : 's'}${episode.segues === 'failed' ? ' · segues failed' : ''}</small>${clipped}</div>${paste}${failed ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${make}${act('rename-episode', 'Rename')}${more('lane')}`
   }
   if (sel?.t === 'series' && view?.series) {
     const series = view.series
@@ -181,14 +176,50 @@ const content = (map: MapCanvas) => {
     return `<div class="map-info"><b>Series</b> · ${escape(series.title)}<small>${view.episodes.length} episode${view.episodes.length === 1 ? '' : 's'}</small></div>${plan}${act('rename-series', 'Rename')}`
   }
   if (clip)
-    return `<div class="map-info">${clipped.replace(/<\/?small>/g, '')} · select an episode</div>${act('clear-clip', 'Clear')}`
+    return `<div class="map-info" data-clip>${clipWords(map)}</div>${act('clear-clip', 'Clear')}`
   return ''
+}
+
+/** A cut or copy waiting: what it is, then ⌘V where the selection can take
+ * it, why not where it can't, or where to paste it (review 8). */
+const clipWords = (map: MapCanvas) => {
+  const { clip, sel, snapshot } = map
+  if (!clip || !snapshot) return ''
+  const what =
+    clip.mode === 'move'
+      ? 'cut from its episode'
+      : `page ${snapshot.project.slides.findIndex((s) => s.id === clip.slide) + 1} ${clip.mode === 'cut' ? 'cut' : 'copied'}`
+  const into =
+    sel?.t === 'lane'
+      ? sel.id
+      : sel?.t === 'copy'
+        ? map.episodeOf(sel.id)?.notebook
+        : undefined
+  const how = !into
+    ? 'select an episode to paste'
+    : holdsClip(map, clip, into)
+      ? 'this episode has it'
+      : '⌘V to paste'
+  return `${what} · ${how}`
+}
+
+/** Says a waiting cut or copy once in whatever the bar shows of what is
+ * selected, the series, a direction or a gap too, where it said nothing. */
+const withClip = (map: MapCanvas, html: string) => {
+  if (
+    !map.clip ||
+    html.includes('data-clip') ||
+    !html.startsWith('<div class="map-info">')
+  )
+    return html
+  const end = html.indexOf('</div>')
+  return `${html.slice(0, end)}<small data-clip>${clipWords(map)}</small>${html.slice(end)}`
 }
 
 export const renderBar = (map: MapCanvas) => {
   const node = map.slot('bar') as Node | null
   if (!node) return
-  const html = content(map)
+  const html = withClip(map, content(map))
   node.hidden = !html
   if (node._html === html) return
   // A form being typed in keeps its text while the map refreshes.
