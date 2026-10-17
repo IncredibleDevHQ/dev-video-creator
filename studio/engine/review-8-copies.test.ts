@@ -216,7 +216,7 @@ it('says which episodes a note’s addition reaches, and which wait for the crea
   )
 })
 
-it('keeps a followed copy’s capture, leaves an episode with any storyboard, and follows a hand-edited script', async () => {
+it('keeps a followed copy’s capture, follows an episode whose plan waits for approval, and leaves an approved one', async () => {
   const second: Slide = { ...card, id: 'window', title: 'The retention window' }
   await write('map2', { mapSeries: 's2', slides: [second] })
   await writeRow('series', 's2', {
@@ -224,7 +224,9 @@ it('keeps a followed copy’s capture, leaves an episode with any storyboard, an
     title: 'Payments',
     mapNotebook: 'map2',
     organize: true,
-    episodes: ['captured', 'planning'].map((notebookId) => ({ notebookId }))
+    episodes: ['captured', 'planning', 'approved'].map((notebookId) => ({
+      notebookId
+    }))
   })
   const capture = {
     url: 'https://shop.example',
@@ -238,26 +240,32 @@ it('keeps a followed copy’s capture, leaves an episode with any storyboard, an
     episode: { series: 's2', number: 1 },
     slides: [{ ...copyOf('map2', second), capture }]
   })
-  await write('planning', {
-    copyOfMap: 'map2',
-    episode: { series: 's2', number: 2 },
-    slides: [copyOf('map2', second)],
-    video: {
-      settings: { presence: 'off', voice: { kind: 'ai', id: 'default' } },
-      scenes: [],
-      transitions: [],
-      inputKey: 'v',
-      produced: null,
-      storyboard: {
-        id: 'sb-planning',
-        pages: [],
-        stage: 'review',
-        status: 'waiting',
-        waitingFor: 'approval',
-        updatedAt: '2026-10-17T00:00:00.000Z'
+  // A storyboard of the copy: a plan waiting for approval, or approved.
+  const boarded = async (id: string, number: number, approved: boolean) => {
+    const copy = copyOf('map2', second)
+    await write(id, {
+      copyOfMap: 'map2',
+      episode: { series: 's2', number },
+      slides: [copy],
+      video: {
+        settings: { presence: 'off', voice: { kind: 'ai', id: 'default' } },
+        scenes: [],
+        transitions: [],
+        inputKey: 'v',
+        produced: null,
+        storyboard: {
+          id: `sb-${id}`,
+          pages: [copy.id],
+          stage: approved ? 'stills' : 'review',
+          status: approved ? 'working' : 'waiting',
+          ...(approved ? { approved: true } : { waitingFor: 'approval' }),
+          updatedAt: '2026-10-17T00:00:00.000Z'
+        }
       }
-    }
-  })
+    })
+  }
+  await boarded('planning', 2, false)
+  await boarded('approved', 3, true)
   const { createStudioServer } = await import('./server')
   const server = createStudioServer().listen(0, '127.0.0.1')
   await once(server, 'listening')
@@ -283,8 +291,21 @@ it('keeps a followed copy’s capture, leaves an episode with any storyboard, an
   const captured = await copyIn('captured')
   expect(captured.base).toBe('Keep a key as long as clients may retry.')
   expect(captured.capture).toEqual(capture)
-  // A plan waits there: its copy waits for the creator's Update.
-  expect((await copyIn('planning')).base).toBe(card.narration)
+  // A plan not yet approved follows, and is marked to be planned again:
+  // never stale, and nothing paid starts by itself.
+  const planning = (await loadProject('planning'))!.project
+  expect(planning.slides[0].base).toBe(
+    'Keep a key as long as clients may retry.'
+  )
+  expect(planning.video!.storyboard).toMatchObject({
+    replan: true,
+    status: 'waiting'
+  })
+  expect(planning.video!.storyboard!.stale).toBeUndefined()
+  // An approved one waits for the creator's Update, its video untouched.
+  const approved = (await loadProject('approved'))!.project
+  expect(approved.slides[0].base).toBe(card.narration)
+  expect(approved.video!.storyboard!.stale).toBeUndefined()
 })
 
 it('keeps a copy’s capture and answers when the creator updates it, as when it follows by itself', async () => {
