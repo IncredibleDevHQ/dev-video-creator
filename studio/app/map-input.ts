@@ -24,6 +24,7 @@ import {
 import { chromeAction } from './map-chrome'
 import { installMapKeys } from './map-keys'
 import { applyTo, showApply } from './map-apply'
+import { updateCopies } from './map-history'
 
 export type DragState = {
   key: string
@@ -650,15 +651,24 @@ const dispatch = async (
     case 'update':
     case 'keep': {
       const from = map.episodeOf(copy)
-      if (!from) return
-      const done = await map.run(
-        () => mapApi.copies(from.notebook, { action: name, slide: copy }),
-        name === 'update'
-          ? 'Copy updated from the map'
-          : 'This episode keeps its version'
+      if (!from || !copy) return
+      const done = await updateCopies(
+        map,
+        from.notebook,
+        [copy],
+        name === 'keep'
       )
       // On to the episode's next changed card, until none is left.
       return done ? void map.reviewNext(from.notebook) : undefined
+    }
+    case 'update-all': {
+      // Every card of the episode that changed on the map, in one go.
+      const changed = map.view?.episodes
+        .find((e) => e.notebook === arg)
+        ?.copies.filter((c) => c.stale)
+        .map((c) => c.id)
+      if (changed?.length) await updateCopies(map, arg, changed)
+      return
     }
     case 'review':
       return void map.reviewNext(arg)

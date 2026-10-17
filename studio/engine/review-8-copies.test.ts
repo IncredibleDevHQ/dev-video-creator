@@ -383,3 +383,109 @@ it('leaves no copy on the older card when two changes to it overlap', async () =
     'Keep a key for as long as clients may retry.'
   )
 })
+
+it('updates all of an approved episode’s waiting copies in one go, and Undo puts them back, scenes and plan included', async () => {
+  const pages = ['p1', 'p2', 'p3'].map((id) => ({ ...card, id, title: id }))
+  await write('map5', { mapSeries: 's5', slides: pages })
+  await writeRow('series', 's5', {
+    id: 's5',
+    title: 'Payments',
+    mapNotebook: 'map5',
+    episodes: [{ notebookId: 'approved5' }, { notebookId: 'made5' }]
+  })
+  const copies = pages.map((page) => copyOf('map5', page))
+  const settings = { presence: 'off', voice: { kind: 'ai', id: 'default' } }
+  await write('approved5', {
+    copyOfMap: 'map5',
+    episode: { series: 's5', number: 1 },
+    slides: copies,
+    video: {
+      settings,
+      scenes: [],
+      transitions: [],
+      inputKey: 'v',
+      produced: null,
+      storyboard: {
+        id: 'sb5',
+        pages: copies.map((copy) => copy.id),
+        stage: 'stills',
+        status: 'working',
+        approved: true,
+        updatedAt: '2026-10-17T00:00:00.000Z'
+      }
+    }
+  })
+  // An episode made scene by scene, its one scene made.
+  const madeCopy = copyOf('map5', pages[0])
+  await write('made5', {
+    copyOfMap: 'map5',
+    episode: { series: 's5', number: 2 },
+    slides: [madeCopy]
+  })
+  const { changeProject } = await import('./projects')
+  const { reconcileVideo } = await import('./scene-model')
+  await changeProject('made5', (current) => {
+    const video = { settings, scenes: [], transitions: [], inputKey: '' }
+    current.project.video = {
+      ...video,
+      produced: null
+    } as unknown as Snapshot['project']['video']
+    reconcileVideo(current.project, current, new Set())
+    current.project.video!.scenes[0].phase = 'produced'
+    current.project.video!.scenes[0].produced = {
+      inputKey: 'k',
+      objectKey: 'scene.mp4'
+    }
+  })
+  await changeProject('map5', (current) => {
+    current.project.slides[0].narration = 'One, newer.'
+    current.project.slides[1].narration = 'Two, newer.'
+  })
+  const { changeCopies } = await import('./map-episodes')
+  // Update all: the two that wait, in one call that says how many.
+  const waiting = copies.slice(0, 2).map((copy) => copy.id)
+  expect(
+    await changeCopies('approved5', { action: 'update', slides: waiting })
+  ).toEqual({ updated: 2 })
+  let approved = (await loadProject('approved5'))!.project
+  expect(approved.slides.map((slide) => slide.base)).toEqual([
+    'One, newer.',
+    'Two, newer.',
+    card.narration
+  ])
+  expect(approved.video!.storyboard!.stale).toBe(true)
+  // Undo: both as they were, and the approved plan no longer stale.
+  await changeCopies('approved5', { action: 'undo-update' })
+  approved = (await loadProject('approved5'))!.project
+  expect(approved.slides).toEqual(copies)
+  expect(approved.video!.storyboard!.stale).toBeUndefined()
+  await expect(
+    changeCopies('approved5', { action: 'undo-update' })
+  ).rejects.toThrow('That update can no longer be undone')
+  // Keep, undone: the copy waits for its Update again.
+  await changeCopies('approved5', { action: 'keep', slide: copies[0].id })
+  expect((await copyIn('approved5')).copyOf!.kept).toBeDefined()
+  await changeCopies('approved5', { action: 'undo-update' })
+  expect((await copyIn('approved5')).copyOf).toEqual(copies[0].copyOf)
+  // A made scene goes with an update, and comes back with its Undo.
+  await changeCopies('made5', { action: 'update', slide: madeCopy.id })
+  const scene = async () => (await loadProject('made5'))!.project.video!.scenes
+  expect((await scene())[0].produced).toBeNull()
+  await changeCopies('made5', { action: 'undo-update' })
+  expect((await scene())[0]).toMatchObject({
+    phase: 'produced',
+    produced: { objectKey: 'scene.mp4' }
+  })
+  // A copy changed since its update is never undone over.
+  await changeCopies('made5', { action: 'update', slide: madeCopy.id })
+  const { editSlide } = await import('./projects')
+  await editSlide('made5', {
+    action: 'script',
+    slideId: madeCopy.id,
+    narration: 'My own words.'
+  })
+  await expect(
+    changeCopies('made5', { action: 'undo-update' })
+  ).rejects.toThrow('That page has changed since: nothing was undone')
+  expect((await copyIn('made5')).base).toBe('My own words.')
+})

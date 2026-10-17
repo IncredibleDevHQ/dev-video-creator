@@ -1,10 +1,11 @@
 // Undo and Redo on the map for what is done to an episode's cards on the
-// canvas: a reorder, a move to another episode, a removal. ⌘Z undoes the
-// last of them, ⇧⌘Z does it again, as the Undo in its toast does (review
-// 8). Any other change to the map ends the history: Undo never reaches
-// back past something it can't undo. A card that has changed since says
-// so rather than undoing something else. Segues are rewritten as for any
-// reorder; one still running is run again on the order put back.
+// canvas: a reorder, a move to another episode, a removal, an Update from
+// the map or a Keep. ⌘Z undoes the last of them, ⇧⌘Z does it again, as the
+// Undo in its toast does (review 8). Any other change to the map ends the
+// history: Undo never reaches back past something it can't undo. A card
+// that has changed since says so rather than undoing something else.
+// Segues are rewritten as for any reorder; one still running is run again
+// on the order put back.
 import type { MapCopy, MapEpisode } from '../shared/content-map'
 import { api } from './api'
 import { mapApi } from './map-api'
@@ -31,8 +32,59 @@ type Move = {
   after: string[]
 }
 type Removal = { kind: 'remove'; episode: string; copy: string }
-export type MapEdit = Order | Move | Removal
+/** Copies brought up to their map cards (Update, or Update all), or one
+ * kept as it is (Keep): the engine keeps them as they were for Undo. */
+type Update = {
+  kind: 'update'
+  episode: string
+  keep: boolean
+  copies: string[]
+}
+export type MapEdit = Order | Move | Removal | Update
 type Step = { work: () => Promise<unknown>; said: string }
+
+/** What an Update or a Keep says, done or done again. */
+const updateSaid = (edit: Update, n = edit.copies.length) =>
+  edit.keep
+    ? 'This episode keeps its version'
+    : n === 1
+      ? 'Copy updated from the map'
+      : `${n} cards updated from the map`
+
+/**
+ * The map's Update for an episode's copies (one, or Update all of those
+ * that changed on the map), or its Keep for one, with Undo in its toast and
+ * on ⌘Z (review 8 F08). True once it went through.
+ */
+export const updateCopies = async (
+  map: MapCanvas,
+  episode: string,
+  copies: string[],
+  keep = false
+) => {
+  let changed = 0
+  const done = await map.run(
+    async () => {
+      const [slide] = copies
+      const result = await mapApi.copies(
+        episode,
+        keep
+          ? { action: 'keep', slide }
+          : copies.length === 1
+            ? { action: 'update', slide }
+            : { action: 'update', slides: copies }
+      )
+      changed = keep ? 1 : (result.updated ?? copies.length)
+    },
+    undefined,
+    true
+  )
+  if (!done) return false
+  const edit: Update = { kind: 'update', episode, keep, copies }
+  if (changed) map.history.record(edit, updateSaid(edit, changed))
+  else map.toast('They match the map already')
+  return true
+}
 
 /** A card in its episode, by the map page it copies (or its own id). */
 export const keyOf = (copy: MapCopy) => copy.copyOf?.slide ?? copy.id
@@ -69,12 +121,12 @@ export class MapHistory {
   /** An edit just made, with Undo in the toast that says so. */
   record(edit: MapEdit, said: string) {
     const id = ++this.last
-    // The engine keeps one removal per episode to bring back, and one card
-    // moved out of each.
+    // The engine keeps one removal per episode to bring back, one card
+    // moved out of each, and its last Update or Keep.
     const older = (item: MapEdit) =>
-      (item.kind === 'remove' &&
-        edit.kind === 'remove' &&
-        item.episode === edit.episode) ||
+      (item.kind === edit.kind &&
+        (item.kind === 'remove' || item.kind === 'update') &&
+        item.episode === (edit as typeof item).episode) ||
       (item.kind === 'move' && edit.kind === 'move' && item.from === edit.from)
     for (const list of [this.done, this.undone])
       for (let i = list.length - 1; i >= 0; i--)
@@ -128,6 +180,31 @@ export class MapHistory {
       this.map.view?.episodes.find((e) => e.notebook === id)
     const find = (lane: MapEpisode | undefined, key: string) =>
       lane?.copies.find((copy) => keyOf(copy) === key)
+    if (edit.kind === 'update') {
+      const lane = episode(edit.episode)
+      const n = edit.copies.length
+      if (!edit.copies.every((id) => lane?.copies.some((c) => c.id === id)))
+        return null
+      if (!back)
+        return {
+          work: () =>
+            mapApi.copies(
+              edit.episode,
+              edit.keep
+                ? { action: 'keep', slide: edit.copies[0] }
+                : { action: 'update', slides: edit.copies }
+            ),
+          said: updateSaid(edit)
+        }
+      return {
+        work: () => mapApi.copies(edit.episode, { action: 'undo-update' }),
+        said: edit.keep
+          ? 'It waits for your Update again'
+          : n === 1
+            ? 'Put back as it was'
+            : `${n} cards put back as they were`
+      }
+    }
     if (edit.kind === 'order') {
       const lane = episode(edit.episode)
       if (!lane?.copies.some((copy) => copy.id === edit.copy)) return null

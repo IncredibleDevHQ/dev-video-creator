@@ -592,7 +592,7 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
     click(root.querySelector('[data-map="help"]'))
     await settle()
     expect(map.slot('menu')!.textContent).toContain(
-      '⌘Z  ⇧⌘Zundo or redo a card’s move or removal'
+      '⌘Z  ⇧⌘Zundo or redo a card’s move, removal or update'
     )
   })
 
@@ -956,5 +956,85 @@ describe('an episode’s cards changed on the map (round 1)', () => {
     map.select({ t: 'lane', id: 'e1' })
     expect(bar.querySelector('[data-map^="review:"]')).toBeNull()
     expect(info()).toBe('3 pages')
+  })
+
+  it('updates them all at once, and an Update, a Keep or Update all undoes from its toast and with ⌘Z (F08)', async () => {
+    const shown = view()
+    const lane = shown.episodes[0]
+    lane.copies[0].stale = true
+    lane.copies[2].stale = true
+    const { map } = await openMap(shown)
+    // The engine brings copies up to date or keeps one; its Undo puts the
+    // last of those back, waiting again.
+    let last: string[] = []
+    const mark = (ids: string[], stale: boolean) => {
+      for (const id of ids) lane.copies.find((c) => c.id === id)!.stale = stale
+    }
+    vi.mocked(mapApi.copies).mockImplementation(async (_episode, body) => {
+      const { action, slide, slides } = body as {
+        action: string
+        slide?: string
+        slides?: string[]
+      }
+      if (action === 'undo-update') mark(last, true)
+      else mark((last = slides || [slide!]), false)
+      return action === 'update' ? { updated: last.length } : {}
+    })
+    const bar = map.slot('bar')!
+    const toast = () => {
+      const node = map.slot('toast')!
+      return [
+        node.querySelector('span')?.textContent,
+        node.querySelector('button')?.textContent ?? null
+      ]
+    }
+    const press = async (shiftKey = false) => {
+      fire(win.document.body, 'keydown', { key: 'z', metaKey: true, shiftKey })
+      await settle()
+    }
+    map.select({ t: 'lane', id: 'e1' })
+    const all = bar.querySelector('[data-map="update-all:e1"]')!
+    expect(all.textContent).toBe('Update all 2')
+    click(all)
+    await settle()
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'update',
+      slides: ['x', 'w']
+    })
+    expect(toast()).toEqual(['2 cards updated from the map', 'Undo'])
+    map.select({ t: 'lane', id: 'e1' })
+    expect(bar.querySelector('[data-map^="update-all:"]')).toBeNull()
+    // Its toast's Undo puts both back, waiting again.
+    click(map.slot('toast')!.querySelector('button'))
+    await settle()
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'undo-update'
+    })
+    expect(toast()).toEqual(['2 cards put back as they were', 'Redo'])
+    map.select({ t: 'lane', id: 'e1' })
+    expect(bar.querySelector('[data-map="update-all:e1"]')).not.toBeNull()
+    // A Keep undone with ⌘Z waits again; ⇧⌘Z keeps it again.
+    map.select({ t: 'copy', id: 'w' })
+    click(bar.querySelector('[data-map="keep"]'))
+    await settle()
+    expect(toast()).toEqual(['This episode keeps its version', 'Undo'])
+    await press()
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'undo-update'
+    })
+    expect(toast()[0]).toBe('It waits for your Update again')
+    await press(true)
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'keep',
+      slide: 'w'
+    })
+    // One card's Update, undone the same way.
+    map.select({ t: 'copy', id: 'x' })
+    click(bar.querySelector('[data-map="update"]'))
+    await settle()
+    expect(toast()).toEqual(['Copy updated from the map', 'Undo'])
+    await press()
+    expect(toast()[0]).toBe('Put back as it was')
+    expect(lane.copies[0].stale).toBe(true)
   })
 })

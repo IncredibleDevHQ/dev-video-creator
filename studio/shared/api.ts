@@ -60,6 +60,14 @@ export type Snapshot = {
    * kept as it was so the map's Undo puts back this very page: where it
    * went, and the copy it became there. */
   movedSlide?: KeptSlide & { to: string; as: string }
+  /** An episode's copies last brought up to their map cards, or kept as
+   * they were, from the content map: as they stood, with their scenes and
+   * the storyboard's flags, so the map's Undo puts them back. */
+  updatedCopies?: {
+    /** Each copy as it was, and what it is as the change left it. */
+    copies: Array<{ slide: Slide; scene?: Scene; left: string }>
+    board?: { id: string; sources: string; stale?: boolean; replan?: boolean }
+  }
 }
 /** A page kept for Undo, where it stood, with its scene. */
 export type KeptSlide = {

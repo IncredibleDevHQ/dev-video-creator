@@ -28,7 +28,8 @@ import {
   scheduleAround,
   scheduleSegues
 } from './map-segues'
-import { copyOf, pageHash, syncEvidence, updatedCopy } from './map-copy'
+import { copyOf, pageHash, syncEvidence } from './map-copy'
+import { undoUpdate, updateCopies } from './map-updates'
 import { schedulePick } from './map-picking'
 import { directionsOf } from './series-directions'
 import { SEGUE } from '../shared/length'
@@ -227,7 +228,8 @@ const usedByStoryboard = () =>
 /**
  * Changes an episode's copies: add a copy of a map page (or cut it in, so
  * it is this episode's only), move one within or to another episode,
- * remove one, bring one up to date with its original, or keep it as it is.
+ * remove one, bring one or all up to date with their originals, keep one
+ * as it is, or undo the last of those two.
  * Each write checks again what it changes, so two quick requests cannot add
  * a page twice or move one that was just removed.
  */
@@ -263,6 +265,18 @@ export const changeCopies = async (id: string, raw: unknown) => {
     await scheduleAround(id)
     return { cut, shared: !cut && value.only === true }
   }
+  // Bring copies up to their cards (one, or Update all's), keep one, or
+  // undo the last of those (review 8 F08).
+  if (action === 'update' || action === 'keep') {
+    const ids = Array.isArray(value.slides)
+      ? value.slides.map(String).slice(0, 200)
+      : [String(value.slide || '')]
+    if (!ids.length || (action === 'keep' && ids.length > 1))
+      throw new Refusal('Choose a page of this episode')
+    const changed = await updateCopies(id, mapId, ids, action === 'keep')
+    return action === 'keep' ? { kept: true } : { updated: changed }
+  }
+  if (action === 'undo-update') return undoUpdate(id)
   const slideId = String(value.slide || '')
   if (action === 'unmove') return unmove(id, episode, slideId)
   const copy = episode.project.slides.find((s) => s.id === slideId)
@@ -355,30 +369,6 @@ export const changeCopies = async (id: string, raw: unknown) => {
     await planScenes(id)
     await scheduleAround(id)
     return { removed: true }
-  }
-  if (action === 'update' || action === 'keep') {
-    const map = await loadProject(mapId)
-    const original = map?.project.slides.find(
-      (s) => s.id === copy.copyOf?.slide
-    )
-    if (!original) throw new Refusal('The map no longer has this page')
-    await changeProject(id, (current) => {
-      const index = current.project.slides.findIndex((s) => s.id === slideId)
-      if (index < 0) throw gone()
-      const now = current.project.slides[index]
-      if (action === 'keep') {
-        now.copyOf = { ...now.copyOf!, kept: pageHash(original) }
-        return
-      }
-      current.project.slides[index] = updatedCopy(mapId, now, original)
-      reconcileVideo(current.project, current, new Set())
-      addEvent(current, 'slide', `Updated “${original.title}” from the map`)
-    })
-    if (action === 'update') {
-      await planScenes(id)
-      await scheduleAround(id)
-    }
-    return { [action === 'keep' ? 'kept' : 'updated']: true }
   }
   throw new Refusal('Choose add, move, remove, update or keep')
 }

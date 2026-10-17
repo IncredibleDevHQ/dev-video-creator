@@ -180,9 +180,14 @@ const content = (map: MapCanvas) => {
       !(clip && !here) && !failed
     )
     // Its cards changed on the map that wait for the creator, said once,
-    // with one way through them (review 8).
+    // with a way through them one by one, and all at once (review 8 F08).
     const changed = episode.copies.filter((copy) => copy.stale).length
-    const review = changed ? act(`review:${episode.notebook}`, 'Review') : ''
+    const review = changed
+      ? act(`review:${episode.notebook}`, 'Review') +
+        (changed > 1
+          ? act(`update-all:${episode.notebook}`, `Update all ${changed}`)
+          : '')
+      : ''
     return `<div class="map-info"><b style="color:${colorOf(view, episode.notebook)}">Ep ${episode.number}</b> · ${escape(episode.title)}<small>${episode.copies.length} page${episode.copies.length === 1 ? '' : 's'}${changed ? ` · ${changed} changed on the map` : ''}${episode.segues === 'failed' ? ' · segues failed' : ''}</small>${clipped}</div>${paste}${failed ? act(`pick:${episode.notebook}`, 'Pick pages again', '', true) : ''}${review}${make}${act('rename-episode', 'Rename')}${more('lane')}`
   }
   if (sel?.t === 'series' && view?.series) {
@@ -462,7 +467,7 @@ const SHORTCUTS = [
   ['Drag a copy', 'reorder, or move it'],
   ['⌘C  ⌘X  ⌘V', 'copy, cut, paste into the selected episode'],
   ['⌫', 'remove the selected copy'],
-  ['⌘Z  ⇧⌘Z', 'undo or redo a card’s move or removal'],
+  ['⌘Z  ⇧⌘Z', 'undo or redo a card’s move, removal or update'],
   ['Double-click', 'zoom to a block'],
   ['Tab, then Enter', 'go through the cards and select'],
   ['Esc', 'clear the selection']
