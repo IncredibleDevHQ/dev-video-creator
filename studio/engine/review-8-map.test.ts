@@ -20,6 +20,7 @@ const { mapApi } = await import('../app/map-api')
 const { MapCanvas } = await import('../app/map-canvas')
 const { markRuns } = await import('../app/map-length')
 const { extent } = await import('../app/map-layout')
+const { closePopover } = await import('../app/popover')
 // Review 8's live look at the content map, with the network stubbed: these
 // checks drive the real canvas, its header, bar and keys; what the engine
 // and a model do is proved elsewhere.
@@ -490,7 +491,8 @@ describe('what a direction applies to (F14)', () => {
 describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
   /** The engine's copies, kept in the view the map reads back: a move (a
    * card moved to another episode is a new card there, the one that left
-   * kept to come back), a removal, and bringing either back. */
+   * kept to come back), a removal (an episode keeps its last, as it says
+   * when loaded), and bringing either back. */
   const serve = (shown: MapView) => {
     let made = 0
     type Kept = { copy: Copies[number]; index: number }
@@ -517,6 +519,14 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
         delete moved[episode]
         return { moved: true } as never
       }
+      if (action === 'unremove') {
+        const back = kept[episode]
+        if (back?.copy.id !== slide)
+          throw new Error('That page can no longer be brought back')
+        delete kept[episode]
+        from.copies.splice(back.index, 0, back.copy)
+        return { restored: true } as never
+      }
       const at = from.copies.findIndex((copy) => copy.id === slide)
       if (at < 0) throw new Error('That page is no longer in this episode')
       const [card] = from.copies.splice(at, 1)
@@ -538,13 +548,19 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
       }
       return {}
     })
-    vi.mocked(api.slide).mockImplementation(async (episode) => {
-      const back = kept[episode]
-      delete kept[episode]
-      lane(episode).copies.splice(back.index, 0, back.copy)
-      return snapshot()
+    vi.mocked(api.load).mockImplementation(async (id) => {
+      const back = kept[id]
+      return back
+        ? {
+            ...snapshot(),
+            deletedSlide: { slide: back.copy as never, index: back.index }
+          }
+        : snapshot()
     })
-    return (id: string) => lane(id).copies.map((copy) => copy.id)
+    return Object.assign(
+      (id: string) => lane(id).copies.map((copy) => copy.id),
+      { kept }
+    )
   }
   const press = async (key: string, shiftKey = false) => {
     fire(win.document.body, 'keydown', { key, metaKey: true, shiftKey })
@@ -560,8 +576,8 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
 
   it('puts a reorder back from its toast’s Undo, and with ⌘Z and ⇧⌘Z, as Shortcuts says', async () => {
     const shown = view()
-    const order = serve(shown)
     const { map, root } = await openMap(shown)
+    const order = serve(shown)
     // A card dragged from third to second.
     await map.moveCopy('w', 'e1', 1)
     expect(order('e1')).toEqual(['x', 'w', 'y'])
@@ -598,8 +614,8 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
 
   it('undoes the last edit first, a move to another episode and a removal, and nothing after another change', async () => {
     const shown = view()
-    const order = serve(shown)
     const { map } = await openMap(shown)
+    const order = serve(shown)
     await map.removeCopy('x')
     await map.moveCopy('w', 'e2', 0)
     expect([order('e1'), order('e2')]).toEqual([['y'], ['m1', 'z']])
@@ -635,8 +651,8 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
 
   it('says when the card has changed since, rather than undoing something else', async () => {
     const shown = view()
-    const order = serve(shown)
     const { map } = await openMap(shown)
+    const order = serve(shown)
     await map.moveCopy('w', 'e1', 0)
     // Removed elsewhere meanwhile (another tab, Studio AI).
     shown.episodes[0].copies = shown.episodes[0].copies.filter(
@@ -650,10 +666,35 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
     expect(order('e1')).toEqual(['x', 'y'])
   })
 
+  it('brings back the very card it removed, never one removed since (round 2)', async () => {
+    const shown = view()
+    const { map } = await openMap(shown)
+    const order = serve(shown)
+    await map.removeCopy('x')
+    // Another card removed from the episode since, on its Wireframe stage:
+    // the episode keeps that one now.
+    const [y] = shown.episodes[0].copies.splice(0, 1)
+    order.kept.e1 = { copy: y, index: 0 }
+    await map.refresh()
+    const sent = vi.mocked(mapApi.copies).mock.calls.length
+    await press('z')
+    expect(toast(map)[0]).toBe('Nothing to undo: that card has changed since')
+    expect(mapApi.copies).toHaveBeenCalledTimes(sent)
+    expect(order('e1')).toEqual(['w'])
+    // Its own removal comes back by name.
+    await map.removeCopy('w')
+    await press('z')
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'unremove',
+      slide: 'w'
+    })
+    expect(order('e1')).toEqual(['w'])
+  })
+
   it('keeps Undo through a note added from the Notes panel or the canvas (round 1)', async () => {
     const shown = view()
-    const order = serve(shown)
     const { map, root } = await openMap(shown)
+    const order = serve(shown)
     await map.moveCopy('w', 'e1', 1)
     const rail = root.querySelector<HTMLFormElement>('[data-map-form="note"]')!
     rail.querySelector('textarea')!.value = 'A thought'
@@ -1064,5 +1105,27 @@ describe('the content map, round 2 of the audit', () => {
     const left = map.camera.x + lane.x * map.camera.k
     expect(left).toBeGreaterThanOrEqual(40)
     expect(left + lane.w).toBeLessThanOrEqual(1200 - 40)
+  })
+
+  it('takes ⌘Z and ⇧⌘Z on Organise new cards and the length slider, leaving typed words their own Undo', async () => {
+    const { map, root } = await openMap()
+    const undo = vi.spyOn(map.history, 'undo').mockResolvedValue(undefined)
+    const redo = vi.spyOn(map.history, 'redo').mockResolvedValue(undefined)
+    const z = (target: Element, shiftKey = false) =>
+      fire(target, 'keydown', { key: 'z', metaKey: true, shiftKey })
+    z(root.querySelector('[data-map-organize]')!)
+    expect(undo).toHaveBeenCalledTimes(1)
+    map.select({ t: 'series' })
+    // (One popover is open at a time, in any document.)
+    closePopover()
+    click(map.slot('bar')!.querySelector('[data-map="length"]'))
+    const slider = win.document.querySelector(
+      '.length-popover input[type="range"]'
+    )!
+    z(slider, true)
+    expect(redo).toHaveBeenCalledTimes(1)
+    // A note being written keeps the browser's Undo of its words.
+    z(root.querySelector('[data-map-form="note"] textarea')!)
+    expect(undo).toHaveBeenCalledTimes(1)
   })
 })

@@ -150,13 +150,14 @@ export class MapHistory {
     const word = back ? 'undo' : 'redo'
     if (!edit) return this.map.toast(`Nothing to ${word}`)
     if ((id !== undefined && edit.id !== id) || this.busy) return
-    const step = this.step(edit, back)
-    if (!step) {
-      from.pop()
-      return this.map.toast(`Nothing to ${word}: that card has changed since`)
-    }
     this.busy = true
     try {
+      const step = await this.step(edit, back)
+      if (!step) {
+        const at = from.indexOf(edit)
+        if (at >= 0) from.splice(at, 1)
+        return this.map.toast(`Nothing to ${word}: that card has changed since`)
+      }
       // Refused, it stays to be tried again; its own run keeps the history.
       if (!(await this.map.run(step.work, undefined, true))) return
       // Another change ended the history meanwhile: nothing to redo after.
@@ -175,7 +176,7 @@ export class MapHistory {
 
   /** What undoing (back) or redoing an edit sends, and says; null when its
    * card is no longer where the edit left it. */
-  private step(edit: MapEdit, back: boolean): Step | null {
+  private async step(edit: MapEdit, back: boolean): Promise<Step | null> {
     const episode = (id: string) =>
       this.map.view?.episodes.find((e) => e.notebook === id)
     const find = (lane: MapEpisode | undefined, key: string) =>
@@ -262,11 +263,23 @@ export class MapHistory {
         said: `Moved to Ep ${to.number}`
       }
     }
-    if (back)
+    if (back) {
+      // The episode keeps its last removal: one removed since, on the map
+      // or its Wireframe stage, is never brought back for this card (round
+      // 2). Not loaded, the engine still refuses another.
+      if (episode(edit.episode)?.copies.some((copy) => copy.id === edit.copy))
+        return null
+      const kept = await api.load(edit.episode).then(
+        (episode) => episode.deletedSlide?.slide.id ?? null,
+        () => undefined
+      )
+      if (kept !== undefined && kept !== edit.copy) return null
       return {
-        work: () => api.slide(edit.episode, { action: 'undo-delete' }),
+        work: () =>
+          mapApi.copies(edit.episode, { action: 'unremove', slide: edit.copy }),
         said: 'Back in the episode'
       }
+    }
     if (!episode(edit.episode)?.copies.some((copy) => copy.id === edit.copy))
       return null
     return {

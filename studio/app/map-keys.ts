@@ -7,6 +7,18 @@ import { dialogOpen } from './ui'
 /** Runs one of the map's actions by name, as its buttons do. */
 type Dispatch = (map: MapCanvas, action: string) => Promise<unknown>
 
+/** Inputs that take no typed words: a tick, a choice, a slider, a button. */
+const UNTYPED = /^(checkbox|radio|range|color|file|button|submit|reset|image)$/
+/** Words being typed, which keep the browser's own Undo. */
+const writing = (target: Element | null) =>
+  Boolean(
+    target?.closest?.(
+      'textarea, [contenteditable]:not([contenteditable="false"])'
+    ) ||
+    (target?.matches?.('input') &&
+      !UNTYPED.test((target as HTMLInputElement).type))
+  )
+
 export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
   const root = map.root
   // Focus moves the camera, never the canvas: a card reached with Tab is
@@ -78,9 +90,17 @@ export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
     // A dialog open over the map has the keys (review 7).
     if (!map.isOpen || event.defaultPrevented || dialogOpen()) return
     const e = event as KeyboardEvent
-    if ((e.target as Element)?.closest?.('input, textarea, select')) return
+    const target = e.target as Element
     const mod = e.metaKey || e.ctrlKey
     const key = e.key.toLowerCase()
+    // Only words being typed keep their own Undo: on Organise new cards or
+    // the length slider, ⌘Z is the map's (round 2).
+    if (mod && key === 'z' && !writing(target)) {
+      // The last card reordered, moved or removed (review 8).
+      e.preventDefault()
+      return void (e.shiftKey ? map.history.redo() : map.history.undo())
+    }
+    if (target?.closest?.('input, textarea, select')) return
     const sel = map.sel
     if (mod && key === 'c' && sel?.t === 'page') {
       e.preventDefault()
@@ -91,10 +111,6 @@ export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
     } else if (mod && key === 'v') {
       e.preventDefault()
       void map.paste()
-    } else if (mod && key === 'z') {
-      // The last card reordered, moved or removed (review 8).
-      e.preventDefault()
-      void (e.shiftKey ? map.history.redo() : map.history.undo())
     } else if ((key === 'backspace' || key === 'delete') && sel?.t === 'copy') {
       e.preventDefault()
       void map.removeCopy(sel.id)

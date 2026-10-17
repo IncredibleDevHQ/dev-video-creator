@@ -279,6 +279,7 @@ export const changeCopies = async (id: string, raw: unknown) => {
   if (action === 'undo-update') return undoUpdate(id)
   const slideId = String(value.slide || '')
   if (action === 'unmove') return unmove(id, episode, slideId)
+  if (action === 'unremove') return unremove(id, slideId)
   const copy = episode.project.slides.find((s) => s.id === slideId)
   if (!copy) throw gone()
   if (action === 'move') {
@@ -419,6 +420,25 @@ const unmove = async (id: string, episode: Snapshot, slideId: string) => {
   await scheduleAround(id)
   await scheduleAround(kept.to)
   return { moved: true }
+}
+/**
+ * The map's Undo of a removal: the page it removed comes back as it was,
+ * where it stood. The episode keeps only its last removal, so one removed
+ * since, on the map or its Wireframe stage, is never brought back in its
+ * place (review 8, round 2).
+ */
+const unremove = async (id: string, slideId: string) => {
+  await changeProject(id, (current) => {
+    const kept = current.deletedSlide
+    if (kept?.slide.id !== slideId)
+      throw new Refusal('That page can no longer be brought back')
+    delete current.deletedSlide
+    restoreKept(current, kept)
+    addEvent(current, 'slide', `Brought back “${kept.slide.title}”`)
+  })
+  await planScenes(id)
+  await scheduleAround(id)
+  return { restored: true }
 }
 
 /**
