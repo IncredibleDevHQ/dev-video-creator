@@ -14,7 +14,7 @@ import type { BuildType, Storyboard } from '../../shared/storyboard'
 import { addEvent } from '../activity'
 import { readAsset, storeAsset } from '../persistence'
 import { generationStops } from '../generation-errors'
-import { loadProject, onPlanAgain } from '../projects'
+import { loadProject } from '../projects'
 import { resolveVoice } from '../voice-library'
 import { probeSeconds } from '../voice'
 import { loadSeries, previouslyOf } from '../series'
@@ -67,8 +67,6 @@ export const scheduleStoryboard = (projectId: string) => {
     .finally(() => running.delete(projectId))
   running.set(projectId, job)
 }
-// A plan waiting for approval that a change sent back to planning runs again.
-onPlanAgain(scheduleStoryboard)
 /** Resolves when the production has stopped working (tests and checks). */
 export const settledStoryboard = async (projectId: string) => {
   while (running.has(projectId)) await running.get(projectId)

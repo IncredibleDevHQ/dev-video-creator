@@ -761,4 +761,7 @@ it('refuses to delete or move away a page the storyboard uses, on the Wireframe 
     (await loadProject('episode'))!.project.slides.map((slide) => slide.id)
   ).toEqual(['p1', 'p2', 'p3'])
   expect((await loadProject('other'))!.project.slides).toEqual([])
+  // Its pages changed under a plan waiting for approval: it plans again
+  // (review 8 F04), and the check waits for that before the store goes.
+  await settledStoryboard('other')
 })

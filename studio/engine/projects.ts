@@ -92,11 +92,6 @@ export const loadProject = async (id: string) => {
   }
   return snapshot
 }
-/** Runs a storyboard a change sent back to planning (set by its pipeline). */
-let planAgain: ((projectId: string) => void) | undefined
-export const onPlanAgain = (run: (projectId: string) => void) => {
-  planAgain = run
-}
 export const changeProject = async (
   id: string,
   update: (snapshot: Snapshot) => void | Promise<void>
@@ -115,7 +110,9 @@ export const changeProject = async (
       snapshot.views.video.display = videoDisplay(snapshot)
       snapshot.views.presentation = presentationDisplay(snapshot)
       await writeRow('projects', id, snapshot)
-      if (replanned) planAgain?.(id)
+      // A plan waiting for approval that the change sent back runs again.
+      if (replanned)
+        (await import('./storyboard/pipeline')).scheduleStoryboard(id)
       return snapshot
     })
   queues.set(id, next)
