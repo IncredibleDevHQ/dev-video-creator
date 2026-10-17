@@ -651,13 +651,17 @@ const dispatch = async (
     case 'keep': {
       const from = map.episodeOf(copy)
       if (!from) return
-      return map.run(
+      const done = await map.run(
         () => mapApi.copies(from.notebook, { action: name, slide: copy }),
         name === 'update'
           ? 'Copy updated from the map'
           : 'This episode keeps its version'
       )
+      // On to the episode's next changed card, until none is left.
+      return done ? void map.reviewNext(from.notebook) : undefined
     }
+    case 'review':
+      return void map.reviewNext(arg)
     case 'remove':
       return copy ? map.removeCopy(copy) : undefined
     case 'undo':

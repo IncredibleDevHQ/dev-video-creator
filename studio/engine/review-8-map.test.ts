@@ -844,3 +844,44 @@ describe('what Organise new cards does (round 1)', () => {
     expect(plan.getAttribute('title')).toBe(line)
   })
 })
+
+describe('an episode’s cards changed on the map (round 1)', () => {
+  it('says them once in the episode’s bar, and Review goes through them one by one', async () => {
+    const shown = view()
+    shown.episodes[0].copies[0].stale = true
+    shown.episodes[0].copies[2].stale = true
+    const { map } = await openMap(shown)
+    // The engine brings a copy up to date, or keeps it: no longer changed.
+    vi.mocked(mapApi.copies).mockImplementation(async (_episode, body) => {
+      const { slide } = body as { slide: string }
+      shown.episodes[0].copies.find((copy) => copy.id === slide)!.stale = false
+      return {}
+    })
+    map.select({ t: 'lane', id: 'e1' })
+    const bar = map.slot('bar')!
+    const info = () => bar.querySelector('.map-info small')?.textContent
+    expect(info()).toBe('3 pages · 2 changed on the map')
+    click(bar.querySelector('[data-map="review:e1"]'))
+    await settle()
+    expect(map.sel).toEqual({ t: 'copy', id: 'x' })
+    // Its bar offers Update and Keep; either one moves on to the next.
+    click(bar.querySelector('[data-map="update"]'))
+    await settle()
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'update',
+      slide: 'x'
+    })
+    expect(map.sel).toEqual({ t: 'copy', id: 'w' })
+    click(bar.querySelector('[data-map="keep"]'))
+    await settle()
+    expect(mapApi.copies).toHaveBeenLastCalledWith('e1', {
+      action: 'keep',
+      slide: 'w'
+    })
+    // None left: the last one stays selected, and the episode says no more.
+    expect(map.sel).toEqual({ t: 'copy', id: 'w' })
+    map.select({ t: 'lane', id: 'e1' })
+    expect(bar.querySelector('[data-map^="review:"]')).toBeNull()
+    expect(info()).toBe('3 pages')
+  })
+})

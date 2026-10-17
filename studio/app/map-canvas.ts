@@ -648,6 +648,25 @@ export class MapCanvas {
         h: box.h + 240
       })
   }
+  /** Selects an episode's next card changed on the map that waits for the
+   * creator (an edited or kept copy), brought close: its bar offers Update
+   * and Keep. False when none is left (review 8). */
+  reviewNext(episode: string) {
+    const card = this.view?.episodes
+      .find((e) => e.notebook === episode)
+      ?.copies.find((copy) => copy.stale)
+    if (!card) return false
+    const box = this.layout?.copies[card.id]
+    this.select({ t: 'copy', id: card.id })
+    if (box)
+      this.fit({
+        x: box.x - 120,
+        y: box.y - 100,
+        w: box.w + 240,
+        h: box.h + 200
+      })
+    return true
+  }
   /** Asks, in the bar, for the creator's episode ideas and the length. */
   askPlan() {
     this.askingPlan = true
