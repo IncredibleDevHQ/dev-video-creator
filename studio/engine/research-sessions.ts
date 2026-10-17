@@ -40,6 +40,12 @@ export const saveResearchChat = async (
       ? undefined
       : validateHarnessSelection(body.harness)
   await changeResearchProject(id, (project) => {
+    if (
+      body.notebookId !== undefined &&
+      !project.notebooks.some((n) => n.id === body.notebookId)
+    )
+      throw new Refusal('Choose a notebook in this project')
+    const notebookId = body.notebookId as string | undefined
     const at = new Date().toISOString()
     if (body.chatId !== undefined) {
       const chat = project.chats!.find((c) => c.id === body.chatId)
@@ -47,6 +53,7 @@ export const saveResearchChat = async (
       if (title !== undefined) chat.title = title
       if (repos !== undefined) chat.repos = repos
       if (harness !== undefined) chat.harness = harness
+      if (notebookId !== undefined) chat.notebookId = notebookId
       chat.updatedAt = at
     } else {
       project.chats!.push({
@@ -55,6 +62,7 @@ export const saveResearchChat = async (
         createdAt: at,
         updatedAt: at,
         repos: repos || [],
+        notebookId: notebookId || project.notebooks[0].id,
         harness: harness || { adapter: 'claude-code' }
       })
     }

@@ -23,6 +23,21 @@ export const selectResearchChat = (s: ResearchViewState, id: string | null) => {
   s.adapter = chat?.harness?.adapter || 'claude-code'
   s.model = chat?.harness?.model || ''
   s.query = ''
+  s.notebook =
+    s.project.notebooks.find((n) => n.id === chat?.notebookId)?.id ||
+    s.project.notebooks
+      .flatMap((book) =>
+        book.blocks
+          .filter((block) =>
+            s.project.nodes.some(
+              (node) =>
+                node.id === block.origin?.nodeId && node.chatId === chat?.id
+            )
+          )
+          .map((block) => ({ id: book.id, at: block.at }))
+      )
+      .sort((a, b) => b.at.localeCompare(a.at))[0]?.id ||
+    s.project.notebooks[0].id
 }
 export const selectResearchNode = (
   s: ResearchViewState,
@@ -43,5 +58,6 @@ export const chatSettings = (s: ResearchViewState) => ({
     adapter: s.adapter as HarnessSelection['adapter'],
     ...(s.model ? { model: s.model } : {})
   },
-  repos: structuredClone(s.repos)
+  repos: structuredClone(s.repos),
+  notebookId: s.notebook
 })

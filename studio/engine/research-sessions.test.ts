@@ -249,3 +249,88 @@ it('restores chat context, retains it while backtracking, and isolates empty-cha
     researchDraftKey('research-repo-path', 'book', null, 'two')
   )
 })
+
+it('keeps notebook destinations scoped to the project and restores them with each chat', async () => {
+  const initial = await projects.createResearchProject({
+    text: 'First notebook'
+  })
+  const withNotebook = await projects.addProjectNotebook(initial.id, {
+    title: 'Episode notes'
+  })
+  const one = initial.notebooks[0].id
+  const two = withNotebook.notebooks[1].id
+  const first = await sessions.saveResearchChat(initial.id, {
+    title: 'First chat'
+  })
+  const second = await sessions.saveResearchChat(initial.id, {
+    title: 'Second chat',
+    notebookId: two,
+    harness: { adapter: 'kimi', model: 'kimi-code/k3' }
+  })
+  expect(first.chats![0].notebookId).toBe(one)
+  const s = { project: second, notebook: one } as ResearchViewState
+  selectResearchChat(s, second.chats![1].id)
+  expect(s.notebook).toBe(two)
+  selectResearchChat(s, first.chats![0].id)
+  expect(s.notebook).toBe(one)
+  await sessions.saveResearchChat(initial.id, {
+    chatId: first.chats![0].id,
+    notebookId: two
+  })
+  expect(
+    (await projects.readResearchProject(initial.id)).chats![0].notebookId
+  ).toBe(two)
+  const foreign = await projects.createResearchProject({
+    title: 'Unrelated project'
+  })
+  for (const chatId of [undefined, first.chats![0].id])
+    await expect(
+      sessions.saveResearchChat(initial.id, {
+        ...(chatId ? { chatId } : {}),
+        notebookId: foreign.notebooks[0].id
+      })
+    ).rejects.toThrow('notebook in this project')
+  await expect(
+    questions.askResearch(initial.id, {
+      notebookId: foreign.notebooks[0].id,
+      question: 'Should be rejected'
+    })
+  ).rejects.toThrow('notebook in this project')
+  expect(stage).not.toHaveBeenCalled()
+  const turn = await questions.askResearch(initial.id, {
+    notebookId: two,
+    question: 'Start from this notebook'
+  })
+  await questions.settledResearch(turn.nodeId)
+  expect(turn.project.chats!.at(-1)!.notebookId).toBe(two)
+  delete s.project.chats![0].notebookId
+  s.notebook = one
+  selectResearchChat(s, s.project.chats![0].id)
+  expect(s.notebook).toBe(one)
+})
+
+it('recovers a legacy chat notebook from its most recent saved excerpt', async () => {
+  const initial = await projects.createResearchProject({
+    title: 'Legacy destinations'
+  })
+  const project = await projects.addProjectNotebook(initial.id, {
+    title: 'Saved findings'
+  })
+  const turn = await questions.askResearch(project.id, {
+    question: 'First finding'
+  })
+  await questions.settledResearch(turn.nodeId)
+  const saved = await projects.addProjectNote(project.id, {
+    notebookId: project.notebooks[1].id,
+    nodeId: turn.nodeId,
+    start: 0,
+    end: 4
+  })
+  delete saved.chats![0].notebookId
+  const state = {
+    project: saved,
+    notebook: initial.notebooks[0].id
+  } as ResearchViewState
+  selectResearchChat(state, saved.chats![0].id)
+  expect(state.notebook).toBe(project.notebooks[1].id)
+})

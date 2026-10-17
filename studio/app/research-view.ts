@@ -14,11 +14,15 @@ import {
 } from './research-workbench-view'
 import type { ResearchLayout } from './research-layout'
 import { escape } from './ui'
-import { chatSwitcher } from './research-session-view'
+import { chatSwitcher, projectSidebar } from './research-session-view'
+import { projectContent } from './research-content'
 import { modelName } from '../shared/agent-models'
 import incredibleLogo from './assets/incredible-logo.svg'
 export type ResearchViewState = {
   layout?: ResearchLayout
+  sidebarOpen?: boolean
+  contentOpen?: boolean
+  documentExpanded?: boolean
   project: ResearchProjectView
   tab: 'notes' | 'research' | 'wireframes' | 'canvas'
   notebook: string
@@ -65,6 +69,31 @@ const notebookPicker = (s: ResearchViewState) =>
         .join('')}
     </select></label
   >`
+const noteQuestions = (
+  s: ResearchViewState,
+  notebookId: string,
+  blockId: string
+) => {
+  const questions = s.project.nodes.filter(
+    (node) =>
+      node.anchor?.kind === 'note' &&
+      node.anchor.notebookId === notebookId &&
+      node.anchor.id === blockId
+  )
+  return questions.length
+    ? html`<div class="research-note-links">
+        <h3>Questions from this note</h3>
+        ${questions
+          .map(
+            (node) =>
+              html`<button data-research-node="${node.id}">
+                ↳ ${escape(node.question)}
+              </button>`
+          )
+          .join('')}
+      </div>`
+    : ''
+}
 export const notePanel = (s: ResearchViewState, compact = false) => {
   const n =
     s.project.notebooks.find((n) => n.id === s.notebook) ||
@@ -75,12 +104,20 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
     aria-label="Notebook"
   >
     <div class="research-panel-heading">
-      ${compact ? notebookPicker(s) : `<h1>${escape(n.title)}</h1>`}${action(
-        compact ? 'new-notebook' : 'rename-notebook',
-        compact ? '+' : '···',
-        'research-icon',
-        `aria-label="${compact ? 'New notebook' : 'Rename notebook'}"`
-      )}
+      ${compact ? notebookPicker(s) : `<h1>${escape(n.title)}</h1>`}
+      <div class="project-document-actions">
+        ${action(
+          'expand-document',
+          s.documentExpanded ? '↙' : '⤢',
+          '',
+          `aria-label="${s.documentExpanded ? 'Read beside chat' : 'Expand notebook'}"`
+        )}${action(
+          'rename-notebook',
+          '···',
+          '',
+          'aria-label="Rename notebook"'
+        )}
+      </div>
     </div>
     <div class="research-note-scroll">
       ${n.blocks.length
@@ -119,7 +156,10 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
                             .join('')}</small
                         >
                       </details>`
-                    : ''}<button type="button" data-note-ask="${b.id}">
+                    : ''}${noteQuestions(s, n.id, b.id)}<button
+                    type="button"
+                    data-note-ask="${b.id}"
+                  >
                     Ask about this note ↗
                   </button>
                 </article>`
@@ -154,12 +194,23 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
     </form>
   </section>`
 }
-const reply = (n: ResearchNode) =>
+const reply = (n: ResearchNode, s: ResearchViewState) =>
   html`<article class="research-turn" id="turn-${n.id}">
     <div class="research-question">
       <span>You</span>
       <h2>${escape(n.question)}</h2>
-      ${n.anchor ? html`<blockquote>${escape(n.anchor.text)}</blockquote>` : ''}
+      ${n.anchor
+        ? html`<details
+            class="research-question-context"
+            id="question-context-${n.id}"
+          >
+            <summary>
+              Selected ${n.anchor.kind === 'note' ? 'notebook' : 'answer'}
+              passage
+            </summary>
+            <blockquote>${escape(n.anchor.text)}</blockquote>
+          </details>`
+        : ''}
     </div>
     <div class="research-answer-heading">
       <span class="research-agent-mark"
@@ -201,6 +252,20 @@ const reply = (n: ResearchNode) =>
             `class="research-prose" data-select-response="${n.id}"`,
             researchHtml(n.answer)
           )}
+          ${s.project.notebooks
+            .filter((book) =>
+              book.blocks.some((b) => b.origin?.nodeId === n.id)
+            )
+            .map(
+              (book) =>
+                html`<button
+                  class="research-saved-link"
+                  data-select-notebook="${book.id}"
+                >
+                  ▤ Saved in ${escape(book.title)} ↗
+                </button>`
+            )
+            .join('')}
           <div class="research-answer-actions">
             <button type="button" data-save-answer="${n.id}">
               Save to notebook</button
@@ -313,7 +378,7 @@ const chat = (s: ResearchViewState) => {
     ${ancestryTrail(s.project.nodes, s.node)}
     <div class="research-transcript" aria-live="polite">
       ${path.length
-        ? path.map(reply).join('')
+        ? path.map((node) => reply(node, s)).join('')
         : html`<div class="research-chat-welcome">
             <span class="research-welcome-icon"
               ><img src="${incredibleLogo}" alt=""
@@ -416,234 +481,62 @@ const chat = (s: ResearchViewState) => {
   </section>`
 }
 export const researchWorkspaceView = (s: ResearchViewState) =>
-  html`<div class="research-workspace">
-    <header class="research-header">
-      <a
-        href="/"
-        class="research-brand"
-        aria-label="Incredible Studio: all projects"
-        ><img src="${incredibleLogo}" alt="" /><span>Incredible</span></a
-      ><span class="research-header-divider">/</span
-      ><button
-        data-research-action="rename-project"
-        class="research-project-title"
+  html`<div
+    class="research-workspace project-workspace ${s.sidebarOpen
+      ? 'sidebar-open'
+      : ''}"
+  >
+    ${projectSidebar(s)}
+    <button
+      class="project-sidebar-scrim"
+      data-research-action="toggle-sidebar"
+      aria-label="Close project navigation"
+      tabindex="-1"
+    ></button>
+    <div class="project-workspace-main">
+      ${chatSwitcher(s)}
+      ${s.error
+        ? html`<div class="research-banner error" role="alert">
+            ${escape(s.error)}${action('clear-error', 'Dismiss')}
+          </div>`
+        : ''}
+      ${s.message
+        ? html`<div class="research-banner" role="status">
+            ${escape(s.message)}${action(
+              'clear-message',
+              '×',
+              '',
+              'aria-label="Dismiss notification"'
+            )}
+          </div>`
+        : ''}
+      ${s.project.syncError
+        ? html`<div class="research-banner error" role="alert">
+            Your notes are saved. Content sync needs attention:
+            ${escape(s.project.syncError)}${action('sync', 'Retry sync')}
+          </div>`
+        : ''}
+      <main
+        class="research-columns ${!s.layout?.graphOpen
+          ? 'graph-hidden'
+          : ''} ${s.layout?.notesOpen !== true ? 'notes-hidden' : ''} ${s.layout
+          ?.expanded
+          ? 'graph-expanded'
+          : ''} ${s.contentOpen
+          ? 'content-expanded'
+          : ''} ${s.documentExpanded && !s.contentOpen
+          ? 'document-expanded'
+          : ''}"
       >
-        ${escape(s.project.title)} <span>⌄</span>
-      </button>
-      <nav aria-label="Project views">
-        ${(['notes', 'research', 'wireframes', 'canvas'] as const)
-          .map((tab) =>
-            action(
-              `tab-${tab}`,
-              tab === 'notes'
-                ? 'Notebooks'
-                : tab === 'canvas'
-                  ? 'Shared canvas'
-                  : tab[0].toUpperCase() + tab.slice(1),
-              s.tab === tab ? 'active' : '',
-              `aria-current="${s.tab === tab ? 'page' : 'false'}"`
-            )
-          )
-          .join('')}
-      </nav>
-      <a class="research-legacy" href="/?legacy=1">Studio tools ↗</a>
-    </header>
-    ${s.error
-      ? html`<div class="research-banner error" role="alert">
-          ${escape(s.error)}${action('clear-error', 'Dismiss')}
-        </div>`
-      : ''}${s.message
-      ? html`<div class="research-banner" role="status">
-          ${escape(s.message)}${action(
-            'clear-message',
-            '×',
-            '',
-            'aria-label="Dismiss notification"'
-          )}
-        </div>`
-      : ''}${s.project.syncError
-      ? html`<div class="research-banner error" role="alert">
-          Your notes are saved. Wireframe sync needs attention:
-          ${escape(s.project.syncError)}${action('sync', 'Retry sync')}
-        </div>`
-      : ''}
-    ${s.tab === 'research'
-      ? html`${chatSwitcher(s)}
-          <main
-            class="research-columns ${!s.layout?.graphOpen
-              ? 'graph-hidden'
-              : ''} ${s.layout?.notesOpen !== true ? 'notes-hidden' : ''} ${s
-              .layout?.expanded
-              ? 'graph-expanded'
-              : ''}"
-          >
-            ${graphPanel(s.project.nodes, s.node, s.query, s.layout)}${s.layout
-              ?.expanded
-              ? '<div aria-hidden="true"></div>'
-              : paneDivider('graph')}
-            ${chat(s)}${paneDivider('notes')}${notePanel(s, true)}
-          </main>`
-      : s.tab === 'notes'
-        ? html`<main class="research-notebooks-page">
-            <aside>
-              <h1>Notebooks</h1>
-              ${s.project.notebooks
-                .map(
-                  (n) =>
-                    html`<button
-                      class="research-notebook-row ${n.id === s.notebook
-                        ? 'active'
-                        : ''}"
-                      data-select-notebook="${n.id}"
-                    >
-                      <span>▤ &nbsp; ${escape(n.title)}</span
-                      ><small>${n.blocks.length} notes</small>
-                    </button>`
-                )
-                .join('')}${action('new-notebook', '+ New notebook')}
-              <div class="research-next-step">
-                Continue your
-                work${action(
-                  'tab-research',
-                  'Research with your notes ↗'
-                )}${action('tab-canvas', 'See the shared canvas ↗')}
-              </div>
-            </aside>
-            ${notePanel(s)}
-          </main>`
-        : s.tab === 'wireframes'
-          ? wireframes(s)
-          : canvas(s)}
+        ${graphPanel(s.project.nodes, s.node, s.query, s.layout)}${s.layout
+          ?.expanded
+          ? '<div aria-hidden="true"></div>'
+          : paneDivider('graph')}
+        ${chat(s)}${paneDivider('notes')}${s.contentOpen
+          ? projectContent(s)
+          : notePanel(s, true)}
+      </main>
+    </div>
     <div id="research-selection" class="research-selection" hidden></div>
     <dialog id="research-dialog"></dialog>
   </div>`
-const wireframes = (s: ResearchViewState) =>
-  html`<main class="research-wireframes">
-    <div class="research-section-heading">
-      <div>
-        <h1>Wireframes</h1>
-        <p>Shape your notes into a story, one notebook at a time.</p>
-      </div>
-      <label
-        >Jump to notebook<select id="research-jump">
-          <option value="">Choose notebook</option>
-          ${s.project.notebooks
-            .map(
-              (n) => html`<option value="${n.id}">${escape(n.title)}</option>`
-            )
-            .join('')}
-        </select></label
-      >
-    </div>
-    ${s.project.notebooks
-      .map((n) => {
-        const snapshot = s.project.snapshots.find((v) => v.project.id === n.id)
-        return html`<section id="wireframes-${n.id}" class="research-deck">
-          <div class="research-deck-heading">
-            <h2>▤ ${escape(n.title)}</h2>
-            <span>${snapshot?.project.slides.length || 0} wireframes</span
-            >${snapshot?.status === 'draft'
-              ? action(
-                  'generate-notebook',
-                  'Create wireframes',
-                  'research-primary',
-                  `data-notebook-id="${n.id}" ${!n.blocks.length || s.pending ? 'disabled' : ''}`
-                )
-              : html`<a
-                  href="/?notebook=${n.id}&view=presentation&space=${s.project
-                    .id}&detail=1"
-                  >Open editor ↗</a
-                >`}
-          </div>
-          ${snapshot?.error
-            ? html`<p role="alert">${escape(snapshot.error)}</p>`
-            : ''}${snapshot?.status === 'building'
-            ? '<p role="status">Creating wireframes… You can keep adding notes.</p>'
-            : ''}
-          <div class="research-wireframe-grid">
-            ${snapshot?.project.slides
-              .map(
-                (slide, index) =>
-                  html`<a
-                    class="research-wireframe-card"
-                    href="/?notebook=${n.id}&view=presentation&space=${s.project
-                      .id}&detail=1"
-                    ><div>${slide.svg || '<span>Drawing…</span>'}</div>
-                    <h3>${index + 1}. ${escape(slide.title)}</h3></a
-                  >`
-              )
-              .join('') ||
-            html`<p class="research-deck-empty">
-              ${snapshot?.status === 'building'
-                ? 'Your first wireframes will appear here as they are ready.'
-                : n.blocks.length
-                  ? 'Your notes are saved. Create wireframes when you are ready to shape them into a story.'
-                  : 'Add your first note to this notebook to get started.'}
-            </p>`}
-          </div>
-        </section>`
-      })
-      .join('')}
-  </main>`
-const canvas = (s: ResearchViewState) =>
-  html`<main class="research-canvas-page">
-    <div class="research-section-heading">
-      <div>
-        <h1>Shared canvas</h1>
-        <p>
-          Notes from every notebook feed the same content map and series. New
-          notes join it automatically.
-        </p>
-      </div>
-      ${s.project.canvasId
-        ? html`<a
-            class="research-primary"
-            href="/?map=${s.project.canvasId}&space=${s.project.id}&detail=1"
-            >Open interactive canvas ↗</a
-          >`
-        : action(
-            'generate-canvas',
-            'Create shared canvas',
-            'research-primary',
-            s.pending ? 'disabled' : ''
-          )}
-    </div>
-    <div class="research-canvas-sources">
-      ${s.project.notebooks
-        .map(
-          (n) =>
-            html`<div>
-              <span>▤</span>
-              <h2>${escape(n.title)}</h2>
-              <small>${n.blocks.length} saved notes</small>
-            </div>`
-        )
-        .join('')}
-    </div>
-    <div class="research-canvas-connector">↓</div>
-    <section class="research-canvas-output">
-      <span class="research-eyebrow">SHARED CONTENT MAP</span>
-      <h2>${escape(s.project.title)}</h2>
-      <p>
-        ${s.project.canvas?.status === 'building'
-          ? 'Organizing your notes and drawing the shared wireframes…'
-          : s.project.canvas?.project.slides.length
-            ? `${s.project.canvas.project.slides.length} connected wireframes · ready to organize into episodes`
-            : 'A unified picture of what you know, ready to become a series.'}
-      </p>
-      ${s.project.canvas?.error
-        ? html`<p role="alert">${escape(s.project.canvas.error)}</p>`
-        : ''}
-      <div class="research-wireframe-grid">
-        ${s.project.canvas?.project.slides
-          .map(
-            (slide) =>
-              html`<div class="research-wireframe-card">
-                <div>${slide.svg || ''}</div>
-                <h3>${escape(slide.title)}</h3>
-              </div>`
-          )
-          .join('') || ''}
-      </div>
-    </section>
-  </main>`

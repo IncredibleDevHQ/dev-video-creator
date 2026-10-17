@@ -38,6 +38,8 @@ export type ResearchChat = {
   createdAt: string
   updatedAt: string
   repos: RepoLink[]
+  /** The default destination for excerpts captured in this chat. */
+  notebookId?: string
   harness?: HarnessSelection
   lastNodeId?: string
 }

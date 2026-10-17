@@ -3,6 +3,8 @@ import { parseHTML } from 'linkedom'
 import { normalizeResearchLayout } from '../app/research-layout'
 import { renderResearch } from '../app/research-render'
 import { ResearchWorkbench } from '../app/research-workbench'
+import { toggleProjectPanel } from '../app/research-navigation'
+import type { ResearchViewState } from '../app/research-view'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -211,4 +213,36 @@ it('scales only visible supporting panes to preserve 480px for the conversation'
   workbench.state.expanded = true
   workbench.mount()
   expect(element.style.getPropertyValue('--research-notes-width')).toBe('0px')
+})
+
+it('returns from content and document focus to the requested pane without losing pane preferences', () => {
+  const { workbench, changed } = setup(1000)
+  const state = {
+    contentOpen: false,
+    documentExpanded: false
+  } as ResearchViewState
+  workbench.handle('toggle-notebook')
+  toggleProjectPanel('open-content', state, workbench, changed)
+  expect(state.contentOpen).toBe(true)
+  toggleProjectPanel('close-content', state, workbench, changed)
+  expect(state.contentOpen).toBe(false)
+  expect(workbench.state.notesOpen).toBe(true)
+  toggleProjectPanel('open-content', state, workbench, changed)
+  toggleProjectPanel('open-notebook', state, workbench, changed)
+  expect(state.contentOpen).toBe(false)
+  expect(workbench.state.notesOpen).toBe(true)
+  toggleProjectPanel('expand-document', state, workbench, changed)
+  expect(state.documentExpanded).toBe(true)
+  toggleProjectPanel('toggle-graph', state, workbench, changed)
+  expect(state.documentExpanded).toBe(false)
+  expect(workbench.state).toMatchObject({ graphOpen: true, notesOpen: false })
+})
+it('keeps the notebook tree collapsed across background rendering', () => {
+  const { root } = setup()
+  const tree =
+    '<details id="project-notebooks" open><summary>Notebooks</summary></details>'
+  renderResearch(root, tree, {}, {})
+  root.querySelector('details')!.removeAttribute('open')
+  renderResearch(root, tree, {}, {})
+  expect(root.querySelector('details')!.hasAttribute('open')).toBe(false)
 })

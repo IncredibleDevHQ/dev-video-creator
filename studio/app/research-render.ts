@@ -7,6 +7,9 @@ export const renderResearch = (
   previousKeys: Record<string, string>,
   keys: Record<string, string>
 ) => {
+  const notebooksOpen = root
+    .querySelector('#project-notebooks')
+    ?.hasAttribute('open')
   const template = root.ownerDocument.createElement('template')
   template.innerHTML = markup
   for (const [id, key] of Object.entries(keys)) {
@@ -15,5 +18,9 @@ export const renderResearch = (
     const next = template.content.querySelector(`#${id}`)
     if (old && next) next.replaceWith(old)
   }
+  if (notebooksOpen === false)
+    template.content
+      .querySelector('#project-notebooks')
+      ?.removeAttribute('open')
   root.replaceChildren(template.content)
 }

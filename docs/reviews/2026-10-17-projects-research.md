@@ -152,3 +152,49 @@ See the [annotated cleanup evidence](projects-research-evidence/ux-cleanup-annot
 ![Mobile research graph](projects-research-evidence/ux-cleanup-mobile-graph.png)
 
 ![Completed K3 wireframes reached through the notebook jump selector](projects-research-evidence/ux-cleanup-k3-wireframes.png)
+
+## Connected project workspace: chats, documents, and visual content
+
+This iteration supersedes the top-level Research / Notebooks / Wireframes / Canvas navigation in the previous screenshots. A persistent project sidebar now contains chats, notebooks, and Content. The original Incredible logo remains unchanged. Chat, notebook, and visual content are views of the same project data.
+
+The reference patterns have distinct jobs:
+
+- **Macro:** the locally reviewed chat-and-document workspace informs the stable sidebar, adjacent notebook pane, and one context setup flow. Creating a chat now chooses the project, destination notebook, agent/model, and up to four local repository/branch pairs. New projects and notebooks can be created inside that flow. Chat details edits those same choices later.
+- **Notion:** [sidebar organization](https://www.notion.com/help/navigate-with-the-sidebar) informs the project/notebook hierarchy and collapsible notebook list. A notebook expands into a focused document reading surface and returns beside the chat. Existing note capture and source provenance remain intact.
+- **Obsidian:** [Graph view](https://obsidian.md/help/plugins/graph) informs question ancestry, local graph exploration, and navigation through related research. Notes now show **Questions from this note** links; answers show the notebooks in which they were saved. These links use actual source and anchor IDs.
+- **Flora:** [Canvas concepts](https://docs.flora.ai/editor/canvas) inform a visual sequence of connected research, notebook content, and generated wireframes. Each notebook has a row in a continuous overview, with a jump selector and expandable wireframe previews. One project canvas aggregates all notebooks and leads to series creation. This is a view of real content and provenance; it does not introduce Flora's generic model-workflow execution system.
+
+### Visible-browser validation on the parallel stack
+
+The frontend remained on **4291** and the backend on **4391**, using disposable data in `/private/tmp/incredible-projects-research`. Port 4187 was not used.
+
+1. Cancelled a new-project setup without creating a project. Then created **Learning in connected notebooks** in **Dependable systems**, creating **Connected learning** as its notebook. Selected Kimi `kimi-code/k3`, projects-research on `codex/projects-research`, and Macro on `main` in the same dialog.
+2. Ran a real two-repository question (`11217bf9-8add-450d-944b-277f2e4d70c2`) and saved its answer. Asked a follow-up from that saved note (`89de1a00-355a-4c9b-9ca3-b425d57cf8c8`). Both engine runs completed and reported `kimi-code/k3`.
+3. Followed the notebook's new question link to its answer, opened the graph, and clicked the parent node to backtrack. Selected a 72-character passage from the follow-up in the browser and saved only that excerpt with its source.
+4. Switched chats with an unsent draft, then returned. The draft, notebook, K3 selection, and both repositories were restored. Chat details also retained the choices after editing the agent selection and saving. Historical answers kept their original context.
+5. Generated all **ten planned wireframes** directly from Content using the selected K3 harness, then opened the completed editor (Wireframe 1 of 10, with Make the video available). Engine records confirmed `kimi-code/k3`. The shared project canvas automatically incorporated the new research as a fourteenth card, **Resumable Research Sessions**. The canvas's Back to project link returned to Content.
+6. At **390 × 844**, verified chat, navigation drawer, notebook capture, and Content with no horizontal overflow (document width 390px). Created **Workspace onboarding check**, **First thoughts**, and **First exploration** through the mobile setup dialog, then saved a note. A header overlap found in this test was fixed and rechecked. Temporary viewport overrides were reset.
+
+### Checks and boundaries
+
+The complete regression suite passed with two workers: **231 files / 1,519 tests**. The unrestricted default parallel run hit an existing five-second timeout in `review-8-portrait-2.test.ts`; that test passed separately and in the bounded full run. The first sandboxed run could not start several temporary local servers, so its failures are not counted as passing checks. PostgreSQL/MinIO disposable storage checks passed. Production build, focused research checks, formatting, source-size limits, and whitespace checks passed; the existing large-bundle warning remains.
+
+The earlier unchanged-agent-picker finding in the legacy wireframe editor remains open. The old shared-canvas note with an interrupted sort still offers Sort again; this was not introduced by this workspace change. No completed video or YouTube upload is claimed. Macro's document-sync limitation described above is unchanged.
+
+See the [annotated connected-workspace evidence](projects-research-evidence/connected-workspace-annotated.html).
+
+![Project content connects notes to their generated visuals](projects-research-evidence/connected-content-overview.jpg)
+
+![A notebook shows the follow-up question asked from its saved research](projects-research-evidence/connected-notebook-links.jpg)
+
+![Chat-local project, notebook, agent, and repository choices](projects-research-evidence/connected-chat-context.jpg)
+
+![Connected questions and answers with backtracking](projects-research-evidence/connected-question-graph.jpg)
+
+![Selecting a passage to save with its source](projects-research-evidence/connected-excerpt-selection.jpg)
+
+![Mobile navigation](projects-research-evidence/connected-mobile-navigation.jpg)
+
+![The real K3 research connects to its notebook and all ten generated wireframes](projects-research-evidence/connected-k3-content-flow.jpg)
+
+![Completed K3 wireframe editor](projects-research-evidence/connected-k3-wireframes.jpg)

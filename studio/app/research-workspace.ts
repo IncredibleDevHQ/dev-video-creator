@@ -8,8 +8,11 @@ import { researchGraph } from './research-graph'
 import { ResearchWorkbench } from './research-workbench'
 import { researchDraftKey } from './research-layout'
 import { renderResearch } from './research-render'
+import { captureResearchSelection } from './research-selection'
 import { researchHome, researchProjectCards } from './research-home'
 import { researchNameDialog } from './research-dialog'
+import { researchChatSetup } from './research-chat-setup'
+import { showResearchTurn, toggleProjectPanel } from './research-navigation'
 import {
   selectResearchChat,
   selectResearchNode,
@@ -21,6 +24,7 @@ import './styles/research.css'
 import './styles/research-notebooks.css'
 import './styles/research-spatial.css'
 import './styles/research-sessions.css'
+import './styles/project-workspace.css'
 
 export class ResearchWorkspace {
   isOpen = false
@@ -66,16 +70,11 @@ export class ResearchWorkspace {
       const field = event.target as HTMLInputElement
       const s = this.state
       if (!this.isOpen || !s) return
-      if (field.id === 'research-chat-picker') {
-        selectResearchChat(s, field.value)
-        this.navigate()
-        this.render()
-        this.showSelectedTurn()
-      }
       if (field.id === 'research-notebook') {
         s.notebook = field.value
         this.navigate()
         this.render()
+        void this.saveChatSettings().catch((e) => this.error(e))
       }
       if (field.id === 'research-adapter') {
         s.adapter = field.value
@@ -119,7 +118,7 @@ export class ResearchWorkspace {
           )
         this.workbench.graph.mount()
       }
-      if (field.id) {
+      if (field.id.startsWith('research-')) {
         this.drafts[this.draftKey(field.id)] = field.value
         this.persistDrafts()
       }
@@ -130,6 +129,11 @@ export class ResearchWorkspace {
     })
     root.addEventListener('keyup', (event) => {
       if (event.key === 'Shift') this.captureSelection()
+      if (event.key === 'Escape' && this.state?.sidebarOpen) {
+        this.state.sidebarOpen = false
+        this.render()
+        this.root.querySelector<HTMLElement>('.project-sidebar-toggle')?.focus()
+      }
       if (event.key === 'Escape')
         this.root
           .querySelectorAll('.research-compose-tools details[open]')
@@ -222,10 +226,9 @@ export class ResearchWorkspace {
     this.state = {
       layout: this.workbench.state,
       project,
-      tab:
-        tab === 'research' || tab === 'wireframes' || tab === 'canvas'
-          ? tab
-          : 'notes',
+      tab: 'research',
+      contentOpen: tab === 'wireframes' || tab === 'canvas',
+      documentExpanded: tab === 'notes',
       notebook:
         project.notebooks.find((n) => n.id === url.searchParams.get('book'))
           ?.id || project.notebooks[0].id,
@@ -247,6 +250,15 @@ export class ResearchWorkspace {
       selected?.chatId || url.searchParams.get('chat')
     )
     if (selected) this.state.node = selected.id
+    if (
+      url.searchParams.get('book') &&
+      project.notebooks.some((n) => n.id === url.searchParams.get('book'))
+    )
+      this.state.notebook = url.searchParams.get('book')!
+    if (this.state.contentOpen || tab === 'notes' || !project.chats?.length) {
+      this.workbench.state.graphOpen = false
+      this.workbench.state.notesOpen = true
+    }
     this.render()
     this.poll(revision)
   }
@@ -282,7 +294,14 @@ export class ResearchWorkspace {
     const url = new URL(location.href)
     url.search = ''
     url.searchParams.set('space', this.state.project.id)
-    url.searchParams.set('projectView', this.state.tab)
+    url.searchParams.set(
+      'projectView',
+      this.state.contentOpen
+        ? 'canvas'
+        : this.state.documentExpanded
+          ? 'notes'
+          : 'research'
+    )
     url.searchParams.set('book', this.state.notebook)
     if (this.state.chat) url.searchParams.set('chat', this.state.chat)
     if (this.state.node) url.searchParams.set('node', this.state.node)
@@ -290,7 +309,7 @@ export class ResearchWorkspace {
   }
   private render() {
     const s = this.state
-    if (!s || !this.isOpen) return
+    if (!s || !this.isOpen || this.root.querySelector('dialog[open]')) return
     const active = document.activeElement as
       | HTMLInputElement
       | HTMLTextAreaElement
@@ -302,7 +321,7 @@ export class ResearchWorkspace {
         : null
     const scroll = [
       ...this.root.querySelectorAll<HTMLElement>(
-        '.research-transcript,.research-note-scroll,.research-graph-scroll'
+        '.research-transcript,.research-note-scroll,.research-graph-scroll,.project-content-scroll'
       )
     ].map((e) => [e.className, e.scrollTop, e.scrollLeft] as const)
     const nearEnd = this.root.querySelector('.research-transcript')
@@ -335,7 +354,9 @@ export class ResearchWorkspace {
       if (value !== undefined) field.value = value
     }
     for (const [cls, top, left] of scroll) {
-      const element = this.root.querySelector<HTMLElement>(`.${cls}`)
+      const element = this.root.querySelector<HTMLElement>(
+        `.${cls.split(' ').join('.')}`
+      )
       if (element) {
         element.scrollTop = top
         element.scrollLeft = left
@@ -400,6 +421,7 @@ export class ResearchWorkspace {
     if (chat) {
       chat.repos = structuredClone(body.repos)
       chat.harness = body.harness
+      chat.notebookId = body.notebookId
     }
     this.settingsSave = this.settingsSave
       .catch(() => {})
@@ -447,6 +469,7 @@ export class ResearchWorkspace {
           project: ResearchProjectView
         }>(`/${s.project.id}/ask`, {
           question: values.get('question'),
+          notebookId: s.notebook,
           chatId: s.chat || undefined,
           parentId: s.node,
           anchor: s.anchor,
@@ -497,47 +520,8 @@ export class ResearchWorkspace {
       this.root.querySelector('.research-repos')?.setAttribute('open', '')
   }
   private captureSelection() {
-    if (!this.state || this.state.pending) return
-    const selected = getSelection()
-    if (!selected?.rangeCount || selected.isCollapsed) return
-    const range = selected.getRangeAt(0)
-    const element = (
-      range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
-        ? range.commonAncestorContainer
-        : range.commonAncestorContainer.parentElement
-    ) as Element
-    const passage = element.closest<HTMLElement>(
-      '[data-select-response],[data-select-note]'
-    )
-    if (!passage || !this.root.contains(passage)) return
-    const before = range.cloneRange()
-    before.selectNodeContents(passage)
-    before.setEnd(range.startContainer, range.startOffset)
-    const start = before.toString().length,
-      end = start + range.toString().length
-    if (end <= start || end - start > 7600) return
-    const isResponse = Boolean(passage.dataset.selectResponse)
-    this.selection = {
-      kind: isResponse ? 'response' : 'note',
-      id: passage.dataset.selectResponse || passage.dataset.selectNote!,
-      ...(isResponse ? {} : { notebookId: passage.dataset.notebookId }),
-      start,
-      end,
-      text: range.toString()
-    }
-    const bar = this.root.querySelector<HTMLElement>('#research-selection')!
-    bar.hidden = false
-    bar.innerHTML = html`<span>${end - start} characters selected</span
-      >${isResponse
-        ? '<button data-research-action="save-selection">Save to notebook</button>'
-        : ''}<button data-research-action="ask-selection">
-        Ask about this ↗</button
-      ><button
-        data-research-action="dismiss-selection"
-        aria-label="Dismiss selection"
-      >
-        ×
-      </button>`
+    if (this.state && !this.state.pending)
+      this.selection = captureResearchSelection(this.root) || this.selection
   }
   private branch(anchor: ResearchAnchor) {
     const s = this.state!
@@ -551,7 +535,13 @@ export class ResearchWorkspace {
     }
     if (nodeId) selectResearchNode(s, nodeId, false)
     else s.node = null
+    if (anchor.kind === 'note' && anchor.notebookId) {
+      s.notebook = anchor.notebookId
+      void this.saveChatSettings().catch((e) => this.error(e))
+    }
     s.tab = 'research'
+    s.contentOpen = false
+    s.documentExpanded = false
     getSelection()?.removeAllRanges()
     this.navigate()
     this.render()
@@ -559,26 +549,7 @@ export class ResearchWorkspace {
     this.root.querySelector<HTMLTextAreaElement>('#research-question')?.focus()
   }
   private showSelectedTurn() {
-    if (matchMedia('(max-width: 700px)').matches) {
-      if (this.workbench.state.graphOpen) this.workbench.handle('toggle-graph')
-      if (this.workbench.state.notesOpen)
-        this.workbench.handle('toggle-notebook')
-    }
-    const transcript = this.root.querySelector<HTMLElement>(
-      '.research-transcript'
-    )
-    const turn = this.root.querySelector<HTMLElement>(
-      `#turn-${CSS.escape(this.state?.node || '')}`
-    )
-    if (matchMedia('(max-width: 700px)').matches)
-      this.root
-        .querySelector('.research-chat')
-        ?.scrollIntoView({ block: 'start' })
-    if (transcript && turn)
-      transcript.scrollTop +=
-        turn.getBoundingClientRect().top -
-        transcript.getBoundingClientRect().top -
-        12
+    showResearchTurn(this.root, this.workbench, this.state?.node || null)
   }
   private async click(button: HTMLElement) {
     const action = button.dataset.researchAction
@@ -599,11 +570,23 @@ export class ResearchWorkspace {
       return
     }
     if (!s) return
+    if (button.dataset.selectChat) {
+      selectResearchChat(s, button.dataset.selectChat)
+      s.sidebarOpen = false
+      s.contentOpen = false
+      s.documentExpanded = false
+      this.navigate()
+      this.render()
+      this.showSelectedTurn()
+      return
+    }
     if (button.dataset.researchNode) {
       const node = s.project.nodes.find(
         (n) => n.id === button.dataset.researchNode
       )!
       selectResearchNode(s, node.id)
+      s.contentOpen = false
+      s.documentExpanded = false
       this.navigate()
       this.render()
       this.showSelectedTurn()
@@ -611,6 +594,13 @@ export class ResearchWorkspace {
     }
     if (button.dataset.selectNotebook) {
       s.notebook = button.dataset.selectNotebook
+      s.contentOpen = false
+      s.sidebarOpen = false
+      if (!this.workbench.state.notesOpen || this.workbench.state.expanded) {
+        this.workbench.state.notesOpen = false
+        this.workbench.handle('toggle-notebook')
+      }
+      void this.saveChatSettings().catch((e) => this.error(e))
       this.navigate()
       this.render()
       return
@@ -665,33 +655,36 @@ export class ResearchWorkspace {
       return
     }
     if (!action) return
+    if (toggleProjectPanel(action, s, this.workbench, () => this.render())) {
+      this.navigate()
+      return
+    }
     if (action === 'close-context') {
       this.root.querySelector('.research-repos')?.removeAttribute('open')
       return
     }
-    if (action?.startsWith('tab-')) {
-      s.tab = action.slice(4) as ResearchViewState['tab']
-      this.navigate()
-      this.render()
-      return
-    }
     if (action === 'new-chat' || action === 'rename-chat') {
-      const current = s.project.chats?.find((c) => c.id === s.chat)
-      const title = await researchNameDialog(
+      await this.settingsSave.catch(() => {})
+      const result = await researchChatSetup(
         this.root,
-        action === 'new-chat' ? 'New chat' : 'Rename chat',
-        'Chat name',
-        action === 'new-chat' ? '' : current?.title || ''
+        s,
+        action === 'rename-chat'
       )
-      if (!title) return
-      await this.mutation(async () => {
-        await this.change('chats', {
-          title,
-          ...(action === 'rename-chat' ? { chatId: s.chat } : {})
-        })
-        if (action === 'new-chat')
-          selectResearchChat(s, s.project.chats!.at(-1)!.id)
-      })
+      if (!result) return
+      if (result.project.id !== s.project.id) {
+        history.pushState(
+          null,
+          '',
+          `/?space=${result.project.id}&chat=${result.chatId}`
+        )
+        await this.open(result.project.id)
+        return
+      }
+      s.project = result.project
+      selectResearchChat(s, result.chatId)
+      s.sidebarOpen = false
+      s.contentOpen = false
+      s.documentExpanded = false
       this.navigate()
       this.render()
       return
@@ -728,6 +721,10 @@ export class ResearchWorkspace {
         await this.mutation(async () => {
           await this.change('notebooks', { title: name })
           s.notebook = s.project.notebooks.at(-1)!.id
+          s.contentOpen = false
+          this.workbench.state.notesOpen = false
+          this.workbench.handle('toggle-notebook')
+          await this.saveChatSettings()
           this.navigate()
         })
     }
@@ -755,6 +752,10 @@ export class ResearchWorkspace {
     if (action === 'generate-canvas' || action === 'generate-notebook')
       await this.mutation(() =>
         this.change('wireframes', {
+          harness: {
+            adapter: s.adapter,
+            ...(s.model ? { model: s.model } : {})
+          },
           ...(action === 'generate-notebook'
             ? { notebookId: button.dataset.notebookId }
             : {})
@@ -766,6 +767,7 @@ export class ResearchWorkspace {
     const selection = this.selection
     if (!selection || selection.kind !== 'response' || !this.state) return
     getSelection()?.removeAllRanges()
+    this.state.contentOpen = false
     await this.mutation(async () => {
       await this.change('notes', {
         notebookId: this.state!.notebook,

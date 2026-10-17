@@ -54,6 +54,11 @@ export const askResearch = async (
   const chatId = typeof body.chatId === 'string' ? body.chatId : parent?.chatId
   const chat = project.chats!.find((c) => c.id === chatId)
   if (chatId && !chat) throw new Refusal('Choose a chat in this project')
+  if (
+    body.notebookId !== undefined &&
+    !project.notebooks.some((n) => n.id === body.notebookId)
+  )
+    throw new Refusal('Choose a notebook in this project')
   if (parent && parent.chatId !== chatId)
     throw new Refusal('Choose a question from this chat')
   const harness = await availableHarness(
@@ -121,6 +126,8 @@ export const askResearch = async (
         title: question.slice(0, 100),
         createdAt: node.at,
         updatedAt: node.at,
+        notebookId:
+          (body.notebookId as string | undefined) || p.notebooks[0].id,
         repos: links
       }
       p.chats!.push(session)
