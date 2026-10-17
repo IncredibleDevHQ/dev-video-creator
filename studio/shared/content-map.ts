@@ -26,8 +26,17 @@ export type NoteResult = {
   line: string
   /** The series gap a new page answers, for organising to close. */
   fills?: string
-  /** Read, never kept: the episodes holding the card now, by number. */
+  /** The change it queued on the card (an addition), until it lands. */
+  change?: string
+  /** Read, never kept: the episodes whose copy shows the card as it is
+   * now, by number. */
   episodes?: number[]
+  /** Read: the episodes whose copy waits for the creator's Update. */
+  waits?: number[]
+  /** Read: its addition still on its way to the card, or failed there. */
+  landing?: 'adding' | 'failed'
+  /** Read: why its addition failed. */
+  failure?: string
 }
 
 /** Where a copied page came from: the map, its page, and that page then. */

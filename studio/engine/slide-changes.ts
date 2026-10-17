@@ -111,6 +111,12 @@ export const answerEvidence = async (id: string, raw: unknown) => {
 export { withDeck } from './deck-lock'
 
 const working = new Map<string, Promise<void>>()
+/** Changes taken from the queue whose card, or the copies following it,
+ * have not settled yet. */
+const landing = new Set<string>()
+/** Whether a change is still on its way: its card being changed, or the
+ * copies that follow it catching up (a note says so until it lands). */
+export const changeLanding = (change: string) => landing.has(change)
 /** Start the notebook's queue unless it is running; drawing must finish first. */
 export const scheduleChanges = (id: string) => {
   if (working.has(id)) return
@@ -143,6 +149,7 @@ const processChanges = async (id: string) => {
         change.startedAt = new Date().toISOString()
       }
     })
+    landing.add(next.id)
     try {
       await withDeck(id, () => reviseSlide(id, next))
       // A map's card changed: the copies that follow it do, once the deck
@@ -159,6 +166,8 @@ const processChanges = async (id: string) => {
           activity: 'failed'
         })
       })
+    } finally {
+      landing.delete(next.id)
     }
   }
 }

@@ -9,6 +9,11 @@ import type { MapNote } from '../shared/content-map'
 vi.mock('../app/source-markdown', () => ({
   sourceMarkdown: (text: string) => `<p>${text}</p>`
 }))
+// Each toast said, as it is said.
+vi.mock('../app/download', async (original) => {
+  const real = await original<typeof import('../app/download')>()
+  return { ...real, notice: vi.fn(real.notice) }
+})
 vi.mock('../app/map-api', () => ({
   mapApi: {
     note: vi.fn(async (id: string) => notebook(id, 'ready')),
@@ -19,7 +24,8 @@ const { parseHTML } = await import('linkedom')
 const { mapApi } = await import('../app/map-api')
 const { notebookScreen } = await import('../app/notebook-screen')
 const { submitSlides } = await import('../app/slides-controller')
-const { followNotes } = await import('../app/note-landing')
+const { followNotes, noteLine, notesOf } = await import('../app/note-landing')
+const { notice } = await import('../app/download')
 const { noteDialog } = await import('../app/notebook-notes')
 
 const note = (text: string, state: MapNote['state'], more = {}): MapNote => ({
@@ -347,6 +353,110 @@ it('says where a note added from an episode’s Video stage went, once it lands'
   expect(doc.getElementById('download-status')?.textContent).toBe(
     `Your note: ${LANDED}`
   )
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
+
+// Round 3 of the audit (F02): the line named every episode holding a copy,
+// said "Added to" while the card's change was still queued, and opening Add
+// note again lost the earlier note's landing toast.
+const adds = (more: object) =>
+  note('n', 'sorted', {
+    results: [
+      {
+        kind: 'adds',
+        slideId: 'p3',
+        title: 'Retry responsibly',
+        line: '',
+        ...more
+      }
+    ]
+  })
+
+it('says an addition is being added until it lands, or that it failed, and names the episodes that took it apart from those that wait (F02, round 3)', () => {
+  expect(noteLine(adds({ episodes: [1], landing: 'adding' }))).toBe(
+    'Being added to “Retry responsibly”'
+  )
+  expect(
+    noteLine(
+      adds({
+        landing: 'failed',
+        failure: 'Claude Code could not change this wireframe. Try again.'
+      })
+    )
+  ).toBe(
+    'Not added to “Retry responsibly”: Claude Code could not change this wireframe. Try again.'
+  )
+  expect(noteLine(adds({ episodes: [1, 3], waits: [2] }))).toBe(
+    'Added to “Retry responsibly” in Episodes 1 and 3; waits for your Update in Ep 2'
+  )
+  expect(noteLine(adds({ episodes: [], waits: [2, 4] }))).toBe(
+    'Added to “Retry responsibly”; waits for your Update in Ep 2, Ep 4'
+  )
+  // The map's own list: its queue says so before any read.
+  const map = notebook('map-queued', 'ready', {
+    notes: [adds({ change: 'c1' })]
+  })
+  map.changes = [
+    {
+      id: 'c1',
+      slideId: 'p3',
+      instruction: 'Add it',
+      state: 'queued',
+      at: '2026-10-17T00:00:00.000Z'
+    }
+  ]
+  expect(noteLine(notesOf(map)[0])).toBe('Being added to “Retry responsibly”')
+})
+
+it('says where each note just added went once it lands, however often Add note opens meanwhile (F02, round 3)', async () => {
+  vi.useFakeTimers()
+  vi.stubGlobal(
+    'document',
+    parseHTML('<html><body><main></main></body></html>').document
+  )
+  const app = { snapshot: notebook('episode-3', 'ready', { copyOfMap: 'map' }) }
+  const sorting = (id: string) => note(id, 'sorting', { id })
+  const added = {
+    kind: 'adds' as const,
+    slideId: 'p3',
+    title: 'Retry responsibly',
+    line: '',
+    episodes: [1]
+  }
+  const card = {
+    kind: 'new' as const,
+    slideId: 'p9',
+    title: 'The retention window',
+    line: '',
+    episodes: []
+  }
+  const sorted = (id: string, result: object) =>
+    note(id, 'sorted', { id, results: [result] })
+  vi.mocked(mapApi.notes)
+    .mockResolvedValueOnce([sorting('first')])
+    .mockResolvedValueOnce([sorting('first')])
+    .mockResolvedValueOnce([sorting('first'), sorting('second')])
+    .mockResolvedValueOnce([
+      sorted('first', { ...added, landing: 'adding' }),
+      sorted('second', card)
+    ])
+    .mockResolvedValue([
+      sorted('first', { ...added, waits: [2] }),
+      sorted('second', card)
+    ])
+  vi.mocked(notice).mockClear()
+  // The first note added; Add note opened again; the second added.
+  await followNotes(app as never, 'episode-3', 'first')
+  await followNotes(app as never, 'episode-3')
+  await followNotes(app as never, 'episode-3', 'second')
+  await vi.advanceTimersByTimeAsync(3000)
+  await vi.advanceTimersByTimeAsync(3000)
+  await vi.advanceTimersByTimeAsync(3000)
+  expect(vi.mocked(notice).mock.calls.map(([text]) => text)).toEqual([
+    'Your note: New card “The retention window”, no episode yet',
+    'Your note: Added to “Retry responsibly” in Episode 1; waits for your Update in Ep 2'
+  ])
   vi.useRealTimers()
   vi.unstubAllGlobals()
 })

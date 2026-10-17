@@ -14,8 +14,13 @@ import { fingerprintOf } from './planning/fingerprint'
 import { changeProject, loadProject } from './projects'
 import { Refusal } from './refusal'
 import { reconcileVideo } from './scene-model'
-import { scheduleChanges, settledChanges, withDeck } from './slide-changes'
-import { syncEvidence } from './map-copy'
+import {
+  changeLanding,
+  scheduleChanges,
+  settledChanges,
+  withDeck
+} from './slide-changes'
+import { pageHash, syncEvidence } from './map-copy'
 import { scheduleSegues } from './map-segues'
 import { loadSeries } from './series'
 
@@ -230,8 +235,10 @@ export const sortWaitingNotes = async (id: string) => {
 /**
  * The latest notes, as the notebook they were written in shows them: the
  * map's own on the map, an episode's on that episode, each card a note made
- * or changed with the episodes that hold it now (review 8 F02, round 2's
- * audit: an episode listed none, and the map named cards, never episodes).
+ * or changed with the episodes whose copy shows it as it is now, and those
+ * whose copy waits for the creator's Update (review 8 F02, round 2's audit:
+ * an episode listed none, and the map named cards, never episodes). An
+ * addition still on its way, or failed, says so.
  */
 export const noteViews = async (id: string): Promise<MapNote[]> => {
   const notebook = await loadProject(id)
@@ -245,29 +252,53 @@ export const noteViews = async (id: string): Promise<MapNote[]> => {
     notes.length && map?.project.mapSeries
       ? await loadSeries(map.project.mapSeries)
       : null
-  const holders = new Map<string, Set<number>>()
+  // Each card's holders: current with it, or behind it and waiting (a
+  // copy kept against this very version is neither).
+  const cards = new Map(
+    (map?.project.slides || []).map((slide) => [slide.id, pageHash(slide)])
+  )
+  const holders = new Map<string, { took: number[]; waits: number[] }>()
   for (const episode of series?.episodes || []) {
     const copy =
       episode.notebookId === id
         ? notebook
         : await loadProject(episode.notebookId)
-    for (const slide of copy?.project.slides || [])
-      if (slide.copyOf?.notebook === mapId)
-        holders.set(
-          slide.copyOf.slide,
-          (holders.get(slide.copyOf.slide) || new Set()).add(episode.number)
-        )
+    for (const slide of copy?.project.slides || []) {
+      const from = slide.copyOf
+      if (from?.notebook !== mapId) continue
+      const now = cards.get(from.slide)
+      const held = holders.get(from.slide) || { took: [], waits: [] }
+      holders.set(from.slide, held)
+      if (now === from.hash) held.took.push(episode.number)
+      else if (now && now !== from.kept) held.waits.push(episode.number)
+    }
+  }
+  const sorted = (numbers: number[] = []) =>
+    [...numbers].sort((one, other) => one - other)
+  const landingOf = (change?: string) => {
+    if (!change) return {}
+    const queued = map?.changes?.find((item) => item.id === change)
+    if (queued?.state === 'failed')
+      return {
+        landing: 'failed' as const,
+        failure: queued.message || 'The card could not be changed'
+      }
+    return queued || changeLanding(change) ? { landing: 'adding' as const } : {}
   }
   return notes.map((note) => ({
     ...note,
     ...(note.results
       ? {
-          results: note.results.map((result) => ({
-            ...result,
-            episodes: [...(holders.get(result.slideId) || [])].sort(
-              (one, other) => one - other
-            )
-          }))
+          results: note.results.map((result) => {
+            const held = holders.get(result.slideId)
+            const waits = sorted(held?.waits)
+            return {
+              ...result,
+              episodes: sorted(held?.took),
+              ...(waits.length ? { waits } : {}),
+              ...landingOf(result.change)
+            }
+          })
         }
       : {})
   }))
@@ -445,14 +476,17 @@ const place = (id: string, noteId: string, items: SortedIdea[]) =>
     const changes: SlideChange[] = []
     const results: NoteResult[] = []
     const lastAfter = new Map<string, string>()
-    const queue = (slideId: string, instruction: string) =>
+    const queue = (slideId: string, instruction: string) => {
+      const change = randomUUID()
       changes.push({
-        id: randomUUID(),
+        id: change,
         slideId,
         instruction,
         state: 'queued',
         at: new Date().toISOString()
       })
+      return change
+    }
     for (const item of items) {
       if (item.kind === 'new') {
         const slide: Slide = {
@@ -486,16 +520,21 @@ const place = (id: string, noteId: string, items: SortedIdea[]) =>
       }
       const slide = slides.find((s) => s.id === item.page)
       if (!slide) continue
-      if (item.kind === 'adds')
-        queue(
-          slide.id,
-          `Add what the creator's note says to this page: ${item.line}`
-        )
+      // An addition remembers its change: the note says it is being added
+      // until the change lands, and says so if it fails (F02).
+      const change =
+        item.kind === 'adds'
+          ? queue(
+              slide.id,
+              `Add what the creator's note says to this page: ${item.line}`
+            )
+          : undefined
       results.push({
         kind: item.kind,
         slideId: slide.id,
         title: slide.title,
-        line: item.line
+        line: item.line,
+        ...(change ? { change } : {})
       })
     }
     note.state = 'sorted'

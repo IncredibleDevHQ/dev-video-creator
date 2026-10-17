@@ -14,13 +14,17 @@ import { escape } from './ui'
 const read = new Map<string, MapNote[]>()
 const readAt = new Map<string, number>()
 const following = new Map<string, ReturnType<typeof setTimeout>>()
+/** Notes just added in each notebook, each said once it lands: a later
+ * read, or another note added, never drops one (F02). */
+const awaited = new Map<string, Set<string>>()
 
 const listed = (numbers: number[]) =>
   numbers.length === 1
     ? `Episode ${numbers[0]}`
     : `Episodes ${numbers.slice(0, -1).join(', ')} and ${numbers.at(-1)}`
 
-/** One line: where the note went, the card and its episodes. */
+/** One line: where the note went, the card and its episodes: those whose
+ * copy took an addition, and those whose copy waits for an Update. */
 export const noteLine = (note: MapNote) => {
   if (note.state === 'waiting')
     return 'Saved · sorted into the map once the wireframes are drawn'
@@ -28,6 +32,11 @@ export const noteLine = (note: MapNote) => {
   if (note.state === 'failed') return note.error || 'Could not sort this note'
   const said = (note.results || []).map((result) => {
     const card = `“${result.title}”`
+    // An addition says it lands only once it has (F02).
+    if (result.kind === 'adds' && result.landing === 'adding')
+      return `Being added to ${card}`
+    if (result.kind === 'adds' && result.landing === 'failed')
+      return `Not added to ${card}: ${result.failure || 'the card could not be changed'}`
     // Episodes, when read: a new card no episode holds yet says so.
     const where = !result.episodes
       ? ''
@@ -36,10 +45,13 @@ export const noteLine = (note: MapNote) => {
         : result.kind === 'new'
           ? ', no episode yet'
           : ''
+    const waits = result.waits?.length
+      ? `; waits for your Update in ${result.waits.map((n) => `Ep ${n}`).join(', ')}`
+      : ''
     return result.kind === 'new'
       ? `New card ${card}${where}`
       : result.kind === 'adds'
-        ? `Added to ${card}${where}`
+        ? `Added to ${card}${where}${waits}`
         : `Already covered by ${card}`
   })
   const more = said.length > 2 ? ` · ${said.length - 2} more` : ''
@@ -55,19 +67,35 @@ export const notesOf = (snapshot: Snapshot) => {
   const { project } = snapshot
   const last = read.get(project.id)
   if (project.copyOfMap) return last || []
-  const episodes = new Map(
+  const seen = new Map(
     (last || []).flatMap((note) =>
-      (note.results || []).map((r) => [r.slideId, r.episodes] as const)
+      (note.results || []).map((r) => [`${note.id} ${r.slideId}`, r] as const)
     )
   )
+  // The map's own queue is current: an addition still in it, or failed
+  // there, says so before any read.
+  const queued = (change?: string) =>
+    snapshot.changes?.find((item) => item.id === change)
   return (project.notes || []).slice(-3).map((note) => ({
     ...note,
     ...(note.results
       ? {
-          results: note.results.map((result) => ({
-            ...result,
-            episodes: episodes.get(result.slideId)
-          }))
+          results: note.results.map((result) => {
+            const was = seen.get(`${note.id} ${result.slideId}`)
+            const change = queued(result.change)
+            return {
+              ...result,
+              episodes: was?.episodes,
+              ...(was?.waits ? { waits: was.waits } : {}),
+              ...(change?.state === 'failed'
+                ? { landing: 'failed' as const, failure: change.message }
+                : change
+                  ? { landing: 'adding' as const }
+                  : was?.landing
+                    ? { landing: was.landing, failure: was.failure }
+                    : {})
+            }
+          })
         }
       : {})
   }))
@@ -86,7 +114,9 @@ export const noteList = (notebook: string, notes: MapNote[]) =>
     .join('')}</ul>`
 
 const pending = (note: MapNote) =>
-  note.state === 'waiting' || note.state === 'sorting'
+  note.state === 'waiting' ||
+  note.state === 'sorting' ||
+  Boolean(note.results?.some((result) => result.landing === 'adding'))
 
 /**
  * Reads where a notebook's notes went and shows it in place, again every
@@ -100,6 +130,9 @@ export const followNotes = async (
   tries = 0
 ) => {
   clearTimeout(following.get(notebook))
+  const mine = awaited.get(notebook) || new Set<string>()
+  awaited.set(notebook, mine)
+  if (added) mine.add(added)
   readAt.set(notebook, Date.now())
   let notes: MapNote[]
   try {
@@ -114,23 +147,23 @@ export const followNotes = async (
       `[data-note-list="${notebook}"]`
     ))
       list.outerHTML = noteList(notebook, notesOf(app.snapshot))
-  const mine = notes.find((note) => note.id === added)
-  if (mine && !pending(mine)) notice(`Your note: ${noteLine(mine)}`, true)
+  // Each note just added, said once it lands; one gone is dropped.
+  for (const id of [...mine]) {
+    const note = notes.find((item) => item.id === id)
+    if (note && pending(note)) continue
+    mine.delete(id)
+    if (note) notice(`Your note: ${noteLine(note)}`, true)
+  }
   // Read again while a note is on its way, for ten minutes at most.
   if (notes.some(pending) && tries < 200)
     following.set(
       notebook,
       setTimeout(
-        () =>
-          void followNotes(
-            app,
-            notebook,
-            mine && pending(mine) ? added : undefined,
-            tries + 1
-          ),
+        () => void followNotes(app, notebook, undefined, tries + 1),
         3000
       )
     )
+  else mine.clear()
 }
 
 /** On the Notebook stage: where its notes went, read once in a while. */

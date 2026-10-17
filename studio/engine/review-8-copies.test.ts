@@ -214,6 +214,27 @@ it('says which episodes a note’s addition reaches, and which wait for the crea
   expect(mapNotes(snapshot, new Set(), view)).toContain(
     'Questions still open · in Ep 2 · Ep 4 waits for you'
   )
+  // Its change still queued on the card: being added, nowhere yet; failed
+  // there, it says so and why (round 3).
+  snapshot.project.notes![0].results![0].change = 'c1'
+  snapshot.changes = [
+    {
+      id: 'c1',
+      slideId: 'questions',
+      instruction: 'Add it',
+      state: 'queued',
+      at: '2026-10-17T00:00:00.000Z'
+    }
+  ]
+  expect(mapNotes(snapshot, new Set(), view)).toContain(
+    'Questions still open · being added</span>'
+  )
+  snapshot.changes[0].state = 'failed'
+  snapshot.changes[0].message =
+    'Claude Code could not change this wireframe. Try again.'
+  expect(mapNotes(snapshot, new Set(), view)).toContain(
+    'Questions still open · not added: Claude Code could not change this wireframe. Try again.</span>'
+  )
 })
 
 it('keeps a followed copy’s capture, follows an episode whose plan waits for approval, and leaves an approved one', async () => {
@@ -687,4 +708,100 @@ it('leaves a copy the creator edited to them when Update all brings the others u
   // Its own Update is the creator's choice: it brings it up.
   await changeCopies('ep9', { action: 'update', slide: copies[1].id })
   expect(await bases()).toEqual(['u1, newer.', 'u2, newer.'])
+})
+
+it('names only the episodes a note’s addition reached, says which wait for an Update, and that it is being added until it lands (F02)', async () => {
+  const page: Slide = { ...card, id: 'window8', title: 'The retention window' }
+  await write('map8', { mapSeries: 's8', slides: [page] })
+  await writeRow('outlines', 'map8', {
+    source,
+    brand: pageBrandFrom(source.palette, source.fonts)
+  })
+  await writeRow('series', 's8', {
+    id: 's8',
+    title: 'Payments',
+    mapNotebook: 'map8',
+    organize: true,
+    episodes: [
+      { notebookId: 'open8', number: 1 },
+      { notebookId: 'approved8', number: 2 }
+    ]
+  })
+  await write('open8', {
+    copyOfMap: 'map8',
+    episode: { series: 's8', number: 1 },
+    slides: [copyOf('map8', page)]
+  })
+  await write('approved8', {
+    copyOfMap: 'map8',
+    episode: { series: 's8', number: 2 },
+    slides: [copyOf('map8', page)],
+    video: {
+      settings,
+      scenes: [],
+      transitions: [],
+      inputKey: 'v',
+      produced: { objectKey: 'made.mp4', duration: 30 }
+    }
+  })
+  const { changeProject } = await import('./projects')
+  const { noteViews } = await import('./map-notes')
+  // The copies follow once the card has changed: held there.
+  let release!: () => void
+  hold.series = 's8'
+  hold.gate = new Promise((done) => (release = done))
+  const reached = new Promise<void>((done) => (hold.reached = done))
+  const queued = await chatSlide('map8', {
+    anchor: { stage: 'presentation', slideId: 'window8' },
+    instruction: 'Add the retention window'
+  })
+  const change = queued.changes!.at(-1)!.id
+  // As a sorted note leaves it: its addition is that change.
+  await changeProject('map8', (current) => {
+    current.project.notes = [
+      {
+        id: 'n8',
+        at: '2026-10-17T00:00:00.000Z',
+        text: 'Keys are kept for a window.',
+        state: 'sorted',
+        results: [
+          {
+            kind: 'adds',
+            slideId: 'window8',
+            title: 'The retention window',
+            line: 'Name the window',
+            change
+          }
+        ]
+      }
+    ]
+  })
+  await reached
+  // The card has changed; its copies have not caught up: on its way still.
+  expect((await loadProject('map8'))!.changes || []).toEqual([])
+  expect((await noteViews('map8'))[0].results![0].landing).toBe('adding')
+  release()
+  await settledChanges('map8')
+  // Landed: the episode whose copy took it, and the one that waits.
+  const [landed] = (await noteViews('map8'))[0].results!
+  expect(landed).toMatchObject({ episodes: [1], waits: [2] })
+  expect(landed.landing).toBeUndefined()
+  // A change that failed says so, and why.
+  await changeProject('map8', (current) => {
+    current.changes = [
+      {
+        id: 'failed8',
+        slideId: 'window8',
+        instruction: 'Add it',
+        state: 'failed',
+        at: '2026-10-17T00:00:00.000Z',
+        message: 'Claude Code could not change this wireframe. Try again.'
+      }
+    ]
+    current.project.notes![0].results![0].change = 'failed8'
+  })
+  expect((await noteViews('map8'))[0].results![0]).toMatchObject({
+    landing: 'failed',
+    failure: 'Claude Code could not change this wireframe. Try again.'
+  })
 })

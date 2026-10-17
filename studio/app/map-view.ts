@@ -207,7 +207,18 @@ export const mapNotes = (
       const results = (note.results || [])
         .map((result) => {
           const at = page(result.slideId)
-          const said = `<b>${kindLabel[result.kind]}</b><span>${at ? `p.${at} · ` : ''}${escape(result.title)}${result.kind === 'adds' ? reaches(result.slideId) : ''}</span>`
+          // An addition still queued on its card, or failed there, says so
+          // rather than where it reaches (F02, round 3).
+          const change = snapshot.changes?.find((c) => c.id === result.change)
+          const where =
+            result.kind !== 'adds'
+              ? ''
+              : change?.state === 'failed'
+                ? ` · not added: ${escape(change.message || 'the card could not be changed')}`
+                : change
+                  ? ' · being added'
+                  : reaches(result.slideId)
+          const said = `<b>${kindLabel[result.kind]}</b><span>${at ? `p.${at} · ` : ''}${escape(result.title)}${where}</span>`
           return `<li class="is-${result.kind}">${at ? `<button type="button" class="map-reveal" data-map="reveal:${result.slideId}" title="${escape(result.line ? `“${result.line}” · show the page` : 'Show the page')}">${said}</button>` : said}</li>`
         })
         .join('')
