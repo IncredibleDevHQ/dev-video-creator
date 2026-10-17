@@ -65,7 +65,7 @@ Testing used the visible parallel stack on 4291/4391 and disposable project data
 2. Selected Codex for a follow-up within the same chat. Its CLI exited with code 1 before producing events. The failed turn remained in the graph. **Ask again** with Claude Code recovered the question and produced the series outline. This is not evidence of successful live Codex generation.
 3. Created **Episode framing** with Kimi and no repositories. Confirmed that its independent draft and agent choice survived chat switching and reload. Kimi completed a real answer using the shared project notes.
 4. Switched that same chat to Claude Code and completed a follow-up using Kimi's answer. Saved the resulting viewer promise into **Series outline** and verified **View source** returns to its chat and question.
-5. Saved the repository-based outline into a new notebook, verified both notebooks remain available and the shared canvas includes the new notebook, and started real wireframe generation from the saved outline. At the recorded check, seven wireframes were visible and generation was still progressing. No new finished video or YouTube upload is claimed.
+5. Saved the repository-based outline into a new notebook, verified both notebooks remain available and the shared canvas includes the new notebook, and started real wireframe generation from the saved outline. Generation completed with ten real wireframes, including the chat/notebook comparison, excerpt-origin fields, and an episode-planning example. No new finished video or YouTube upload is claimed.
 6. Rechecked desktop and mobile layouts, agent-name legibility, repository controls, and the saved-note handoff.
 
 Final checks: 230 test files / 1,504 tests passed. After the final composer/layout adjustments, the 19 focused research tests, TypeScript, production build, formatting and source-size checks passed. Disposable PostgreSQL/S3 storage checks passed. Sandbox-only failures to start local fixture servers, browsers, and Docker were resolved by running those checks with the required local process access.
@@ -75,3 +75,6 @@ Final checks: 230 test files / 1,504 tests passed. After the final composer/layo
 ![Independent repositories and branches in a chat](projects-research-evidence/project-chat-repositories.png)
 
 ![Mobile chat and research workspace](projects-research-evidence/project-chat-mobile.png)
+
+
+![Ten completed wireframes generated from the saved research outline](projects-research-evidence/project-chat-wireframes.png)
