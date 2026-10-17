@@ -184,13 +184,22 @@ export const mapNotes = (
       : `<p class="map-hint">Add notes here any time. They are kept, and sorted into the map once the wireframes are drawn.</p>`
   const page = (id: string) =>
     snapshot.project.slides.findIndex((slide) => slide.id === id) + 1
-  // The episodes an addition reaches, through their copies (review 8 F08).
+  // The episodes an addition reaches through their copies, and those whose
+  // copy waits for the creator's Update or Keep (review 8 F08).
   const reaches = (id: string) => {
-    const numbers = (view?.usage[id] || [])
-      .map((notebook) => view?.episodes.find((e) => e.notebook === notebook))
-      .filter(Boolean)
-      .map((episode) => `Ep ${episode!.number}`)
-    return numbers.length ? ` · in ${numbers.join(', ')}` : ''
+    const said = (stale: boolean) =>
+      (view?.usage[id] || [])
+        .map((notebook) => view?.episodes.find((e) => e.notebook === notebook))
+        .filter(
+          (episode) =>
+            episode &&
+            Boolean(
+              episode.copies.find((copy) => copy.copyOf?.slide === id)?.stale
+            ) === stale
+        )
+        .map((episode) => `Ep ${episode!.number}`)
+    const [follows, waits] = [said(false), said(true)]
+    return `${follows.length ? ` · in ${follows.join(', ')}` : ''}${waits.length ? ` · ${waits.join(', ')} ${waits.length === 1 ? 'waits' : 'wait'} for you` : ''}`
   }
   return notes
     .map((note) => {

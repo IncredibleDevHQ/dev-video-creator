@@ -67,6 +67,17 @@ export const syncEvidence = async (map: string, episode: string) => {
   }
 }
 
+/** An episode whose video has started is made: plans keep it as it is. */
+export const isMade = (snapshot: Snapshot | null) => {
+  const video = snapshot?.project.video
+  return Boolean(
+    video &&
+    (video.produced ||
+      video.storyboard ||
+      video.scenes.some((scene) => scene.phase !== 'idle' || scene.produced))
+  )
+}
+
 /** A copy as it came from the map: nothing in it edited in the episode. */
 export const untouched = (copy: Slide) =>
   pageHash({ ...copy, narration: copy.base || '' }) === copy.copyOf?.hash
@@ -81,11 +92,14 @@ export const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
     !untouched(copy)
   )
     return null
+  // The episode's own capture and answers stay with its copy (review 8).
   const fresh: Slide = {
     ...copyOf(mapId, original),
     id: copy.id,
     ...(copy.bridge ? { bridge: copy.bridge } : {}),
-    ...(copy.outro ? { outro: copy.outro } : {})
+    ...(copy.outro ? { outro: copy.outro } : {}),
+    ...(copy.capture ? { capture: copy.capture } : {}),
+    ...(copy.answers ? { answers: copy.answers } : {})
   }
   fresh.narration = composeNarration(fresh)
   return fresh
@@ -95,7 +109,7 @@ export const caughtUp = (mapId: string, copy: Slide, original: Slide) => {
  * A map card changed (a note added to it, say): the episodes not yet in
  * production follow it in every copy no one edited or kept, and their segues
  * are written again around it. An edited or kept copy, or one in an episode
- * whose video is being made, waits for the creator's Update or Keep (review
+ * whose video has started, waits for the creator's Update or Keep (review
  * 8 F08: each copy needed its own Update after every note).
  */
 export const catchUpCopies = async (mapId: string, slideId: string) => {
@@ -106,16 +120,10 @@ export const catchUpCopies = async (mapId: string, slideId: string) => {
     : null
   if (!original?.svg || !series) return
   for (const { notebookId } of series.episodes) {
+    // An episode whose video has started keeps its copies until the
+    // creator updates them: following would plan its video again.
     const episode = await loadProject(notebookId)
-    const video = episode?.project.video
-    const producing = Boolean(
-      video &&
-      (video.produced ||
-        video.storyboard?.approved ||
-        video.storyboard?.produced ||
-        video.scenes.some((scene) => scene.produced))
-    )
-    if (!episode || producing) continue
+    if (!episode || isMade(episode)) continue
     let updated = false
     await changeProject(notebookId, (current) => {
       current.project.slides = current.project.slides.map((slide) => {

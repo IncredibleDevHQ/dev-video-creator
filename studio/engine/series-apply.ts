@@ -9,7 +9,7 @@ import type { Slide } from '../shared/model'
 import type { Series, SeriesGap } from '../shared/series'
 import { addEvent } from './activity'
 import { addMapEpisode } from './map-episodes'
-import { caughtUp, copyOf, syncEvidence, untouched } from './map-copy'
+import { caughtUp, copyOf, isMade, syncEvidence, untouched } from './map-copy'
 import { planScenes, scheduleSegues, settledSegues } from './map-segues'
 import { deleteRow } from './persistence'
 import { changeProject, loadProject } from './projects'
@@ -18,16 +18,7 @@ import { Refusal } from './refusal'
 import { changeSeries, loadSeries, previouslyOf } from './series'
 import type { OutlinePlan } from './series-outline'
 
-/** An episode whose video has started is made: plans keep it as it is. */
-export const isMade = (snapshot: Snapshot | null) => {
-  const video = snapshot?.project.video
-  return Boolean(
-    video &&
-    (video.produced ||
-      video.storyboard ||
-      video.scenes.some((scene) => scene.phase !== 'idle' || scene.produced))
-  )
-}
+export { isMade } from './map-copy'
 
 /** The map's cards an episode holds, by their originals, in its order. */
 export const pagesOf = (snapshot: Snapshot) =>

@@ -1,3 +1,4 @@
+import { once } from 'node:events'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -142,7 +143,7 @@ it('brings the untouched copies of a changed card up to date, and leaves edited,
     expect((await copyIn(id)).svg).toBe('<svg id="old"/>')
 })
 
-it('says which episodes a note’s addition reaches', async () => {
+it('says which episodes a note’s addition reaches, and which wait for the creator', async () => {
   const { mapNotes } = await import('../app/map-view')
   const snapshot = {
     project: {
@@ -175,11 +176,89 @@ it('says which episodes a note’s addition reaches', async () => {
   const view = {
     usage: { questions: ['open', 'made'] },
     episodes: [
-      { notebook: 'open', number: 2 },
-      { notebook: 'made', number: 4 }
+      {
+        notebook: 'open',
+        number: 2,
+        copies: [{ copyOf: { slide: 'questions' }, stale: false }]
+      },
+      {
+        notebook: 'made',
+        number: 4,
+        copies: [{ copyOf: { slide: 'questions' }, stale: true }]
+      }
     ]
   } as never
   expect(mapNotes(snapshot, new Set(), view)).toContain(
-    'Questions still open · in Ep 2, Ep 4'
+    'Questions still open · in Ep 2 · Ep 4 waits for you'
   )
+})
+
+it('keeps a followed copy’s capture, leaves an episode with any storyboard, and follows a hand-edited script', async () => {
+  const second: Slide = { ...card, id: 'window', title: 'The retention window' }
+  await write('map2', { mapSeries: 's2', slides: [second] })
+  await writeRow('series', 's2', {
+    id: 's2',
+    title: 'Payments',
+    mapNotebook: 'map2',
+    organize: true,
+    episodes: ['captured', 'planning'].map((notebookId) => ({ notebookId }))
+  })
+  const capture = {
+    url: 'https://shop.example',
+    steps: [],
+    state: 'ready',
+    objectKey: 'captures/shop.webm',
+    at: '2026-10-17T00:00:00.000Z'
+  }
+  await write('captured', {
+    copyOfMap: 'map2',
+    episode: { series: 's2', number: 1 },
+    slides: [{ ...copyOf('map2', second), capture }]
+  })
+  await write('planning', {
+    copyOfMap: 'map2',
+    episode: { series: 's2', number: 2 },
+    slides: [copyOf('map2', second)],
+    video: {
+      settings: { presence: 'off', voice: { kind: 'ai', id: 'default' } },
+      scenes: [],
+      transitions: [],
+      inputKey: 'v',
+      produced: null,
+      storyboard: {
+        id: 'sb-planning',
+        pages: [],
+        stage: 'review',
+        status: 'waiting',
+        waitingFor: 'approval',
+        updatedAt: '2026-10-17T00:00:00.000Z'
+      }
+    }
+  })
+  const { createStudioServer } = await import('./server')
+  const server = createStudioServer().listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  const { port } = server.address() as { port: number }
+  try {
+    const response = await fetch(
+      `http://127.0.0.1:${port}/api/projects/map2/slides`,
+      {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'script',
+          slideId: 'window',
+          narration: 'Keep a key as long as clients may retry.'
+        })
+      }
+    )
+    expect(response.status).toBe(200)
+  } finally {
+    server.close()
+  }
+  const captured = await copyIn('captured')
+  expect(captured.base).toBe('Keep a key as long as clients may retry.')
+  expect(captured.capture).toEqual(capture)
+  // A plan waits there: its copy waits for the creator's Update.
+  expect((await copyIn('planning')).base).toBe(card.narration)
 })

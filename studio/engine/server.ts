@@ -14,6 +14,7 @@ import { mapRoute } from './map-routes'
 import { addVoiceComment } from './map-comments'
 import { stopVoiceSessions, voiceUpgrade } from './voice-relay'
 import { afterEpisodeEdit } from './map-episodes'
+import { catchUpCopies } from './map-copy'
 import { settleInterruptedWork } from './studio-recovery'
 import {
   availableHarness,
@@ -608,10 +609,18 @@ export const createStudioServer = (
         if (action === 'slides' && request.method === 'POST')
           return send(response, 200, await startPresentation(id, body.harness))
         if (action === 'slides' && request.method === 'PATCH') {
-          const changed = await editSlide(id, slideRequest(body))
+          const edit = slideRequest(body)
+          const changed = await editSlide(id, edit)
           schedulePlanning(id)
           // An episode of a content map: its segues follow the edit.
           await afterEpisodeEdit(id, changed)
+          // A map card's script edited by hand reaches its untouched copies.
+          if (
+            edit.action === 'script' &&
+            edit.slideId &&
+            changed.project.mapSeries
+          )
+            await catchUpCopies(id, edit.slideId)
           return send(response, 200, changed)
         }
         if (action === 'export' && request.method === 'GET') {
