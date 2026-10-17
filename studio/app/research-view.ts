@@ -7,9 +7,16 @@ import type {
 import type { RepoLink, RepoInspection } from '../shared/repos'
 import { researchPath } from '../shared/research'
 import { researchHtml } from '../shared/research-markdown'
-import { researchGraph } from './research-graph'
+import {
+  graphPanel,
+  workbenchToolbar,
+  paneDivider,
+  ancestryTrail
+} from './research-workbench-view'
+import type { ResearchLayout } from './research-layout'
 import { escape } from './ui'
 export type ResearchViewState = {
+  layout?: ResearchLayout
   project: ResearchProjectView
   tab: 'notes' | 'research' | 'wireframes' | 'canvas'
   notebook: string
@@ -264,6 +271,7 @@ const chat = (s: ResearchViewState) => {
       </div>
       ${action('new-chat', '+ New conversation', 'research-secondary')}
     </div>
+    ${ancestryTrail(s.project.nodes, s.node)}
     <div class="research-transcript" aria-live="polite">
       ${path.length
         ? path.map(reply).join('')
@@ -298,9 +306,11 @@ const chat = (s: ResearchViewState) => {
           </div>`
         : s.node
           ? html`<div class="research-branch-hint">
-              ${unfinished
-                ? 'To continue, use Ask again, choose an answered node, or start a new conversation.'
-                : 'Your next question branches from this answer. Earlier paths stay saved.'}
+              ${path.at(-1)?.state === 'working'
+                ? 'Your agent is researching this question. Keep notes or explore another path while it works.'
+                : unfinished
+                  ? 'To continue, use Ask again, choose an answered node, or start a new conversation.'
+                  : 'Your next question branches from this answer. Earlier paths stay saved.'}
             </div>`
           : ''}
       <form id="research-question-form">
@@ -393,47 +403,18 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
         </div>`
       : ''}
     ${s.tab === 'research'
-      ? html`<main class="research-columns">
-          <aside class="research-graph-panel">
-            <div class="research-panel-heading">
-              <div>
-                <span class="research-eyebrow">YOUR RESEARCH</span>
-                <h2>Every path, kept.</h2>
-              </div>
-              <span class="research-count">${s.project.nodes.length}</span>
-            </div>
-            <label class="sr" for="research-search">Find a question</label
-            ><input
-              id="research-search"
-              type="search"
-              placeholder="Find a question…"
-              value="${escape(s.query)}"
-            />
-            <div class="research-graph-controls">
-              ${action(
-                'graph-out',
-                '−',
-                '',
-                'aria-label="Zoom graph out"'
-              )}${action('graph-reset', 'Reset')}${action(
-                'graph-in',
-                '+',
-                '',
-                'aria-label="Zoom graph in"'
-              )}
-            </div>
-            <div class="research-graph-scroll">
-              ${s.project.nodes.length
-                ? researchGraph(s.project.nodes, s.node, s.query)
-                : '<p class="research-graph-empty">Your questions will grow here.<br>Choose any node to return to that point.</p>'}
-            </div>
-            <small class="research-graph-footer"
-              >Connected nodes follow a question.<br />Choose an earlier node to
-              take another path.</small
-            >
-          </aside>
-          ${chat(s)}${notePanel(s, true)}
-        </main>`
+      ? html`${workbenchToolbar(s.layout)}
+          <main
+            class="research-columns ${s.layout?.notesOpen === false
+              ? 'notes-hidden'
+              : ''} ${s.layout?.expanded ? 'graph-expanded' : ''}"
+          >
+            ${graphPanel(s.project.nodes, s.node, s.query, s.layout)}${s.layout
+              ?.expanded
+              ? '<div aria-hidden="true"></div>'
+              : paneDivider('graph')}
+            ${chat(s)}${paneDivider('notes')}${notePanel(s, true)}
+          </main>`
       : s.tab === 'notes'
         ? html`<main class="research-notebooks-page">
             <aside>

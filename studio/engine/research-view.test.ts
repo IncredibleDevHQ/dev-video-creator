@@ -73,7 +73,7 @@ it('shows both research branches as keyboard buttons with a stable current node'
   ]
   const doc = parseHTML(researchGraph([node, ...children], 'b')).document
   expect(doc.querySelectorAll('button')).toHaveLength(3)
-  expect(doc.querySelectorAll('path')).toHaveLength(2)
+  expect(doc.querySelectorAll('[data-graph-edge]')).toHaveLength(2)
   expect(
     doc
       .querySelector('[aria-current="step"]')

@@ -4,21 +4,27 @@ import type { RepoInspection } from '../shared/repos'
 import { researchApi, researchRequest } from './research-api'
 import { researchWorkspaceView, type ResearchViewState } from './research-view'
 import { researchGraph } from './research-graph'
+import { ResearchWorkbench } from './research-workbench'
+import { researchDraftKey } from './research-layout'
+import { renderResearch } from './research-render'
 import { requestJson } from './http'
 import { escape } from './ui'
 import './styles/research.css'
 import './styles/research-notebooks.css'
+import './styles/research-spatial.css'
 
 export class ResearchWorkspace {
   isOpen = false
   private state: ResearchViewState | null = null
   private timer: ReturnType<typeof setTimeout> | null = null
   private revision = 0
-  private graphScale = 1
+  private workbench: ResearchWorkbench
   private selection: ResearchAnchor | null = null
   private drafts: Record<string, string> = {}
   private busy = false
+  private composerKeys: Record<string, string> = {}
   constructor(private root: HTMLElement) {
+    this.workbench = new ResearchWorkbench(root, () => this.render())
     root.addEventListener('click', (event) => {
       if (!this.isOpen) return
       const target = (event.target as Element).closest<HTMLElement>('button')
@@ -48,6 +54,8 @@ export class ResearchWorkspace {
         s.model = ''
         this.render()
       }
+      if (field.id === 'research-graph-depth')
+        this.workbench.depth(Number(field.value))
       if (field.id === 'research-model') s.model = field.value.trim()
       if (field.id === 'research-jump' && field.value)
         this.root
@@ -64,11 +72,14 @@ export class ResearchWorkspace {
           graph.innerHTML = researchGraph(
             this.state.project.nodes,
             this.state.node,
-            field.value
+            field.value,
+            this.workbench.state.scope,
+            this.workbench.state.depth
           )
+        this.workbench.graph.mount()
       }
       if (field.id) {
-        this.drafts[field.id] = field.value
+        this.drafts[this.draftKey(field.id)] = field.value
         this.persistDrafts()
       }
     })
@@ -94,6 +105,13 @@ export class ResearchWorkspace {
         void this.home()
       else location.reload()
     })
+  }
+  private draftKey(field: string) {
+    return researchDraftKey(
+      field,
+      this.state?.notebook || '',
+      this.state?.node || null
+    )
   }
   private persistDrafts() {
     try {
@@ -209,7 +227,9 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
     const tab = url.searchParams.get('projectView')
     const node = url.searchParams.get('node')
     this.loadDrafts(id)
+    this.workbench.open(id)
     this.state = {
+      layout: this.workbench.state,
       project,
       tab:
         tab === 'research' || tab === 'wireframes' || tab === 'canvas'
@@ -241,6 +261,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
         if (JSON.stringify(project) !== JSON.stringify(this.state.project)) {
           if (
             !this.busy &&
+            !this.workbench.interacting &&
             !this.root.querySelector('dialog[open]') &&
             !getSelection()?.toString()
           ) {
@@ -288,16 +309,25 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
     const follow = nearEnd
       ? nearEnd.scrollHeight - nearEnd.scrollTop - nearEnd.clientHeight < 60
       : true
-    this.root.innerHTML = researchWorkspaceView(s)
-    for (const [id, value] of Object.entries(this.drafts)) {
-      if (
-        ['research-model', 'research-adapter', 'research-search'].includes(id)
-      )
-        continue
-      const field = this.root.querySelector<
-        HTMLInputElement | HTMLTextAreaElement
-      >(`#${CSS.escape(id)}`)
-      if (field) field.value = value
+    const composerKeys = Object.fromEntries(
+      ['research-question', 'research-note-input'].map((id) => [
+        id,
+        `${s.project.id}:${this.draftKey(id)}`
+      ])
+    )
+    renderResearch(
+      this.root,
+      researchWorkspaceView(s),
+      this.composerKeys,
+      composerKeys
+    )
+    this.composerKeys = composerKeys
+    for (const field of this.root.querySelectorAll<
+      HTMLInputElement | HTMLTextAreaElement
+    >('input[id],textarea[id]')) {
+      if (['research-model', 'research-search'].includes(field.id)) continue
+      const value = this.drafts[this.draftKey(field.id)]
+      if (value !== undefined) field.value = value
     }
     for (const [cls, top, left] of scroll) {
       const element = this.root.querySelector<HTMLElement>(`.${cls}`)
@@ -316,7 +346,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       if (selection && field instanceof HTMLTextAreaElement)
         field.setSelectionRange(selection[0], selection[1])
     }
-    this.scaleGraph()
+    this.workbench.mount()
   }
   private error(error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
@@ -374,7 +404,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
           notebookId: s.notebook,
           text: values.get('note')
         })
-        this.drafts['research-note-input'] = ''
+        this.drafts[this.draftKey('research-note-input')] = ''
         this.persistDrafts()
         s.message = 'Note saved. It is part of your project’s shared knowledge.'
       }
@@ -392,10 +422,11 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
           },
           repos: s.repos
         })
+        this.drafts[this.draftKey('research-question')] = ''
         s.project = result.project
         s.node = result.nodeId
         s.anchor = null
-        this.drafts['research-question'] = ''
+        this.drafts[this.draftKey('research-question')] = ''
         this.persistDrafts()
         this.navigate()
       }
@@ -423,6 +454,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
         this.drafts['research-repo-path'] = ''
       }
     })
+    if (formId === 'research-question-form') this.workbench.graph.fit()
     if (formId === 'research-repo-form' || formId === 'research-branch-form')
       this.root.querySelector('details')?.setAttribute('open', '')
   }
@@ -485,9 +517,18 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
     this.render()
     this.root.querySelector<HTMLTextAreaElement>('#research-question')?.focus()
   }
-  private scaleGraph() {
-    const graph = this.root.querySelector<HTMLElement>('.research-graph-plane')
-    if (graph) graph.style.zoom = String(this.graphScale)
+  private showSelectedTurn() {
+    const transcript = this.root.querySelector<HTMLElement>(
+      '.research-transcript'
+    )
+    const turn = this.root.querySelector<HTMLElement>(
+      `#turn-${CSS.escape(this.state?.node || '')}`
+    )
+    if (transcript && turn)
+      transcript.scrollTop +=
+        turn.getBoundingClientRect().top -
+        transcript.getBoundingClientRect().top -
+        12
   }
   private async click(button: HTMLElement) {
     const action = button.dataset.researchAction
@@ -514,6 +555,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       s.model = node.harness.model || ''
       this.navigate()
       this.render()
+      this.showSelectedTurn()
       return
     }
     if (button.dataset.selectNotebook) {
@@ -549,7 +591,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
       )!
       s.node = node.parentId
       s.anchor = node.anchor || null
-      this.drafts['research-question'] = node.question
+      this.drafts[this.draftKey('research-question')] = node.question
       this.render()
       return
     }
@@ -589,15 +631,7 @@ ${escape(this.drafts['research-first-note'] || '')}</textarea
     if (action === 'clear-error') s.error = ''
     if (action === 'remove-repo')
       s.repos.splice(Number(button.dataset.index), 1)
-    if (action === 'graph-in')
-      this.graphScale = Math.min(1.5, this.graphScale + 0.15)
-    if (action === 'graph-out')
-      this.graphScale = Math.max(0.55, this.graphScale - 0.15)
-    if (action === 'graph-reset') this.graphScale = 1
-    if (action?.startsWith('graph-')) {
-      this.scaleGraph()
-      return
-    }
+    if (action && this.workbench.handle(action)) return
     if (action === 'dismiss-selection') {
       getSelection()?.removeAllRanges()
       this.root.querySelector<HTMLElement>('#research-selection')!.hidden = true
