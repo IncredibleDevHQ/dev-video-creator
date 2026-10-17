@@ -237,6 +237,11 @@ export const TAKE_TYPES: Record<string, string> = {
 export type Storyboard = {
   /** The wireframes changed after this production began. */
   stale?: boolean
+  /** The wireframes changed while its first plan was being made: it plans
+   * again with them before anything waits for approval. */
+  replan?: boolean
+  /** The creator stopped it: the work in flight ends and what is made stays. */
+  stopping?: boolean
   /** The production: one Hyperframes project on disk. */
   id: string
   /** The pages this episode tells, in order. */

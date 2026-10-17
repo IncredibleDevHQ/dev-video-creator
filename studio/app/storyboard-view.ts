@@ -105,7 +105,11 @@ const noted = (storyboard: Storyboard) =>
   Object.keys(storyboard.frameNotes || {}).map(Number)
 
 const statusLine = (storyboard: Storyboard) => {
-  if (storyboard.stale) return 'Changed since build'
+  if (storyboard.stale)
+    return storyboard.produced
+      ? 'Changed since build'
+      : 'Changed since the plan'
+  if (storyboard.stopping) return 'Stopping…'
   const total = frameCount(storyboard)
   const done = framesDone(storyboard)
   const posed = framesPosed(storyboard)
@@ -131,6 +135,7 @@ const statusLine = (storyboard: Storyboard) => {
 /** The creator's go is asked for: the plan, or the stills. */
 const awaiting = (storyboard: Storyboard) =>
   storyboard.status === 'waiting' &&
+  !storyboard.stale &&
   (storyboard.stage === 'review' || storyboard.stage === 'board')
 
 /** The stills are being posed or looked at: nothing is made from them yet. */
@@ -181,12 +186,19 @@ const stopAlert = (error: string) => {
   return `<div class="sb-alert" role="alert"><p>${escape(line)}</p>${more.length ? `<details><summary>Details</summary><p>${escape(more.join('\n'))}</p></details>` : ''}</div>`
 }
 
+/** Why a stale production needs remaking: a made video's cut is old; one
+ * still being made was planned from the old wireframes (review 8 F04). */
+const staleNote = (storyboard: Storyboard) =>
+  storyboard.produced
+    ? '<p class="sb-stale" role="status"><strong>Changed since build.</strong> These wireframes changed after this video was made. Remake the video before exporting; the preview is the previous cut.</p>'
+    : '<p class="sb-stale" role="status"><strong>Changed since the plan.</strong> These wireframes changed after the plan was approved. Remake the video to use them.</p>'
+
 const working = (label: string) =>
   `<span class="sb-rail-state is-working"><span class="activity-orbit" aria-hidden="true"></span>${label}</span>`
 
 const railState = (storyboard: Storyboard, scene: SceneSummary) => {
   if (storyboard.stale)
-    return '<span class="sb-rail-state">Changed since build</span>'
+    return `<span class="sb-rail-state">${storyboard.produced ? 'Changed since build' : 'Changed since the plan'}</span>`
   if (scene.frames.some((frame) => posing(storyboard, frame)))
     return working('Posing')
   if (scene.take === null)
@@ -523,13 +535,10 @@ export const storyboardHeader = (
   storyboard: Storyboard,
   release = ''
 ) => {
+  // Remake is always offered on a stale production: one still at work stops
+  // first (review 8 F04: it was disabled while it worked).
   if (storyboard.stale)
-    return button(
-      'Remake video',
-      'sb-remake',
-      true,
-      storyboard.status === 'working'
-    )
+    return button('Remake video', 'sb-remake', true, storyboard.stopping)
   if (storyboard.status === 'failed')
     return button('Try again', 'sb-retry', true)
   // The same test as the page's own Approve, so the two always agree.
@@ -549,7 +558,12 @@ export const storyboardHeader = (
   // the video: the header says what is happening until the new one is made.
   if (storyboard.produced && storyboard.status !== 'working')
     return `${release}${button('Export MP4', 'produce-video', true)}`
-  return `<span class="header-video-status" role="status">${escape(videoDisplay(snapshot).label)}</span>`
+  const status = `<span class="header-video-status" role="status">${escape(videoDisplay(snapshot).label)}</span>`
+  // A production at work can be stopped, as the wireframes can (review 8
+  // F11: the stills had no Stop); what is made stays.
+  return storyboard.status === 'working'
+    ? `${status}${button(storyboard.stopping ? 'Stopping…' : 'Stop', 'sb-stop', false, storyboard.stopping)}`
+    : status
 }
 
 export const storyboardScreen = (
@@ -601,7 +615,7 @@ ${
     ? `<div class="focus-heading"><div><strong>${reviewingTake ? 'Review your take' : recordTitle(capture)}</strong><span>Scene ${chosen + 1} · ${reviewingTake ? `${lines.length} ${lines.length === 1 ? 'line' : 'lines'}` : `Frame ${frame?.number ?? 1}${lines.length > 1 ? ` · ${Math.min(capture.current, lines.length - 1) + 1} of ${lines.length}` : ''}`}</span>${recordLight(capture)}</div></div>`
     : band(storyboard)
 }
-${storyboard.stale ? '<p class="sb-stale" role="status"><strong>Changed since build.</strong> These wireframes changed after this video was made. Remake the video before exporting; the preview is the previous cut.</p>' : ''}
+${storyboard.stale ? staleNote(storyboard) : ''}
 ${storyboard.status === 'failed' && storyboard.error ? stopAlert(storyboard.error) : ''}
 ${stage(snapshot, storyboard, scene, frame, capture, recording)}
 ${takes || heard ? `<div class="sb-take-actions">${heard || voiceTake(scene)}${takes}</div>` : ''}

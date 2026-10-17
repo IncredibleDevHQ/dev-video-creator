@@ -1,4 +1,4 @@
-import { storyboardSources } from './storyboard/source-state'
+import { sourcesChanged, storyboardSources } from './storyboard/source-state'
 import { scheduleSource } from './notebook-intake'
 import { addEvent } from './activity'
 export { addEvent } from './activity'
@@ -92,6 +92,11 @@ export const loadProject = async (id: string) => {
   }
   return snapshot
 }
+/** Runs a storyboard a change sent back to planning (set by its pipeline). */
+let planAgain: ((projectId: string) => void) | undefined
+export const onPlanAgain = (run: (projectId: string) => void) => {
+  planAgain = run
+}
 export const changeProject = async (
   id: string,
   update: (snapshot: Snapshot) => void | Promise<void>
@@ -105,17 +110,12 @@ export const changeProject = async (
       const boardId = snapshot.project.video?.storyboard?.id
       const sources = storyboardSources(snapshot.project)
       await update(snapshot)
-      const board = snapshot.project.video?.storyboard
-      if (
-        board &&
-        board.id === boardId &&
-        sources !== storyboardSources(snapshot.project)
-      )
-        board.stale = true
+      const replanned = sourcesChanged(snapshot, boardId, sources)
       snapshot.views = projectViews(snapshot.project, snapshot.events)
       snapshot.views.video.display = videoDisplay(snapshot)
       snapshot.views.presentation = presentationDisplay(snapshot)
       await writeRow('projects', id, snapshot)
+      if (replanned) planAgain?.(id)
       return snapshot
     })
   queues.set(id, next)

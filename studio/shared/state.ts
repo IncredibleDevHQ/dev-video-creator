@@ -276,7 +276,9 @@ export const videoDisplay = (
     const storyboard = video.storyboard
     return {
       label: storyboard.stale
-        ? 'Changed since build'
+        ? storyboard.produced
+          ? 'Changed since build'
+          : 'Changed since the plan'
         : storyboard.status === 'working'
           ? STAGE_LABELS[storyboard.stage]
           : storyboard.status === 'waiting'

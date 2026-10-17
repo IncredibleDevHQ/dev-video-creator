@@ -3,6 +3,7 @@
 //   POST /api/projects/:id/storyboard/approve               {note?}
 //   POST /api/projects/:id/storyboard/scenes/:pageId/build  {build}
 //   POST /api/projects/:id/storyboard/retry
+//   POST /api/projects/:id/storyboard/stop
 //   GET  /api/projects/:id/storyboard/sheet                 the contact sheet
 //   GET  /api/projects/:id/storyboard/frames/:frameId/snapshot  a built frame
 //   GET  /api/projects/:id/storyboard/frames/:frameId/still     its still
@@ -22,13 +23,14 @@ import {
   remakeStoryboard,
   noteStoryboardFrame,
   retryStoryboard,
+  stopStoryboard,
   saveStoryboardTake,
   setStoryboardBuild,
   setStoryboardTransition
 } from './actions'
 
 const ROUTE =
-  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/(approve|retry|remake|sheet|scenes\/([a-zA-Z0-9_-]+)\/(build|take))$/
+  /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/(approve|retry|remake|stop|sheet|scenes\/([a-zA-Z0-9_-]+)\/(build|take))$/
 
 const FRAME_CHANGE_ROUTE =
   /^\/api\/projects\/([a-zA-Z0-9_-]+)\/storyboard\/frames\/(\d{1,3})\/(transition|note)$/
@@ -143,6 +145,8 @@ export const storyboardRoute = async (
     return { status: 200, value: await remakeStoryboard(projectId) }
   if (action === 'retry')
     return { status: 200, value: await retryStoryboard(projectId) }
+  if (action === 'stop')
+    return { status: 200, value: await stopStoryboard(projectId) }
   if (sceneAction === 'build')
     return {
       status: 200,

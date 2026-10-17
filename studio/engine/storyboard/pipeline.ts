@@ -13,7 +13,8 @@ import { fitOf, lengthLabel, windowLabel } from '../../shared/length'
 import type { BuildType, Storyboard } from '../../shared/storyboard'
 import { addEvent } from '../activity'
 import { readAsset, storeAsset } from '../persistence'
-import { loadProject } from '../projects'
+import { generationStops } from '../generation-errors'
+import { loadProject, onPlanAgain } from '../projects'
 import { resolveVoice } from '../voice-library'
 import { probeSeconds } from '../voice'
 import { loadSeries, previouslyOf } from '../series'
@@ -66,9 +67,46 @@ export const scheduleStoryboard = (projectId: string) => {
     .finally(() => running.delete(projectId))
   running.set(projectId, job)
 }
+// A plan waiting for approval that a change sent back to planning runs again.
+onPlanAgain(scheduleStoryboard)
 /** Resolves when the production has stopped working (tests and checks). */
 export const settledStoryboard = async (projectId: string) => {
   while (running.has(projectId)) await running.get(projectId)
+}
+/** Whether the production is running in this process now. */
+export const storyboardRunning = (projectId: string) => running.has(projectId)
+
+/** Stopped by the creator: what is made stays, and Try again carries on. */
+export const stopNow = (projectId: string) =>
+  update(projectId, (storyboard, snapshot) => {
+    if (storyboard.status !== 'working') return
+    storyboard.status = 'failed'
+    storyboard.error = generationStops.user
+    delete storyboard.stopping
+    addEvent(snapshot, 'video', generationStops.user, { activity: 'failed' })
+  })
+
+/** The most a plan waits for its episode's segues to be written. */
+const SEGUE_WAIT_MS = 5 * 60_000
+/** A plan starts once its episode's segues are written: they change its
+ * lines, and a plan of the old ones would be stale at once (review 8 F04).
+ * What changed before it starts is in the lines it plans from. */
+const linesToPlan = async (snapshot: Snapshot) => {
+  const id = snapshot.project.id
+  let current = snapshot
+  const until = Date.now() + SEGUE_WAIT_MS
+  while (
+    current.project.segues?.state === 'writing' &&
+    !current.project.video?.storyboard?.stopping &&
+    Date.now() < until
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    current = (await loadProject(id)) || current
+  }
+  await update(id, (storyboard) => {
+    delete storyboard.replan
+  })
+  return (await loadProject(id)) || current
 }
 
 const seriesContext = async (
@@ -142,7 +180,13 @@ const seriesContext = async (
 const fail = (projectId: string, error: unknown) =>
   update(projectId, (storyboard, snapshot) => {
     storyboard.status = 'failed'
-    storyboard.error = error instanceof Error ? error.message : String(error)
+    // A run the creator stopped ends in a refusal: it says it was stopped.
+    storyboard.error = storyboard.stopping
+      ? generationStops.user
+      : error instanceof Error
+        ? error.message
+        : String(error)
+    delete storyboard.stopping
     // The activity says why in one line; the details stay with the error.
     addEvent(snapshot, 'video', `Stopped: ${storyboard.error.split('\n')[0]}`, {
       activity: 'failed'
@@ -154,6 +198,10 @@ const advance = async (projectId: string) => {
     const snapshot = await loadProject(projectId)
     const storyboard = snapshot?.project.video?.storyboard
     if (!snapshot || !storyboard || storyboard.status !== 'working') return
+    if (storyboard.stopping) {
+      await stopNow(projectId)
+      return
+    }
     try {
       const dir = await createWorkspace({
         projectId,
@@ -176,11 +224,13 @@ const advance = async (projectId: string) => {
 }
 
 const planStage = async ({
-  snapshot,
+  snapshot: started,
   storyboard,
   dir,
   internal
 }: StageInput) => {
+  const snapshot = await linesToPlan(started)
+  if (snapshot.project.video?.storyboard?.stopping) return
   const previous = storyboard.note ? internal.plan : undefined
   // The site's logo, when chosen, goes as its drawing: crisp at any size.
   const branding = snapshot.project.branding
@@ -220,6 +270,17 @@ const planStage = async ({
   await update(snapshot.project.id, (current, ledger) => {
     current.plan = summaryNow(next, current, ledger)
     current.length = length
+    // The wireframes changed while it planned: it plans again with them
+    // before a plan of the old lines waits for approval (review 8 F04).
+    if (current.replan) {
+      delete current.replan
+      addEvent(
+        ledger,
+        'video',
+        'The wireframes changed while planning: planning again with them'
+      )
+      return
+    }
     delete current.note
     current.stage = 'review'
     current.status = 'waiting'

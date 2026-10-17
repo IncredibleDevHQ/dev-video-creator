@@ -240,9 +240,17 @@ export const clickStoryboard = async (
     return true
   }
   if (action === 'sb-remake') {
+    const working = storyboard?.status === 'working'
     app.showDialog(
-      '<h2>Remake from the current wireframes?</h2><p>A new plan will use your edited wireframes and wait for your approval. Your recorded takes are kept. This starts a new AI planning run.</p><div class="dialog-actions"><button type="button" data-action="close">Cancel</button><button type="button" class="primary" data-action="sb-remake-confirm">Remake video</button></div>'
+      `<h2>Remake from the current wireframes?</h2><p>A new plan will use your edited wireframes and wait for your approval.${working ? ' What is being made now stops first.' : ''} Your recorded takes are kept. This starts a new AI planning run.</p><div class="dialog-actions"><button type="button" data-action="close">Cancel</button><button type="button" class="primary" data-action="sb-remake-confirm">Remake video</button></div>`
     )
+    return true
+  }
+  if (action === 'sb-stop') {
+    target.disabled = true
+    const saved = await api.stopStoryboard(id)
+    if (app.snapshot?.project.id === id) app.snapshot = saved
+    app.render()
     return true
   }
   if (action === 'sb-remake-confirm') {

@@ -1,7 +1,7 @@
 // What the creator does to a storyboard video: start it with the episode's
 // pages, approve the plan or ask for a change, approve the stills or leave a
 // note on one, choose a scene's build, record or upload a camera scene's
-// take, and try again after a stop.
+// take, stop what is being made, and try again after a stop.
 import { randomUUID } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -20,14 +20,21 @@ import {
   type StoryboardStage
 } from '../../shared/storyboard'
 import { addEvent } from '../activity'
-import { storeAsset } from '../persistence'
+import { listNotebookRows, readRow, storeAsset } from '../persistence'
 import { changeProject, loadProject } from '../projects'
+import {
+  STORYBOARD_STAGES,
+  cancelEngineRun,
+  type EngineRun
+} from '../harness/runtime'
 import { Refusal } from '../refusal'
 import { hasPicture, probeSeconds } from '../voice'
 import {
   missingTakes,
   scheduleStoryboard,
   settledStoryboard,
+  stopNow,
+  storyboardRunning,
   storyboardDir
 } from './pipeline'
 import { readInternal, writeInternal, writeProjectFiles } from './state'
@@ -71,6 +78,11 @@ export const approveStoryboard = async (projectId: string, raw: unknown) => {
       storyboard.waitingFor !== 'approval'
     )
       throw new Refusal('Nothing is waiting for your approval')
+    // What waits was made from wireframes that changed since (review 8 F04).
+    if (storyboard.stale && !note)
+      throw new Refusal(
+        'The wireframes changed since: remake the video to use them'
+      )
     if (note) {
       storyboard.note = note
       storyboard.stage = 'plan'
@@ -371,6 +383,7 @@ export const retryStoryboard = async (projectId: string) => {
     }
     storyboard.status = 'working'
     delete storyboard.error
+    delete storyboard.stopping
     storyboard.updatedAt = new Date().toISOString()
     addEvent(current, 'video', 'Trying again')
   })
@@ -430,15 +443,43 @@ export const showTakeSlots = async (snapshot: Snapshot) => {
   if (resume) scheduleStoryboard(snapshot.project.id)
 }
 
-/** Replan edited wireframes in a fresh workspace, keeping the creator's takes. */
+/**
+ * Stop what is being made: the agents at work end, what is made stays, and
+ * Try again carries on from the stage that stopped (review 8 F11: the stills
+ * had no Stop).
+ */
+export const stopStoryboard = async (projectId: string) => {
+  await changeProject(projectId, (current) => {
+    const storyboard = storyboardOf(current)
+    if (storyboard.status !== 'working')
+      throw new Refusal('Nothing is being made now')
+    storyboard.stopping = true
+    addEvent(current, 'video', 'Stopping. What is made so far is kept.')
+  })
+  for (const runId of await listNotebookRows('engine-runs', projectId)) {
+    const run = await readRow<EngineRun>('engine-runs', runId)
+    if (
+      run &&
+      !run.sceneId &&
+      STORYBOARD_STAGES.includes(run.stage) &&
+      ['preparing', 'running'].includes(run.status)
+    )
+      cancelEngineRun(run.id)
+  }
+  // Nothing at work in this process: it stops now.
+  if (!storyboardRunning(projectId)) await stopNow(projectId)
+  return (await loadProject(projectId))!
+}
+
+/** Replan edited wireframes in a fresh workspace, keeping the creator's takes.
+ * A production still at work stops first (review 8 F04: Remake was offered
+ * but disabled while it worked). */
 export const remakeStoryboard = async (projectId: string) => {
   if (
     (await loadProject(projectId))?.project.video?.storyboard?.status ===
     'working'
   )
-    throw new Refusal(
-      'Wait for the current production to stop before remaking it'
-    )
+    await stopStoryboard(projectId)
   await settledStoryboard(projectId)
   const snapshot = await changeProject(projectId, (current) => {
     const old = storyboardOf(current)

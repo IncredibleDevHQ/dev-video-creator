@@ -223,7 +223,13 @@ describe('the storyboard’s next step (UX-1)', () => {
         approved: stage !== 'plan'
       })
       const html = header(value)
-      expect(html.querySelector('button')).toBeNull()
+      // Its one control is Stop, enabled (review 8 F11): never a greyed step.
+      expect(
+        [...html.querySelectorAll('button')].map((button) => [
+          button.textContent,
+          button.hasAttribute('disabled')
+        ])
+      ).toEqual([['Stop', false]])
       expect(html.querySelector('[role="status"]')?.textContent).toBe(
         videoDisplay(notebook(value)).label
       )

@@ -108,6 +108,19 @@ export const stopEngineRuns = async (timeoutMs = 8000) => {
     await new Promise((resolve) => setTimeout(resolve, 25))
   return active.size === 0
 }
+/** Whether the creator stopped what this run belongs to: the wireframes, or
+ * the storyboard production (review 8 F11). */
+const stopAsked = async (projectId: string, stage: HarnessStage) => {
+  const row = await readRow<{
+    stopping?: boolean
+    project?: { video?: { storyboard?: { stopping?: boolean } } | null }
+  }>('projects', projectId)
+  return Boolean(
+    row?.stopping ||
+    (STORYBOARD_STAGES.includes(stage) &&
+      row?.project?.video?.storyboard?.stopping)
+  )
+}
 export const cancelEngineRun = (id: string) => {
   const controller = active.get(id)
   if (!controller) return false
@@ -148,11 +161,7 @@ export const runEngineStage = async (input: {
   maxToolCalls?: number
   redact?: string[]
 }): Promise<EngineRun> => {
-  if (
-    !input.sceneId &&
-    (await readRow<{ stopping?: boolean }>('projects', input.projectId))
-      ?.stopping
-  )
+  if (!input.sceneId && (await stopAsked(input.projectId, input.stage)))
     throw new Error(generationStops.user)
   if (shuttingDown)
     throw new Error(
@@ -347,11 +356,7 @@ export const runEngineStage = async (input: {
       })
   }
   try {
-    if (
-      !input.sceneId &&
-      (await readRow<{ stopping?: boolean }>('projects', input.projectId))
-        ?.stopping
-    )
+    if (!input.sceneId && (await stopAsked(input.projectId, input.stage)))
       controller.abort()
     const available = await adapter.available()
     if (!available.ok)
