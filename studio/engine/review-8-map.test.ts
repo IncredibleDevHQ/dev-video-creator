@@ -485,3 +485,137 @@ describe('what a direction applies to (F14)', () => {
     expect(mapApi.direction).toHaveBeenCalledTimes(5)
   })
 })
+
+describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
+  /** The engine's copies, kept in the view the map reads back: a move (a
+   * card moved to another episode is a new card there), a removal, and
+   * bringing the last removal back. */
+  const serve = (shown: MapView) => {
+    let made = 0
+    const kept: Record<string, { copy: Copies[number]; index: number }> = {}
+    const lane = (id: string) => shown.episodes.find((e) => e.notebook === id)!
+    vi.mocked(mapApi.copies).mockImplementation(async (episode, body) => {
+      const { action, slide, to, index } = body as {
+        action: string
+        slide: string
+        to?: string
+        index?: number
+      }
+      const from = lane(episode)
+      const at = from.copies.findIndex((copy) => copy.id === slide)
+      if (at < 0) throw new Error('That page is no longer in this episode')
+      const [card] = from.copies.splice(at, 1)
+      if (action === 'remove') kept[episode] = { copy: card, index: at }
+      if (action === 'move') {
+        const into = lane(to || episode)
+        const place = Math.min(index ?? into.copies.length, into.copies.length)
+        into.copies.splice(
+          place,
+          0,
+          into === from ? card : { ...card, id: `m${++made}` }
+        )
+      }
+      return {}
+    })
+    vi.mocked(api.slide).mockImplementation(async (episode) => {
+      const back = kept[episode]
+      delete kept[episode]
+      lane(episode).copies.splice(back.index, 0, back.copy)
+      return snapshot()
+    })
+    return (id: string) => lane(id).copies.map((copy) => copy.id)
+  }
+  const press = async (key: string, shiftKey = false) => {
+    fire(win.document.body, 'keydown', { key, metaKey: true, shiftKey })
+    await settle()
+  }
+  const toast = (map: Canvas) => {
+    const node = map.slot('toast')!
+    return [
+      node.querySelector('span')?.textContent,
+      node.querySelector('button')?.textContent ?? null
+    ]
+  }
+
+  it('puts a reorder back from its toast’s Undo, and with ⌘Z and ⇧⌘Z, as Shortcuts says', async () => {
+    const shown = view()
+    const order = serve(shown)
+    const { map, root } = await openMap(shown)
+    // A card dragged from third to second.
+    await map.moveCopy('w', 'e1', 1)
+    expect(order('e1')).toEqual(['x', 'w', 'y'])
+    expect(toast(map)).toEqual([
+      'Moved. The segues around it are being rewritten.',
+      'Undo'
+    ])
+    click(map.slot('toast')!.querySelector('button'))
+    await settle()
+    expect(order('e1')).toEqual(['x', 'y', 'w'])
+    expect(toast(map)).toEqual([
+      'Put back. The segues around it are being rewritten.',
+      'Redo'
+    ])
+    await press('z', true)
+    expect(order('e1')).toEqual(['x', 'w', 'y'])
+    expect(toast(map)[1]).toBe('Undo')
+    await press('z')
+    expect(order('e1')).toEqual(['x', 'y', 'w'])
+    expect(vi.mocked(mapApi.copies).mock.calls.at(-1)).toEqual([
+      'e1',
+      { action: 'move', slide: 'w', to: 'e1', index: 2 }
+    ])
+    // Let go where it was, nothing is sent and nothing is offered.
+    const sent = vi.mocked(mapApi.copies).mock.calls.length
+    await map.moveCopy('w', 'e1', 2)
+    expect(mapApi.copies).toHaveBeenCalledTimes(sent)
+    click(root.querySelector('[data-map="help"]'))
+    await settle()
+    expect(map.slot('menu')!.textContent).toContain(
+      '⌘Z  ⇧⌘Zundo or redo a card’s move or removal'
+    )
+  })
+
+  it('undoes the last edit first, a move to another episode and a removal, and nothing after another change', async () => {
+    const shown = view()
+    const order = serve(shown)
+    const { map } = await openMap(shown)
+    await map.removeCopy('x')
+    await map.moveCopy('w', 'e2', 0)
+    expect([order('e1'), order('e2')]).toEqual([['y'], ['m1', 'z']])
+    expect(toast(map)).toEqual(['Moved to Ep 2', 'Undo'])
+    await press('z')
+    expect([order('e1'), order('e2')]).toEqual([['y', 'm2'], ['z']])
+    expect(toast(map)[0]).toBe('Back in Ep 1')
+    await press('z')
+    expect(order('e1')).toEqual(['x', 'y', 'm2'])
+    expect(toast(map)).toEqual(['Back in the episode', 'Redo'])
+    await press('z')
+    expect(toast(map)).toEqual(['Nothing to undo', null])
+    // Redo goes forward again in order, the removal first.
+    await press('z', true)
+    expect(order('e1')).toEqual(['y', 'm2'])
+    // Another change to the map ends the history: Undo reaches no further.
+    await map.run(async () => {}, 'Episode renamed')
+    const sent = vi.mocked(mapApi.copies).mock.calls.length
+    await press('z')
+    expect(toast(map)).toEqual(['Nothing to undo', null])
+    expect(mapApi.copies).toHaveBeenCalledTimes(sent)
+  })
+
+  it('says when the card has changed since, rather than undoing something else', async () => {
+    const shown = view()
+    const order = serve(shown)
+    const { map } = await openMap(shown)
+    await map.moveCopy('w', 'e1', 0)
+    // Removed elsewhere meanwhile (another tab, Studio AI).
+    shown.episodes[0].copies = shown.episodes[0].copies.filter(
+      (copy) => copy.id !== 'w'
+    )
+    await map.refresh()
+    const sent = vi.mocked(mapApi.copies).mock.calls.length
+    await press('z')
+    expect(toast(map)[0]).toBe('Nothing to undo: that card has changed since')
+    expect(mapApi.copies).toHaveBeenCalledTimes(sent)
+    expect(order('e1')).toEqual(['x', 'y'])
+  })
+})

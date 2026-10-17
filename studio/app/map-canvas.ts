@@ -38,6 +38,7 @@ import {
   restoreView
 } from './map-chrome'
 import { VoiceCall } from './map-voice'
+import { keyOf, MapHistory, placed } from './map-history'
 
 export type MapSel =
   | { t: 'page'; id: string }
@@ -87,8 +88,8 @@ export class MapCanvas {
   changing: string | null = null
   /** Long notes the creator opened with More. */
   openNotes = new Set<string>()
-  /** The episode whose last removed page Undo brings back. */
-  undo: { episode: string } | null = null
+  /** Undo and Redo for a card reordered, moved or removed (review 8). */
+  readonly history = new MapHistory(this)
   /** The direction note being written. */
   editingDirection: string | null = null
   draftDirection: import('../shared/series').Direction | null = null
@@ -157,6 +158,7 @@ export class MapCanvas {
     this.view = null
     this.sel = null
     this.clip = null
+    this.history.clear()
     this.toldRun = null
     this.returning = true
     this.comments.reset()
@@ -386,10 +388,16 @@ export class MapCanvas {
       ? 'Note added: sorting it into the map'
       : 'Note saved: it joins the map once the wireframes are drawn'
   }
-  /** Runs a change, then shows the map as it is now. True when it went through. */
-  async run(work: () => Promise<unknown>, said?: string | (() => string)) {
+  /** Runs a change, then shows the map as it is now. True when it went
+   * through. Any change but one Undo knows (kept) ends Undo's history. */
+  async run(
+    work: () => Promise<unknown>,
+    said?: string | (() => string),
+    kept = false
+  ) {
     try {
       await work()
+      if (!kept) this.history.clear()
       if (said) this.toast(typeof said === 'function' ? said() : said)
       this.snapshot = await api.load(this.mapId)
       await this.refresh()
@@ -423,10 +431,22 @@ export class MapCanvas {
       () => said
     )
   }
-  moveCopy(copy: string, to: string, index?: number) {
+  /** Moves a copy within its episode or to another, with Undo; let go
+   * where it was, nothing changes. True once it is where it was sent. */
+  async moveCopy(copy: string, to: string, index?: number) {
     const from = this.episodeOf(copy)
-    if (!from) return
-    return this.run(
+    const card = from?.copies.find((c) => c.id === copy)
+    const into = this.view?.episodes.find((e) => e.notebook === to)
+    if (!from || !card || !into) return false
+    const within = from.notebook === to
+    const before = from.copies.map(keyOf)
+    const after = placed(
+      within ? before : into.copies.map(keyOf),
+      keyOf(card),
+      index
+    )
+    if (within && after.join() === before.join()) return true
+    const moved = await this.run(
       () =>
         mapApi.copies(from.notebook, {
           action: 'move',
@@ -434,10 +454,33 @@ export class MapCanvas {
           to,
           index
         }),
-      from.notebook === to
-        ? 'Moved. The segues around it are being rewritten.'
-        : 'Moved to the other episode.'
+      undefined,
+      true
     )
+    if (!moved) return false
+    if (within)
+      this.history.record(
+        { kind: 'order', episode: to, copy, before, after },
+        'Moved. The segues around it are being rewritten.'
+      )
+    else if (card.copyOf)
+      this.history.record(
+        {
+          kind: 'move',
+          from: from.notebook,
+          to,
+          page: keyOf(card),
+          before,
+          after
+        },
+        `Moved to Ep ${into.number}`
+      )
+    else {
+      // A page of its own is a new card where it lands: Undo can't follow.
+      this.history.clear()
+      this.toast(`Moved to Ep ${into.number}`)
+    }
+    return true
   }
   /** Removes a page from its episode, with Undo; a made scene asks first. */
   async removeCopy(copy: string) {
@@ -455,24 +498,15 @@ export class MapCanvas {
       return
     this.sel = { t: 'lane', id: from.notebook }
     // Undo is offered only for a removal that happened (review 6).
-    const removed = await this.run(() =>
-      mapApi.copies(from.notebook, { action: 'remove', slide: copy })
+    const removed = await this.run(
+      () => mapApi.copies(from.notebook, { action: 'remove', slide: copy }),
+      undefined,
+      true
     )
     if (!removed) return
-    this.undo = { episode: from.notebook }
-    this.toast('Removed from the episode. The map keeps the page.', {
-      label: 'Undo',
-      map: 'undo-remove'
-    })
-  }
-  /** Brings back the page last removed, and its scene. */
-  async undoRemove() {
-    const undo = this.undo
-    this.undo = null
-    if (!undo) return
-    await this.run(
-      () => api.slide(undo.episode, { action: 'undo-delete' }),
-      'Back in the episode'
+    this.history.record(
+      { kind: 'remove', episode: from.notebook, copy },
+      'Removed from the episode. The map keeps the page.'
     )
   }
   /** Pastes into the selected episode. A cut stays on the clipboard until

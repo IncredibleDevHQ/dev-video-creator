@@ -1,6 +1,6 @@
-// The map's keys and focus: ⌘C, ⌘X and ⌘V, Delete and Esc on what is
-// selected, and a block reached with Tab brought into view as a pan would,
-// never by scrolling the canvas.
+// The map's keys and focus: ⌘C, ⌘X and ⌘V, ⌘Z and ⇧⌘Z, Delete and Esc,
+// and a block reached with Tab brought into view as a pan would, never by
+// scrolling the canvas.
 import type { MapCanvas } from './map-canvas'
 import { dialogOpen } from './ui'
 
@@ -85,6 +85,10 @@ export const installMapKeys = (map: MapCanvas, dispatch: Dispatch) => {
     } else if (mod && key === 'v') {
       e.preventDefault()
       void map.paste()
+    } else if (mod && key === 'z') {
+      // The last card reordered, moved or removed (review 8).
+      e.preventDefault()
+      void (e.shiftKey ? map.history.redo() : map.history.undo())
     } else if ((key === 'backspace' || key === 'delete') && sel?.t === 'copy') {
       e.preventDefault()
       void map.removeCopy(sel.id)

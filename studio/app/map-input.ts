@@ -658,8 +658,12 @@ const dispatch = async (
     }
     case 'remove':
       return copy ? map.removeCopy(copy) : undefined
-    case 'undo-remove':
-      return map.undoRemove()
+    case 'undo':
+    case 'redo': {
+      // From a toast, the edit it told of; from the keys, the last.
+      const id = arg ? Number(arg) : undefined
+      return name === 'undo' ? map.history.undo(id) : map.history.redo(id)
+    }
     case 'paste':
       return map.paste()
     case 'clear-clip':

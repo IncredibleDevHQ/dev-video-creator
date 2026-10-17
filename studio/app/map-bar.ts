@@ -387,6 +387,7 @@ const SHORTCUTS = [
   ['Drag a copy', 'reorder, or move it'],
   ['⌘C  ⌘X  ⌘V', 'copy, cut, paste into the selected episode'],
   ['⌫', 'remove the selected copy'],
+  ['⌘Z  ⇧⌘Z', 'undo or redo a card’s move or removal'],
   ['Double-click', 'zoom to a block'],
   ['Tab, then Enter', 'go through the cards and select'],
   ['Esc', 'clear the selection']
