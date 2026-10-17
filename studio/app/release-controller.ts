@@ -81,6 +81,10 @@ export const syncPublishForm = (form: Element | null | undefined) => {
     pick(privacy.dataset.chosen)
   privacy.disabled = Boolean(at.value)
   if (at.value) pick('private')
+  // A time away from the campaign's launch says when that is (review 8).
+  const differs = form?.querySelector<HTMLElement>('.publish-differs')
+  if (differs)
+    differs.hidden = !at.value || at.value === form?.getAttribute('data-launch')
 }
 
 /** The words typed in an item's row, when its form is open. */
@@ -107,6 +111,15 @@ export const clickRelease = async (
   if (action === 'release-dialog') showRelease(app)
   if (action === 'plan-campaign')
     update(app, await studioApi.notebook(id, 'campaign', { action: 'plan' }))
+  if (action === 'campaign-follow')
+    update(
+      app,
+      await studioApi.notebook(id, 'campaign', {
+        action: 'change',
+        item: target.dataset.item,
+        follow: true
+      })
+    )
   if (action === 'campaign-state')
     update(
       app,
@@ -225,17 +238,25 @@ export const submitRelease = async (
       })
     )
   }
-  if (form.matches('.campaign-edit'))
+  if (form.matches('.campaign-edit')) {
+    const time = values.get('time')
+    const offsetDays = Number(values.get('offsetDays'))
+    // A launch post moving with the release goes on doing so unless its day
+    // or time was changed here (review 8).
+    const kept =
+      form.dataset.follows !== undefined &&
+      time === form.dataset.time &&
+      String(offsetDays) === form.dataset.days
     update(
       app,
       await studioApi.notebook(id, 'campaign', {
         action: 'change',
         item: form.dataset.item,
         words: values.get('words'),
-        time: values.get('time'),
-        offsetDays: Number(values.get('offsetDays'))
+        ...(kept ? {} : { time, offsetDays })
       })
     )
+  }
   if (form.id === 'posts-form')
     update(
       app,

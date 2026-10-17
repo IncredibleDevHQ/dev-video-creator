@@ -2,7 +2,13 @@
 // item approved, changed or dropped by the creator, and posted only when
 // they click. X and LinkedIn cannot schedule, so an approved item whose time
 // has come waits as a reminder; YouTube's goes out with the upload.
-import { LINK, planCampaign, withUtm } from '../shared/campaign'
+import {
+  LAUNCH_AFTER,
+  LINK,
+  clockOf,
+  planCampaign,
+  withUtm
+} from '../shared/campaign'
 import { emptyRelease, type CampaignItem } from '../shared/release'
 import { addEvent } from './activity'
 import { readAsset } from './persistence'
@@ -35,6 +41,7 @@ export const planCampaignFor = async (id: string) => {
 export const changeItem = (id: string, raw: unknown) => {
   const value = (raw ?? {}) as Record<string, unknown>
   return changeProject(id, (current) => {
+    const releaseAt = current.project.release?.at
     const item = current.project.release?.campaign.find(
       (entry) => entry.id === value.item
     )
@@ -50,17 +57,34 @@ export const changeItem = (id: string, raw: unknown) => {
       !item.words.trim()
     )
       throw new Refusal('Write the post’s words first')
-    if (value.offsetDays !== undefined) {
-      const days = Number(value.offsetDays)
-      if (!Number.isInteger(days) || Math.abs(days) > 60)
-        throw new Refusal('Keep it within 60 days of the release')
+    const days =
+      value.offsetDays === undefined
+        ? item.offsetDays
+        : Number(value.offsetDays)
+    if (!Number.isInteger(days) || Math.abs(days) > 60)
+      throw new Refusal('Keep it within 60 days of the release')
+    if (
+      typeof value.time === 'string' &&
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(value.time)
+    )
+      throw new Refusal('Give the time as HH:MM')
+    // A launch post moves with the release until the creator gives it a day
+    // or a time of its own, and goes back with it on "follow" (review 8).
+    const shown =
+      item.afterRelease !== undefined && releaseAt
+        ? clockOf(releaseAt, item)
+        : item.time
+    const time = typeof value.time === 'string' ? value.time : shown
+    if (value.follow === true && item.kind === 'launch') {
+      item.afterRelease = LAUNCH_AFTER[item.channel]
+      item.offsetDays = 0
+    } else if (days !== item.offsetDays || time !== shown) {
+      delete item.afterRelease
       item.offsetDays = days
+      item.time = time
     }
-    if (typeof value.time === 'string') {
-      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value.time))
-        throw new Refusal('Give the time as HH:MM')
-      item.time = value.time
-    }
+    if (item.afterRelease !== undefined && releaseAt)
+      item.time = clockOf(releaseAt, item)
     if (['draft', 'approved', 'dropped'].includes(String(value.state)))
       item.state = value.state as CampaignItem['state']
     // Seen in the feed: it went out after all.

@@ -456,6 +456,9 @@
   color: var(--accent, #e11d48);
   font-weight: 600;
 }
+.campaign-when small.campaign-own {
+  color: var(--muted);
+}
 .campaign-edit {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
@@ -491,6 +494,10 @@
 }
 .youtube-publish-form small {
   color: var(--muted);
+}
+.youtube-publish-form .publish-differs {
+  flex-basis: 100%;
+  color: var(--danger, #b91c1c);
 }
 .link-repo {
   margin: 0 0 6px;

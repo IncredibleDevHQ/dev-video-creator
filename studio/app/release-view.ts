@@ -2,6 +2,7 @@
 // for each channel, the words for each, the YouTube bundle; then the
 // campaign, the numbers and publishing (campaign-view.ts).
 import type { Snapshot } from '../shared/api'
+import { youtubeLaunch } from '../shared/campaign'
 import {
   CHANNEL_ASPECTS,
   CHANNEL_LABELS,
@@ -9,6 +10,7 @@ import {
   type Teaser
 } from '../shared/release'
 import { chapters } from '../shared/release-plan'
+import { dayAndTime } from './campaign-view'
 import { escape } from './ui'
 
 const CHANNELS = Object.keys(CHANNEL_LABELS) as Channel[]
@@ -93,6 +95,11 @@ const uploadState = (snapshot: Snapshot) => {
 export const youtubeSection = (snapshot: Snapshot) => {
   const marks = chapters(snapshot.project)
   const upload = snapshot.project.release?.youtube
+  // One launch time for the release, the campaign and the upload: the
+  // campaign's YouTube launch, which is the release's unless the creator
+  // gave it its own (review 8: the campaign said 08:00, the release 18:00).
+  const launch = youtubeLaunch(snapshot.project.release)
+  const launchAt = launch ? localTime(launch.at.toISOString()) : ''
   return `<section class="release-section"><h3>YouTube</h3>
 <p class="release-state">${marks.length ? `${marks.length} chapters from the beats` : 'No chapters: YouTube needs three or more, ten seconds each'}</p>
 <a class="button" href="/api/projects/${encodeURIComponent(snapshot.project.id)}/bundle" download>Download the upload bundle</a>
@@ -102,13 +109,14 @@ ${
   upload?.state === 'uploading' || upload?.state === 'uploaded'
     ? ''
     : `<details class="youtube-publish"><summary>Publish from the studio</summary>
-<form id="youtube-publish-form" class="youtube-publish-form">
+<form id="youtube-publish-form" class="youtube-publish-form"${launch ? ` data-launch="${launchAt}"` : ''}>
 <label>Who sees it<select name="privacy"><option value="private">Private</option><option value="unlisted">Unlisted</option><option value="public">Public</option></select></label>
 <label>Publish at <small>optional: it goes up private, and YouTube makes it public then</small><span class="publish-at"><input name="publishAt" type="datetime-local" value="">${
-        snapshot.project.release?.at
-          ? `<button type="button" class="quiet" data-action="use-release-date" data-at="${localTime(snapshot.project.release.at)}">Use the release date</button>`
+        launch
+          ? `<button type="button" class="quiet" data-action="use-release-date" data-at="${launchAt}">${launch.own ? 'Use the campaign’s time' : 'Use the release date'}</button>`
           : ''
       }</span></label>
+${launch ? `<p class="release-note publish-differs" hidden>The campaign launches it ${escape(dayAndTime(launch.at))}.</p>` : ''}
 <button>Upload to YouTube</button></form>
 <p class="release-note">Needs YouTube connected (Accounts). Until the studio’s Google project passes verification and YouTube’s audit, YouTube keeps these uploads private.</p></details>`
 }</section>`

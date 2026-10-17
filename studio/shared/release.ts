@@ -48,6 +48,9 @@ export type CampaignItem = {
   offsetDays: number
   /** The time of day, local, as HH:MM. */
   time: string
+  /** A launch post goes out this many minutes after the release and moves
+   * with it; without it, at `time` on its day. */
+  afterRelease?: number
   /** unknown: no answer came back; it may have gone out. */
   state: 'draft' | 'approved' | 'dropped' | 'posting' | 'posted' | 'unknown'
   postedAt?: string
