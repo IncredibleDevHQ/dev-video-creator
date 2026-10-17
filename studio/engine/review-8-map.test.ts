@@ -655,3 +655,33 @@ describe('Undo and Redo for what is done to an episode’s cards (F15)', () => {
     expect(order('e1')).toEqual(['x', 'y', 'w'])
   })
 })
+
+describe('focus as a bar menu closes (round 1)', () => {
+  it('goes back to the button that opened it when Esc closes it', async () => {
+    const { map } = await openMap()
+    let focused: Element | null = null
+    patch(win.HTMLElement.prototype, 'focus', function (this: Element) {
+      focused = this
+    })
+    Object.defineProperty(win.document, 'activeElement', {
+      get: () => focused,
+      configurable: true
+    })
+    const opener = () => (focused as HTMLElement | null)?.dataset.map
+    const menu = map.slot('menu')!
+    // Apply to… focuses its current choice; Esc brings focus back to it.
+    map.select({ t: 'direction', id: 'd1' })
+    click(map.slot('bar')!.querySelector('[data-map="menu:apply-to"]'))
+    await settle()
+    expect(menu.contains(focused)).toBe(true)
+    fire(focused!, 'keydown', { key: 'Escape' })
+    expect([menu.hidden, opener()]).toEqual([true, 'menu:apply-to'])
+    // A copy's Move to…, its choices reached with Tab: the same.
+    map.select({ t: 'copy', id: 'x' })
+    click(map.slot('bar')!.querySelector('[data-map="menu:move-to"]'))
+    await settle()
+    menu.querySelector<HTMLElement>('button')!.focus()
+    fire(focused!, 'keydown', { key: 'Escape' })
+    expect([menu.hidden, opener()]).toEqual([true, 'menu:move-to'])
+  })
+})

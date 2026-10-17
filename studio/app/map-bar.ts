@@ -244,9 +244,18 @@ export const showMenu = (
   place(menu, anchor, stage)
 }
 
+/** Closes the open menu. Focus that was in it, by Esc or a choice, goes back
+ * to the button that opened it, never to the page (review 8). */
 export const hideMenu = (map: MapCanvas) => {
   const menu = map.slot('menu')
-  if (menu) menu.hidden = true
+  if (!menu) return
+  const inside = !menu.hidden && menu.contains(document.activeElement)
+  menu.hidden = true
+  if (!inside) return
+  const opener = [...map.root.querySelectorAll<HTMLElement>('[data-map]')].find(
+    (el) => el.dataset.map === menu.dataset.for && !menu.contains(el)
+  )
+  opener?.focus()
 }
 
 /** Whether an episode has the page a clip holds already, so a paste there
