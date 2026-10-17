@@ -450,6 +450,61 @@ it('flags, and leaves as it is, a line under an approved video when a later note
   expect((await lastOf(one)).outro).toBe(SCOPED)
 })
 
+it('puts back with an order the line the creator kept, kept, and asks no writer for it, even on a made episode (F15, round 3)', async () => {
+  replies['Write Segues'] = writer(() => 'Next.')
+  const { ids, one } = await twoEpisodes('m-kept-order', NOTED)
+  replies['Write Segues'] = writer(() => OVER)
+  segues.scheduleSegues(one, true)
+  await segues.settledAllSegues()
+  await segues.answerSegueCheck(one, {
+    slide: (await lastOf(one)).id,
+    line: 'outro',
+    keep: true
+  })
+  // Made since: a line written again under it would cost a remake.
+  await changeProject(one, (current) => {
+    current.project.video = {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: { inputKey: '', objectKey: 'made.mp4' }
+    }
+  })
+  const move = async (page: string, index: number) => {
+    const slides = (await loadProject(one))!.project.slides
+    const card = slides.find((slide) => slide.copyOf?.slide === page)!
+    return episodes.changeCopies(one, {
+      action: 'move',
+      slide: card.id,
+      to: one,
+      index
+    })
+  }
+  // Reordered: the new order's lines, within the note.
+  replies['Write Segues'] = writer(() => SCOPED)
+  await move(ids[1], 0)
+  await segues.settledAllSegues()
+  expect((await lastOf(one)).outro).toBe(SCOPED)
+  // Put back: the kept line is back as kept, and no writer is asked.
+  stage.mockClear()
+  expect(await move(ids[1], 1)).toMatchObject({ rewriting: false })
+  await segues.settledAllSegues()
+  expect(stage).not.toHaveBeenCalled()
+  const back = (await loadProject(one))!
+  const last = back.project.slides.at(-1)!
+  expect(last.outro).toBe(OVER)
+  expect(back.project.segueChecks?.[last.id]?.outro).toEqual({
+    line: OVER,
+    note: NOTE_SAYS,
+    kept: true
+  })
+  const view = await episodes.mapView('m-kept-order')
+  expect(
+    view.episodes.find((e) => e.notebook === one)!.copies.at(-1)!.checks
+  ).toBeUndefined()
+})
+
 it('gives the posts writer the creator’s limits, sends a post past them back once, and flags one still past them in Release', async () => {
   replies['Write Segues'] = writer(() => 'Next.')
   const { one } = await twoEpisodes('m-posts', NOTED)

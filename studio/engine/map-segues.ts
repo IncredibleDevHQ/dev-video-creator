@@ -155,8 +155,11 @@ export const answerSegueCheck = async (id: string, raw: unknown) => {
     if (!slide || !check || check.kept || check.line !== slide[line])
       throw new Refusal('That line is no longer flagged')
     const where = `the line ${line === 'outro' ? 'after' : 'before'} “${slide.title}”`
+    const key = line === 'bridge' ? slide.bridgeFor : slide.outroFor
     if (value.keep === true) {
       check.kept = true
+      // Kept for its order too: put back with it, it comes back kept.
+      if (key) (current.project.segueKept ||= {})[key] = { ...check }
       addEvent(current, 'slide', `Kept ${where} as it is`)
       return
     }
@@ -165,8 +168,8 @@ export const answerSegueCheck = async (id: string, raw: unknown) => {
     delete checks[line]
     if (!checks.bridge && !checks.outro)
       delete current.project.segueChecks![slideId]
-    const key = line === 'bridge' ? slide.bridgeFor : slide.outroFor
     if (key) delete current.project.segueLines?.[key]
+    if (key) delete current.project.segueKept?.[key]
     if (line === 'bridge') delete slide.bridgeFor
     else delete slide.outroFor
     again = true
@@ -279,7 +282,10 @@ const keepLine = (project: Project, key?: string, text?: string) => {
   const kept = (project.segueLines ||= {})
   delete kept[key]
   kept[key] = text
-  for (const old of Object.keys(kept).slice(0, -KEPT_LINES)) delete kept[old]
+  for (const old of Object.keys(kept).slice(0, -KEPT_LINES)) {
+    delete kept[old]
+    delete project.segueKept?.[old]
+  }
 }
 /** Gives a page a line, the one it replaces kept for the order it had. */
 const setLine = (
@@ -385,17 +391,24 @@ const planLines = async (snapshot: Snapshot, force: boolean) => {
     around
   )
   // Lines it had for these very pages around them, still within the
-  // creator's words: taken again, not written anew.
+  // creator's words or kept by the creator as they are: taken again, not
+  // written anew (F15: a kept line put back was written again).
   const store = snapshot.project.segueLines || {}
-  const holds = (text?: string) =>
-    !force && text && !overclaims(text, material).length ? text : undefined
+  const keptBy = snapshot.project.segueKept || {}
+  const holds = (key: string) => {
+    const text = store[key]
+    if (force || !text) return undefined
+    return keptBy[key]?.line === text || !overclaims(text, material).length
+      ? text
+      : undefined
+  }
   const kept = slides.map((_, index) =>
-    stale[index] ? holds(store[keys[index]]) : undefined
+    stale[index] ? holds(keys[index]) : undefined
   )
   kept.forEach((text, index) => {
     if (text) stale[index] = false
   })
-  const keptOutro = outroStale ? holds(store[endKey]) : undefined
+  const keptOutro = outroStale ? holds(endKey) : undefined
   if (keptOutro) outroStale = false
   // A line kept that now promises more than that (a note brought a limit
   // since) is written again, once, while the video hasn't started; under a
@@ -441,6 +454,14 @@ type Plan = Awaited<ReturnType<typeof planLines>>
 /** How many lines a plan takes again, none written. */
 const keptCount = (plan: Plan) =>
   plan.kept.filter(Boolean).length + (plan.keptOutro ? 1 : 0)
+/** A line put back that the creator kept as it is: kept again, so no check
+ * flags it and no writer is asked for it. */
+const keptAgain = (project: Project, slide: Slide, line: Line, key: string) => {
+  const check = project.segueKept?.[key]
+  if (check?.line !== slide[line]) return
+  const checks = (project.segueChecks ||= {})
+  checks[slide.id] = { ...checks[slide.id], [line]: { ...check, kept: true } }
+}
 /** Puts back the lines kept for this order, on pages still in it. */
 const putBack = (current: Snapshot, plan: Plan) => {
   const { project } = current
@@ -449,11 +470,13 @@ const putBack = (current: Snapshot, plan: Plan) => {
     const text = plan.kept[index]
     if (!text || slide.bridgeFor === plan.keys[index]) return
     setLine(project, slide, 'bridge', text, plan.keys[index])
+    keptAgain(project, slide, 'bridge', plan.keys[index])
     count++
   })
   const last = project.slides[project.slides.length - 1]
   if (plan.keptOutro && last.outroFor !== plan.endKey) {
     setLine(project, last, 'outro', plan.keptOutro, plan.endKey)
+    keptAgain(project, last, 'outro', plan.endKey)
     count++
   }
   if (count)

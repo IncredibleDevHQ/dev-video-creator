@@ -236,6 +236,9 @@ export type Project = {
    * (a bridgeFor or outroFor key): an order put back, by Undo or by hand,
    * takes its lines again rather than new words (review 8, round 2). */
   segueLines?: Record<string, string>
+  /** Lines the creator kept as they are, by what each was written for: an
+   * order put back takes one again as kept, never written anew (F15). */
+  segueKept?: Record<string, SegueCheck>
   /** An episode whose pages the agent is choosing from what it is about. */
   picking?: {
     state: 'picking' | 'failed'
