@@ -100,7 +100,11 @@ export type MapView = {
     id: string
     title: string
     /** The episodes being planned by the agent, or why they were not. */
-    planning?: { state: 'planning' | 'failed'; error?: string }
+    planning?: {
+      state: 'planning' | 'failed'
+      error?: string
+      waiting?: string
+    }
     ideas?: string
     length?: import('./storyboard').LengthGoal
     /** How many drawn cards the map has, and how long they run, spoken. */

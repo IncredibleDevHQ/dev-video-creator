@@ -706,6 +706,9 @@ export const mapView = async (mapId: string): Promise<MapView> => {
                   state: series.planning.state,
                   ...(series.planning.error
                     ? { error: series.planning.error }
+                    : {}),
+                  ...(series.planning.waiting
+                    ? { waiting: series.planning.waiting }
                     : {})
                 }
               }

@@ -187,19 +187,45 @@ export const mapAtWork = (map: Snapshot) => {
  * drawn a moment after the plan began was missed, and named as a gap
  * (review 8, round 2's live run), and a note sorted as the map was drawn
  * had no card yet when the plan read it (round 2's audit). */
-const settledMap = async (id: string) => {
+const settledMap = async (id: string, seriesId: string) => {
   const until = Date.now() + DRAWING_WAIT_MS
   let map = await loadProject(id)
+  let said = ''
+  // The series says what it waits for, not only "planning" (round 2).
+  const say = async (waiting: string) => {
+    if (waiting === said) return
+    said = waiting
+    await changeSeries(seriesId, (current) => {
+      if (current.planning?.state !== 'planning') return
+      if (waiting) current.planning.waiting = waiting
+      else delete current.planning.waiting
+    })
+  }
   while (map && mapAtWork(map) && Date.now() < until) {
+    await say(waitingFor(map))
     await new Promise((resolve) => setTimeout(resolve, 1000))
     map = await loadProject(id)
   }
+  await say('')
   return map
+}
+/** What a plan waits for on the map, in words. */
+const waitingFor = (map: Snapshot) => {
+  if (map.status === 'building') return 'waiting for the map to be drawn'
+  const sorting = (map.project.notes || []).filter(
+    (note) => note.state === 'sorting' || note.state === 'waiting'
+  ).length
+  if (sorting)
+    return `waiting for ${sorting === 1 ? 'your note' : `${sorting} notes`} to be sorted`
+  const cards = (map.changes || []).filter(
+    (change) => change.state === 'working' || change.state === 'queued'
+  ).length
+  return `waiting for ${cards === 1 ? '1 card' : `${cards} cards`} being drawn`
 }
 
 const runPlan = async (seriesId: string) => {
   const series = (await loadSeries(seriesId))!
-  const map = await settledMap(series.map!)
+  const map = await settledMap(series.map!, seriesId)
   if (!map) throw new Error('The map was not found')
   const pages = cardsOf(map)
   const total = pages.reduce((sum, page) => sum + page.seconds, 0)

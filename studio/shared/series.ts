@@ -119,7 +119,13 @@ export type Series = {
   about: string
   arc?: { episodes: [number, number]; parts: SeriesPart[]; at: string }
   /** Set while the agent plans the arc, or when it could not. */
-  planning?: { state: 'planning' | 'failed'; error?: string; at: string }
+  planning?: {
+    state: 'planning' | 'failed'
+    error?: string
+    at: string
+    /** What the plan waits for on the map before it reads it. */
+    waiting?: string
+  }
   episodes: SeriesEpisode[]
   repos: RepoLink[]
   /** Threads carried from one episode to the next. */

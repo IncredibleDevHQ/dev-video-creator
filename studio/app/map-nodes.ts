@@ -174,7 +174,12 @@ export const queueItems = (snapshot: Snapshot, view: MapView | null) => {
   if (snapshot.project.grouping?.state === 'grouping')
     items.push('Grouping cards by topic')
   const series = view?.series
-  if (series?.planning?.state === 'planning') items.push('Planning the series')
+  if (series?.planning?.state === 'planning')
+    items.push(
+      series.planning.waiting
+        ? `Planning the series, ${series.planning.waiting}`
+        : 'Planning the series'
+    )
   if (series?.organizing?.state === 'organizing')
     items.push('Organising new cards into episodes')
   for (const episode of view?.episodes || []) {

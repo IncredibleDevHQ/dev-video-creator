@@ -213,6 +213,13 @@ it('plans a series once the cards being drawn on its map have landed', async () 
   expect(
     stage.mock.calls.some(([input]) => input.route === 'Plan Series')
   ).toBe(false)
+  // It says what it waits for, on the map as in the series (round 2).
+  expect((await loadSeries(series.id))!.planning?.waiting).toBe(
+    'waiting for 1 card being drawn'
+  )
+  expect((await episodes.mapView('w')).series?.planning?.waiting).toBe(
+    'waiting for 1 card being drawn'
+  )
   // The card is drawn, and its change leaves the queue.
   await changeProject('w', (snapshot) => {
     snapshot.project.slides[3].svg =

@@ -136,7 +136,7 @@ const nextStep = (view: MapView | null) => {
   if (seriesPlanned(series))
     return '<button type="button" class="primary" data-map="new-episode">+ Episode</button>'
   const planning = series.planning?.state === 'planning'
-  return `<button type="button" class="quiet map-tool" data-map="new-episode">+ Episode</button><button type="button" class="primary map-next" ${planning ? 'disabled' : 'data-map="plan-series"'}>${planning ? 'Planning…' : 'Plan the series'}<small data-length-words>${escape(lengthWords(series.length || DEFAULT_LENGTH))}</small></button>`
+  return `<button type="button" class="quiet map-tool" data-map="new-episode">+ Episode</button><button type="button" class="primary map-next" ${planning ? 'disabled' : 'data-map="plan-series"'}>${planning ? 'Planning…' : 'Plan the series'}<small data-length-words>${escape((planning && series.planning?.waiting) || lengthWords(series.length || DEFAULT_LENGTH))}</small></button>`
 }
 
 /** The header's tools: one View menu for how the map is arranged and
