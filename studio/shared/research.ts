@@ -56,6 +56,9 @@ export type ResearchNode = {
   state: 'working' | 'done' | 'failed' | 'stopped'
   answer: string
   answerText: string
+  /** false means an ordinary chat reply; artifacts alone become graph nodes. */
+  artifact?: false | { title: string; parentId: string | null }
+  contextDocumentId?: string
   sessionMode?: 'new' | 'continued' | 'branched'
   activity?: string
   error?: string

@@ -3,6 +3,7 @@ export type ProjectContext = {
   notebook?: string
   chat?: string | null
   node?: string | null
+  chatMinimized?: boolean
 }
 export const projectLink = (
   id: string,
@@ -13,13 +14,17 @@ export const projectLink = (
   if (context.notebook) params.set('book', context.notebook)
   if (context.chat) params.set('chat', context.chat)
   if (context.node) params.set('node', context.node)
+  if (context.chatMinimized) params.set('chatPanel', 'collapsed')
   for (const [key, value] of Object.entries(target)) params.set(key, value)
   return `/?${params}`
 }
 export const projectContext = (url: URL): ProjectContext => ({
   notebook: url.searchParams.get('book') || undefined,
   chat: url.searchParams.get('chat'),
-  node: url.searchParams.get('node')
+  node: url.searchParams.get('node'),
+  ...(url.searchParams.get('chatPanel') === 'collapsed'
+    ? { chatMinimized: true }
+    : {})
 })
 
 /** Notes have one canonical editor; engine snapshots are generated outputs. */

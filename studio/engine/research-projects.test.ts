@@ -57,7 +57,7 @@ it('creates a project and first notebook from one note, preserving separate note
     'Separate subject'
   )
 })
-it('keeps exact formatted-response lineage and sends only the selected branch ancestors', async () => {
+it('keeps exact excerpt lineage while preserving the whole persistent chat', async () => {
   const p = await projects.createResearchProject({ text: 'Research notes' })
   const ask = async (question: string, parentId?: string) => {
     const result = await chat.askResearch(p.id, {
@@ -75,7 +75,8 @@ it('keeps exact formatted-response lineage and sends only the selected branch an
     stage.mock.calls.at(-1)![0].packet['packet/CONVERSATION.json']
   )
   expect(packet.map((n: { question: string }) => n.question)).toEqual([
-    'How does an outbox work?'
+    'How does an outbox work?',
+    'What about retries?'
   ])
   let saved = await projects.researchProjectView(p.id)
   expect(researchPath(saved.nodes, sibling).map((n) => n.id)).toEqual([

@@ -1,3 +1,4 @@
+import { activeResearchDocument } from './research-artifact'
 import { rememberNewResearchChat } from './research-chat-draft'
 import { projectLink } from './project-links'
 import { startResearchChat } from './research-session-state'
@@ -33,7 +34,9 @@ export const toggleProjectPanel = (
   workbench: ResearchWorkbench,
   render: () => void
 ) => {
-  if (action === 'new-chat') {
+  if (action === 'minimize-chat' && activeResearchDocument(s)) {
+    s.chatMinimized = !s.chatMinimized
+  } else if (action === 'new-chat') {
     startResearchChat(s)
     rememberNewResearchChat(s)
   } else if (action === 'toggle-sidebar') {
@@ -57,6 +60,7 @@ export const toggleProjectPanel = (
       workbench.state.graphOpen = false
     }
   } else if (action === 'open-notebook' || action === 'toggle-graph') {
+    if (action === 'open-notebook') s.chatMinimized = false
     if (s.contentOpen || s.documentExpanded) {
       if (action === 'open-notebook') workbench.state.notesOpen = false
       else workbench.state.graphOpen = false
@@ -98,4 +102,14 @@ export const showSavedNote = (root: HTMLElement, source?: string) => {
     note.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12
   note.setAttribute('tabindex', '-1')
   note.focus({ preventScroll: true })
+}
+
+export const closeComposeMenus = (root: HTMLElement, element: Element) => {
+  const menu = element.closest('.research-compose-tools summary')?.parentElement
+  if (menu || !element.closest('.research-compose-tools'))
+    root
+      .querySelectorAll('.research-compose-tools details[open]')
+      .forEach((other) => {
+        if (other !== menu) other.removeAttribute('open')
+      })
 }

@@ -1,3 +1,4 @@
+import { researchDocumentFor } from '../shared/research-documents'
 import {
   prepareResearchSession,
   finishResearchSession
@@ -10,7 +11,7 @@ import type {
   ResearchNode,
   ResearchRepo
 } from '../shared/research'
-import { researchPath, validExcerpt } from '../shared/research'
+import { validExcerpt } from '../shared/research'
 import {
   changeResearchProject,
   readResearchProject,
@@ -103,10 +104,25 @@ export const askResearch = async (
       text: text.slice(raw.start, raw.end)
     }
   }
+  const contextDocument =
+    typeof body.contextDocumentId === 'string'
+      ? researchDocumentFor(project.nodes, body.contextDocumentId)
+      : researchDocumentFor(project.nodes, parentId)
+  if (
+    body.contextDocumentId &&
+    (!contextDocument || contextDocument.chatId !== chatId)
+  )
+    throw new Refusal('Choose a research document from this chat')
+  const createsDocument =
+    Boolean(anchor) || !project.nodes.some((n) => n.chatId === chatId)
   const node: ResearchNode = {
     id: randomUUID(),
     chatId: chatId || randomUUID(),
     parentId,
+    artifact: createsDocument
+      ? { title: question.slice(0, 100), parentId: contextDocument?.id || null }
+      : false,
+    contextDocumentId: contextDocument?.id,
     question,
     anchor,
     harness,
@@ -169,9 +185,15 @@ const answerResearch = async (id: string, nodeId: string) => {
   const project = await readResearchProject(id)
   const node = project.nodes.find((n) => n.id === nodeId)!
   if (node.state !== 'working') return
-  const history = researchPath(project.nodes, node.parentId).map(
-    ({ question, answer, anchor }) => ({ question, answer, anchor })
-  )
+  const history = project.nodes
+    .filter(
+      (n) =>
+        n.chatId === node.chatId &&
+        n.at <= node.at &&
+        n.id !== node.id &&
+        n.state === 'done'
+    )
+    .map(({ question, answer, anchor }) => ({ question, answer, anchor }))
   // Tools read the exact pinned commit, even if another process moves a branch.
   const tools = node.repos.flatMap((repo, index) =>
     repoTools({ ...repo, branch: repo.commit }).map((tool) => ({
@@ -221,6 +243,10 @@ const answerResearch = async (id: string, nodeId: string) => {
         question: node.question,
         selection: node.anchor || null
       }),
+      'packet/ACTIVE_DOCUMENT.json': JSON.stringify(
+        researchDocumentFor(project.nodes, node.contextDocumentId || null) ||
+          null
+      ),
       'packet/CONVERSATION.json': JSON.stringify(history),
       'packet/REPOSITORIES.json': JSON.stringify(context),
       'packet/NOTEBOOKS.json': JSON.stringify(

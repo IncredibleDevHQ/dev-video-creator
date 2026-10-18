@@ -1,3 +1,8 @@
+import {
+  activeResearchDocument,
+  artifactGraph,
+  researchTurnRequest
+} from './research-artifact'
 import { installChatKeyboard } from './research-chat-keyboard'
 import { rememberNewResearchChat } from './research-chat-draft'
 import { html } from '../shared/html'
@@ -24,6 +29,7 @@ import {
 import { researchNameDialog } from './research-dialog'
 import { researchChatSetup } from './research-chat-setup'
 import {
+  closeComposeMenus,
   researchLocation,
   showSavedNote,
   showResearchTurn,
@@ -44,7 +50,7 @@ import './styles/project-workspace.css'
 import './styles/project-simple.css'
 import './styles/research-conversation.css'
 import './styles/research-floating-map.css'
-
+import './styles/research-artifact.css'
 export class ResearchWorkspace {
   isOpen = false
   private state: ResearchViewState | null = null
@@ -69,15 +75,7 @@ export class ResearchWorkspace {
     root.addEventListener('click', (event) => {
       if (!this.isOpen) return
       const element = event.target as Element
-      const menu = element.closest(
-        '.research-compose-tools summary'
-      )?.parentElement
-      if (menu || !element.closest('.research-compose-tools'))
-        this.root
-          .querySelectorAll('.research-compose-tools details[open]')
-          .forEach((other) => {
-            if (other !== menu) other.removeAttribute('open')
-          })
+      closeComposeMenus(this.root, element)
       const target = element.closest<HTMLElement>('button')
       if (target) target.closest('.project-switcher')?.removeAttribute('open')
       if (target) void this.click(target).catch((e) => this.error(e))
@@ -133,8 +131,8 @@ export class ResearchWorkspace {
         const graph = this.root.querySelector('.research-graph-scroll')
         if (graph)
           graph.innerHTML = researchGraph(
-            this.state.project.nodes,
-            this.state.node,
+            artifactGraph(this.state),
+            activeResearchDocument(this.state)?.id || null,
             field.value,
             this.workbench.state.scope,
             this.workbench.state.depth
@@ -173,7 +171,6 @@ export class ResearchWorkspace {
   async command(button: HTMLElement) {
     await this.click(button)
   }
-
   private draftKey(field: string) {
     return researchDraftKey(
       field,
@@ -244,6 +241,7 @@ export class ResearchWorkspace {
     this.workbench.open(id)
     this.state = {
       layout: this.workbench.state,
+      chatMinimized: url.searchParams.get('chatPanel') === 'collapsed',
       project,
       tab: 'research',
       contentOpen: tab === 'wireframes' || tab === 'canvas',
@@ -472,24 +470,17 @@ export class ResearchWorkspace {
         const result = await researchRequest<{
           nodeId: string
           project: ResearchProjectView
-        }>(`/${s.project.id}/ask`, {
-          question: values.get('question'),
-          notebookId: s.notebook,
-          chatId: s.chat || undefined,
-          parentId: s.node,
-          anchor: s.anchor,
-          harness: {
-            adapter: s.adapter,
-            ...(s.model ? { model: s.model } : {})
-          },
-          repos: s.repos
-        })
+        }>(
+          `/${s.project.id}/ask`,
+          researchTurnRequest(s, values.get('question'))
+        )
         this.drafts[this.draftKey('research-question')] = ''
         s.project = result.project
         s.chat = result.project.nodes.find(
           (n) => n.id === result.nodeId
         )!.chatId!
         s.node = result.nodeId
+        s.chatMinimized = Boolean(s.anchor)
         s.anchor = null
         this.drafts[this.draftKey('research-question')] = ''
         this.persistDrafts()
@@ -520,7 +511,10 @@ export class ResearchWorkspace {
         if (s.chat) await this.change('chats', chatSettings(s))
       }
     })
-    if (formId === 'research-question-form') this.workbench.graph.fit()
+    if (formId === 'research-question-form') {
+      this.workbench.graph.fit()
+      this.showSelectedTurn()
+    }
     if (formId === 'research-repo-form' || formId === 'research-branch-form')
       this.root.querySelector('.research-repos')?.setAttribute('open', '')
   }
@@ -531,6 +525,7 @@ export class ResearchWorkspace {
   private branch(anchor: ResearchAnchor) {
     const s = this.state!
     s.anchor = anchor
+    s.chatMinimized = false
     let nodeId: string | null = anchor.kind === 'response' ? anchor.id : null
     if (anchor.kind === 'note') {
       const block = s.project.notebooks
@@ -590,6 +585,8 @@ export class ResearchWorkspace {
         (n) => n.id === button.dataset.researchNode
       )!
       selectResearchNode(s, node.id)
+      this.workbench.state.notesOpen = false
+      if (window.innerWidth <= 700) s.chatMinimized = true
       s.contentOpen = false
       s.documentExpanded = false
       this.navigate()
@@ -599,7 +596,9 @@ export class ResearchWorkspace {
     }
     if (button.dataset.selectNotebook) {
       s.notebook = button.dataset.selectNotebook
-      s.documentExpanded = Boolean(button.closest('.project-sidebar') || s.contentOpen)
+      s.documentExpanded = Boolean(
+        button.closest('.project-sidebar') || s.contentOpen
+      )
       s.contentOpen = false
       s.sidebarOpen = false
       if (!this.workbench.state.notesOpen || this.workbench.state.expanded) {

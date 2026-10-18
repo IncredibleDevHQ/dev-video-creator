@@ -1,3 +1,10 @@
+import {
+  artifactChatRail,
+  activeResearchDocument,
+  artifactGraph,
+  researchArtifact
+} from './research-artifact'
+import { isResearchDocument } from '../shared/research-documents'
 import { projectLink } from './project-links'
 import { html } from '../shared/html'
 import type {
@@ -6,13 +13,8 @@ import type {
   ResearchAnchor
 } from '../shared/research'
 import type { RepoLink, RepoInspection } from '../shared/repos'
-import { researchPath } from '../shared/research'
 import { researchHtml } from '../shared/research-markdown'
-import {
-  graphPanel,
-  paneDivider,
-  ancestryTrail
-} from './research-workbench-view'
+import { graphPanel, paneDivider } from './research-workbench-view'
 import type { ResearchLayout } from './research-layout'
 import { escape } from './ui'
 import { chatSwitcher, projectSidebar } from './research-session-view'
@@ -233,6 +235,9 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
         ></span
       >
       <h2>${escape(n.question)}</h2>
+      ${n.contextDocumentId
+        ? `<button class="chat-message-document" data-research-node="${n.contextDocumentId}">In research document ↗</button>`
+        : ''}
       ${n.anchor
         ? html`<details
             class="research-question-context"
@@ -301,6 +306,9 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
                 </button>`
             )
             .join('')}
+          ${isResearchDocument(n)
+            ? `<button class="research-artifact-link" data-research-node="${n.id}">Open research document ↗</button>`
+            : ''}
           <div class="research-answer-actions">
             <button type="button" data-save-answer="${n.id}">
               Save to notebook</button
@@ -397,7 +405,7 @@ const repoContext = (s: ResearchViewState) =>
     </div>
   </details>`
 const chat = (s: ResearchViewState) => {
-  const path = researchPath(s.project.nodes, s.node)
+  const path = s.project.nodes.filter((n) => n.chatId === s.chat)
   const workingNode = s.project.nodes.find(
     (n) => n.chatId === s.chat && n.state === 'working'
   )
@@ -412,7 +420,11 @@ const chat = (s: ResearchViewState) => {
           Your agent is answering in this chat · View progress →
         </button>`
       : ''}
-    ${ancestryTrail(s.project.nodes, s.node)}
+    <div class="chat-document-context">
+      ${activeResearchDocument(s)
+        ? `Discussing: ${escape(activeResearchDocument(s)!.question.slice(0, 80))}`
+        : 'Start a research conversation'}
+    </div>
     <div class="research-transcript" aria-live="polite">
       ${path.length
         ? path.map((node) => reply(node, s)).join('')
@@ -561,8 +573,12 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
           </div>`
         : ''}
       <main
-        class="research-columns graph-${s.layout?.graphMode || 'pip'} ${!s
-          .layout?.graphOpen
+        class="research-columns ${activeResearchDocument(s) &&
+        !s.contentOpen &&
+        !s.documentExpanded
+          ? 'has-research-artifact'
+          : ''} ${s.chatMinimized ? 'artifact-chat-minimized' : ''} graph-${s
+          .layout?.graphMode || 'pip'} ${!s.layout?.graphOpen
           ? 'graph-hidden'
           : ''} ${s.layout?.notesOpen !== true ? 'notes-hidden' : ''} ${s.layout
           ?.expanded
@@ -573,13 +589,17 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
           ? 'document-expanded'
           : ''}"
       >
-        ${graphPanel(s.project.nodes, s.node, s.query, s.layout)}${s.layout
-          ?.expanded
+        ${graphPanel(
+          artifactGraph(s),
+          activeResearchDocument(s)?.id || null,
+          s.query,
+          s.layout
+        )}${s.layout?.expanded
           ? '<div aria-hidden="true"></div>'
           : paneDivider('graph')}
-        ${chat(s)}${paneDivider('notes')}${s.contentOpen
-          ? projectContent(s)
-          : notePanel(s, true)}
+        ${artifactChatRail(s)}${chat(s)}${researchArtifact(s)}${paneDivider(
+          'notes'
+        )}${s.contentOpen ? projectContent(s) : notePanel(s, true)}
       </main>
     </div>
     <div id="research-selection" class="research-selection" hidden></div>

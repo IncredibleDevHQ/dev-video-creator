@@ -334,3 +334,42 @@ it('recovers a legacy chat notebook from its most recent saved excerpt', async (
   selectResearchChat(state, saved.chats![0].id)
   expect(state.notebook).toBe(project.notebooks[1].id)
 })
+it('keeps ordinary messages in one chat and creates document nodes only for the root and selected passages', async () => {
+  const { researchDocumentGraph } = await import('../shared/research-documents')
+  const p = await projects.createResearchProject({ text: 'Research artifacts' })
+  const first = await questions.askResearch(p.id, {
+    question: 'Explore the topic'
+  })
+  await questions.settledResearch(first.nodeId)
+  const chatId = first.project.nodes[0].chatId
+  const follow = await questions.askResearch(p.id, {
+    chatId,
+    parentId: first.nodeId,
+    contextDocumentId: first.nodeId,
+    question: 'Explain briefly'
+  })
+  await questions.settledResearch(follow.nodeId)
+  let saved = await projects.readResearchProject(p.id)
+  expect(saved.nodes[1].artifact).toBe(false)
+  expect(researchDocumentGraph(saved.nodes)).toHaveLength(1)
+  const child = await questions.askResearch(p.id, {
+    chatId,
+    parentId: first.nodeId,
+    contextDocumentId: first.nodeId,
+    question: 'Explore this passage',
+    anchor: { kind: 'response', id: first.nodeId, start: 0, end: 17 }
+  })
+  await questions.settledResearch(child.nodeId)
+  saved = await projects.readResearchProject(p.id)
+  expect(
+    researchDocumentGraph(saved.nodes).map((n) => [n.id, n.parentId])
+  ).toEqual([
+    [first.nodeId, null],
+    [child.nodeId, first.nodeId]
+  ])
+  expect(new Set(saved.nodes.map((n) => n.chatId)).size).toBe(1)
+  expect(saved.notebooks[0].blocks).toHaveLength(1)
+  expect(
+    JSON.parse(stage.mock.calls.at(-1)![0].packet['packet/CONVERSATION.json'])
+  ).toHaveLength(2)
+})

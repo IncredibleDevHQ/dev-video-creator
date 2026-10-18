@@ -285,15 +285,16 @@ it('restores reading position only for the same project, branch and notebook', (
   expect(transcript.scrollTop).toBe(412)
 })
 
-it('minimizes and resumes chat while keeping the same draft and selected context', () => {
+it('minimizes and resumes chat without a research artifact while keeping the same draft', () => {
   const { workbench, root, changed } = setup()
   const state = {
     notebook: 'notes',
     chat: 'conversation',
     node: 'follow-up',
+    project: { nodes: [] },
     contentOpen: false,
     documentExpanded: false
-  } as ResearchViewState
+  } as unknown as ResearchViewState
   const composer =
     root.querySelector<HTMLTextAreaElement>('#research-question')!
   composer.value = 'Continue my question'

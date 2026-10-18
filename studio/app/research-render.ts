@@ -28,7 +28,7 @@ export const renderResearch = (
 export const researchScroll = (root: HTMLElement) =>
   [
     ...root.querySelectorAll<HTMLElement>(
-      '.research-transcript,.research-note-scroll,.research-graph-scroll,.project-content-scroll'
+      '.research-transcript,.research-note-scroll,.research-graph-scroll,.project-content-scroll,.research-artifact-scroll'
     )
   ].map((e) => [e.className, e.scrollTop, e.scrollLeft] as const)
 export const restoreResearchScroll = (

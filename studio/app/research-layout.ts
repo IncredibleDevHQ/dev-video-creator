@@ -59,7 +59,7 @@ export const researchDraftKey = (
   field === 'research-note-input'
     ? `${field}:${notebook}`
     : field === 'research-question'
-      ? `${field}:${node || chat || 'new'}`
+      ? `${field}:${chat || node || 'new'}`
       : field === 'research-repo-path'
         ? `${field}:${chat || 'new'}`
         : field
