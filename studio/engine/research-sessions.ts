@@ -61,7 +61,7 @@ export const saveResearchChat = async (
         title: title || 'New chat',
         createdAt: at,
         updatedAt: at,
-        repos: repos || [],
+        repos: repos || (project.repository ? [project.repository] : []),
         notebookId: notebookId || project.notebooks[0].id,
         harness: harness || { adapter: 'claude-code' }
       })

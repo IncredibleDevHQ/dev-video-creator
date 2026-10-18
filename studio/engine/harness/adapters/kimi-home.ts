@@ -7,6 +7,8 @@
 import { existsSync } from 'node:fs'
 import {
   cp,
+  lstat,
+  unlink,
   mkdir,
   readFile,
   readdir,
@@ -97,7 +99,12 @@ export const runConfig = (
 
 export const kimiRunHome = async (
   projectDir: string,
-  run: { effort: string; maxOutputTokens?: number; model?: string }
+  run: {
+    effort: string
+    maxOutputTokens?: number
+    model?: string
+    visualWorker?: boolean
+  }
 ) => {
   const real = realKimiHome()
   const { config, effort } = runConfig(
@@ -108,7 +115,15 @@ export const kimiRunHome = async (
   // Keep this run's CLI sessions so a retry can resume its actual context.
   await mkdir(home, { recursive: true })
   for (const entry of await readdir(real)) {
-    if (['config.toml', 'mcp.json', 'skills'].includes(entry)) continue
+    if (
+      [
+        'config.toml',
+        'mcp.json',
+        'skills',
+        ...(run.visualWorker ? ['agents', 'SYSTEM.md'] : [])
+      ].includes(entry)
+    )
+      continue
     await symlink(join(real, entry), join(home, entry)).catch(() => {})
   }
   await writeFile(join(home, 'config.toml'), config, { mode: 0o600 })
@@ -118,6 +133,39 @@ export const kimiRunHome = async (
   const installed = join(projectDir, '.claude', 'skills')
   if (existsSync(installed))
     await cp(installed, join(home, 'skills'), { recursive: true, force: true })
+  if (run.visualWorker) {
+    // This is a fresh Studio-owned home. Never overwrite the user's agents.
+    for (const entry of ['agents', 'SYSTEM.md']) {
+      const path = join(home, entry)
+      if ((await lstat(path).catch(() => null))?.isSymbolicLink())
+        await unlink(path)
+    }
+    await mkdir(join(home, 'agents'), { recursive: true })
+    await writeFile(
+      join(home, 'agents', 'agent.md'),
+      `---
+name: agent
+description: Studio visual worker with only local composition and review tools
+override: true
+tools:
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - ReadMediaFile
+  - Skill
+  - mcp__studio__*
+subagents: []
+---
+\${base_prompt}
+
+Work only on the assigned visual. Studio runs rendering and checks through
+its tools. No delegation, networking, scheduling or shell orchestration.
+`,
+      { mode: 0o600 }
+    )
+  }
   return { home, effort }
 }
 

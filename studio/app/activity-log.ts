@@ -49,6 +49,11 @@ const STAGE_WORDS: Array<[string, string]> = [
   ['page', 'Wireframes'],
   ['revise-page', 'Wireframe changes'],
   ['planning', 'Video plan'],
+  ['storyboard', 'Storyboard planning'],
+  ['pose', 'Still frames'],
+  ['shots', 'Motion planning'],
+  ['frame', 'Frame animation'],
+  ['research', 'Research'],
   ['composition', 'Video scenes'],
   ['chat', 'Questions'],
   ['extension', 'Extension'],
@@ -65,7 +70,13 @@ export const tokens = (count: number) =>
 /** Token use per step, as the agents reported it. */
 export const usageTable = (snapshot: Snapshot) => {
   const stages = snapshot.tokenUsage?.stages || {}
-  const rows = STAGE_WORDS.filter(([key]) => stages[key]?.totalRuns)
+  const known = new Set(STAGE_WORDS.map(([key]) => key))
+  const rows = [
+    ...STAGE_WORDS,
+    ...Object.keys(stages)
+      .filter((key) => !known.has(key))
+      .map((key) => [key, key])
+  ].filter(([key]) => stages[key]?.totalRuns)
   if (!rows.length) return ''
   const row = (label: string, total: UsageTotal, className = '') =>
     `<tr class="${className}"><th scope="row">${escape(label)}</th><td>${total.totalRuns}</td>${
@@ -75,11 +86,11 @@ export const usageTable = (snapshot: Snapshot) => {
     }</tr>`
   const total = snapshot.tokenUsage!.total
   return `<h3 class="activity-usage-title">Token use</h3>
-<table class="activity-usage"><thead><tr><th scope="col">Step</th><th scope="col">Calls</th><th scope="col">New input</th><th scope="col">Cached</th><th scope="col">Output</th><th scope="col">Total</th></tr></thead><tbody>${rows
+<table class="activity-usage"><thead><tr><th scope="col">Step</th><th scope="col">Agent runs</th><th scope="col">New input</th><th scope="col">Cached</th><th scope="col">Output</th><th scope="col">Token traffic</th></tr></thead><tbody>${rows
     .map(([key, label]) => row(label, stages[key]))
     .join(
       ''
-    )}${rows.length > 1 ? row('All steps', total, 'is-total') : ''}</tbody></table>${
+    )}${rows.length > 1 ? row('All steps', total, 'is-total') : ''}</tbody></table><p class="activity-usage-note">Cached input, new input and output have different rates. Token traffic is not a price or quota debit. One agent run can make multiple model requests.</p>${
     total.partial
       ? '<p class="activity-usage-note">* Some calls did not report their tokens, or stopped before they could.</p>'
       : ''

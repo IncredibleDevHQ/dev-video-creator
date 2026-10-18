@@ -1,3 +1,11 @@
+import { chooseRepositoryProject } from './repository-project'
+import { destinationPicker } from './destination-picker'
+import {
+  installAgentPickers,
+  installRepositoryPicker,
+  rememberRepository
+} from './context-pickers'
+import { closePopover } from './popover'
 import { html } from '../shared/html'
 import type { ResearchProjectView } from '../shared/research'
 import type { RepoInspection, RepoLink } from '../shared/repos'
@@ -19,7 +27,9 @@ export const researchChatSetup = async (
     ? state.project.chats?.find((c) => c.id === state.chat)
     : undefined
   let project = state.project
-  let repos: RepoLink[] = structuredClone(current?.repos || [])
+  let repos: RepoLink[] = structuredClone(
+    current?.repos || (project.repository ? [project.repository] : [])
+  )
   let inspected: RepoInspection | null = null
   let busy = false
   let inspecting = false
@@ -72,21 +82,13 @@ export const researchChatSetup = async (
                     </option>`
                 )
                 .join('')}
-              <option value="new">+ New project</option>
+              <option value="new">Open repository…</option>
             </select>
           </div>
           <div>
             <label for="chat-notebook">Save notes to</label
             ><select id="chat-notebook"></select>
           </div>
-        </div>
-        <div id="chat-new-project" hidden>
-          <label for="chat-project-title">New project name</label
-          ><input
-            id="chat-project-title"
-            maxlength="160"
-            placeholder="A home for this work"
-          />
         </div>
         <div id="chat-new-notebook" hidden>
           <label for="chat-notebook-title">New notebook name</label
@@ -218,6 +220,25 @@ export const researchChatSetup = async (
   }
   updateNotebook(current?.notebookId || state.notebook)
   updateRepos()
+  destinationPicker(projectPicker, 'project')
+  destinationPicker(notebook, 'notebook')
+  destinationPicker(field<HTMLSelectElement>('chat-branch'), 'branch')
+  installAgentPickers(dialog, 'chat-agent', 'chat-model')
+  const applyRepository = (repo: RepoInspection) => {
+    inspected = repo
+    rememberRepository(repo.path)
+    field<HTMLSelectElement>('chat-branch').replaceChildren(
+      ...repo.branches.map(
+        (branch) => new Option(branch, branch, false, branch === repo.current)
+      )
+    )
+    field('chat-repo-branch').hidden = false
+  }
+  installRepositoryPicker(
+    field('chat-repo-path'),
+    [...state.repos, ...repos],
+    applyRepository
+  )
   const updateSummary = () => {
     dialog.querySelector('.chat-setup-default')!.textContent =
       `In ${projectPicker.selectedOptions[0]?.textContent?.trim()} · saves to ${notebook.selectedOptions[0]?.textContent?.trim()}`
@@ -236,19 +257,46 @@ export const researchChatSetup = async (
     if (target.id === 'chat-project') {
       const revision = ++projectLoad
       const fresh = projectPicker.value === 'new'
-      field('chat-new-project').hidden = !fresh
-      field('chat-project-title').required = fresh
       notebook.disabled = true
       try {
         const loaded = fresh
-          ? project
+          ? await chooseRepositoryProject()
           : await researchApi.load(projectPicker.value)
+        if (revision !== projectLoad || !dialog.isConnected) return
+        if (!loaded) {
+          projectPicker.value = project.id
+          projectPicker.dispatchEvent(new Event('picker-sync'))
+          return
+        }
+        if (fresh) {
+          if (
+            !Array.from(projectPicker.options).some(
+              (option) => option.value === loaded.id
+            )
+          )
+            projectPicker.add(new Option(loaded.title, loaded.id))
+          projectPicker.value = loaded.id
+          projectPicker.dispatchEvent(new Event('picker-sync'))
+          root.dispatchEvent(
+            new CustomEvent('repository-project-opened', {
+              bubbles: true,
+              detail: loaded
+            })
+          )
+        }
         if (revision !== projectLoad) return
         project = loaded
+        if (!edit) {
+          repos = project.repository
+            ? [structuredClone(project.repository)]
+            : []
+          updateRepos()
+        }
         updateNotebook()
       } catch (e) {
         if (revision === projectLoad) {
           projectPicker.value = project.id
+          projectPicker.dispatchEvent(new Event('picker-sync'))
           updateNotebook()
           error(e)
         }
@@ -260,8 +308,6 @@ export const researchChatSetup = async (
       field('chat-new-notebook').hidden = notebook.value !== 'new'
       field('chat-notebook-title').required = notebook.value === 'new'
     }
-    if (target.id === 'chat-agent')
-      field('chat-model').value = target.value === 'kimi' ? 'kimi-code/k3' : ''
     updateSummary()
   })
   dialog.addEventListener('input', (event) => {
@@ -280,6 +326,7 @@ export const researchChatSetup = async (
   dialog.addEventListener(
     'close',
     () => {
+      closePopover()
       finish(null)
       dialog.remove()
     },
@@ -311,19 +358,7 @@ export const researchChatSetup = async (
           body: JSON.stringify({ path: requestedPath })
         })
         if (field('chat-repo-path').value !== requestedPath) return
-        inspected = result
-        field<HTMLSelectElement>('chat-branch').innerHTML = inspected.branches
-          .map(
-            (branch) =>
-              html`<option
-                value="${escape(branch)}"
-                ${branch === inspected!.current ? 'selected' : ''}
-              >
-                ${escape(branch)}
-              </option>`
-          )
-          .join('')
-        field('chat-repo-branch').hidden = false
+        applyRepository(result)
       } catch (e) {
         error(e)
       } finally {
@@ -345,7 +380,9 @@ export const researchChatSetup = async (
         })
       inspected = null
       field('chat-repo-branch').hidden = true
-      field('chat-repo-path').value = ''
+      const repoField = field<HTMLSelectElement>('chat-repo-path')
+      repoField.value = ''
+      repoField.dispatchEvent(new Event('change', { bubbles: true }))
       updateRepos()
     }
   })
@@ -353,7 +390,7 @@ export const researchChatSetup = async (
     event.preventDefault()
     event.stopPropagation()
     if (busy || notebook.disabled) return
-    if (inspecting) {
+    if (inspecting || dialog.querySelector('form')!.dataset.repositoryPicking) {
       error('Wait for repository inspection to finish.')
       return
     }
@@ -377,21 +414,7 @@ export const researchChatSetup = async (
       c.disabled = true
     })
     try {
-      if (projectPicker.value === 'new') {
-        project = await researchApi.create({
-          title: field('chat-project-title').value
-        })
-        projectPicker.insertAdjacentHTML(
-          'afterbegin',
-          html`<option value="${project.id}">${escape(project.title)}</option>`
-        )
-        projectPicker.value = project.id
-        project = await researchApi.change(project.id, 'rename', {
-          notebookId: project.notebooks[0].id,
-          title: field('chat-notebook-title').value
-        })
-        updateNotebook(project.notebooks[0].id)
-      } else if (notebook.value === 'new') {
+      if (notebook.value === 'new') {
         project = await researchApi.change(project.id, 'notebooks', {
           title: field('chat-notebook-title').value
         })

@@ -1,3 +1,4 @@
+import { openRepositoryProject } from './repository-projects'
 import {
   createResearchProject,
   researchProjectView,
@@ -18,6 +19,8 @@ export const researchRoute = async (
   body: Record<string, unknown>
 ) => {
   const ok = (value: unknown) => ({ status: 200, value })
+  if (url.pathname === '/api/research-projects/repository' && method === 'POST')
+    return ok(await openRepositoryProject(body.path, body.branch))
   if (url.pathname === '/api/research-projects') {
     if (method === 'GET') return ok(await researchProjects())
     if (method === 'POST') return ok(await createResearchProject(body))

@@ -1,8 +1,28 @@
 // Linking a repo, asking it for a page's evidence (again, when wrong), and
 // capturing a page's product demo.
+import { destinationPicker } from './destination-picker'
+import { installRepositoryPicker, rememberRepository } from './context-pickers'
 import type { AppContext } from './app-context'
 import { repoDialog } from './repo-view'
 import { studioApi } from './studio-api'
+
+const installRepoPickers = (app: AppContext) => {
+  const input = app.dialog.querySelector<HTMLInputElement>('#repo-path')
+  if (input)
+    installRepositoryPicker(
+      input,
+      app.snapshot?.project.repos || [],
+      (found) => {
+        if (!app.snapshot) return
+        app.showDialog(repoDialog(app.snapshot, found))
+        installRepoPickers(app)
+      }
+    )
+  for (const id of ['repo-branch', 'repo-base']) {
+    const select = app.dialog.querySelector<HTMLSelectElement>(`#${id}`)
+    if (select) destinationPicker(select, 'branch')
+  }
+}
 
 export const clickRepos = async (
   app: AppContext,
@@ -14,6 +34,7 @@ export const clickRepos = async (
   const id = snapshot.project.id
   if (action === 'repo-dialog') {
     app.showDialog(repoDialog(snapshot))
+    installRepoPickers(app)
     return
   }
   if (action === 'inspect-repo') {
@@ -22,7 +43,9 @@ export const clickRepos = async (
     target.disabled = true
     try {
       const found = await studioApi.inspectRepo(field.value.trim())
+      rememberRepository(found.path)
       app.showDialog(repoDialog(snapshot, found))
+      installRepoPickers(app)
     } finally {
       target.disabled = false
     }

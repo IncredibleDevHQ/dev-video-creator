@@ -50,6 +50,7 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
         : 'high'
     const home = await kimiRunHome(run.projectDir, {
       effort,
+      visualWorker: ['pose', 'frame'].includes(String(run.inputs.operation)),
       maxOutputTokens:
         typeof run.inputs.maxOutputTokens === 'number'
           ? run.inputs.maxOutputTokens
@@ -66,7 +67,11 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
         return made.home
       })
       .catch((error) => {
-        if (run.skill === 'explainer-master') throw error
+        if (
+          run.skill === 'explainer-master' ||
+          ['pose', 'frame'].includes(String(run.inputs.operation))
+        )
+          throw error
         onEvent({
           type: 'text',
           ts: Date.now(),
@@ -79,25 +84,64 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
     // project MCP servers while waiting for interactive workspace trust.
     if (home)
       await writeFile(join(home, 'mcp.json'), mcpConfig, { mode: 0o600 })
-    const result = await runAcp({
-      command: 'kimi',
-      args: ['acp'],
-      cwd: run.projectDir,
-      env: {
-        SKILL_DIR: resolveSkillDir(
-          context.skillsDir,
-          run.projectDir,
-          run.skill
-        ),
-        ...(home ? { KIMI_CODE_HOME: home } : {})
-      },
-      model:
-        typeof run.inputs.model === 'string' ? run.inputs.model : undefined,
-      resumeId: run.resumeId,
-      task: String(run.inputs.task || ''),
-      onEvent,
-      signal
-    })
+    let sessionId = run.resumeId
+    let polling = false
+    let pendingUsage = Promise.resolve()
+    const reportUsage = (final: boolean) => {
+      if (!sessionId || polling) return pendingUsage
+      polling = true
+      pendingUsage = kimiSessionUsage({
+        home: home || realKimiHome(),
+        cwd: run.projectDir,
+        sessionId,
+        since: started
+      })
+        .then((usage) => {
+          if (usage)
+            onEvent({
+              type: 'usage',
+              ts: Date.now(),
+              usage: { ...usage, final }
+            })
+        })
+        .finally(() => {
+          polling = false
+        })
+      return pendingUsage
+    }
+    const usageTimer = setInterval(() => {
+      void reportUsage(false).catch(() => {})
+    }, 5000)
+    usageTimer.unref()
+    let result: Awaited<ReturnType<typeof runAcp>>
+    try {
+      result = await runAcp({
+        command: 'kimi',
+        args: ['acp'],
+        cwd: run.projectDir,
+        env: {
+          SKILL_DIR: resolveSkillDir(
+            context.skillsDir,
+            run.projectDir,
+            run.skill
+          ),
+          ...(home ? { KIMI_CODE_HOME: home } : {})
+        },
+        model:
+          typeof run.inputs.model === 'string' ? run.inputs.model : undefined,
+        resumeId: run.resumeId,
+        task: String(run.inputs.task || ''),
+        onEvent,
+        onSession: (id) => {
+          sessionId = id
+        },
+        signal
+      })
+    } finally {
+      clearInterval(usageTimer)
+      await pendingUsage.catch(() => {})
+      await reportUsage(true).catch(() => {})
+    }
     const usage = result.resumeId
       ? await kimiSessionUsage({
           home: home || realKimiHome(),

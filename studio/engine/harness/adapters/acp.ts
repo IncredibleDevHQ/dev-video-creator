@@ -81,6 +81,7 @@ export const runAcp = async (input: {
   resumeId?: string
   task: string
   onEvent: (event: HarnessEvent) => void
+  onSession?: (id: string) => void
   signal: AbortSignal
 }) => {
   if (input.signal.aborted) return { exitCode: 130 }
@@ -219,6 +220,7 @@ export const runAcp = async (input: {
     })
     sessionId = session.sessionId || sessionId
     if (!sessionId) throw new Error('Harness did not create a session')
+    input.onSession?.(sessionId)
     if (input.model)
       await request('session/set_model', { sessionId, modelId: input.model })
     if (!session.modes?.availableModes?.some((mode: any) => mode.id === 'auto'))

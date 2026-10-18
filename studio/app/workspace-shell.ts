@@ -1,3 +1,4 @@
+import { WorkspaceTree } from './workspace-tree'
 import { WorkspaceFocus } from './workspace-focus'
 import { signOutWorkspace } from './workspace-login'
 import { html } from '../shared/html'
@@ -30,6 +31,7 @@ export class WorkspaceShell {
   private projects: ResearchProjectSummary[] = []
   private index = new Map<string, WorkspaceItem[]>()
   private focus: WorkspaceFocus
+  private tree: WorkspaceTree
   private active: WorkspaceItem | null = null
   private mode: 'projects' | 'search' | 'recent' = 'projects'
   private generation = 0
@@ -39,7 +41,7 @@ export class WorkspaceShell {
     root: HTMLElement,
     private navigate: (url: URL) => Promise<boolean>
   ) {
-    root.classList.add('workspace-shell')
+    root.classList.add('workspace-shell', 'workspace-with-tree')
     this.focus = new WorkspaceFocus(root)
     this.surface.className = 'workspace-surface'
     this.rail.className = 'workspace-rail'
@@ -74,7 +76,57 @@ export class WorkspaceShell {
       </button>`
     this.dialog.className = 'workspace-picker'
     this.dialog.setAttribute('aria-labelledby', 'workspace-picker-title')
-    root.replaceChildren(this.rail, this.surface, this.dialog)
+    this.tree = new WorkspaceTree(root, navigate)
+    const scrim = document.createElement('button')
+    scrim.className = 'workspace-tree-scrim'
+    scrim.setAttribute('aria-label', 'Close project navigation')
+    scrim.addEventListener('click', () =>
+      root.classList.remove('workspace-tree-open')
+    )
+    root.replaceChildren(
+      this.rail,
+      this.tree.element,
+      this.surface,
+      this.dialog,
+      scrim
+    )
+    const showProjects = () => {
+      if (matchMedia('(max-width: 700px)').matches) {
+        const open = root.classList.toggle('workspace-tree-open')
+        if (open)
+          this.tree.element
+            .querySelector<HTMLButtonElement>('.workspace-tree-close')
+            ?.focus()
+      } else this.focus.show()
+    }
+    root.addEventListener(
+      'click',
+      (event) => {
+        if (!matchMedia('(max-width: 700px)').matches) return
+        if (
+          !(event.target as Element).closest(
+            '[data-research-action="toggle-sidebar"]'
+          )
+        )
+          return
+        event.preventDefault()
+        event.stopPropagation()
+        showProjects()
+      },
+      true
+    )
+    root.addEventListener('keydown', (event) => {
+      if (
+        event.key === 'Escape' &&
+        root.classList.contains('workspace-tree-open') &&
+        !document.querySelector('dialog[open]')
+      ) {
+        root.classList.remove('workspace-tree-open')
+        this.rail
+          .querySelector<HTMLButtonElement>('[data-workspace-mode="projects"]')
+          ?.focus()
+      }
+    })
     this.rail.addEventListener('click', (e) => {
       const button = (e.target as Element).closest<HTMLElement>(
         '[data-workspace-mode]'
@@ -91,14 +143,20 @@ export class WorkspaceShell {
             button.title = 'Could not sign out. Check the server and try again.'
             button.querySelector('small')!.textContent = 'Try sign out'
           })
-      if (button)
-        void this.open(button.dataset.workspaceMode as typeof this.mode)
+      if (button?.dataset.workspaceMode === 'projects') showProjects()
+      else if (button)
+        void this.open(
+          button.dataset.workspaceMode as 'projects' | 'search' | 'recent'
+        )
+    })
+    root.addEventListener('repository-project-opened', (event) => {
+      this.catalog((event as CustomEvent<ResearchProjectView>).detail)
     })
     root.addEventListener('click', (e) => {
       const button = (e.target as Element).closest<HTMLElement>(
         '[data-workspace-projects]'
       )
-      if (button) void this.open('projects')
+      if (button) showProjects()
     })
     document.addEventListener('keydown', (e) => {
       if (
@@ -170,6 +228,7 @@ export class WorkspaceShell {
     this.focus.update()
     if (!state) {
       this.active = null
+      this.tree.setActive(null)
       this.updateRail()
       this.continueHome()
       return
@@ -183,13 +242,15 @@ export class WorkspaceShell {
     this.visit(outputWorkspaceItem(project, new URL(location.href)))
   }
   private catalog(project: ResearchProjectView) {
+    this.tree.update(project)
     this.index.set(project.id, projectSearchItems(project))
     const summary = {
       id: project.id,
       title: project.title,
       updatedAt: project.updatedAt,
       notebooks: project.notebooks.length,
-      questions: project.nodes.length
+      questions: project.nodes.length,
+      repository: project.repository
     }
     this.projects = [
       summary,
@@ -197,6 +258,7 @@ export class WorkspaceShell {
     ]
   }
   private visit(item: WorkspaceItem) {
+    this.tree.setActive(item)
     if (
       this.active?.href === item.href &&
       this.active.title === item.title &&

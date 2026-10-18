@@ -1,3 +1,4 @@
+import type { RepoLink } from '../shared/repos'
 import { randomUUID } from 'node:crypto'
 import type { Snapshot } from '../shared/api'
 import type {
@@ -51,12 +52,13 @@ export const researchProjects = async (): Promise<ResearchProjectSummary[]> => {
     (await listRows(table)).map(readResearchProject)
   )
   return projects
-    .map(({ id, title, updatedAt, notebooks, nodes }) => ({
+    .map(({ id, title, updatedAt, notebooks, nodes, repository }) => ({
       id,
       title,
       updatedAt,
       notebooks: notebooks.length,
-      questions: nodes.length
+      questions: nodes.length,
+      ...(repository ? { repository } : {})
     }))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
@@ -102,7 +104,10 @@ const createNotebookRecord = async (
   await writeRow('projects', id, snapshot)
   return id
 }
-export const createResearchProject = async (body: Record<string, unknown>) => {
+export const createResearchProject = async (
+  body: Record<string, unknown>,
+  repository?: RepoLink
+) => {
   const title =
     body.title === undefined
       ? 'My project'
@@ -125,7 +130,8 @@ export const createResearchProject = async (body: Record<string, unknown>) => {
     ],
     nodes: [],
     chats: [],
-    repos: []
+    repos: repository ? [repository] : [],
+    ...(repository ? { repository } : {})
   }
   await writeRow(table, id, project)
   return researchProjectView(id)

@@ -1,0 +1,127 @@
+{
+	"scope": "Four Lily production/source notebooks; excludes other notebooks and external Kimi activity",
+	"from": "2026-10-18T05:20:12.661Z",
+	"to": "2026-10-18T07:36:49.807Z",
+	"operations": [
+		{
+			"operation": "brief",
+			"runs": 1,
+			"statuses": {
+				"done": 1
+			},
+			"reported": 1,
+			"input": 32646,
+			"output": 6583,
+			"cacheRead": 412672,
+			"cacheWrite": 0
+		},
+		{
+			"operation": "chat",
+			"runs": 2,
+			"statuses": {
+				"error": 2
+			},
+			"reported": 2,
+			"input": 153978,
+			"output": 6396,
+			"cacheRead": 1120768,
+			"cacheWrite": 0
+		},
+		{
+			"operation": "page",
+			"runs": 10,
+			"statuses": {
+				"done": 10
+			},
+			"reported": 10,
+			"input": 112948,
+			"output": 32252,
+			"cacheRead": 2015744,
+			"cacheWrite": 0
+		},
+		{
+			"operation": "pose",
+			"runs": 88,
+			"statuses": {
+				"done": 48,
+				"error": 40
+			},
+			"reported": 48,
+			"input": 1659235,
+			"output": 487614,
+			"cacheRead": 31255609,
+			"cacheWrite": 0
+		},
+		{
+			"operation": "research",
+			"runs": 4,
+			"statuses": {
+				"done": 4
+			},
+			"reported": 4,
+			"input": 84398,
+			"output": 6276,
+			"cacheRead": 677376,
+			"cacheWrite": 0
+		},
+		{
+			"operation": "revise-page",
+			"runs": 13,
+			"statuses": {
+				"done": 13
+			},
+			"reported": 13,
+			"input": 220259,
+			"output": 102416,
+			"cacheRead": 4673024,
+			"cacheWrite": 0
+		},
+		{
+			"operation": "revise-story",
+			"runs": 26,
+			"statuses": {
+				"done": 26
+			},
+			"reported": 26,
+			"input": 308907,
+			"output": 34984,
+			"cacheRead": 2299904,
+			"cacheWrite": 0
+		},
+		{
+			"operation": "story",
+			"runs": 1,
+			"statuses": {
+				"done": 1
+			},
+			"reported": 1,
+			"input": 25974,
+			"output": 6461,
+			"cacheRead": 164864,
+			"cacheWrite": 0
+		},
+		{
+			"operation": "storyboard",
+			"runs": 5,
+			"statuses": {
+				"done": 5
+			},
+			"reported": 5,
+			"input": 213367,
+			"output": 64570,
+			"cacheRead": 1314560,
+			"cacheWrite": 0
+		}
+	],
+	"successfulPoseSessions": 48,
+	"poseModelRequests": 790,
+	"poseMedianRequests": 16,
+	"poseMedianInitialInput": 20633.5,
+	"poseMedianLastInput": 50201.5,
+	"poseUsageMatchedWireLogs": 48,
+	"poseTrials": 128,
+	"poseFailedTrials": 69,
+	"poseSessionsWithFailedTrial": 46,
+	"contrastViolations": 264,
+	"missingUsageRuns": 40
+}

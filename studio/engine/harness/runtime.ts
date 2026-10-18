@@ -1,3 +1,4 @@
+import { tokenBudget } from './token-budget'
 import { generationStops } from '../generation-errors'
 import { randomUUID } from 'node:crypto'
 import { mkdir, writeFile, readdir, readFile, rm } from 'node:fs/promises'
@@ -216,6 +217,8 @@ export const runEngineStage = async (input: {
     model: input.model
   })
   const effort = input.effort ?? limits.effort
+  const budgetExceeded = await tokenBudget(input.projectId, id, operation)
+  if (budgetExceeded()) throw new Error(generationStops.tokens)
   const record: EngineRun = {
     id,
     projectId: input.projectId,
@@ -336,8 +339,8 @@ export const runEngineStage = async (input: {
       .reduce((safe, secret) => safe.split(secret).join('[redacted]'), text)
       .slice(0, 4000)
   const emit = (event: HarnessEvent) => {
-    if (controller.signal.aborted) return
-    idleTimer.refresh()
+    if (controller.signal.aborted && event.type !== 'usage') return
+    if (event.type !== 'usage') idleTimer.refresh()
     if (
       event.type === 'tool' &&
       ++toolCalls > (input.maxToolCalls ?? limits.maxToolCalls)
@@ -353,7 +356,10 @@ export const runEngineStage = async (input: {
     queue = queue
       .then(async () => {
         if (progressFailure) return
-        if (safe.type === 'usage' && safe.usage) record.usage = safe.usage
+        if (safe.type === 'usage' && safe.usage) {
+          record.usage = safe.usage
+          if (budgetExceeded(safe.usage)) stopForLimit(generationStops.tokens)
+        }
         if (safe.type === 'session' && safe.model)
           record.reportedModel = safe.model
         if (safe.type === 'error')
@@ -470,6 +476,7 @@ export const runEngineStage = async (input: {
         resumeId: input.session?.resumeId,
         inputs: {
           task: input.task,
+          operation,
           model: input.model,
           effort,
           maxOutputTokens: limits.maxOutputTokens,
@@ -493,7 +500,10 @@ export const runEngineStage = async (input: {
     await queue
     if (progressFailure) throw progressFailure
     record.resumeId = result.resumeId
-    if (result.usage) record.usage = result.usage
+    if (result.usage) {
+      record.usage = result.usage
+      budgetExceeded(result.usage)
+    }
     if (controller.signal.aborted && !acceptedSubmission)
       throw new Error(limitReason || 'The engine run was interrupted')
     if (!acceptedSubmission && (result.exitCode !== 0 || reportedError))

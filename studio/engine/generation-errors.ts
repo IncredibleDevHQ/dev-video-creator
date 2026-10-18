@@ -27,13 +27,16 @@ export const generationStops = {
   user: STOPPED_BY_YOU,
   time: 'The agent ran out of time. Saved work is kept; Try again continues from there.',
   idle: 'The agent stopped responding. Saved work is kept; Try again continues from there.',
+  tokens:
+    'Generation reached its configured token budget. Saved work is retained. Review usage and increase the MINIMAL_STUDIO token limits before retrying.',
   tools:
     'The agent used up its steps. Saved work is kept; Try again continues from there.'
 } as const
 const stopReasons: Record<string, string> = {
   [generationStops.time]: 'ran out of time',
   [generationStops.idle]: 'stopped responding',
-  [generationStops.tools]: 'used up its steps'
+  [generationStops.tools]: 'used up its steps',
+  [generationStops.tokens]: 'reached its token budget'
 }
 /** Why a run stopped, as a short phrase after the agent's name, if it was a limit. */
 export const stopReason = (message: string | null | undefined) =>
@@ -54,12 +57,15 @@ const sharedFailures: Record<string, string> = {
     'The selected harness is unavailable. Check its installation or choose another harness. Saved work is retained.'
 }
 export const stopsPreparationBatch = (message: string | null | undefined) =>
+  message === generationStops.tokens ||
   Object.values(sharedFailures).includes(message || '')
 export const generationFailure = (error: unknown, fallback: string) => {
   const message = error instanceof Error ? error.message : ''
   const stop = Object.values(generationStops).find((known) => known === message)
   if (stop) return stop
   if (error instanceof HarnessStageError) {
+    if (error.failure?.message === generationStops.tokens)
+      return generationStops.tokens
     return sharedFailures[error.failure?.category || ''] || fallback
   }
   return fallback

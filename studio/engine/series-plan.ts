@@ -337,7 +337,28 @@ const runPlan = async (seriesId: string) => {
 
 /** New cards drawn later: placed into the episodes by Place Pages, when the
  * series organises itself (the default) and has episodes to place them in. */
-export const planNewPages = async (mapId: string) => {
-  const { organizeNewPages } = await import('./series-organize')
-  await organizeNewPages(mapId)
-}
+const pendingPlacement = new Map<
+  string,
+  {
+    timer: ReturnType<typeof setTimeout>
+    waiting: Array<{ resolve: () => void; reject: (error: unknown) => void }>
+  }
+>()
+export const planNewPages = (mapId: string): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const prior = pendingPlacement.get(mapId)
+    if (prior) clearTimeout(prior.timer)
+    const waiting = [...(prior?.waiting || []), { resolve, reject }]
+    const timer = setTimeout(() => {
+      pendingPlacement.delete(mapId)
+      // Load the latest cards after the burst, never a stale captured list.
+      void import('./series-organize')
+        .then(({ organizeNewPages }) => organizeNewPages(mapId))
+        .then(
+          () => waiting.forEach((item) => item.resolve()),
+          (error) => waiting.forEach((item) => item.reject(error))
+        )
+    }, 1500)
+    timer.unref?.()
+    pendingPlacement.set(mapId, { timer, waiting })
+  })

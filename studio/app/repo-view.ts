@@ -1,3 +1,4 @@
+import { pickerIcons } from './destination-picker'
 // A notebook's linked repo: the chip beside its template, the dialog that
 // links it, and on a page each request the agent can answer from it, then
 // its answer with the commit and files it came from, and "ask again".
@@ -18,7 +19,7 @@ export const repoChip = (snapshot: Snapshot, editable: boolean) => {
   const label = repos.length
     ? `${repos[0].name} · ${repos[0].branch}${repos.length > 1 ? ` +${repos.length - 1}` : ''}`
     : 'No repo'
-  return `<button type="button" class="choice" data-action="repo-dialog" ${editable ? '' : 'disabled'}>${escape(label)}</button>`
+  return `<button type="button" class="choice" data-action="repo-dialog" ${editable ? '' : 'disabled'}>${pickerIcons.repo}${escape(label)}${pickerIcons.chevron}</button>`
 }
 
 const options = (values: string[], chosen: string) =>

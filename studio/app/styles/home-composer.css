@@ -1,0 +1,237 @@
+.home-compose-intent {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.home-compose-intent button {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+}
+.home-compose-intent button[aria-pressed='true'] {
+  background: var(--selected);
+  color: var(--ink);
+}
+.home-research-context {
+  padding: 12px 0 18px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.home-research-context[hidden],
+.home-repo-branch[hidden] {
+  display: none;
+}
+.home-agent-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.home-agent-fields > div {
+  min-width: 160px;
+  max-width: 280px;
+}
+.home-agent-fields label,
+.home-repo-branch label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.home-repositories summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+}
+.home-repositories summary::-webkit-details-marker {
+  display: none;
+}
+.home-repositories summary small,
+.home-repositories > p {
+  color: var(--muted);
+  font-size: 12px;
+}
+.home-repo-picker,
+.home-repo-branch > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.home-repo-picker > .destination-picker-trigger {
+  flex: 1;
+  width: auto;
+}
+.home-repo-branch {
+  margin-top: 12px;
+}
+.home-repo-branch [data-home-add-repo] {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--accent);
+}
+.home-repo-list > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 0;
+}
+.home-repo-list > div > span {
+  flex: 1;
+}
+.home-repo-list small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.home-repo-list small svg {
+  width: 13px;
+  height: 13px;
+}
+.home-repo-status {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.workspace-with-tree .research-home .research-project-list {
+  display: none;
+}
+@media (max-width: 700px) {
+  .home-agent-fields > div {
+    min-width: 0;
+    flex: 1;
+  }
+  .home-repo-picker > .destination-picker-trigger {
+    flex-basis: 100%;
+  }
+}
+.home-primary-repository {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.home-primary-repository[hidden],
+.home-repo-list > div[hidden] {
+  display: none;
+}
+.home-primary-repository > div {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.home-primary-repository > div > span {
+  min-width: 0;
+}
+.home-primary-repository small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  margin-top: 5px;
+}
+.home-primary-repository label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.home-open-repository {
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.home-first-project .home-compose-intent,
+.home-first-project #research-first-note,
+.home-first-project .home-research-context,
+.home-first-project .research-composer-footer > button,
+.home-first-project .home-destination-fields .research-save-to:last-child,
+.home-first-project .research-save-to > .destination-picker-trigger,
+.home-first-project .research-save-to > select {
+  display: none;
+}
+.home-first-project .home-open-repository {
+  padding: 12px 20px;
+  background: var(--accent, #45b976);
+  color: #101b14;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.home-project-value[hidden],
+.home-open-repository[hidden],
+#research-start-form[data-intent='ask'] .home-note-destination {
+  display: none;
+}
+.home-destination-status:empty {
+  display: none;
+}
+
+.home-primary-repository > div > span {
+  flex: 1;
+}
+.home-primary-repository > div {
+  flex-wrap: wrap;
+}
+.home-repository-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.home-repository-actions button {
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  padding: 6px 0;
+  font-size: 12px;
+}
+.home-repository-actions button + button {
+  color: var(--muted);
+}
+#research-start-form[data-intent='note'] .home-agent-fields,
+#research-start-form[data-intent='note'] .home-repositories,
+#research-start-form[data-intent='note'] .home-primary-repository > label,
+#research-start-form[data-intent='note']
+  .home-primary-repository
+  > .destination-picker-trigger,
+#research-start-form[data-intent='note'] .home-primary-status {
+  display: none;
+}
+.home-project-switcher {
+  width: min(340px, calc(100vw - 24px));
+  padding: 16px;
+}
+.home-project-switcher h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+.home-project-switcher label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.home-project-switcher > button[data-browse-project] {
+  margin-top: 12px;
+  padding: 8px 0;
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+}

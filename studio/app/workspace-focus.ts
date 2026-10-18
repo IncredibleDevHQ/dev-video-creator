@@ -36,6 +36,16 @@ export class WorkspaceFocus {
       this.update()
     )
   }
+  show() {
+    this.hidden = false
+    this.root.classList.remove('workspace-focus')
+    try {
+      localStorage.setItem('incredible-navigation-hidden', 'false')
+    } catch {
+      /* optional preference */
+    }
+    this.update()
+  }
   update() {
     const mobile = matchMedia('(max-width: 700px)').matches
     this.root

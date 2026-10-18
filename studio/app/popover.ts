@@ -1,5 +1,5 @@
 // A small panel under the control that opened it, closed by Escape, a click
-// outside, or the control again. One popover is open at a time.
+// outside, or the control again. A picker can open inside a parent menu.
 let current: { panel: HTMLElement; close: () => void; key: string } | null =
   null
 
@@ -10,18 +10,24 @@ export const openPopover = (
   anchor: HTMLElement,
   key: string,
   content: string,
-  className = ''
+  className = '',
+  onClose?: () => void
 ) => {
   if (current?.key === key) {
     current.close()
     return null
   }
-  current?.close()
+  const parent = current?.panel.contains(anchor) ? current : null
+  if (!parent) current?.close()
   const panel = document.createElement('div')
   panel.className = `popover ${className}`.trim()
   panel.setAttribute('role', 'dialog')
   panel.innerHTML = content
-  document.body.append(panel)
+  ;(
+    parent?.panel ||
+    anchor.closest('dialog, .research-compose-tools') ||
+    document.body
+  ).append(panel)
   const place = () => {
     const box = anchor.getBoundingClientRect()
     const width = panel.offsetWidth
@@ -36,6 +42,8 @@ export const openPopover = (
     panel.style.top = `${Math.round(below ? box.bottom + 8 : Math.max(12, box.top - 8 - panel.offsetHeight))}px`
   }
   place()
+  const resize = new ResizeObserver(place)
+  resize.observe(panel)
   const outside = (event: MouseEvent) => {
     const target = event.target as Node
     // The opening control toggles; it may have been redrawn since it opened.
@@ -45,23 +53,42 @@ export const openPopover = (
     close()
   }
   const onKey = (event: KeyboardEvent) => {
+    if (current?.panel !== panel) return
     if (event.key === 'Escape') {
       // Handled: what lies under the popover stays open (review 7).
       event.preventDefault()
+      event.stopPropagation()
       close()
       anchor.focus?.()
     }
   }
+  let closed = false
   const close = () => {
+    if (closed) return
+    closed = true
+    if (current?.panel !== panel && panel.contains(current?.panel || null))
+      current?.close()
     document.removeEventListener('mousedown', outside, true)
     document.removeEventListener('keydown', onKey, true)
     window.removeEventListener('resize', place)
+    document.removeEventListener('scroll', place, true)
+    dialog?.removeEventListener('close', close)
+    resize.disconnect()
+    detached.disconnect()
     panel.remove()
-    if (current?.panel === panel) current = null
+    onClose?.()
+    if (current?.panel === panel) current = parent
   }
+  const detached = new MutationObserver(() => {
+    if (!anchor.isConnected || !panel.isConnected) close()
+  })
+  detached.observe(document.body, { childList: true, subtree: true })
+  const dialog = anchor.closest('dialog')
+  dialog?.addEventListener('close', close)
   document.addEventListener('mousedown', outside, true)
   document.addEventListener('keydown', onKey, true)
   window.addEventListener('resize', place)
+  document.addEventListener('scroll', place, true)
   current = { panel, close, key }
   panel.querySelector<HTMLElement>('input,select,button')?.focus()
   return panel

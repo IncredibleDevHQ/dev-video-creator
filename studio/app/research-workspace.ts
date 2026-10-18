@@ -1,9 +1,13 @@
+import { chooseRepositoryProject } from './repository-project'
 import {
   activeResearchDocument,
   openGeneratedResearchDocument,
   artifactGraph,
   researchTurnRequest
 } from './research-artifact'
+import { startHomeResearch } from './home-research-context'
+import { pickerIcons } from './destination-picker'
+import { installResearchPickers, rememberRepository } from './context-pickers'
 import { installChatKeyboard } from './research-chat-keyboard'
 import { rememberNewResearchChat } from './research-chat-draft'
 import { html } from '../shared/html'
@@ -114,7 +118,7 @@ export class ResearchWorkspace {
         s.model = field.value.trim()
         const label = this.root.querySelector('.research-agent-options summary')
         if (label)
-          label.textContent = `${s.adapter === 'claude-code' ? 'Claude Code' : s.adapter === 'kimi' ? 'Kimi' : 'Codex'}${s.model ? ` · ${modelName(s.model)}` : ''} ⌄`
+          label.innerHTML = `${pickerIcons.agent}${s.adapter === 'claude-code' ? 'Claude Code' : s.adapter === 'kimi' ? 'Kimi' : 'Codex'}${s.model ? ` · ${escape(modelName(s.model))}` : ''} <span aria-hidden="true">⌄</span>`
         void this.saveChatSettings().catch((e) => this.error(e))
       }
     })
@@ -126,7 +130,7 @@ export class ResearchWorkspace {
         rememberNewResearchChat(this.state)
         const label = this.root.querySelector('.research-agent-options summary')
         if (label)
-          label.textContent = `${this.state.adapter === 'claude-code' ? 'Claude Code' : this.state.adapter === 'kimi' ? 'Kimi' : 'Codex'}${field.value ? ` · ${modelName(field.value)}` : ''} ⌄`
+          label.innerHTML = `${pickerIcons.agent}${this.state.adapter === 'claude-code' ? 'Claude Code' : this.state.adapter === 'kimi' ? 'Kimi' : 'Codex'}${field.value ? ` · ${escape(modelName(field.value))}` : ''} <span aria-hidden="true">⌄</span>`
       }
       if (field.id === 'research-search' && this.state) {
         this.state.query = field.value
@@ -221,6 +225,14 @@ export class ResearchWorkspace {
     }
   }
   async open(id: string) {
+    const launch = new URL(location.href).searchParams
+    if (
+      launch.get('chat') === 'new' &&
+      (!launch.get('projectView') || launch.get('projectView') === 'research')
+    ) {
+      await this.home()
+      return
+    }
     this.isOpen = true
     const revision = ++this.revision
     if (this.timer) clearTimeout(this.timer)
@@ -359,6 +371,10 @@ export class ResearchWorkspace {
       const value = this.drafts[this.draftKey(field.id)]
       if (value !== undefined) field.value = value
     }
+    installResearchPickers(this.root, s.repos, (repo) => {
+      s.inspected = repo
+      this.render()
+    })
     restoreResearchScroll(this.root, scroll)
     const transcript = this.root.querySelector('.research-transcript')
     if (transcript && follow) transcript.scrollTop = transcript.scrollHeight
@@ -446,6 +462,21 @@ export class ResearchWorkspace {
     await this.settingsSave.catch(() => {})
     await this.mutation(async () => {
       if (formId === 'research-start-form') {
+        if (values.get('intent') === 'ask') {
+          const result = await startHomeResearch(form, values)
+          const chat = result.project.nodes.find(
+            (node) => node.id === result.nodeId
+          )!.chatId!
+          this.drafts['research-first-note'] = ''
+          this.persistDrafts()
+          history.pushState(
+            null,
+            '',
+            `/?space=${result.project.id}&chat=${chat}&node=${result.nodeId}&projectView=research`
+          )
+          await this.open(result.project.id)
+          return
+        }
         const p = await saveHomeNote(values)
         this.drafts['research-first-note'] = ''
         this.persistDrafts()
@@ -492,6 +523,7 @@ export class ResearchWorkspace {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: values.get('path') })
         })
+        rememberRepository(s.inspected.path)
       }
       if (formId === 'research-branch-form' && s.inspected) {
         if (s.repos.length >= 4)
@@ -556,20 +588,27 @@ export class ResearchWorkspace {
     const s = this.state
     if (this.busy) return
     if (action === 'new-project') {
-      const title = await researchNameDialog(
-        this.root,
-        'New project',
-        'Project name',
-        ''
-      )
-      if (title) {
-        const p = await researchApi.create({ title })
-        history.pushState(null, '', `/?space=${p.id}`)
+      const p = await chooseRepositoryProject()
+      if (p) {
+        history.pushState(
+          null,
+          '',
+          `/?space=${p.id}&chat=new&projectView=research`
+        )
         await this.open(p.id)
       }
       return
     }
     if (!s) return
+    if (action === 'new-chat') {
+      history.pushState(
+        null,
+        '',
+        `/?space=${s.project.id}&chat=new&projectView=research`
+      )
+      await this.home()
+      return
+    }
     if (button.dataset.selectChat) {
       selectResearchChat(s, button.dataset.selectChat)
       s.sidebarOpen = false

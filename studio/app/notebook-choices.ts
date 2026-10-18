@@ -1,3 +1,4 @@
+import { pickerIcons } from './destination-picker'
 // Questions in the flow, not in dialogs (review 5, borrowed from Open
 // Slide's /create-slide): one row of filled-in choices beside Create — the
 // agent, the length and the look — each changed from a small menu.
@@ -57,7 +58,7 @@ export const choicesRow = (snapshot: Snapshot, editable: boolean) => {
   const off = editable ? '' : 'disabled'
   // With a template, its direction sets the length; without, the count does.
   return `<p class="choice-row"><span>With</span>
-<button type="button" class="choice" data-action="agent-menu" data-popover="agent">${escape(agent)}</button><span aria-hidden="true">·</span>
+<button type="button" class="choice" data-action="agent-menu" data-popover="agent">${pickerIcons.agent}${escape(agent)}${pickerIcons.chevron}</button><span aria-hidden="true">·</span>
 <button type="button" class="choice" data-action="open-templates" ${off}>${escape(told ? told.narrative.name : 'No template')}${told && snapshot.suggestion?.preselected && snapshot.suggestion.narratives[0]?.id === told.narrative.id ? ` <small>${snapshot.suggestion.stale ? 'suggested before your edits' : 'suggested'}</small>` : ''}</button><span aria-hidden="true">·</span>
 ${
   told

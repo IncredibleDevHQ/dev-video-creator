@@ -1,0 +1,174 @@
+/* Radio details inherit the shared brand palette; dial markings are decorative. */
+.research-home #research-start-form {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(20px, 3vw, 38px);
+  border: 8px solid var(--rail);
+  border-radius: 28px;
+  color: inherit;
+  background:
+    linear-gradient(90deg, #ffffff05, transparent 20%, #00000012),
+    repeating-linear-gradient(0deg, #ffffff02 0 1px, transparent 1px 4px),
+    var(--panel);
+  box-shadow:
+    0 0 0 1px var(--line),
+    inset 0 0 0 2px var(--line),
+    inset 0 3px 14px #0009,
+    0 14px 32px #0005;
+}
+.research-home .radio-faceplate {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  color: inherit;
+}
+.research-home .radio-maker {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 25px;
+  font-style: italic;
+  letter-spacing: 0.03em;
+}
+.research-home .radio-series {
+  color: var(--muted);
+  flex: 1;
+  font:
+    10px/1.5 ui-monospace,
+    monospace;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.research-home .radio-power {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.research-home .radio-tuning-scale {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 9px 16px 25px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  color: var(--accent);
+  background:
+    repeating-linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--accent) 45%, transparent) 0 1px,
+        transparent 1px 10px
+      )
+      center bottom 7px / calc(100% - 32px) 10px no-repeat,
+    var(--bg);
+  box-shadow:
+    inset 0 2px 7px #000a,
+    0 1px #ffffff12;
+  font:
+    11px ui-monospace,
+    monospace;
+}
+.research-home .radio-tuning-scale::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 62%;
+  width: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.research-home #research-start-form textarea {
+  box-sizing: border-box;
+  padding: 20px;
+  margin: 8px 0 16px;
+  min-height: 160px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: inherit;
+  background: var(--bg);
+  box-shadow: inset 0 2px 9px #0007;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.research-home #research-start-form textarea::placeholder {
+  color: var(--muted);
+}
+.research-home #research-start-form .home-compose-intent {
+  border: 0;
+  padding: 0;
+  gap: 8px;
+  background: transparent;
+}
+.research-home #research-start-form .home-compose-intent button,
+.research-home #research-start-form .destination-picker-trigger {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: linear-gradient(var(--line), var(--panel));
+  box-shadow:
+    0 3px 0 var(--bg),
+    inset 0 1px #ffffff12;
+  color: inherit;
+  min-height: 40px;
+}
+.research-home
+  #research-start-form
+  .home-compose-intent
+  button[aria-pressed='true'] {
+  background: linear-gradient(var(--selected), var(--panel));
+  box-shadow: inset 0 2px 5px #0005;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.research-home #research-start-form .destination-picker-trigger svg {
+  color: var(--muted);
+}
+.research-home #research-start-form .home-primary-repository {
+  border-color: var(--line);
+  background: var(--bg);
+  box-shadow: inset 0 1px 5px #0004;
+}
+.research-home #research-start-form .research-primary,
+.research-home #research-start-form .home-open-repository {
+  border: 1px solid var(--accent);
+  border-radius: 9px;
+  padding: 12px 22px;
+  background: linear-gradient(
+    color-mix(in srgb, var(--accent) 85%, var(--panel)),
+    var(--accent)
+  );
+  box-shadow:
+    0 4px 0 var(--bg),
+    inset 0 1px #ffffff26;
+  color: var(--bg);
+  font-weight: 700;
+}
+.research-home #research-start-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.research-home #research-start-form :is(button, textarea):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+}
+.research-home #research-start-form .home-research-context {
+  border-bottom-color: var(--line);
+}
+@media (max-width: 600px) {
+  .research-home #research-start-form {
+    border-width: 5px;
+    padding: 18px;
+    border-radius: 19px;
+  }
+  .research-home .radio-series {
+    color: var(--muted);
+    font-size: 8px;
+    letter-spacing: 0.06em;
+  }
+  .research-home .radio-maker {
+    font-size: 21px;
+  }
+}

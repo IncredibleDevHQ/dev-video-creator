@@ -1,59 +1,17 @@
-// The agent, chosen from a small menu under the header pill instead of a
-// full settings page (review 5): the agents found on this computer, one
-// mark each, and the model in a menu. Settings keeps the full page.
+// The same searchable controls used in research, with local availability
+// and model access supplied by the engine.
 import type { HarnessChoice } from '../shared/api'
 import type { HarnessSelection } from '../shared/model'
 import { agentNames, rememberModels } from './agent-setup'
 import { api } from './api'
 import type { AppContext } from './app-context'
 import { closePopover, openPopover } from './popover'
+import { destinationPicker } from './destination-picker'
 import { escape } from './ui'
 import { modelName } from '../shared/agent-models'
 
 const order = ['claude-code', 'codex', 'kimi'] as const
-
-/** The model's name, from the list the picker uses ("Opus 5.5", "K3"). */
 export const modelLabel = modelName
-
-const rows = (
-  choices: Map<string, HarnessChoice> | null,
-  selected: HarnessSelection | null
-) =>
-  order
-    .map((id) => {
-      const found = choices?.get(id)
-      const state = !choices
-        ? 'Looking…'
-        : found?.ok
-          ? ''
-          : 'Not on this computer'
-      return `<label class="agent-menu-row${found?.ok || !choices ? '' : ' is-missing'}">
-<input type="radio" name="menu-agent" value="${id}" ${selected?.adapter === id ? 'checked' : ''} ${choices && !found?.ok ? 'disabled' : ''}>
-<span>${agentNames[id]}</span>${state ? `<small>${state}</small>` : ''}</label>`
-    })
-    .join('')
-
-// Models as rows, like the agents: plain names, an alias explained in its
-// tooltip, an unavailable one saying why (review 6).
-const models = (choice: HarnessChoice | undefined, selected?: string) => {
-  const options = choice?.models?.options || []
-  const list: Array<{
-    id: string
-    label: string
-    hint?: string
-    unavailable?: string
-  }> = [{ id: '', label: 'Agent default' }, ...options]
-  if (selected && !options.some((option) => option.id === selected))
-    list.push({ id: selected, label: modelName(selected) })
-  return list
-    .map(
-      (option) =>
-        `<label class="agent-menu-row${option.unavailable ? ' is-missing' : ''}"${option.hint ? ` title="${escape(option.hint)}"` : ''}>
-<input type="radio" name="menu-model" value="${escape(option.id)}" ${option.id === (selected || '') ? 'checked' : ''} ${option.unavailable ? 'disabled' : ''}>
-<span>${escape(option.label)}</span>${option.unavailable ? `<small>${escape(option.unavailable)}</small>` : ''}</label>`
-    )
-    .join('')
-}
 
 export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
   const id = app.snapshot?.project.id || null
@@ -63,32 +21,66 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
     anchor,
     'agent',
     `<form class="agent-menu" data-agent-menu>
-<p class="popover-title">Agent</p>
-<div class="agent-menu-list" role="radiogroup" aria-label="Agent" data-agent-rows>${rows(null, selected)}</div>
-<p class="popover-title">Model</p>
-<div class="agent-menu-list" role="radiogroup" aria-label="Model" data-agent-model></div>
+<label class="popover-title" for="menu-agent">Agent</label>
+<select id="menu-agent" name="menu-agent" disabled></select>
+<label class="popover-title" for="menu-model">Model</label>
+<select id="menu-model" name="menu-model" disabled></select>
 <p class="popover-note">Used for this notebook and for new ones.</p>
 <p class="popover-error" role="alert" data-agent-error></p>
-<div class="popover-actions"><button type="button" class="quiet" data-action="agent-settings">All agent settings</button><button class="primary" data-agent-save disabled>Done</button></div>
+<div class="popover-actions"><button type="button" class="quiet" data-action="agent-settings">All agent settings</button><button type="submit" class="primary" data-agent-save disabled>Done</button></div>
 </form>`,
     'agent-popover'
   )
   if (!panel) return
-  const form = panel.querySelector<HTMLFormElement>('[data-agent-menu]')!
-  const model = panel.querySelector<HTMLElement>('[data-agent-model]')!
-  const save = panel.querySelector<HTMLButtonElement>('[data-agent-save]')!
+  const form = panel.querySelector<HTMLFormElement>('form')!
+  const agent = form.querySelector<HTMLSelectElement>('[name="menu-agent"]')!
+  const model = form.querySelector<HTMLSelectElement>('[name="menu-model"]')!
+  const save = form.querySelector<HTMLButtonElement>('[data-agent-save]')!
+  const syncAgent = destinationPicker(agent, 'agent')
+  const syncModel = destinationPicker(model, 'model')
   const draw = () => {
-    panel.querySelector('[data-agent-rows]')!.innerHTML = rows(
-      choices,
-      selected
-    )
+    agent.innerHTML = order
+      .map((adapter) => {
+        const found = choices?.get(adapter)
+        return `<option value="${adapter}" ${selected?.adapter === adapter ? 'selected' : ''} ${!found?.ok ? 'disabled' : ''} data-detail="${escape(!choices ? 'Looking…' : found?.ok ? 'Local agent' : found?.reason || 'Not on this computer')}">${agentNames[adapter]}</option>`
+      })
+      .join('')
+    agent.disabled =
+      !choices || !order.some((adapter) => choices?.get(adapter)?.ok)
     const choice = selected ? choices?.get(selected.adapter) : undefined
-    model.innerHTML = choice?.ok ? models(choice, selected?.model) : ''
+    const options = [
+      {
+        id: '',
+        label: 'Agent default',
+        hint: 'The model configured in the agent'
+      },
+      ...(choice?.models?.options || [])
+    ]
+    if (
+      selected?.model &&
+      !options.some((option) => option.id === selected!.model)
+    )
+      options.push({
+        id: selected.model,
+        label: modelName(selected.model),
+        hint: 'Current model ID'
+      })
+    model.innerHTML = options
+      .map(
+        (option) =>
+          `<option value="${escape(option.id)}" ${option.id === (selected?.model || '') ? 'selected' : ''} ${'unavailable' in option && option.unavailable ? 'disabled' : ''} data-detail="${escape(('unavailable' in option ? option.unavailable : '') || option.hint || '')}">${escape(option.label)}</option>`
+      )
+      .join('')
+    model.disabled = !choice?.ok
     save.disabled = !choice?.ok
+    syncAgent()
+    syncModel()
   }
+  draw()
   void api
     .harnesses()
     .then((result) => {
+      if (!panel.isConnected) return
       rememberModels(result.available)
       choices = new Map(result.available.map((item) => [item.id, item]))
       if (!selected || !choices.get(selected.adapter)?.ok) {
@@ -97,17 +89,23 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
       }
       draw()
       if (!selected)
-        panel.querySelector('[data-agent-error]')!.textContent =
+        form.querySelector('[data-agent-error]')!.textContent =
           'No agent was found. Install Claude Code, Codex or Kimi and sign in.'
     })
-    .catch(app.error)
+    .catch((reason) => {
+      if (panel.isConnected)
+        form.querySelector('[data-agent-error]')!.textContent =
+          reason instanceof Error
+            ? reason.message
+            : 'Could not load local agents. Reopen this menu to retry.'
+    })
   form.addEventListener('change', (event) => {
-    const input = event.target as HTMLInputElement
-    if (input.name === 'menu-agent') {
+    const input = event.target as HTMLSelectElement
+    if (input === agent) {
       selected = { adapter: input.value as HarnessSelection['adapter'] }
       draw()
     }
-    if (input.name === 'menu-model' && selected)
+    if (input === model && selected)
       selected = {
         adapter: selected.adapter,
         ...(input.value ? { model: input.value } : {})
@@ -116,8 +114,12 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     event.stopPropagation()
-    if (!selected) return
+    if (!selected || save.disabled) return
     save.disabled = true
+    agent.disabled = true
+    model.disabled = true
+    syncAgent()
+    syncModel()
     save.textContent = 'Saving…'
     try {
       await api.saveSettings({
@@ -129,9 +131,9 @@ export const openAgentMenu = (app: AppContext, anchor: HTMLElement) => {
       closePopover()
       app.render()
     } catch (reason) {
-      panel.querySelector('[data-agent-error]')!.textContent =
+      form.querySelector('[data-agent-error]')!.textContent =
         reason instanceof Error ? reason.message : 'Could not save the agent'
-      save.disabled = false
+      draw()
       save.textContent = 'Done'
     }
   })

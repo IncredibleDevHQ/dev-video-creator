@@ -1,3 +1,4 @@
+import { destinationPicker } from './destination-picker'
 import type { HarnessChoice } from '../shared/api'
 import type { HarnessSelection } from '../shared/model'
 import { api } from './api'
@@ -104,18 +105,23 @@ export class AgentSetup {
       <form data-agent-form>
         <fieldset class="agent-options" ${this.detecting || this.saving ? 'disabled' : ''}>
           <legend class="sr">Local agent</legend>
+          <select name="agent" aria-label="Local agent" ${this.detecting || this.saving ? 'disabled' : ''}>
           ${ids
             .map((id) => {
               const state = this.states.get(id) || 'idle'
               const found = this.choices.get(id)
-              // One mark per card: the radio says which is chosen (review 5).
-              return `<label class="agent-option ${state === 'searching' ? 'is-searching' : ''} ${found?.ok ? 'is-available' : 'is-unavailable'}">
-              <input type="radio" name="agent" value="${id}" ${this.selected?.adapter === id && found?.ok ? 'checked' : ''} ${!found?.ok ? 'disabled' : ''}>
-              <span><strong>${agentNames[id]}</strong><small>${state === 'idle' ? 'Not checked' : state === 'searching' ? 'Looking…' : found?.ok ? 'On this computer' : 'Not on this computer'}</small></span>
-              ${state === 'searching' ? '<span class="spinner" aria-hidden="true"></span>' : ''}
-            </label>`
+              const detail =
+                state === 'idle'
+                  ? 'Detect agents to check availability'
+                  : state === 'searching'
+                    ? 'Looking…'
+                    : found?.ok
+                      ? 'On this computer'
+                      : found?.reason || 'Not on this computer'
+              return `<option value="${id}" ${this.selected?.adapter === id ? 'selected' : ''} ${!found?.ok ? 'disabled' : ''} data-detail="${escape(detail)}">${agentNames[id]}</option>`
             })
             .join('')}
+          </select>
         </fieldset>
         ${completed && choice?.ok ? this.models(choice) : ''}
         <p class="ai-default-note">Remembered for new notebooks. Change anytime in Settings.</p>
@@ -125,6 +131,12 @@ export class AgentSetup {
         <button class="primary" ${!completed || !choice?.ok || this.saving ? 'disabled' : ''}>${this.saving ? 'Saving…' : this.actionLabel}</button>
       </form>
     </div>`
+    const agent = this.root.querySelector<HTMLSelectElement>('[name="agent"]')
+    const model = this.root.querySelector<HTMLSelectElement>(
+      '[name="agent-model"]'
+    )
+    if (agent) destinationPicker(agent, 'agent')
+    if (model) destinationPicker(model, 'model')
   }
   private models(choice: HarnessChoice) {
     const options = choice.models?.options || []
@@ -142,21 +154,7 @@ export class AgentSetup {
     return `<fieldset class="model-options" ${this.saving ? 'disabled' : ''}>
       <legend>Model</legend>
       <p class="model-source">${escape(choice.models?.source || 'The models this agent offers.')}</p>
-      <div class="model-list">${items
-        .map(
-          (
-            item
-          ) => `<label class="model-option ${item.unavailable ? 'is-unavailable' : ''}">
-        <input type="radio" name="agent-model" value="${escape(item.id)}" ${item.id === selected ? 'checked' : ''} ${item.unavailable ? 'disabled' : ''}>
-        <span><strong>${escape(item.label)}</strong>${
-          item.unavailable || !item.id || item.label !== item.id
-            ? `<small>${escape(item.unavailable || (item.id ? item.id : 'The model set in the agent itself'))}</small>`
-            : ''
-        }</span>
-        ${item.unavailable ? '<span class="model-availability">Unavailable</span>' : ''}
-      </label>`
-        )
-        .join('')}</div>
+      <select name="agent-model" aria-label="Model" ${this.saving ? 'disabled' : ''}>${items.map((item) => `<option value="${escape(item.id)}" ${item.id === selected ? 'selected' : ''} ${item.unavailable ? 'disabled' : ''} data-detail="${escape(item.unavailable || (item.id ? item.id : 'The model configured in the agent'))}">${escape(item.label)}</option>`).join('')}</select>
     </fieldset>`
   }
   private click = (event: Event) => {
@@ -177,7 +175,7 @@ export class AgentSetup {
     this.selected = { adapter }
     this.draw()
     this.root
-      .querySelector<HTMLInputElement>(`input[value="${adapter}"]`)
+      .querySelector<HTMLButtonElement>('[name="agent"] + button')
       ?.focus()
   }
   private async detect() {

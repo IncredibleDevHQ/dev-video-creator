@@ -22,6 +22,7 @@ import { makeTeaser } from './teasers'
 import { keepTeaser, rebuildTeaser } from './teaser-portrait'
 import { publishToYouTube } from './youtube-publish'
 import { askRepo, setNotebookRepos } from './repo-answers'
+import { pickRepositoryFolder } from './repo-folder-picker'
 import { inspectRepo } from './repo-git'
 import { Refusal } from './refusal'
 import {
@@ -58,6 +59,8 @@ const route = async (
   response: ServerResponse
 ): Promise<Reply | 'sent'> => {
   const method = request.method || 'GET'
+  if (url.pathname === '/api/repos/pick' && method === 'POST')
+    return ok(await pickRepositoryFolder(request))
   if (url.pathname === '/api/repos/inspect' && method === 'POST')
     return ok(await inspectRepo(body.path))
   if (url.pathname === '/api/accounts' && method === 'GET')

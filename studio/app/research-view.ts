@@ -22,6 +22,7 @@ import type { ResearchLayout } from './research-layout'
 import { escape } from './ui'
 import { chatSwitcher, projectSidebar } from './research-session-view'
 import { projectContent } from './research-content'
+import { pickerIcons } from './destination-picker'
 import { modelName } from '../shared/agent-models'
 import incredibleLogo from './assets/incredible-logo.svg'
 export type ResearchViewState = {
@@ -340,7 +341,7 @@ const repoContext = (s: ResearchViewState) =>
     ${s.inspected ? 'open' : ''}
   >
     <summary>
-      ${s.repos.length
+      ${pickerIcons.repo}${s.repos.length
         ? `${escape(s.repos[0].name)} · ${escape(s.repos[0].branch)}${s.repos.length > 1 ? ` +${s.repos.length - 1}` : ''}`
         : 'Choose repositories'}
     </summary>
@@ -493,7 +494,7 @@ const chat = (s: ResearchViewState) => {
       <div class="research-compose-tools">
         <details class="research-agent-options" id="research-agent-options">
           <summary>
-            ${s.adapter === 'claude-code'
+            ${pickerIcons.agent}${s.adapter === 'claude-code'
               ? 'Claude Code'
               : s.adapter === 'kimi'
                 ? 'Kimi'

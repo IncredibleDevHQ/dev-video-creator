@@ -349,3 +349,46 @@ models or request device access.
 FFmpeg/ffprobe perform media normalization, measurement and composition; Python
 runs presentation validation; uv runs the pinned speech aligner. AI CLIs execute
 the chosen harness. The rendering browser is installed separately by setup.
+
+### Generation efficiency and token ceilings
+
+Still workers receive a consolidated brief, the complete design and factual
+frame context, plus calculated accessible text-color pairs. High reasoning
+and rendered visual/factual review remain enabled. The full worker reference
+remains available on demand. Identical pose submissions reuse validation only
+when the HTML, design and render assets have not changed. Six distinct pose
+candidates are allowed before stopping with the saved work intact.
+
+Kimi visual workers use a Studio-owned restricted agent profile with file,
+image, skill and Studio tools. Research chat retains its normal capabilities.
+New-card placement waits 1.5 seconds for a burst of cards to settle, then reads
+the latest cards and performs one placement request.
+
+Kimi usage is sampled every five seconds from its local usage records, including
+on failure. The engine stops at configured cumulative limits and prevents new
+batch dispatch after a budget stop. These are token traffic ceilings, not prices.
+An in-flight model request can exceed a ceiling before usage is reported; other
+adapters enforce during a run only when they emit usage, otherwise at the next
+run boundary. Runs without provider usage cannot be included in the count.
+
+Optional positive-integer environment settings (restart the backend to change):
+
+| Setting | Default |
+| --- | --- |
+| `MINIMAL_STUDIO_RUN_NEW_TOKENS` | 100,000 for visual workers; 250,000 otherwise |
+| `MINIMAL_STUDIO_RUN_CACHED_TOKENS` | 2,000,000 for visual workers; 4,000,000 otherwise |
+| `MINIMAL_STUDIO_PROJECT_NEW_TOKENS` | 6,000,000 |
+| `MINIMAL_STUDIO_PROJECT_CACHED_TOKENS` | 100,000,000 |
+| `MINIMAL_STUDIO_SERIES_NEW_TOKENS` | 12,000,000 |
+| `MINIMAL_STUDIO_SERIES_CACHED_TOKENS` | 200,000,000 |
+
+“New” includes uncached input, output and cache creation. Project/series totals
+are lifetime recorded usage, including failed attempts, across providers. A
+series budget groups the source notebook and its episode copies. Increasing a
+ceiling permits further work; it does not erase recorded usage or accept an
+unfinished frame. Activity separates token categories and shows still/motion
+stages explicitly.
+
+These efficiency changes have not yet been tested or benchmarked; testing was
+explicitly deferred by the creator. No savings or quality-equivalence result is
+claimed until that validation is performed.

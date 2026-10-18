@@ -72,6 +72,8 @@ export type ResearchProject = {
   nodes: ResearchNode[]
   chats?: ResearchChat[]
   repos: RepoLink[]
+  /** The local checkout that owns this project; chat branches remain independent. */
+  repository?: RepoLink
   harness?: HarnessSelection
   /** One aggregate notebook drives the existing content-map / series engine. */
   canvasId?: string
@@ -83,7 +85,7 @@ export type ResearchProjectView = ResearchProject & {
 }
 export type ResearchProjectSummary = Pick<
   ResearchProject,
-  'id' | 'title' | 'updatedAt'
+  'id' | 'title' | 'updatedAt' | 'repository'
 > & {
   notebooks: number
   questions: number

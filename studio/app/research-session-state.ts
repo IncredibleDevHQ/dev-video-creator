@@ -11,7 +11,7 @@ export const startResearchChat = (s: ResearchViewState) => {
   s.node = null
   s.anchor = null
   s.inspected = null
-  s.repos = []
+  s.repos = structuredClone(s.project.repository ? [s.project.repository] : [])
   s.query = ''
   s.error = ''
   s.message = ''
@@ -48,7 +48,9 @@ export const selectResearchChat = (s: ResearchViewState, id: string | null) => {
         null
   s.anchor = null
   s.inspected = null
-  s.repos = structuredClone(chat?.repos || [])
+  s.repos = structuredClone(
+    chat?.repos || (s.project.repository ? [s.project.repository] : [])
+  )
   s.adapter = chat?.harness?.adapter || 'claude-code'
   s.model = chat?.harness?.model || ''
   s.query = ''

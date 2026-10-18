@@ -69,7 +69,11 @@ export const askResearch = async (
   const harness = await availableHarness(
     body.harness || chat?.harness || (await detectedHarness())
   )
-  const links = await researchRepositories(body.repos ?? chat?.repos ?? [])
+  const links = await researchRepositories(
+    body.repos ??
+      chat?.repos ??
+      (project.repository ? [project.repository] : [])
+  )
   const repos: ResearchRepo[] = await Promise.all(
     links.map(async (link) => ({ ...link, commit: await branchHead(link) }))
   )

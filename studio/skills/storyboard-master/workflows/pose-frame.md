@@ -13,28 +13,17 @@ or a product capture when the dispatch says it does not exist. No motion.
 
 ## Read, in this order
 
-1. `packet/DISPATCH.md`: your `frame_id`, the file you write, the canvas and
-   the caption band, the frame's estimated length, the stand-in for its media,
-   the frames beside it, and the creator's note when the frame is posed again.
-2. `packet/FRAME_PACKET.md`: your frame's storyboard block (what it shows,
-   its words, its type, beat and key message) and, when the plan named one,
-   the blueprint whose shape fits it. There is no time-coded shot yet: you
-   decide the layout, and the shot is written onto your still once it is
-   approved.
-3. `packet/ROLE.md`: Hyperframes' frame-worker contract, then the studio's
-   note for this frame's build. Follow its file contract (one `<template>`,
-   the root and its `data-composition-id`, styles and scripts inside the
-   template, the one paused timeline registered at `window.__timelines`), its
-   frame constraints on layout (the caption keep-out, filling the content
-   area, short motion-graphics copy, never the narration's sentences) and its
-   rules on design tokens. Its motion rules (revealing across the duration,
-   each Scene a timeline phase) are the build's: today nothing moves.
-4. `production/frame.md`: the design truth. Its fonts ship in
-   `production/assets/fonts/` when the design names files.
-5. For a camera frame, the layouts in
-   `.claude/skills/storyboard-master/hyperframes/skills/talking-head-recut/references/layouts/`
-   (`overlay`, `pip`, `split`, `stack`) when the run has them: pose the take in
-   one of them, with its cards beside or over it.
+Read `packet/BRIEF.md` once. Studio has consolidated the static contract,
+assigned frame, dispatch, full design and calculated contrast pairs there.
+Do not separately reread those same files. `packet/FULL_ROLE.md` remains
+available for unusual constraints not covered in the brief. Camera layout
+references remain available when supplied for this build.
+
+Use the calculated contrast pairs for text on matching opaque surfaces.
+For tinted surfaces, gradients or opacity, calculate the actual composited
+contrast before writing. Keep the brand's accent in decoration when it cannot
+serve as readable small text. Repair all reported contrast failures together.
+The contrast check and visual inspection are still mandatory.
 
 ## Pose
 
