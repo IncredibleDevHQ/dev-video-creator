@@ -9,7 +9,35 @@ import {
   windowLabel,
   wordBudget
 } from '../shared/length'
-import { lengthRange, lengthSay } from '../app/length-range'
+import { lengthRange, lengthSay, wireLengthRanges } from '../app/length-range'
+import { parseHTML } from 'linkedom'
+
+it('updates the visible and submitted duration without an optional change callback', () => {
+  const { document, window } = parseHTML(
+    `<form>${lengthRange({ min: 45, max: 120, strict: false })}</form>`
+  )
+  wireLengthRanges(document)
+  const low = document.querySelector<HTMLInputElement>(
+    '[data-length-end="min"]'
+  )!
+  const high = document.querySelector<HTMLInputElement>(
+    '[data-length-end="max"]'
+  )!
+  low.value = '0'
+  low.dispatchEvent(new window.Event('input'))
+  high.value = '2'
+  high.dispatchEvent(new window.Event('change'))
+  expect(document.querySelector('[data-length-label]')?.textContent).toBe(
+    '15–30 s'
+  )
+  expect(document.querySelector<HTMLInputElement>('[name="min"]')?.value).toBe(
+    '15'
+  )
+  expect(document.querySelector<HTMLInputElement>('[name="max"]')?.value).toBe(
+    '30'
+  )
+  expect(high.getAttribute('aria-valuetext')).toBe('30 s')
+})
 
 it('reads a window as people say it, and budgets its words at HyperFrames’ pace', () => {
   expect(windowLabel({ min: 60, max: 90 })).toBe('60–90 s')

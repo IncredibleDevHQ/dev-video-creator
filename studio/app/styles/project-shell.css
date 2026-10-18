@@ -130,7 +130,7 @@
   .video-workspace,
 .project-tool-shell:not(.project-standalone)
   .project-tool-root
-  .video-workspace
+  .video-workspace:not(.storyboard-workspace)
   > .stage-area,
 .project-tool-shell:not(.project-standalone)
   .project-tool-root

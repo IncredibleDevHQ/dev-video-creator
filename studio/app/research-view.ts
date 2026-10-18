@@ -120,9 +120,9 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
       <div class="project-document-actions">
         ${action(
           'expand-document',
-          s.documentExpanded ? 'Chat beside notes' : '⤢',
+          s.documentExpanded ? 'Open research chat' : '⤢',
           '',
-          `aria-label="${s.documentExpanded ? 'Chat beside notes' : 'Expand notebook'}"`
+          `aria-label="${s.documentExpanded ? 'Open research chat' : 'Expand notebook'}"`
         )}${action(
           'rename-notebook',
           '···',
@@ -416,7 +416,8 @@ const chat = (s: ResearchViewState) => {
     (n) => n.chatId === s.chat && n.state === 'working'
   )
   const working = Boolean(workingNode)
-  const unfinished = Boolean(s.node && path.at(-1)?.state !== 'done')
+  const selected = s.project.nodes.find((n) => n.id === s.node)
+  const unfinished = Boolean(selected && selected.state !== 'done')
   return html`<section class="research-chat" aria-label="Research conversation">
     ${workingNode && workingNode.id !== s.node
       ? html`<button
@@ -438,10 +439,15 @@ const chat = (s: ResearchViewState) => {
             <span class="research-welcome-icon"
               ><img src="${incredibleLogo}" alt=""
             /></span>
-            <h2>What are you exploring?</h2>
+            <h2>
+              ${s.anchor
+                ? 'What would you like to understand?'
+                : 'What are you exploring?'}
+            </h2>
             <p>
-              Choose repositories and branches below to research code. Your
-              project notes are also available. Save useful answers as you go.
+              ${s.anchor
+                ? 'Your selected note is attached below. Ask a question to create a research document; save the parts you want to keep back to your notebook.'
+                : 'Ask about your project notes, or choose repositories to research code. Useful answers can become notes for your next video.'}
             </p>
           </div>`}
     </div>
@@ -465,7 +471,7 @@ const chat = (s: ResearchViewState) => {
               ${path.at(-1)?.state === 'working'
                 ? 'Your agent is researching this question. Keep notes or explore another path while it works.'
                 : unfinished
-                  ? 'To continue, use Ask again, choose an answered node, or start a new conversation.'
+                  ? 'Use Ask again to retry, or open an earlier document to continue.'
                   : 'Your next question branches from this answer. Earlier paths stay saved.'}
             </div>`
           : ''}

@@ -103,7 +103,12 @@ it('opens tools in the same project frame and stops previous subscriptions', asy
     new URL(
       projectLink(
         'space',
-        { chat: 'chat', node: 'question', notebook: 'book' },
+        {
+          chat: 'chat',
+          node: 'question',
+          notebook: 'book',
+          chatMinimized: true
+        },
         { detail: '1', notebook: 'book', view: 'presentation' }
       ),
       address
@@ -122,6 +127,9 @@ it('opens tools in the same project frame and stops previous subscriptions', asy
   expect(
     new URL(back.getAttribute('href')!, address).searchParams.get('node')
   ).toBe('question')
+  expect(
+    new URL(back.getAttribute('href')!, address).searchParams.has('chatPanel')
+  ).toBe(false)
 })
 it('returns to research without replacing controller roots', async () => {
   const editor = shell.editorRoot

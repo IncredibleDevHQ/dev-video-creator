@@ -100,6 +100,7 @@ export const runAcp = async (input: {
   >()
   let next = 0,
     closed = false,
+    prompting = false,
     sessionId = input.resumeId
   const rejectAll = (error: Error) => {
     for (const p of pending.values()) {
@@ -172,7 +173,9 @@ export const runAcp = async (input: {
       message.method === 'session/update' &&
       message.params?.sessionId === sessionId
     ) {
-      emit(message.params.update || {})
+      // session/load replays historical tool calls. Only new prompt activity
+      // belongs to this run's progress and tool budget.
+      if (prompting) emit(message.params.update || {})
       return
     }
     if (message.method && message.id !== undefined) {
@@ -223,6 +226,7 @@ export const runAcp = async (input: {
     await request('session/set_mode', { sessionId, modeId: 'auto' })
     input.onEvent({ type: 'session', ts: Date.now(), model: input.model })
     if (input.signal.aborted) throw new Error('Run interrupted')
+    prompting = true
     const result = await request(
       'session/prompt',
       { sessionId, prompt: [{ type: 'text', text: input.task }] },

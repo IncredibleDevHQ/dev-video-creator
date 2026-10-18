@@ -172,7 +172,7 @@ export const sceneChoice = (
   }><span>All scenes</span><span class="scene-choice-count">${ticked} of ${
     slides.length
   }</span></label>
-<ul>${slides
+<details${only ? ' open' : ''}><summary>Choose individual scenes</summary><ul>${slides
     .map(
       (slide, index) =>
         `<li><label><input type="checkbox" name="scene" value="${escape(
@@ -189,7 +189,7 @@ export const sceneChoice = (
         }</label></li>`
     )
     .join('')}</ul>
-<small>Scenes you leave out can be made later, from their wireframe or the Video page.</small>
+<small>Scenes you leave out can be made later, from their wireframe or the Video page.</small></details>
 </fieldset>`
 }
 

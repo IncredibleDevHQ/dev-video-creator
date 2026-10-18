@@ -7,6 +7,8 @@ import {
 } from '../app/research-view'
 import { researchGraph } from '../app/research-graph'
 import type { ResearchNode } from '../shared/research'
+import { openGeneratedResearchDocument } from '../app/research-artifact'
+import { defaultResearchLayout } from '../app/research-layout'
 const answer =
   '**Keep the first character.**\n\nThen keep the second paragraph.'
 const canonical = parseHTML(
@@ -54,6 +56,44 @@ const state: ResearchViewState = {
   message: '',
   error: ''
 }
+it('opens a note-based research document even after the composer selection was cleared', () => {
+  const current = structuredClone(state)
+  const layout = { ...defaultResearchLayout(), notesOpen: true }
+  current.layout = layout
+  current.anchor = null
+  current.project.nodes[0].anchor = {
+    kind: 'note',
+    id: 'block',
+    notebookId: 'notes',
+    start: 0,
+    end: 5,
+    text: 'First'
+  }
+  openGeneratedResearchDocument(current, layout, 'root')
+  expect(current.chatMinimized).toBe(true)
+  expect(layout.notesOpen).toBe(false)
+  const doc = parseHTML(researchWorkspaceView(current)).document
+  expect(doc.querySelector('.research-columns')?.className).toContain(
+    'notes-hidden'
+  )
+  expect(
+    doc.querySelector('.research-artifact [data-select-response="root"]')
+  ).not.toBeNull()
+})
+it('keeps an ordinary follow-up in chat without displacing an open notebook', () => {
+  const current = structuredClone(state)
+  const layout = { ...defaultResearchLayout(), notesOpen: true }
+  current.project.nodes.push({
+    ...node,
+    id: 'reply',
+    parentId: 'root',
+    artifact: false,
+    contextDocumentId: 'root'
+  })
+  openGeneratedResearchDocument(current, layout, 'reply')
+  expect(current.chatMinimized).toBe(false)
+  expect(layout.notesOpen).toBe(true)
+})
 it('preserves exact selectable text after HTML template formatting, including Markdown offsets', () => {
   const document = parseHTML(researchWorkspaceView(state)).document
   expect(document.querySelector('[data-select-response]')!.textContent).toBe(
@@ -93,6 +133,22 @@ it('offers recovery instead of letting a stopped answer become a parent', () => 
     'Ask again'
   )
   expect(doc.querySelector('[data-retry-node="root"]')).not.toBeNull()
+})
+it('allows retrying from an answered document when a later chat turn failed', () => {
+  const current = structuredClone(state)
+  current.project.nodes.push({
+    ...node,
+    id: 'failed',
+    parentId: 'root',
+    state: 'failed',
+    artifact: false
+  })
+  const doc = parseHTML(researchWorkspaceView(current)).document
+  expect(
+    doc
+      .querySelector('button[form="research-question-form"]')
+      ?.hasAttribute('disabled')
+  ).toBe(false)
 })
 
 it('links a saved note back to its answer and to follow-up questions without duplicating selectable text', () => {

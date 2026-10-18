@@ -1,5 +1,6 @@
 import {
   activeResearchDocument,
+  openGeneratedResearchDocument,
   artifactGraph,
   researchTurnRequest
 } from './research-artifact'
@@ -480,9 +481,7 @@ export class ResearchWorkspace {
         s.chat = result.project.nodes.find(
           (n) => n.id === result.nodeId
         )!.chatId!
-        s.node = result.nodeId
-        s.chatMinimized = Boolean(s.anchor)
-        s.anchor = null
+        openGeneratedResearchDocument(s, this.workbench.state, result.nodeId)
         this.drafts[this.draftKey('research-question')] = ''
         this.persistDrafts()
         this.navigate()
@@ -639,7 +638,9 @@ export class ResearchWorkspace {
       s.node = node.parentId
       s.anchor = node.anchor || null
       this.drafts[this.draftKey('research-question')] = node.question
+      this.navigate()
       this.render()
+      this.root.querySelector<HTMLElement>('#research-question')?.focus()
       return
     }
     if (button.dataset.saveAnswer) {

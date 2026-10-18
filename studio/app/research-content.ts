@@ -12,8 +12,12 @@ export const projectContent = (s: ResearchViewState) =>
   >
     <div class="research-panel-heading">
       <div>
-        <h2>Make something from your notes</h2>
-        <p>Choose a notebook. Shape its story, then make a video.</p>
+        <h2>Turn your notes into a video</h2>
+        <p>
+          Start with a visual story draft: wireframes that show what each scene
+          will say and show. Review the draft, then add narration and make your
+          video.
+        </p>
       </div>
     </div>
     <div class="project-content-scroll">
@@ -86,7 +90,7 @@ export const projectContent = (s: ResearchViewState) =>
                         data-notebook-id="${n.id}"
                         ${s.pending ? 'disabled' : ''}
                       >
-                        Create wireframes
+                        Create story draft
                       </button>`
                     : html`<a
                         class="research-primary"
@@ -97,7 +101,7 @@ export const projectContent = (s: ResearchViewState) =>
                           ? 'Continue video'
                           : building
                             ? 'View progress'
-                            : 'Review wireframes'}</a
+                            : 'Review story draft'}</a
                       >`}
                 ${ready && !snapshot?.project.video
                   ? html`<a href="${url}&view=video">Create video →</a>`

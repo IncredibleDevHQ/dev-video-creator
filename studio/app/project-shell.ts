@@ -256,7 +256,11 @@ export class ProjectShell {
     const notes = projectLink(project.id, context, {
       projectView: notebook ? 'notes' : 'canvas'
     })
-    const back = projectLink(project.id, context, { projectView: 'research' })
+    const back = projectLink(
+      project.id,
+      { ...context, chatMinimized: false },
+      { projectView: 'research' }
+    )
     const markup = `<header class="project-chat-header project-tool-heading">
       <button class="project-sidebar-toggle" data-research-action="toggle-sidebar" aria-label="Toggle project navigation" aria-expanded="${this.frame.classList.contains('sidebar-open')}">☰</button>
       <div class="project-chat-title"><div class="project-tool-breadcrumb"><a href="${projectLink(project.id, context, { projectView: 'canvas' })}">${escape(project.title)}</a><span aria-hidden="true">/</span><h1>${escape(name)}</h1></div>

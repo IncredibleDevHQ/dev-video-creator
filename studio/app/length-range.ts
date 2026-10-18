@@ -119,8 +119,14 @@ export const wireLengthRanges = (
       return goal
     }
     for (const end of [low, high])
-      end.addEventListener('input', () => onChange?.(sync(end), false))
+      end.addEventListener('input', () => {
+        const goal = sync(end)
+        onChange?.(goal, false)
+      })
     for (const input of [low, high, strict])
-      input.addEventListener('change', () => onChange?.(sync(), true))
+      input.addEventListener('change', () => {
+        const goal = sync()
+        onChange?.(goal, true)
+      })
   }
 }

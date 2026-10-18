@@ -60,3 +60,16 @@ export const artifactChatRail = (s: ResearchViewState) =>
   !s.contentOpen
     ? '<button class="artifact-chat-restore" data-research-action="minimize-chat" aria-label="Show chat panel" title="Show chat">◌<span>Chat</span></button>'
     : ''
+
+/** A generated document takes the primary area even when research began in notes. */
+export const openGeneratedResearchDocument = (
+  s: ResearchViewState,
+  layout: import('./research-layout').ResearchLayout,
+  nodeId: string
+) => {
+  s.node = nodeId
+  const node = s.project.nodes.find((n) => n.id === nodeId)
+  s.chatMinimized = Boolean(node?.anchor)
+  s.anchor = null
+  if (activeResearchDocument(s)?.id === nodeId) layout.notesOpen = false
+}
