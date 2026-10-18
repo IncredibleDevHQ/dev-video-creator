@@ -117,18 +117,20 @@ export class ResearchGraphViewport {
     if (!plane || !this.frame?.clientWidth) return
     const width = Number(plane.dataset.graphWidth),
       height = Number(plane.dataset.graphHeight)
+    const floating = Boolean(this.frame.closest('.graph-pip'))
     this.zoom = Math.min(
       1.5,
       Math.max(
         0.15,
         Math.min(
           (this.frame.clientWidth - 24) / width,
-          (this.frame.clientHeight - 64) / height
+          (this.frame.clientHeight - (floating ? 12 : 64)) / height
         )
       )
     )
     this.x = (this.frame.clientWidth - width * this.zoom) / 2
-    this.y = (this.frame.clientHeight - height * this.zoom) / 2 - 16
+    this.y =
+      (this.frame.clientHeight - height * this.zoom) / 2 - (floating ? 0 : 16)
     this.fitted = true
     this.paint()
   }

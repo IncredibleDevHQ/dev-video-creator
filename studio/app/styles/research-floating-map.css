@@ -26,8 +26,8 @@
   position: absolute;
   z-index: 20;
   inset: 14px 16px auto auto;
-  width: min(320px, calc(100% - 32px));
-  height: min(250px, calc(100% - 28px));
+  width: min(380px, calc(100% - 32px));
+  height: min(300px, calc(100% - 28px));
   min-height: 0;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -107,4 +107,8 @@
     > .research-chat {
     display: flex;
   }
+}
+
+.project-workspace .graph-pip .research-node-label {
+  font-size: 16px;
 }

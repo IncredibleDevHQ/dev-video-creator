@@ -111,7 +111,13 @@ export const graphPanel = (
       aria-label="Question graph canvas. Drag to pan, scroll to zoom; arrow keys move, plus and minus zoom, zero fits."
     >
       ${nodes.length
-        ? researchGraph(nodes, selected, query, layout.scope, layout.depth)
+        ? researchGraph(
+            nodes,
+            selected,
+            query,
+            layout.graphMode === 'pip' && selected ? 'local' : layout.scope,
+            layout.graphMode === 'pip' && selected ? 1 : layout.depth
+          )
         : '<p class="research-graph-empty">Your first question starts the graph.<br>Follow-ups branch from the answer you select.</p>'}
     </div>
     <div class="research-graph-controls">

@@ -28,10 +28,10 @@ export const researchGraph = (
     const minY = Math.min(...subset.map((p) => p.y))
     for (const point of layout.points) {
       point.x += 100 - minX
-      point.y += 70 - minY
+      point.y += 40 - minY
     }
     layout.width = Math.max(320, ...subset.map((p) => p.x + 110))
-    layout.height = Math.max(280, ...subset.map((p) => p.y + 100))
+    layout.height = Math.max(180, ...subset.map((p) => p.y + 60))
   }
   const points = new Map(layout.points.map((p) => [p.id, p]))
   const matches = new Set(

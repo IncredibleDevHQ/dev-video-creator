@@ -3,6 +3,8 @@ import { parseHTML } from 'linkedom'
 import type { ResearchNode } from '../shared/research'
 import { graphLayout, graphNeighborhood } from '../app/research-graph-model'
 import { researchGraph } from '../app/research-graph'
+import { graphPanel } from '../app/research-workbench-view'
+import { defaultResearchLayout } from '../app/research-layout'
 import {
   normalizeResearchLayout,
   researchDraftKey
@@ -100,4 +102,23 @@ it('retains a composer element across layout changes but replaces it on branch c
     'research-question': 'branch-b'
   })
   expect(root.querySelector('textarea')).not.toBe(input)
+})
+
+it('keeps the floating map readable around the active document and restores the full map when expanded', () => {
+  const layout = {
+    ...defaultResearchLayout(),
+    graphMode: 'pip' as const,
+    scope: 'all' as const
+  }
+  const ids = (markup: string) =>
+    [...parseHTML(markup).document.querySelectorAll('[data-graph-node]')].map(
+      (n) => n.getAttribute('data-graph-node')
+    )
+  expect(ids(graphPanel(nodes, 'deep', '', layout)).sort()).toEqual([
+    'deep',
+    'left'
+  ])
+  expect(
+    ids(graphPanel(nodes, 'deep', '', { ...layout, graphMode: 'drawer' }))
+  ).toHaveLength(5)
 })
