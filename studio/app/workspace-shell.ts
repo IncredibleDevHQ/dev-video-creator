@@ -1,3 +1,4 @@
+import { WorkspaceFocus } from './workspace-focus'
 import { signOutWorkspace } from './workspace-login'
 import { html } from '../shared/html'
 import type {
@@ -28,6 +29,7 @@ export class WorkspaceShell {
   private state = readWorkspaceState(this.read())
   private projects: ResearchProjectSummary[] = []
   private index = new Map<string, WorkspaceItem[]>()
+  private focus: WorkspaceFocus
   private active: WorkspaceItem | null = null
   private mode: 'projects' | 'search' | 'recent' = 'projects'
   private generation = 0
@@ -38,6 +40,7 @@ export class WorkspaceShell {
     private navigate: (url: URL) => Promise<boolean>
   ) {
     root.classList.add('workspace-shell')
+    this.focus = new WorkspaceFocus(root)
     this.surface.className = 'workspace-surface'
     this.rail.className = 'workspace-rail'
     this.rail.setAttribute('aria-label', 'Workspace')
@@ -164,6 +167,7 @@ export class WorkspaceShell {
     }
   }
   research(state: ResearchViewState | null) {
+    this.focus.update()
     if (!state) {
       this.active = null
       this.updateRail()
@@ -174,6 +178,7 @@ export class WorkspaceShell {
     this.visit(researchWorkspaceItem(state))
   }
   output(project: ResearchProjectView) {
+    requestAnimationFrame(() => this.focus.update())
     this.catalog(project)
     this.visit(outputWorkspaceItem(project, new URL(location.href)))
   }

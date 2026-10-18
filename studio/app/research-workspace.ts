@@ -1,3 +1,5 @@
+import { installChatKeyboard } from './research-chat-keyboard'
+import { rememberNewResearchChat } from './research-chat-draft'
 import { html } from '../shared/html'
 import { modelName } from '../shared/agent-models'
 import type { ResearchAnchor, ResearchProjectView } from '../shared/research'
@@ -21,7 +23,11 @@ import {
 } from './research-home'
 import { researchNameDialog } from './research-dialog'
 import { researchChatSetup } from './research-chat-setup'
-import { showResearchTurn, toggleProjectPanel } from './research-navigation'
+import {
+  researchLocation,
+  showResearchTurn,
+  toggleProjectPanel
+} from './research-navigation'
 import {
   selectResearchChat,
   selectResearchNode,
@@ -35,6 +41,7 @@ import './styles/research-spatial.css'
 import './styles/research-sessions.css'
 import './styles/project-workspace.css'
 import './styles/project-simple.css'
+import './styles/research-conversation.css'
 
 export class ResearchWorkspace {
   isOpen = false
@@ -55,6 +62,7 @@ export class ResearchWorkspace {
     onHistory: () => void,
     private onLocation?: (state: ResearchViewState | null) => void
   ) {
+    installChatKeyboard(root)
     this.workbench = new ResearchWorkbench(root, () => this.render())
     root.addEventListener('click', (event) => {
       if (!this.isOpen) return
@@ -113,6 +121,7 @@ export class ResearchWorkspace {
       if (!this.isOpen) return
       if (field.id === 'research-model' && this.state) {
         this.state.model = field.value
+        rememberNewResearchChat(this.state)
         const label = this.root.querySelector('.research-agent-options summary')
         if (label)
           label.textContent = `${this.state.adapter === 'claude-code' ? 'Claude Code' : this.state.adapter === 'kimi' ? 'Kimi' : 'Codex'}${field.value ? ` · ${modelName(field.value)}` : ''} ⌄`
@@ -303,20 +312,7 @@ export class ResearchWorkspace {
   }
   private navigate() {
     if (!this.state) return
-    const url = new URL(location.href)
-    url.search = ''
-    url.searchParams.set('space', this.state.project.id)
-    url.searchParams.set(
-      'projectView',
-      this.state.contentOpen
-        ? 'canvas'
-        : this.state.documentExpanded
-          ? 'notes'
-          : 'research'
-    )
-    url.searchParams.set('book', this.state.notebook)
-    if (this.state.chat) url.searchParams.set('chat', this.state.chat)
-    if (this.state.node) url.searchParams.set('node', this.state.node)
+    const url = new URL(researchLocation(this.state), location.href)
     if (url.href !== location.href) history.pushState(null, '', url)
   }
   private render() {
@@ -414,7 +410,9 @@ export class ResearchWorkspace {
   }
   private async saveChatSettings() {
     const s = this.state
-    if (!s?.chat) return
+    if (!s) return
+    rememberNewResearchChat(s)
+    if (!s.chat) return
     const body = chatSettings(s)
     const version = ++this.settingsVersion
     this.settingsPending = true
@@ -673,7 +671,7 @@ export class ResearchWorkspace {
       this.root.querySelector('.research-repos')?.removeAttribute('open')
       return
     }
-    if (action === 'new-chat' || action === 'rename-chat') {
+    if (action === 'setup-chat' || action === 'rename-chat') {
       await this.settingsSave.catch(() => {})
       const result = await researchChatSetup(
         this.root,

@@ -217,7 +217,17 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
 const reply = (n: ResearchNode, s: ResearchViewState) =>
   html`<article class="research-turn" id="turn-${n.id}">
     <div class="research-question">
-      <span>You</span>
+      <span class="research-message-meta"
+        ><strong>You</strong
+        ><time datetime="${escape(n.at)}"
+          >${escape(
+            new Date(n.at).toLocaleTimeString([], {
+              hour: 'numeric',
+              minute: '2-digit'
+            })
+          )}</time
+        ></span
+      >
       <h2>${escape(n.question)}</h2>
       ${n.anchor
         ? html`<details
@@ -311,7 +321,9 @@ const repoContext = (s: ResearchViewState) =>
     ${s.inspected ? 'open' : ''}
   >
     <summary>
-      ${s.repos.length ? `${s.repos.length} repositories` : '+ Repositories'}
+      ${s.repos.length
+        ? `${escape(s.repos[0].name)} · ${escape(s.repos[0].branch)}${s.repos.length > 1 ? ` +${s.repos.length - 1}` : ''}`
+        : 'Choose repositories'}
     </summary>
     <div class="research-context-popover">
       <div class="research-context-title">
@@ -405,8 +417,8 @@ const chat = (s: ResearchViewState) => {
             /></span>
             <h2>What are you exploring?</h2>
             <p>
-              Ask a question or add repositories for context. Save useful
-              answers to a notebook as you go.
+              Choose repositories and branches below to research code. Your
+              project notes are also available. Save useful answers as you go.
             </p>
           </div>`}
     </div>
@@ -441,7 +453,11 @@ const chat = (s: ResearchViewState) => {
           name="question"
           rows="2"
           maxlength="8000"
-          placeholder="Ask a question…"
+          placeholder="Message ${s.adapter === 'kimi'
+            ? 'Kimi'
+            : s.adapter === 'codex'
+              ? 'Codex'
+              : 'Claude Code'}…"
           required
         ></textarea>
       </form>
@@ -491,12 +507,15 @@ const chat = (s: ResearchViewState) => {
           type="submit"
           form="research-question-form"
           class="research-primary research-send"
-          aria-label="Ask question"
+          aria-label="Send message"
           ${working || unfinished || s.pending ? 'disabled' : ''}
         >
-          ${working ? 'Working…' : 'Ask ↗'}
+          ${working ? 'Working…' : 'Send ↑'}
         </button>
       </div>
+      <small class="research-send-hint"
+        >Enter to send · Shift + Enter for a new line</small
+      >
     </div>
   </section>`
 }

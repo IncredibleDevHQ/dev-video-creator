@@ -56,6 +56,7 @@ export type ResearchNode = {
   state: 'working' | 'done' | 'failed' | 'stopped'
   answer: string
   answerText: string
+  sessionMode?: 'new' | 'continued' | 'branched'
   activity?: string
   error?: string
 }

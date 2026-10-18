@@ -443,6 +443,43 @@ it('seeds accepted production code before the harness starts and refuses escapin
   expect(run).toHaveBeenCalledOnce()
 })
 
+it('resumes chat in its stable workspace while replacing the previous packet and answer', async () => {
+  const session = { workspaceId: 'chat-workspace', resumeId: 'native-session' }
+  const directory = join(
+    root,
+    'store',
+    'engine-workspaces',
+    'fixture',
+    session.workspaceId
+  )
+  await mkdir(join(directory, 'story'), { recursive: true })
+  await mkdir(join(directory, 'packet'), { recursive: true })
+  await writeFile(join(directory, 'story/answer.json'), 'stale')
+  await writeFile(join(directory, 'packet/OLD.json'), 'stale')
+  const result = await runEngineStage({
+    ...base,
+    stage: 'story',
+    operation: 'chat',
+    session,
+    accept: async () => {},
+    adapterOverride: adapter(async (run) => {
+      expect(run.resumeId).toBe('native-session')
+      expect(run.projectDir).toBe(directory)
+      await expect(
+        readFile(join(directory, 'story/answer.json'))
+      ).rejects.toThrow()
+      await expect(
+        readFile(join(directory, 'packet/OLD.json'))
+      ).rejects.toThrow()
+      expect(
+        await readFile(join(directory, 'packet/PLAN.json'), 'utf8')
+      ).toContain('fixture')
+      return { exitCode: 0, resumeId: 'native-session' }
+    })
+  })
+  expect(result.status).toBe('done')
+  expect(result.workspaceId).toBe(session.workspaceId)
+})
 it('shutdown waits for cancelled runs to retain their final state', async () => {
   const { stopEngineRuns } = await import('./runtime')
   let started = false

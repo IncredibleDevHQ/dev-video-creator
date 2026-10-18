@@ -1,3 +1,7 @@
+import {
+  prepareResearchSession,
+  finishResearchSession
+} from './research-agent-session'
 import { parseHTML } from 'linkedom'
 import { researchHtml } from '../shared/research-markdown'
 import { randomUUID } from 'node:crypto'
@@ -188,6 +192,11 @@ const answerResearch = async (id: string, nodeId: string) => {
       ?.state !== 'working'
   )
     return
+  const session = await prepareResearchSession(id, node)
+  await changeResearchProject(id, (p) => {
+    const current = p.nodes.find((n) => n.id === nodeId)
+    if (current?.state === 'working') current.sessionMode = session.mode
+  })
   const answer = await runValidatedJsonStage({
     projectId: project.notebooks[0].id,
     sceneId: node.id,
@@ -202,6 +211,8 @@ const answerResearch = async (id: string, nodeId: string) => {
       process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
       `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`,
     operation: 'chat',
+    session: { workspaceId: session.workspaceId, resumeId: session.resumeId },
+    onRun: (run) => finishResearchSession(session, node.id, run),
     tools,
     skillFiles: ['SKILL.md', 'workflows/research-project.md'],
     stageContext: { question: node.question },

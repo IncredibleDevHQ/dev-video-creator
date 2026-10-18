@@ -1,6 +1,6 @@
 import { generationStops } from '../generation-errors'
 import { randomUUID } from 'node:crypto'
-import { mkdir, writeFile, readdir, readFile } from 'node:fs/promises'
+import { mkdir, writeFile, readdir, readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { dataRoot, readRow, writeRow, listRows } from '../persistence'
 import { createClaudeCodeAdapter } from './adapters/claude-code'
@@ -43,6 +43,7 @@ export type EngineRun = {
   operation?: HarnessOperation
   reportedModel?: string
   resumeId?: string
+  workspaceId?: string
   usage?: import('../../shared/usage').TokenUsage
   startedAt: string
   finishedAt?: string
@@ -151,6 +152,7 @@ export const runEngineStage = async (input: {
   accept: (directory: string) => Promise<void>
   onEvent?: (event: HarnessEvent) => Promise<void> | void
   observe?: (directory: string) => Promise<void>
+  session?: { workspaceId: string; resumeId?: string }
   adapterOverride?: HarnessAdapter
   /** Sizes the time and tool budgets for the chosen model (limits.ts). */
   operation?: HarnessOperation
@@ -194,8 +196,20 @@ export const runEngineStage = async (input: {
     )
   if (!adapter || adapter.id !== input.adapter)
     throw new Error('Choose a harness')
+  if (
+    input.session &&
+    (!validId(input.session.workspaceId) ||
+      input.operation !== 'chat' ||
+      input.stage !== 'story')
+  )
+    throw new Error('Invalid research session workspace')
   const id = randomUUID()
-  const directory = join(dataRoot, 'engine-workspaces', input.projectId, id)
+  const directory = join(
+    dataRoot,
+    'engine-workspaces',
+    input.projectId,
+    input.session?.workspaceId || id
+  )
   const operation = input.operation || operations[input.stage]
   const limits = stageLimits(operation, {
     adapter: input.adapter,
@@ -211,6 +225,7 @@ export const runEngineStage = async (input: {
     model: input.model,
     effort,
     operation,
+    ...(input.session ? { workspaceId: input.session.workspaceId } : {}),
     status: 'preparing',
     startedAt: new Date().toISOString(),
     events: []
@@ -362,6 +377,11 @@ export const runEngineStage = async (input: {
     if (!available.ok)
       throw new Error(available.reason || 'Harness is not available')
     await mkdir(directory, { recursive: true, mode: 0o700 })
+    if (input.session) {
+      // Prior outputs are already archived. Never accept last turn's answer.
+      await rm(join(directory, 'story'), { recursive: true, force: true })
+      await rm(join(directory, 'packet'), { recursive: true, force: true })
+    }
     await installSkills(input.context.skillsDir, directory, {
       only:
         input.stage === 'composition'
@@ -447,6 +467,7 @@ export const runEngineStage = async (input: {
         id,
         skill: skills[input.stage],
         projectDir: directory,
+        resumeId: input.session?.resumeId,
         inputs: {
           task: input.task,
           model: input.model,

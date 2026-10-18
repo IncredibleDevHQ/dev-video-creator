@@ -124,10 +124,14 @@ export const researchWorkspaceItem = (s: ResearchViewState): WorkspaceItem => {
     projectTitle: s.project.title,
     title: title || 'New chat',
     kind,
-    href: projectLink(s.project.id, s, {
-      projectView:
-        kind === 'Notes' ? 'notes' : kind === 'Create' ? 'canvas' : 'research'
-    })
+    href: projectLink(
+      s.project.id,
+      { ...s, chat: s.chat || 'new' },
+      {
+        projectView:
+          kind === 'Notes' ? 'notes' : kind === 'Create' ? 'canvas' : 'research'
+      }
+    )
   }
 }
 export const outputWorkspaceItem = (

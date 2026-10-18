@@ -1,8 +1,37 @@
+import { restoreNewResearchChat } from './research-chat-draft'
 import type { HarnessSelection } from '../shared/model'
 import type { ResearchViewState } from './research-view'
 import { recentResearchChats } from '../shared/research-chats'
 
+/** Start with the question. A durable, named chat is created by the first send. */
+export const startResearchChat = (s: ResearchViewState) => {
+  s.chatPositions ||= {}
+  if (s.chat) s.chatPositions[s.chat] = s.node
+  s.chat = null
+  s.node = null
+  s.anchor = null
+  s.inspected = null
+  s.repos = []
+  s.query = ''
+  s.error = ''
+  s.message = ''
+  s.sidebarOpen = false
+  s.contentOpen = false
+  s.documentExpanded = false
+  s.chatMinimized = false
+  if (s.layout) {
+    s.layout.notesOpen = false
+    s.layout.graphOpen = false
+    s.layout.expanded = false
+  }
+}
+
 export const selectResearchChat = (s: ResearchViewState, id: string | null) => {
+  if (id === 'new') {
+    startResearchChat(s)
+    restoreNewResearchChat(s)
+    return
+  }
   s.chatPositions ||= {}
   if (s.chat) s.chatPositions[s.chat] = s.node
   const chat =

@@ -134,12 +134,12 @@ export const chatSwitcher = (s: ResearchViewState) => {
           : s.documentExpanded
             ? escape(notebook?.title || 'Notebook')
             : current
-              ? `# ${escape(current.title)}`
-              : 'Chat'}
+              ? escape(current.title)
+              : 'New chat'}
       </h1>
       ${s.contentOpen || s.documentExpanded
         ? `<span class="project-tool-origin">${escape(s.project.title)} · ${s.documentExpanded ? 'Notes' : 'Create'}</span>`
-        : `<button data-research-action="open-notebook">Notebook: ${escape(notebook?.title || 'your notebook')} <span>↗</span></button>`}
+        : `<span class="research-participants">You · ${s.adapter === 'kimi' ? 'Kimi' : s.adapter === 'codex' ? 'Codex' : 'Claude Code'}</span><button data-research-action="open-notebook">Notes in ${escape(notebook?.title || 'your notebook')} <span>↗</span></button>`}
     </div>
     <div class="project-chat-actions">
       ${s.contentOpen || s.documentExpanded
@@ -160,7 +160,7 @@ export const chatSwitcher = (s: ResearchViewState) => {
       ${
         current
           ? '<button data-research-action="rename-chat" aria-label="Chat details" title="Chat details">···</button>'
-          : ''
+          : '<button data-research-action="setup-chat" title="Set up project, notebook and repositories">Chat settings</button>'
       }
       `}
     </div>

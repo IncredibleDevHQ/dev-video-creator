@@ -300,3 +300,20 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+@media (min-width: 701px) {
+  .workspace-shell .project-sidebar-toggle {
+    display: inline-flex;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    color: var(--muted);
+  }
+  .workspace-focus .research-workspace.project-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace-focus :is(.project-sidebar, .project-sidebar-slot) {
+    display: none;
+  }
+}

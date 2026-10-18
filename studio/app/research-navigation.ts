@@ -1,3 +1,6 @@
+import { rememberNewResearchChat } from './research-chat-draft'
+import { projectLink } from './project-links'
+import { startResearchChat } from './research-session-state'
 import type { ResearchViewState } from './research-view'
 import type { ResearchWorkbench } from './research-workbench'
 
@@ -30,7 +33,10 @@ export const toggleProjectPanel = (
   workbench: ResearchWorkbench,
   render: () => void
 ) => {
-  if (action === 'toggle-sidebar') {
+  if (action === 'new-chat') {
+    startResearchChat(s)
+    rememberNewResearchChat(s)
+  } else if (action === 'toggle-sidebar') {
     s.sidebarOpen = !s.sidebarOpen
   } else if (['open-notes', 'open-chat', 'minimize-chat'].includes(action)) {
     s.sidebarOpen = false
@@ -62,5 +68,20 @@ export const toggleProjectPanel = (
     return true
   } else return false
   render()
+  if (action === 'new-chat')
+    document.querySelector<HTMLElement>('#research-question')?.focus()
   return true
 }
+
+export const researchLocation = (s: ResearchViewState) =>
+  projectLink(
+    s.project.id,
+    { ...s, chat: s.chat || 'new' },
+    {
+      projectView: s.contentOpen
+        ? 'canvas'
+        : s.documentExpanded
+          ? 'notes'
+          : 'research'
+    }
+  )
