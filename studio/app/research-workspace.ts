@@ -52,7 +52,8 @@ export class ResearchWorkspace {
   private composerKeys: Record<string, string> = {}
   constructor(
     private root: HTMLElement,
-    onHistory: () => void
+    onHistory: () => void,
+    private onLocation?: (state: ResearchViewState | null) => void
   ) {
     this.workbench = new ResearchWorkbench(root, () => this.render())
     root.addEventListener('click', (event) => {
@@ -204,6 +205,7 @@ export class ResearchWorkspace {
       const projects = await researchApi.list()
       if (revision !== this.revision) return
       populateResearchHome(this.root, projects)
+      this.onLocation?.(null)
     } catch (error) {
       this.error(error)
     }
@@ -371,6 +373,7 @@ export class ResearchWorkspace {
         field.setSelectionRange(selection[0], selection[1])
     }
     this.workbench.mount()
+    this.onLocation?.(s)
   }
   private error(error: unknown) {
     const message = error instanceof Error ? error.message : String(error)

@@ -1,3 +1,4 @@
+import { WorkspaceAuth } from './workspace-auth'
 import { researchRoute } from './research-routes'
 import { recoverResearch } from './research-chat'
 import { downloadDisposition } from './download-name'
@@ -142,17 +143,28 @@ const readBody = async (
   return Buffer.concat(chunks)
 }
 export const createStudioServer = (
-  options: { readOnly?: boolean; eventsLifetimeMs?: number } = {}
+  options: {
+    readOnly?: boolean
+    eventsLifetimeMs?: number
+    auth?: WorkspaceAuth
+  } = {}
 ) => {
+  const auth = options.auth || new WorkspaceAuth()
   const server = createServer(async (request, response) => {
     try {
+      const foreign = foreignRequest(request)
+      if (foreign) return send(response, 403, { error: foreign })
+      const url = new URL(request.url || '/', 'http://localhost')
+      if (await auth.route(url, request, response)) return
       if (options.readOnly && request.method !== 'GET')
         return send(response, 403, {
           error: 'This is a saved review. Generation and editing are disabled.'
         })
-      const foreign = foreignRequest(request)
-      if (foreign) return send(response, 403, { error: foreign })
-      const url = new URL(request.url || '/', 'http://localhost')
+      if (url.pathname !== '/mcp' && !auth.allowed(request))
+        return send(response, 401, {
+          error: 'Sign in to your workspace to continue.'
+        })
+      auth.track(request, response)
       if (url.pathname === '/api/settings/logo' && request.method === 'PUT') {
         const bytes = await readBody(
           request,
@@ -718,6 +730,12 @@ export const createStudioServer = (
   })
   // Talking with Studio AI on the content map is the only socket.
   server.on('upgrade', (request, socket, head) => {
+    if (!auth.allowed(request)) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n')
+      socket.destroy()
+      return
+    }
+    auth.track(request, socket)
     if (!voiceUpgrade(request, socket, head, options)) socket.destroy()
   })
   return server

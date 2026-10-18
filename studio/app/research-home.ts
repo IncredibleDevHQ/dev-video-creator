@@ -44,6 +44,10 @@ ${escape(draft)}</textarea
         </div>
       </form>
       <div class="research-home-error" role="alert"></div>
+      <section
+        id="workspace-continue"
+        aria-label="Recently opened work"
+      ></section>
       <section class="research-project-list">
         <div class="research-section-heading">
           <h2>Your projects</h2>
@@ -83,6 +87,15 @@ export const populateResearchHome = (
   )!.disabled = false
   root.querySelector('#research-projects')!.innerHTML =
     researchProjectCards(projects)
+  if (projects.length) {
+    root
+      .querySelector('.research-home')
+      ?.classList.add('workspace-home-returning')
+    root.querySelector('h1')!.textContent = 'Your workspace'
+    root.querySelector('main > p')!.textContent =
+      'Capture an idea, or pick up where you left off.'
+    root.querySelector<HTMLTextAreaElement>('textarea')!.rows = 3
+  }
   const destination = root.querySelector('#research-note-destination')!
   if (projects.length)
     destination.innerHTML = html`<label class="research-save-to"

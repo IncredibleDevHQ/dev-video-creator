@@ -30,7 +30,8 @@ export const projectSidebar = (
     <details class="project-switcher" id="project-switcher">
       <summary>${escape(s.project.title)} <span>⌄</span></summary>
       <div>
-        <a href="/">All projects</a
+        <button data-workspace-projects>Switch project</button
+        ><a href="/">Workspace home</a
         ><button data-research-action="rename-project">Rename project</button
         ><button data-research-action="new-project">New project</button>
       </div>

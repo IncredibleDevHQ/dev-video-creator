@@ -31,6 +31,8 @@ export const requestJson = async <T>(
         'Loading took too long. Try again; your saved work is kept.'
       )
     if (!response.ok) {
+      if (response.status === 401 && typeof document !== 'undefined')
+        document.dispatchEvent(new Event('studio:session-expired'))
       const message =
         result && typeof result === 'object' && 'error' in result
           ? result.error

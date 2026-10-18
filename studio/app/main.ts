@@ -1,3 +1,4 @@
+import { WorkspaceShell } from './workspace-shell'
 import { ProjectShell } from './project-shell'
 import { ResearchWorkspace } from './research-workspace'
 import { showSeries } from './series-controller'
@@ -5,7 +6,6 @@ import { dialogContent } from './dialog-content'
 import { TemplateGallery } from './template-gallery'
 import { MapCanvas } from './map-canvas'
 import { useTemplate } from './template-controller'
-import { installAppearance } from './appearance'
 import { installTooltips } from './tooltip'
 import { showError } from './error-surface'
 import type { Snapshot } from '../shared/api'
@@ -58,12 +58,14 @@ import { storyboardViewAt } from './storyboard-controller'
 import { syncPublishForm } from './release-controller'
 import { keptMakeChoices } from './template-picker'
 import { clickVideo } from './video-controller'
-installAppearance()
 installTooltips()
 const app = {} as AppContext
-app.projectShell = new ProjectShell(
-  app,
-  document.querySelector<HTMLDivElement>('#app')!
+const workspace = new WorkspaceShell(
+  document.querySelector<HTMLDivElement>('#app')!,
+  (url) => app.projectShell.go(url)
+)
+app.projectShell = new ProjectShell(app, workspace.surface, (project) =>
+  workspace.output(project)
 )
 app.root = app.projectShell.editorRoot
 app.researchWorkspace = new ResearchWorkspace(
@@ -72,7 +74,8 @@ app.researchWorkspace = new ResearchWorkspace(
     if (new URL(location.href).searchParams.has('space') || !location.search)
       void app.projectShell.go(new URL(location.href), false).catch(app.error)
     else location.reload()
-  }
+  },
+  (state) => workspace.research(state)
 )
 app.syncMediaRecovery = savedMediaRecovery(app.root)
 app.snapshot = null

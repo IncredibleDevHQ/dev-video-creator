@@ -28,6 +28,43 @@ launcher refuses occupied ports before accessing storage and stops both servers
 if either exits. `yarn desktop` opens the same app in the development Electron
 shell. It is not a packaged installer.
 
+## Workspace and sign-in
+
+Choose **Continue locally** at startup. This is the default local development
+mode (`MINIMAL_STUDIO_AUTH_MODE=local`); no account, database seed, email delivery,
+or password is required. Existing loopback CLI integrations continue to work.
+Signing out removes the browser session; it does not disable local tool access.
+
+For an optional single-owner password gate, configure the engine environment:
+
+```sh
+MINIMAL_STUDIO_AUTH_MODE=password
+MINIMAL_STUDIO_LOGIN_EMAIL=you@example.com
+MINIMAL_STUDIO_LOGIN_PASSWORD=<your-own-password-at-least-12-characters>
+```
+
+Put these server settings in `studio/.env` (loaded by `yarn dev`), or supply them
+in the process environment. Never use `VITE_` for credentials. Restart the engine
+after changing modes or credentials. There is no built-in default password.
+Password mode requires a session for API requests, generated assets, and voice
+socket upgrades. Harness MCP calls retain their existing per-run capability
+checks. The local origin and host protections remain enabled in both modes.
+
+Sessions use opaque, HttpOnly, SameSite=Lax cookies and expire after seven days.
+They live in server memory, so restarting the engine requires signing in again.
+The UI asks for sign-in without discarding an open draft; retry an interrupted
+action yourself after signing in. This is a local owner workflow, not hosted
+multi-user authentication, invitations, or a replacement for a deployment's
+identity provider. Keep the development servers bound to loopback.
+
+The workspace rail stays available across notes, chat and production. **Projects**
+switches between projects and lets you pin favorites. **Search** (Cmd/Ctrl+K)
+finds notebook text, chat titles, and questions across projects. **Recent** and
+Home's **Pick up where you left off** reopen the last visited resource. Project
+pins and recent resource links are stored in this browser, not synced accounts.
+The project sidebar owns Notes, Chat and Create; graph and companion notes open
+only when requested, keeping one main work surface visible.
+
 ## Projects and research
 
 The home page starts with one pasted note. It creates a project and its first

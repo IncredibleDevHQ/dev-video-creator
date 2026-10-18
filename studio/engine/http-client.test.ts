@@ -63,3 +63,19 @@ it('bounds a stalled read and leaves writes without automatic retries or read de
     vi.useRealTimers()
   }
 })
+
+it('requests reauthentication without retrying a rejected mutation', async () => {
+  const dispatchEvent = vi.fn()
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue(
+      Response.json({ error: 'Sign in again' }, { status: 401 })
+    )
+  vi.stubGlobal('document', { dispatchEvent })
+  vi.stubGlobal('fetch', fetcher)
+  await expect(
+    requestJson('/api/research-projects', { method: 'POST' })
+  ).rejects.toThrow('Sign in again')
+  expect(fetcher).toHaveBeenCalledOnce()
+  expect(dispatchEvent.mock.calls[0][0].type).toBe('studio:session-expired')
+})

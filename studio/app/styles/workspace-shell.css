@@ -1,0 +1,302 @@
+.workspace-shell {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  height: 100dvh;
+  overflow: hidden;
+}
+.workspace-surface {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+.workspace-surface > div {
+  height: 100%;
+  min-height: 0;
+}
+.workspace-surface > [hidden] {
+  display: none;
+}
+.workspace-surface .research-workspace {
+  min-height: 0;
+  height: 100%;
+}
+.workspace-surface .research-home {
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+}
+.workspace-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 6px 12px;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+.workspace-rail :is(a, button) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 54px;
+  padding: 6px;
+  min-height: 52px;
+  border-radius: 9px;
+  color: var(--muted);
+  text-decoration: none;
+  background: transparent;
+}
+.workspace-rail :is(a, button):hover,
+.workspace-rail [aria-current='page'] {
+  background: var(--selected);
+  color: var(--ink);
+}
+.workspace-rail :is(a, button) > span {
+  font-size: 23px;
+  line-height: 1;
+}
+.workspace-rail small {
+  font-size: 10px;
+}
+.workspace-rail .workspace-logo {
+  margin-bottom: 16px;
+  min-height: 32px;
+}
+.workspace-logo img {
+  width: 29px;
+  height: 29px;
+}
+.workspace-account {
+  margin-top: auto;
+  color: var(--muted);
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.5;
+}
+.workspace-shell .project-brand {
+  display: none;
+}
+.workspace-shell .project-sidebar {
+  padding-top: 16px;
+}
+.workspace-shell .research-home .research-brand img {
+  display: none;
+}
+.workspace-shell .research-home main {
+  padding-top: 44px;
+}
+.workspace-shell .research-home h1 {
+  font-size: 36px;
+  margin: 14px 0;
+}
+.workspace-shell .research-home main > p {
+  font-size: 14px;
+}
+.workspace-home-returning .research-eyebrow {
+  display: none;
+}
+.workspace-home-returning textarea {
+  min-height: 105px;
+}
+#workspace-continue:empty {
+  display: none;
+}
+#workspace-continue {
+  margin: 32px 0;
+}
+#workspace-continue h2 {
+  font-size: 15px;
+  margin: 0 0 14px;
+}
+.workspace-continue-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.workspace-continue-grid a {
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 8px;
+}
+.workspace-continue-grid :is(strong, small) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-continue-grid strong {
+  margin: 8px 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.workspace-continue-grid small,
+.workspace-item-kind {
+  font-size: 10px;
+  color: var(--muted);
+}
+.workspace-picker {
+  width: min(620px, calc(100vw - 28px));
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 100px #0006;
+}
+.workspace-picker::backdrop {
+  background: #0007;
+  backdrop-filter: blur(3px);
+}
+.workspace-picker header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px 16px;
+  height: auto;
+  background: transparent;
+}
+.workspace-picker header > div {
+  flex: 1;
+  min-width: 0;
+}
+.workspace-picker header span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.workspace-picker h2 {
+  font-size: 23px;
+  margin: 8px 0 0;
+}
+.workspace-picker header button {
+  font-size: 24px;
+  color: var(--muted);
+  padding: 6px;
+}
+.workspace-picker input {
+  display: block;
+  width: calc(100% - 48px);
+  margin: 0 24px 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+}
+.workspace-picker-results {
+  max-height: calc(100dvh - 270px);
+  min-height: 100px;
+  overflow: auto;
+  padding: 0 16px 12px;
+}
+.workspace-picker-results h3 {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  margin: 14px 10px 8px;
+}
+.workspace-picker a {
+  display: block;
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 12px;
+  border-radius: 7px;
+}
+.workspace-picker a:hover {
+  background: var(--selected);
+}
+.workspace-picker :is(strong, small) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-picker strong {
+  font-size: 13px;
+  margin: 4px 0;
+  font-weight: 500;
+}
+.workspace-picker small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.workspace-project-row {
+  display: flex;
+  align-items: center;
+}
+.workspace-project-row a {
+  flex: 1;
+}
+.workspace-project-row button {
+  flex: 0 0 40px;
+  min-height: 40px;
+  color: var(--muted);
+  font-size: 19px;
+}
+.workspace-project-row [aria-pressed='true'] {
+  color: var(--accent);
+}
+.workspace-picker footer {
+  border-top: 1px solid var(--line);
+  padding: 14px 24px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.workspace-picker :is(.workspace-empty, p[role]) {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 20px 12px;
+}
+.workspace-picker [role='alert'] button {
+  color: var(--accent);
+}
+@media (max-width: 700px) {
+  .workspace-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 54px minmax(0, 1fr);
+  }
+  .workspace-rail {
+    flex-direction: row;
+    padding: 4px 8px;
+    gap: 8px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .workspace-rail :is(a, button) {
+    min-height: 44px;
+    width: 52px;
+    gap: 2px;
+  }
+  .workspace-rail .workspace-logo {
+    margin: 0 auto 0 0;
+    width: 32px;
+  }
+  .workspace-logo img {
+    width: 24px;
+    height: 24px;
+  }
+  .workspace-rail :is(a, button) > span {
+    font-size: 19px;
+  }
+  .workspace-rail small {
+    font-size: 9px;
+  }
+  .workspace-rail .workspace-account {
+    margin-top: 0;
+  }
+  .workspace-shell .research-home main {
+    padding: 24px 20px;
+  }
+  .workspace-shell .research-home h1 {
+    font-size: 28px;
+  }
+  .workspace-continue-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

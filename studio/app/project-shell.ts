@@ -26,7 +26,8 @@ export class ProjectShell {
   private rendered = ''
   constructor(
     private app: AppContext,
-    root: HTMLElement
+    root: HTMLElement,
+    private onLocation?: (project: ResearchProjectView) => void
   ) {
     this.frame.className =
       'research-workspace project-workspace project-tool-shell'
@@ -64,6 +65,7 @@ export class ProjectShell {
         )
         if (
           !anchor ||
+          anchor.closest('.workspace-picker') ||
           anchor.target ||
           anchor.hasAttribute('download') ||
           event.button ||
@@ -247,6 +249,7 @@ export class ProjectShell {
       url.searchParams.set('book', notebook.id)
       history.replaceState(null, '', url)
     }
+    this.onLocation?.(project)
     const name = isMap
       ? 'Project canvas'
       : notebook?.title || snapshot?.project.title || 'Content'
