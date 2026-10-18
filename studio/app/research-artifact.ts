@@ -1,6 +1,7 @@
 import type { ResearchViewState } from './research-view'
 import {
   researchDocumentFor,
+  researchDocumentTitle,
   researchDocumentGraph
 } from '../shared/research-documents'
 import { researchHtml } from '../shared/research-markdown'
@@ -29,13 +30,16 @@ export const researchTurnRequest = (
 export const researchArtifact = (s: ResearchViewState) => {
   const doc = activeResearchDocument(s)
   if (!doc || s.contentOpen || s.documentExpanded) return ''
-  const title =
-    doc.answer.match(/^# (.+)$/m)?.[1] ||
-    (doc.artifact ? doc.artifact.title : doc.question.slice(0, 100))
+  const title = researchDocumentTitle(doc)
+  const parent = researchDocumentFor(
+    s.project.nodes,
+    doc.artifact ? doc.artifact.parentId : doc.parentId
+  )
   return `<section class="research-artifact" aria-label="Research document">
-    <header><div><small>Research document · separate from your notebook</small><h2>${escape(title)}</h2></div>
+    <header><div><small>Research document</small><h2>${escape(title)}</h2></div>
     ${s.chatMinimized ? '' : '<button data-research-action="minimize-chat" aria-label="Minimize chat panel">Minimize chat</button>'}</header>
-    <div class="research-artifact-scroll artifact-${doc.id}">${doc.anchor ? `<blockquote class="artifact-origin">From a selected passage: ${escape(doc.anchor.text)}</blockquote>` : ''}
+    <nav class="artifact-breadcrumb" aria-label="Document navigation">${parent ? `<button data-research-node="${parent.id}">← ${escape(researchDocumentTitle(parent))}</button>` : '<span>Starting document</span>'}<button data-research-action="toggle-graph">See in question map</button></nav>
+    <div class="research-artifact-scroll artifact-${doc.id}">${doc.anchor ? `<details class="artifact-origin"><summary>Passage this document explores</summary><blockquote>${escape(doc.anchor.text)}</blockquote></details>` : ''}
     ${
       doc.state === 'done'
         ? '<div class="research-prose" data-select-response="' +

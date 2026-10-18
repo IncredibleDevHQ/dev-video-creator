@@ -113,3 +113,8 @@ export const closeComposeMenus = (root: HTMLElement, element: Element) => {
         if (other !== menu) other.removeAttribute('open')
       })
 }
+
+export const minimizeDocumentMap = (workbench: ResearchWorkbench) => {
+  workbench.state.graphMode = 'pip'
+  workbench.state.expanded = false
+}

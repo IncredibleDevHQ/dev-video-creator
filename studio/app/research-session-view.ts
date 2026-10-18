@@ -147,7 +147,7 @@ export const chatSwitcher = (s: ResearchViewState) => {
           ? '<button class="project-resume-chat" data-research-action="open-chat">Resume chat ↗</button>'
           : ''
         : `
-      <button data-research-action="minimize-chat" aria-label="Minimize chat" title="Minimize chat">−</button>
+      <button data-research-action="minimize-chat" aria-label="${s.chatMinimized ? 'Show chat' : 'Minimize chat'}" title="${s.chatMinimized ? 'Show chat' : 'Minimize chat'}">${s.chatMinimized ? 'Show chat' : '−'}</button>
       <button
         data-research-action="toggle-graph"
         aria-pressed="${Boolean(

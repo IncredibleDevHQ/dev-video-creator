@@ -49,7 +49,7 @@ export const graphPanel = (
             )
           : control(
               'graph-drawer',
-              '↗',
+              'Expand ↗',
               'aria-label="Expand map to half screen" title="Half screen"'
             )}
       ${layout.graphMode !== 'pip' && layout.graphMode

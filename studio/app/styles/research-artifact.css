@@ -158,3 +158,53 @@
   margin-top: 10px;
   color: var(--muted);
 }
+
+.artifact-breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 28px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.artifact-breadcrumb button {
+  text-align: left;
+}
+.artifact-origin summary {
+  cursor: pointer;
+}
+.artifact-origin blockquote {
+  margin: 12px 0 0;
+}
+.notebook-return-document {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--accent);
+  text-align: left;
+}
+.chat-document-context button {
+  text-align: left;
+}
+@media (min-width: 701px) {
+  .workspace-shell
+    .project-workspace
+    .research-columns.has-research-artifact:not(.notes-hidden):not(
+      .document-expanded
+    ):not(.content-expanded) {
+    grid-template-columns: minmax(280px, 34%) 5px minmax(0, 1fr);
+  }
+  .has-research-artifact .research-notes .research-note-scroll {
+    padding-inline: clamp(20px, 5vw, 64px);
+  }
+}
+@media (min-width: 701px) {
+  .workspace-shell
+    .project-workspace
+    .research-columns.has-research-artifact.artifact-chat-minimized:not(
+      .notes-hidden
+    ):not(.document-expanded):not(.content-expanded) {
+    grid-template-columns: 44px 5px minmax(0, 1fr);
+  }
+}

@@ -1,3 +1,4 @@
+import { researchDocumentTitle } from '../shared/research-documents'
 import { html } from '../shared/html'
 import type { ResearchNode } from '../shared/research'
 import { researchPath } from '../shared/research'
@@ -85,6 +86,7 @@ export const researchGraph = (
         .filter((n) => visible.has(n.id))
         .map((n) => {
           const p = points.get(n.id)!
+          const label = researchDocumentTitle(n)
           const status =
             n.state === 'done'
               ? 'Answered'
@@ -111,9 +113,7 @@ export const researchGraph = (
             <span class="research-node-orb" aria-hidden="true"></span
             ><span class="research-node-label"
               >${escape(
-                n.question.length > 64
-                  ? n.question.slice(0, 61) + '…'
-                  : n.question
+                label.length > 64 ? label.slice(0, 61) + '…' : label
               )}</span
             >
           </button>`

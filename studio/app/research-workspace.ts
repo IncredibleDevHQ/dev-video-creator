@@ -30,6 +30,7 @@ import { researchNameDialog } from './research-dialog'
 import { researchChatSetup } from './research-chat-setup'
 import {
   closeComposeMenus,
+  minimizeDocumentMap,
   researchLocation,
   showSavedNote,
   showResearchTurn,
@@ -573,8 +574,7 @@ export class ResearchWorkspace {
     if (button.dataset.selectChat) {
       selectResearchChat(s, button.dataset.selectChat)
       s.sidebarOpen = false
-      s.contentOpen = false
-      s.documentExpanded = false
+      Object.assign(s, { contentOpen: false, documentExpanded: false })
       this.navigate()
       this.render()
       this.showSelectedTurn()
@@ -585,10 +585,10 @@ export class ResearchWorkspace {
         (n) => n.id === button.dataset.researchNode
       )!
       selectResearchNode(s, node.id)
+      if (button.dataset.graphNode) minimizeDocumentMap(this.workbench)
       this.workbench.state.notesOpen = false
       if (window.innerWidth <= 700) s.chatMinimized = true
-      s.contentOpen = false
-      s.documentExpanded = false
+      Object.assign(s, { contentOpen: false, documentExpanded: false })
       this.navigate()
       this.render()
       this.showSelectedTurn()
@@ -664,6 +664,8 @@ export class ResearchWorkspace {
     this.returning.save(this.root, s)
     if (toggleProjectPanel(action, s, this.workbench, () => this.render())) {
       this.returning.restore(this.root, s)
+      if (action === 'minimize-chat' && !s.chatMinimized)
+        this.showSelectedTurn()
       this.navigate()
       return
     }
@@ -691,8 +693,7 @@ export class ResearchWorkspace {
       s.project = result.project
       selectResearchChat(s, result.chatId)
       s.sidebarOpen = false
-      s.contentOpen = false
-      s.documentExpanded = false
+      Object.assign(s, { contentOpen: false, documentExpanded: false })
       this.navigate()
       this.render()
       return

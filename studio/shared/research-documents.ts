@@ -25,3 +25,11 @@ export const researchDocumentGraph = (nodes: ResearchNode[]) =>
       ? node.artifact.parentId
       : researchDocumentFor(nodes, node.parentId)?.id || null
   }))
+
+/** A readable destination label, shared by chat, document and map navigation. */
+export const researchDocumentTitle = (node: ResearchNode) => {
+  const title = node.answer.match(/^# (.+)$/m)?.[1] || node.question
+  return title.length > 96
+    ? title.slice(0, 93).replace(/\s+\S*$/, '') + '…'
+    : title
+}

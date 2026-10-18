@@ -4,7 +4,10 @@ import {
   artifactGraph,
   researchArtifact
 } from './research-artifact'
-import { isResearchDocument } from '../shared/research-documents'
+import {
+  isResearchDocument,
+  researchDocumentTitle
+} from '../shared/research-documents'
 import { projectLink } from './project-links'
 import { html } from '../shared/html'
 import type {
@@ -136,6 +139,9 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
           : ''}
       </div>
     </div>
+    ${activeResearchDocument(s) && !s.documentExpanded
+      ? `<button class="notebook-return-document" data-research-node="${activeResearchDocument(s)!.id}">← Back to ${escape(researchDocumentTitle(activeResearchDocument(s)!))}</button>`
+      : ''}
     ${wireframes
       ? `<div class="project-notebook-outputs"><span>${wireframes} wireframes from these notes</span><a href="${projectLink(s.project.id, { ...s, notebook: n.id }, { detail: '1', notebook: n.id, view: 'presentation' })}">Open wireframes →</a></div>`
       : s.documentExpanded && n.blocks.length
@@ -236,7 +242,7 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
       >
       <h2>${escape(n.question)}</h2>
       ${n.contextDocumentId
-        ? `<button class="chat-message-document" data-research-node="${n.contextDocumentId}">In research document ↗</button>`
+        ? `<button class="chat-message-document" data-research-node="${n.contextDocumentId}">Context: ${escape(researchDocumentTitle(s.project.nodes.find((doc) => doc.id === n.contextDocumentId) || n))} ↗</button>`
         : ''}
       ${n.anchor
         ? html`<details
@@ -307,7 +313,7 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
             )
             .join('')}
           ${isResearchDocument(n)
-            ? `<button class="research-artifact-link" data-research-node="${n.id}">Open research document ↗</button>`
+            ? `<button class="research-artifact-link" data-research-node="${n.id}">Open document: ${escape(researchDocumentTitle(n))} ↗</button>`
             : ''}
           <div class="research-answer-actions">
             <button type="button" data-save-answer="${n.id}">
@@ -422,7 +428,7 @@ const chat = (s: ResearchViewState) => {
       : ''}
     <div class="chat-document-context">
       ${activeResearchDocument(s)
-        ? `Discussing: ${escape(activeResearchDocument(s)!.question.slice(0, 80))}`
+        ? `<button data-research-node="${activeResearchDocument(s)!.id}">Discussing: ${escape(researchDocumentTitle(activeResearchDocument(s)!))} ↗</button>`
         : 'Start a research conversation'}
     </div>
     <div class="research-transcript" aria-live="polite">

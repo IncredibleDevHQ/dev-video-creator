@@ -215,3 +215,41 @@ it('can resume a minimized draft before its first question creates a chat', () =
     'Resume chat'
   )
 })
+
+it('names document destinations and preserves exact selectable text while backtracking', () => {
+  const parent = {
+    ...node,
+    chatId: 'chat',
+    answer: '# Parent document\n\nEvidence'
+  }
+  const child = {
+    ...node,
+    id: 'child',
+    chatId: 'chat',
+    parentId: 'root',
+    artifact: { title: 'Question title', parentId: 'root' },
+    answer: '# Child document\n\n**Exact excerpt.**',
+    contextDocumentId: 'root'
+  }
+  const current = { ...structuredClone(state), chat: 'chat', node: 'child' }
+  current.project.nodes = [parent, child]
+  const doc = parseHTML(researchWorkspaceView(current)).document
+  expect(
+    doc.querySelector('.artifact-breadcrumb [data-research-node="root"]')
+      ?.textContent
+  ).toContain('Parent document')
+  expect(doc.querySelector('.chat-document-context')?.textContent).toContain(
+    'Child document'
+  )
+  expect(doc.querySelector('.notebook-return-document')?.textContent).toContain(
+    'Back to Child document'
+  )
+  expect(
+    doc.querySelector('.research-artifact [data-select-response="child"]')
+      ?.textContent
+  ).toBe(
+    parseHTML(
+      '<div id=canonical>' + researchHtml(child.answer) + '</div>'
+    ).document.querySelector('#canonical')?.textContent
+  )
+})
