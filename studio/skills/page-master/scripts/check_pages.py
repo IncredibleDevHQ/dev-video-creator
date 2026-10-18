@@ -392,9 +392,10 @@ def check(path):
                     problems.append(f'entity node {n.get("id")!r} artwork has no moving part — mark two or three with data-anim ({", ".join(sorted(ANIMS))})')
                 if bad:
                     problems.append(f'entity node {n.get("id")!r} artwork has data-anim {bad[:2]} — use one of {sorted(ANIMS)}')
+    parents = parents_of(root)
     # Text must fit the shape it sits in: a label wider than its node reads
     # as a drawing mistake in every frame it appears. Width is estimated at
-    # 0.52 em per character (0.62 for bold), which is generous for the sans
+    # 0.52 em per character (0.6 for bold), which is generous for the sans
     # faces the studio ships; only clear overflows are reported.
     for n in nodes:
         rects = [c for c in n.iter() if local(c.tag) in ('rect', 'ellipse', 'circle')]
@@ -410,17 +411,13 @@ def check(path):
         for t in n.iter():
             if local(t.tag) != 'text':
                 continue
-            words = ''.join(t.itertext()).strip()
-            if not words:
-                continue
-            try:
-                size = float(re.sub(r'[^0-9.]', '', t.get('font-size') or root.get('font-size') or '22'))
-            except ValueError:
-                continue
-            per = 0.62 if (t.get('font-weight') or '') in ('bold', '600', '700', '800') else 0.52
-            estimated = len(words) * size * per
-            if estimated > width - 12:
-                problems.append(f'text {words[:28]!r} needs about {round(estimated)} px inside a {round(width)} px shape — shorten it, widen the shape, or split it across two <tspan> lines')
+            # Measure the same positioned lines as the collision check.
+            # Concatenating itertext() rejects correctly wrapped <tspan>s
+            # and tells the drawing agent to make an unnecessary repair.
+            for bounds, words in text_boxes(t, root, parents):
+                estimated = bounds[2] - bounds[0]
+                if estimated > width - 12:
+                    problems.append(f'text {words[:28]!r} needs about {round(estimated)} px inside a {round(width)} px shape — shorten it, widen the shape, or split it across two <tspan> lines')
 
     # Two nodes may not sit on top of each other: overlapping cards read as
     # a broken page in every frame, and no amount of motion repairs them.

@@ -417,3 +417,33 @@ it('refuses page furniture, a connector label on a box and a line through a box'
     )
   ).toBe(true)
 })
+
+it('measures wrapped labels per line while still rejecting an overflowing line', async () => {
+  const { checkPinnedPages } = await import('./page-checks')
+  const label = (text: string) =>
+    svg.replace(
+      '<text x="80" y="200">Explicit synthetic page fixture</text>',
+      `<rect x="80" y="150" width="230" height="140" fill="#eee"/><text x="100" y="190" font-size="24" font-weight="600">${text}</text>`
+    )
+  const wrapped =
+    '<tspan x="100" dy="0">Counting-sort</tspan><tspan x="100" dy="28">routing</tspan>'
+  expect(await checkPinnedPages({ '01_fixture.svg': label(wrapped) })).toEqual(
+    []
+  )
+  const overflow = await checkPinnedPages({
+    '01_fixture.svg': label(
+      '<tspan x="100" dy="0">Counting-sort routing is too wide</tspan>'
+    )
+  })
+  expect(
+    overflow.some((p) => p.includes('needs about') || p.includes('spills past'))
+  ).toBe(true)
+  const inline = await checkPinnedPages({
+    '01_fixture.svg': label(
+      '<tspan>Counting-sort</tspan><tspan> routing</tspan>'
+    )
+  })
+  expect(
+    inline.some((p) => p.includes('needs about') || p.includes('spills past'))
+  ).toBe(true)
+})
