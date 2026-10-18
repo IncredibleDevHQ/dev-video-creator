@@ -144,7 +144,11 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
         ? n.blocks
             .map(
               (b) =>
-                html`<article class="research-note" data-note-block="${b.id}">
+                html`<article
+                  class="research-note"
+                  data-note-block="${b.id}"
+                  data-note-source="${b.origin?.nodeId || ''}"
+                >
                   <div class="research-note-meta">
                     <span
                       >${b.origin ? 'Saved from research' : 'Your note'}</span
@@ -290,6 +294,7 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
               (book) =>
                 html`<button
                   class="research-saved-link"
+                  data-saved-source="${n.id}"
                   data-select-notebook="${book.id}"
                 >
                   ▤ Saved in ${escape(book.title)} ↗

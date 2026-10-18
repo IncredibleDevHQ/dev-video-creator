@@ -25,6 +25,7 @@ import { researchNameDialog } from './research-dialog'
 import { researchChatSetup } from './research-chat-setup'
 import {
   researchLocation,
+  showSavedNote,
   showResearchTurn,
   toggleProjectPanel
 } from './research-navigation'
@@ -598,9 +599,7 @@ export class ResearchWorkspace {
     }
     if (button.dataset.selectNotebook) {
       s.notebook = button.dataset.selectNotebook
-      s.documentExpanded = Boolean(
-        button.closest('.project-sidebar') || s.contentOpen
-      )
+      s.documentExpanded = Boolean(button.closest('.project-sidebar') || s.contentOpen)
       s.contentOpen = false
       s.sidebarOpen = false
       if (!this.workbench.state.notesOpen || this.workbench.state.expanded) {
@@ -610,6 +609,7 @@ export class ResearchWorkspace {
       void this.saveChatSettings().catch((e) => this.error(e))
       this.navigate()
       this.render()
+      showSavedNote(this.root, button.dataset.savedSource)
       return
     }
     if (button.dataset.noteAsk) {

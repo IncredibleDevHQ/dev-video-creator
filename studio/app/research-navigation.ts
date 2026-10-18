@@ -85,3 +85,17 @@ export const researchLocation = (s: ResearchViewState) =>
           : 'research'
     }
   )
+
+/** A saved-answer link should land on the excerpt, not the notebook's top. */
+export const showSavedNote = (root: HTMLElement, source?: string) => {
+  if (!source) return
+  const note = root.querySelector<HTMLElement>(
+    `[data-note-source="${CSS.escape(source)}"]`
+  )
+  const scroll = note?.closest<HTMLElement>('.research-note-scroll')
+  if (!note || !scroll) return
+  scroll.scrollTop +=
+    note.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12
+  note.setAttribute('tabindex', '-1')
+  note.focus({ preventScroll: true })
+}
