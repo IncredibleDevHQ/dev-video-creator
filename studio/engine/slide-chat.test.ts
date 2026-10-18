@@ -232,3 +232,30 @@ it('revises an episode’s copy from its own words and puts its segues back once
   expect(copy.base).toBe(revised.narration)
   expect(copy.narration).toBe(`Into it. ${revised.narration} Out of it.`)
 })
+
+it('adopts a look changed during drawing without discarding the generated card', async () => {
+  await seed('look-during-draw')
+  const { applyLook } = await import('./look-apply')
+  await applyLook('look-during-draw', { id: 'paper' })
+  await changeProject('look-during-draw', (current) => {
+    current.project.slides[1].svg =
+      '<svg><rect fill="#ffffff"/><text fill="#1f2328">Old</text></svg>'
+  })
+  let finish!: (art: string[]) => void
+  draw.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  await chatSlide('look-during-draw', request)
+  await vi.waitFor(() => expect(draw).toHaveBeenCalled())
+  await applyLook('look-during-draw', { id: 'ink' })
+  finish(['<svg><rect fill="#ffffff"/><text fill="#1f2328">New</text></svg>'])
+  await settledChanges('look-during-draw')
+  const saved = (await loadProject('look-during-draw'))!
+  expect(saved.changes).toEqual([])
+  expect(saved.project.slides[1].svg).toContain('New')
+  expect(saved.project.slides[1].svg).toContain('#15181d')
+  expect(saved.project.slides[1].svg).toContain('#eef1f4')
+})

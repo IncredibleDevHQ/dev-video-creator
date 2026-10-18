@@ -31,6 +31,8 @@ import {
 } from './source-outline'
 import { renderPage, type pageBrandFrom } from './source-page'
 import { Refusal } from './refusal'
+import { recolourLook } from '../shared/looks'
+import { paletteOf } from './looks'
 
 type Retained = {
   source: ReturnType<typeof readSourceNarrative>
@@ -234,7 +236,6 @@ const reviseSlide = async (id: string, change: SlideChange) => {
       order: project.slides.map((item) => item.id),
       branding: project.branding
     })
-  const expected = revisionKey(snapshot.project)
   const harness = snapshot.project.harness
   // A change pinned to one part of the page is a drawing change: the story
   // step is skipped and the page is redrawn from the scene it already has.
@@ -275,7 +276,7 @@ const reviseSlide = async (id: string, change: SlideChange) => {
         ...(look.fonts || {})
       }
     : retained.brand
-  const svg = harness
+  let svg = harness
     ? (
         await prepareCreativePages({
           projectId: id,
@@ -313,8 +314,39 @@ const reviseSlide = async (id: string, change: SlideChange) => {
         site: retained.source.site
       })
   await changeProject(id, async (current) => {
-    if (current.status !== 'ready' || revisionKey(current.project) !== expected)
+    // A look can change while the agent draws. Rebase that visual-only change
+    // onto both the comparison and the new artwork; content edits still win.
+    const from = paletteOf(snapshot.project.branding)
+    const to = paletteOf(current.project.branding)
+    const restyle = (art: string) =>
+      to
+        ? recolourLook(
+            art,
+            from || pageBrand,
+            to,
+            current.project.branding?.fonts
+              ? {
+                  from: snapshot.project.branding?.fonts || pageBrand,
+                  to: current.project.branding.fonts
+                }
+              : undefined
+          )
+        : art
+    const baseline = {
+      ...snapshot.project,
+      branding: current.project.branding,
+      slides: snapshot.project.slides.map((item) =>
+        item.id === change.slideId && item.svg && from
+          ? { ...item, svg: restyle(item.svg) }
+          : item
+      )
+    }
+    if (
+      current.status !== 'ready' ||
+      revisionKey(current.project) !== revisionKey(baseline)
+    )
       throw new Error(CHANGED)
+    svg = restyle(svg)
     const currentIndex = current.project.slides.findIndex(
       (item) => item.id === change.slideId
     )

@@ -111,8 +111,8 @@ const changeChip = (snapshot: Snapshot, change?: SlideChange) => {
     snapshot.project.slides.length
   )
   if (change.state === 'queued')
-    return `<div class="change-chip" role="status"><span>Waiting: “${escape(change.instruction.slice(0, 90))}”. ${snapshot.status === 'ready' ? 'Next in line.' : `${escape(agent)} changes it once all ${total} wireframes are done (${doneCount(snapshot)} so far).`}</span></div>`
-  return `<div class="change-chip is-failed" role="status"><span>${escape(change.message || 'This change did not finish.')}</span>${button('Send again', `resend-change:${change.id}`)}</div>`
+    return `<div class="change-chip" role="status"><span>Waiting: “${escape(change.instruction.slice(0, 90))}”. ${snapshot.status === 'ready' ? 'It will update automatically.' : `${escape(agent)} changes it once all ${total} wireframes are done (${doneCount(snapshot)} so far).`}</span></div>`
+  return `<div class="change-chip is-failed" role="status"><span>${escape(change.message || 'This change did not finish.')}</span>${button('Review and retry', `resend-change:${change.id}`)}</div>`
 }
 
 const planStage = (
@@ -293,8 +293,23 @@ export const presentationScreen = (
             : slide?.svg ||
               (slide
                 ? html`<div class="blank">
-                    <h2>What is this wireframe about?</h2>
-                    <p>Tell the studio below.</p>
+                    <h2>
+                      ${change?.state === 'working'
+                        ? 'Drawing your finding'
+                        : change?.state === 'queued'
+                          ? 'Your finding is queued'
+                          : change?.state === 'failed'
+                            ? 'This drawing needs another try'
+                            : 'What is this wireframe about?'}
+                    </h2>
+                    <p>
+                      ${change?.state === 'working' ||
+                      change?.state === 'queued'
+                        ? 'You can keep researching. This card will appear here automatically.'
+                        : change?.state === 'failed'
+                          ? 'Your original request is saved. Review it above to try again.'
+                          : 'Tell the studio below.'}
+                    </p>
                   </div>`
                 : presentationProgress(snapshot, view.creating))}
         </div>
@@ -368,13 +383,16 @@ ${escape(script)}</textarea
         ><input
           id="instruction"
           name="instruction"
-          placeholder="${pin
-            ? 'Describe a change for this part…'
-            : canChange
-              ? 'Ask for a change, or click part of the wireframe to point at it'
-              : describable
-                ? 'Say what this wireframe shows, and it is drawn'
-                : 'Changes open once this wireframe is drawn'}"
+          placeholder="${change?.state === 'queued' ||
+          change?.state === 'working'
+            ? 'Add a follow-up instruction (queued after this drawing)'
+            : pin
+              ? 'Describe a change for this part…'
+              : canChange
+                ? 'Ask for a change, or click part of the wireframe to point at it'
+                : describable
+                  ? 'Say what this wireframe shows, and it is drawn'
+                  : 'Changes open once this wireframe is drawn'}"
           ${canChange || describable ? '' : 'disabled'}
         /><button
           aria-label="Send instruction"
