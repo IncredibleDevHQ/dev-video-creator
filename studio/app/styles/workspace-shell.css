@@ -317,3 +317,138 @@
     display: none;
   }
 }
+/* Home explains the destination before asking the user to save. */
+.workspace-shell .home-capture-heading {
+  font-size: 18px;
+  margin: 28px 0 12px;
+}
+.home-section-help {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 6px 0 18px;
+  line-height: 1.5;
+}
+.home-destination-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.home-destination-fields .research-save-to {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+}
+.home-destination-fields select {
+  width: min(240px, 100%);
+}
+.home-destination-status {
+  display: block;
+  color: var(--muted);
+  margin-top: 10px;
+  font-size: 12px;
+}
+.workspace-shell .research-composer-footer {
+  align-items: flex-end;
+}
+.workspace-shell .workspace-continue-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.workspace-shell .workspace-continue-grid a {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 16px 20px;
+}
+.workspace-shell .workspace-continue-grid a:last-child {
+  border-bottom: 0;
+}
+.workspace-shell .workspace-continue-grid strong {
+  margin: 0;
+  font-size: 14px;
+}
+.workspace-shell .workspace-continue-grid small {
+  grid-column: 2;
+  font-size: 12px;
+}
+.home-resume-action {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  color: var(--accent);
+  font-size: 12px;
+}
+.workspace-shell .research-project-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.workspace-shell .research-project-card {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 18px 20px;
+  border-radius: 10px;
+}
+.workspace-shell .research-project-card .research-project-symbol {
+  grid-row: 1 / 3;
+}
+.workspace-shell .research-project-card h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.workspace-shell .research-project-card p {
+  margin: 0;
+  grid-column: 2;
+  font-size: 12px;
+}
+.workspace-shell .research-project-card .home-project-open {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  color: var(--accent);
+}
+@media (max-width: 700px) {
+  .home-destination-fields {
+    flex-direction: column;
+  }
+  .workspace-shell .research-composer-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .home-destination-fields .research-save-to,
+  .home-destination-fields select {
+    width: 100%;
+  }
+  .workspace-shell .workspace-continue-grid a {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+  .workspace-shell .workspace-continue-grid .workspace-item-kind {
+    grid-column: 1;
+  }
+  .workspace-shell .workspace-continue-grid strong,
+  .workspace-shell .workspace-continue-grid small {
+    grid-column: 1;
+  }
+  .home-resume-action {
+    grid-column: 2;
+    grid-row: 1 / 4;
+  }
+  .workspace-shell .research-project-card {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .workspace-shell .research-project-card .home-project-open {
+    grid-column: 2;
+    grid-row: auto;
+  }
+}

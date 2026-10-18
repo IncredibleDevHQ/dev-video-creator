@@ -451,7 +451,7 @@ export class ResearchWorkspace {
         history.pushState(
           null,
           '',
-          `/?space=${p.id}&projectView=notes&book=${p.notebooks[0].id}`
+          `/?space=${p.id}&projectView=notes&book=${encodeURIComponent(String(values.get('notebookId') || p.notebooks[0].id))}`
         )
         await this.open(p.id)
         return

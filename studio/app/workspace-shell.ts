@@ -219,10 +219,18 @@ export class WorkspaceShell {
   private continueHome() {
     const target = this.surface.querySelector('#workspace-continue')
     if (!target) return
-    target.innerHTML = this.state.recent.length
-      ? `<h2>Pick up where you left off</h2><div class="workspace-continue-grid">${this.state.recent
-          .slice(0, 4)
-          .map((item) => this.itemLink(item))
+    const recent = this.state.recent.filter(
+      (item) =>
+        item.kind !== 'Create' &&
+        new URL(item.href, location.origin).searchParams.get('chat') !== 'new'
+    )
+    target.innerHTML = recent.length
+      ? `<h2>Continue recent work</h2><p class="home-section-help">Reopen a chat, notebook or video you’ve visited.</p><div class="workspace-continue-grid">${recent
+          .slice(0, 3)
+          .map(
+            (item) =>
+              `<a data-workspace-link href="${escape(item.href)}"><span class="workspace-item-kind">${item.kind === 'Chat' ? 'Research chat' : item.kind === 'Notes' ? 'Notebook' : item.kind}</span><strong>${escape(item.title)}</strong><small>Project: ${escape(item.projectTitle)}</small><span class="home-resume-action">${item.kind === 'Chat' ? 'Continue chat' : 'Open'} →</span></a>`
+          )
           .join('')}</div>`
       : ''
   }

@@ -67,3 +67,23 @@ it('creates a project from the first note when no project is selected', async ()
   await saveHomeNote(values)
   expect(create).toHaveBeenCalledWith({ text: 'First thought' })
 })
+
+it('saves to the selected notebook and refuses a stale destination', async () => {
+  const project = {
+    notebooks: [{ id: 'first' }, { id: 'chosen' }]
+  } as ResearchProjectView
+  vi.spyOn(researchApi, 'load').mockResolvedValue(project)
+  const change = vi.spyOn(researchApi, 'change').mockResolvedValue(project)
+  const values = new FormData()
+  values.set('projectId', 'existing')
+  values.set('notebookId', 'chosen')
+  values.set('text', 'Selected notebook note')
+  await saveHomeNote(values)
+  expect(change).toHaveBeenCalledWith('existing', 'notes', {
+    notebookId: 'chosen',
+    text: 'Selected notebook note'
+  })
+  values.set('notebookId', 'missing')
+  await expect(saveHomeNote(values)).rejects.toThrow('Choose a notebook')
+  expect(change).toHaveBeenCalledTimes(1)
+})
