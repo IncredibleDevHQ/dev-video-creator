@@ -49,3 +49,13 @@ it('thinks hard to plan, lightly to draw one page, and caps every response', () 
     stageLimits('story', null).maxOutputTokens
   )
 })
+
+it('allows repository investigation beyond quick chat while retaining hard limits', () => {
+  const selection = { adapter: 'kimi' as const, model: 'kimi-code/k3' }
+  const research = stageLimits('research', selection)
+  const chat = stageLimits('chat', selection)
+  expect(research.maxToolCalls).toBeGreaterThan(chat.maxToolCalls)
+  expect(research.idleTimeoutMs).toBeGreaterThan(chat.idleTimeoutMs)
+  expect(research.timeoutMs).toBeLessThanOrEqual(LIMIT_CEILING_MS)
+  expect(research.maxToolCalls).toBeLessThanOrEqual(80)
+})

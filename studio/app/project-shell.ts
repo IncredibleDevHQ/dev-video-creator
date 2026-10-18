@@ -102,11 +102,12 @@ export class ProjectShell {
       { projectView: notebook ? 'notes' : 'canvas' }
     )
   }
-  openCanvas() {
+  openCanvas(mapId?: string) {
     if (!this.project || this.frame.hidden) return false
     const context = projectContext(new URL(location.href))
-    const target: Record<string, string> = this.project.canvasId
-      ? { map: this.project.canvasId, detail: '1' }
+    const canvas = mapId || this.project.canvasId
+    const target: Record<string, string> = canvas
+      ? { map: canvas, detail: '1' }
       : { projectView: 'canvas' }
     void this.go(
       new URL(projectLink(this.project.id, context, target), location.href)
@@ -241,7 +242,7 @@ export class ProjectShell {
     const isMap = map || this.app.mapCanvas.isOpen
     const id =
       snapshot?.project.id ||
-      new URL(location.href).searchParams.get('notebook')
+      new URL(location.href).searchParams.get(isMap ? 'map' : 'notebook')
     const notebook = project.notebooks.find((n) => n.id === id)
     if (notebook) {
       context.notebook = notebook.id
@@ -251,7 +252,9 @@ export class ProjectShell {
     }
     this.onLocation?.(project)
     const name = isMap
-      ? 'Project canvas'
+      ? notebook
+        ? `${notebook.title} · Content map`
+        : 'Project canvas'
       : notebook?.title || snapshot?.project.title || 'Content'
     const notes = projectLink(project.id, context, {
       projectView: notebook ? 'notes' : 'canvas'
@@ -264,7 +267,7 @@ export class ProjectShell {
     const markup = `<header class="project-chat-header project-tool-heading">
       <button class="project-sidebar-toggle" data-research-action="toggle-sidebar" aria-label="Toggle project navigation" aria-expanded="${this.frame.classList.contains('sidebar-open')}">☰</button>
       <div class="project-chat-title"><div class="project-tool-breadcrumb"><a href="${projectLink(project.id, context, { projectView: 'canvas' })}">${escape(project.title)}</a><span aria-hidden="true">/</span><h1>${escape(name)}</h1></div>
-      <span class="project-tool-origin">${isMap ? `Ideas from all ${project.notebooks.length} notebooks · one shared story` : 'From your notebook · connected to your research'}</span></div>
+      <span class="project-tool-origin">${isMap ? (notebook ? 'Your notes → wireframes → episodes' : `Ideas from all ${project.notebooks.length} notebooks · one shared story`) : 'From your notebook · connected to your research'}</span></div>
       <div class="project-chat-actions"><a href="${notes}">${notebook ? 'Read notes' : 'All creations'}</a><a href="${back}" class="project-resume-chat">Resume chat ↗</a></div></header>`
     const key = markup + (notebook?.id || '')
     if (this.rendered === key) return

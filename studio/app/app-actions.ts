@@ -242,9 +242,10 @@ export const installAppActions = (app: AppContext) => {
         return
       }
       if (action === 'open-map' && app.snapshot) {
-        if (app.projectShell?.openCanvas()) return
-        app.stopPractice()
         const { project } = app.snapshot
+        if (app.projectShell?.openCanvas(project.copyOfMap || project.id))
+          return
+        app.stopPractice()
         void app.mapCanvas.open(project.copyOfMap || project.id, project.id)
         return
       }

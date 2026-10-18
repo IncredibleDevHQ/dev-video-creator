@@ -16,6 +16,7 @@ export type HarnessOperation =
   | 'planning'
   | 'composition'
   | 'chat'
+  | 'research'
   | 'extension'
   | 'storyboard'
   | 'shots'
@@ -92,6 +93,15 @@ const BASE: Record<HarnessOperation, StageLimits> = {
     maxToolCalls: 60,
     effort: 'high',
     maxOutputTokens: 48_000
+  },
+  // Repository research reads and cross-checks many files before synthesizing.
+  // The short chat budget cut off real Kimi research before submission.
+  research: {
+    timeoutMs: minutes(8),
+    idleTimeoutMs: minutes(3),
+    maxToolCalls: 80,
+    effort: 'medium',
+    maxOutputTokens: 32_000
   },
   chat: {
     timeoutMs: minutes(2),

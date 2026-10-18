@@ -82,19 +82,20 @@ it('normalizes pane preferences and isolates drafts by resource', () => {
 })
 it('retains a composer element across layout changes but replaces it on branch change', () => {
   const { document } = parseHTML(
-    '<main><textarea id="research-question">Unsent draft</textarea></main>'
+    '<main><textarea id="research-question" placeholder="Message Claude Code…">Unsent draft</textarea></main>'
   )
   const root = document.querySelector('main')! as unknown as HTMLElement
   const input = root.querySelector('textarea')
   const key = { 'research-question': 'branch-a' }
   renderResearch(
     root,
-    '<aside>Graph</aside><textarea id="research-question"></textarea>',
+    '<aside>Graph</aside><textarea id="research-question" placeholder="Message Kimi…"></textarea>',
     key,
     key
   )
   expect(root.querySelector('textarea')).toBe(input)
   expect(root.querySelector('textarea')!.textContent).toBe('Unsent draft')
+  expect(input!.getAttribute('placeholder')).toBe('Message Kimi…')
   renderResearch(root, '<textarea id="research-question"></textarea>', key, {
     'research-question': 'branch-b'
   })

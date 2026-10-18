@@ -114,7 +114,8 @@ export const askResearch = async (
   )
     throw new Refusal('Choose a research document from this chat')
   const createsDocument =
-    Boolean(anchor) || !project.nodes.some((n) => n.chatId === chatId)
+    Boolean(anchor) ||
+    !project.nodes.some((n) => n.chatId === chatId && n.state === 'done')
   const node: ResearchNode = {
     id: randomUUID(),
     chatId: chatId || randomUUID(),
@@ -232,7 +233,7 @@ const answerResearch = async (id: string, nodeId: string) => {
     origin:
       process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
       `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`,
-    operation: 'chat',
+    operation: 'research',
     session: { workspaceId: session.workspaceId, resumeId: session.resumeId },
     onRun: (run) => finishResearchSession(session, node.id, run),
     tools,
@@ -256,7 +257,25 @@ const answerResearch = async (id: string, nodeId: string) => {
         }))
       )
     },
-    validate: validateResearchReply,
+    validate: (raw) => {
+      const report = validateResearchReply(raw)
+      if (
+        report.ok &&
+        node.anchor &&
+        report.value.answer.length > 300 &&
+        history.some(
+          (previous) =>
+            previous.question !== node.question &&
+            previous.answer.trim() === report.value.answer.trim()
+        )
+      ) {
+        report.ok = false
+        report.problems.push(
+          'This repeats an earlier answer verbatim. Answer the current question in packet/QUESTION.json about the selected passage, using a new document title and fresh findings.'
+        )
+      }
+      return report
+    },
     onEvent: async (event) => {
       if (event.type !== 'tool') return
       // Never stream tool payloads or private chain-of-thought into the chat.

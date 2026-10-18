@@ -16,7 +16,13 @@ export const renderResearch = (
     if (previousKeys[id] !== key) continue
     const old = root.querySelector(`#${id}`)
     const next = template.content.querySelector(`#${id}`)
-    if (old && next) next.replaceWith(old)
+    if (old && next) {
+      // Preserve the draft and selection, while refreshing agent/context copy.
+      const placeholder = next.getAttribute('placeholder')
+      if (placeholder === null) old.removeAttribute('placeholder')
+      else old.setAttribute('placeholder', placeholder)
+      next.replaceWith(old)
+    }
   }
   if (notebooksOpen === false)
     template.content

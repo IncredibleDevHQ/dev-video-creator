@@ -373,3 +373,49 @@ it('keeps ordinary messages in one chat and creates document nodes only for the 
     JSON.parse(stage.mock.calls.at(-1)![0].packet['packet/CONVERSATION.json'])
   ).toHaveLength(2)
 })
+
+it('retries an interrupted first answer as a document with a research budget', async () => {
+  const p = await projects.createResearchProject({ text: 'Research evidence' })
+  stage.mockRejectedValueOnce(new Error('The agent stopped responding'))
+  const first = await questions.askResearch(p.id, {
+    question: 'Read the repository'
+  })
+  await questions.settledResearch(first.nodeId)
+  const failed = await projects.readResearchProject(p.id)
+  expect(failed.nodes[0].state).toBe('failed')
+  const retry = await questions.askResearch(p.id, {
+    chatId: failed.nodes[0].chatId,
+    question: 'Read the repository again'
+  })
+  await questions.settledResearch(retry.nodeId)
+  const saved = await projects.readResearchProject(p.id)
+  expect(saved.nodes[1]).toMatchObject({
+    state: 'done',
+    artifact: { parentId: null }
+  })
+  expect(stage.mock.calls.at(-1)![0].operation).toBe('research')
+})
+
+it('refuses a resumed selected-passage answer that copies the earlier document', async () => {
+  const p = await projects.createResearchProject({ text: 'Evidence' })
+  const chat = await sessions.saveResearchChat(p.id, { title: 'Explore' })
+  const answer = 'Repository evidence with a specific explanation. '.repeat(10)
+  stage.mockResolvedValue({ answer })
+  const first = await questions.askResearch(p.id, {
+    chatId: chat.chats![0].id,
+    question: 'Explain this repository'
+  })
+  await questions.settledResearch(first.nodeId)
+  const second = await questions.askResearch(p.id, {
+    chatId: chat.chats![0].id,
+    parentId: first.nodeId,
+    question: 'Why does this work?',
+    anchor: { kind: 'response', id: first.nodeId, start: 0, end: 20 }
+  })
+  await questions.settledResearch(second.nodeId)
+  const validation = stage.mock.calls.at(-1)![0].validate
+  expect(validation({ answer }).ok).toBe(false)
+  expect(
+    validation({ answer: 'A fresh explanation of the selected mechanism.' }).ok
+  ).toBe(true)
+})

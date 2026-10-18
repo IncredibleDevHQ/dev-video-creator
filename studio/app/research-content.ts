@@ -5,8 +5,11 @@ import { escape } from './ui'
 import { videoOpens } from '../shared/state'
 
 /** One next step per notebook; detailed editing stays in its own workspace. */
-export const projectContent = (s: ResearchViewState) =>
-  html`<aside
+export const projectContent = (s: ResearchViewState) => {
+  const populated = s.project.notebooks.filter((n) => n.blocks.length)
+  const seriesMap =
+    s.project.canvasId || (populated.length === 1 ? populated[0].id : undefined)
+  return html`<aside
     class="research-notes project-content"
     aria-label="Project content"
   >
@@ -117,16 +120,19 @@ export const projectContent = (s: ResearchViewState) =>
       </div>
       <section class="project-series-card project-canvas-entry">
         <div>
-          <h3>Plan a series together</h3>
-          <p>Arrange ideas from all your notebooks on one visual canvas.</p>
+          <h3>Build a series from your notes</h3>
+          <p>
+            Keep collecting in your notebook. Plan episodes on the content map,
+            then let new findings organize into the series.
+          </p>
         </div>
-        ${s.project.canvasId
+        ${seriesMap
           ? html`<a
               href="${projectLink(s.project.id, s, {
-                map: s.project.canvasId,
+                map: seriesMap,
                 detail: '1'
               })}"
-              >Open project canvas →</a
+              >Open content map →</a
             >`
           : html`<button
               data-research-action="generate-canvas"
@@ -139,3 +145,4 @@ export const projectContent = (s: ResearchViewState) =>
       </section>
     </div>
   </aside>`
+}

@@ -199,7 +199,7 @@ export const runEngineStage = async (input: {
   if (
     input.session &&
     (!validId(input.session.workspaceId) ||
-      input.operation !== 'chat' ||
+      !['chat', 'research'].includes(input.operation || '') ||
       input.stage !== 'story')
   )
     throw new Error('Invalid research session workspace')

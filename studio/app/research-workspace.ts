@@ -790,10 +790,6 @@ export class ResearchWorkspace {
       this.state!.message = 'Saved to your notebook with its source.'
       this.selection = null
     })
-    if (!this.workbench.state.notesOpen || this.workbench.state.expanded) {
-      this.workbench.state.notesOpen = false
-      this.workbench.handle('toggle-notebook')
-    }
     const notes = this.root.querySelector('.research-note-scroll')
     if (notes) notes.scrollTop = notes.scrollHeight
   }

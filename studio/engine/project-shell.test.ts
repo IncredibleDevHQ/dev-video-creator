@@ -188,3 +188,14 @@ it('keeps an active recording in place instead of abandoning it', async () => {
   expect(app.stopPractice).not.toHaveBeenCalled()
   expect(app.error).toHaveBeenCalled()
 })
+
+it('opens the notebook map rather than diverting to the project canvas', async () => {
+  await shell.go(new URL('/?space=space&detail=1&notebook=book', address))
+  expect(shell.openCanvas('book')).toBe(true)
+  await vi.waitFor(() =>
+    expect(app.mapCanvas.open).toHaveBeenCalledWith('book')
+  )
+  expect(address.searchParams.get('map')).toBe('book')
+  expect(address.searchParams.get('book')).toBe('book')
+  expect(address.searchParams.has('projectView')).toBe(false)
+})

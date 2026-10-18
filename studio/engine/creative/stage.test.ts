@@ -86,3 +86,24 @@ it('forwards a smaller route budget to the harness runtime', async () => {
     })
   )
 })
+
+it('puts the current question in the resumed agent turn, not only replaceable packet files', async () => {
+  mocks.load.mockResolvedValue(null)
+  mocks.run.mockResolvedValue({
+    status: 'error',
+    failure: { message: 'Test stop' }
+  })
+  await expect(
+    runValidatedJsonStage({
+      ...input,
+      session: { workspaceId: 'session' },
+      stageContext: { question: 'How does the pipeline overlap work?' }
+    })
+  ).rejects.toThrow('Test stop')
+  expect(mocks.run.mock.calls[0][0].task).toContain(
+    'How does the pipeline overlap work?'
+  )
+  expect(mocks.run.mock.calls[0][0].task).toContain(
+    'Current research turn revision'
+  )
+})

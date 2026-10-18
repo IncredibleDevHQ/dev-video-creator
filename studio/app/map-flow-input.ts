@@ -344,6 +344,14 @@ export const showAdd = (
     (_all, action: string, key: string) =>
       `data-map="${action}" data-key="${key.toLowerCase()}"><i>${key}</i>`
   )
+  const seriesButton = menu.querySelector<HTMLButtonElement>(
+    '[data-map="start-series"]'
+  )
+  if (seriesButton && map.snapshot?.status !== 'ready') {
+    seriesButton.disabled = true
+    const hint = seriesButton.querySelector('small')
+    if (hint) hint.textContent = 'Available when your wireframes finish drawing'
+  }
   menu.className = 'map-menu map-add'
   delete menu.dataset.for
   menu.dataset.for = 'add'
