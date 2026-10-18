@@ -54,6 +54,27 @@ When the creator left a note, the pose and the still they saw are already in
 `production/`: change what the note asks, and keep everything it does not
 touch.
 
+## Keep the evidence intact
+
+Short captions and diagrams must preserve the meaning of the supplied words.
+Use the frame's narration and the creator's correction as the factual boundary;
+visual staging and a key message do not establish additional technical facts.
+
+- Preserve scope and qualifiers when shortening: “between steps” must not
+  become “never”, “in chunks” must not become “all at once”, and a supported
+  checkpoint does not imply one physical file.
+- Keep what a number measures attached to it: units, baseline, conditions,
+  and what varies across a range. A range across configurations is not a
+  range across repeated trials; a median is not a guarantee.
+- Do not invent source-code symbols, literal snippets, quotations, file-line
+  citations, or line-number gutters. If the supplied evidence does not verify
+  an exact reference, use a plain-language label instead of fabricated precision.
+- Arrows, counts and equality signs also make claims. Do not turn many-to-many
+  routing into one-to-one routing, imply identical implementations, or present
+  a few illustrative tiles as an exact total. Mark schematic examples as such.
+- A creator's factual correction takes precedence over conflicting older
+  wording in the frame packet. Carry it into every affected visible label.
+
 ## Look, then submit
 
 - `storyboard_try_pose` runs Hyperframes' own `check` on your pose alone,
@@ -62,6 +83,9 @@ touch.
   the hero big enough to read on a phone, nothing cut by the edge or crossing
   the caption band, nothing overlapping by accident, every label next to what
   it names? Fix what you see and try again.
+- Before submitting, compare every visible label and diagram relationship with
+  the supplied narration and correction. Remove unsupported details and restore
+  qualifiers lost during compression; a clean layout check does not verify facts.
 - `storyboard_submit_pose` checks the pose again and accepts it as the
   frame's still when it has no errors. A refusal lists what to fix. Stop once
   accepted.
