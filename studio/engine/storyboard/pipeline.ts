@@ -1,3 +1,4 @@
+import { generationFailure, stopsPreparationBatch } from '../generation-errors'
 // The storyboard production, stage by stage: plan → the creator approves →
 // a still of every frame → the creator approves the board (a note poses one
 // frame again) → voice (and takes) → shots per scene → one worker per frame,
@@ -544,6 +545,7 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
       internal.statuses![frame.number] !== 'animated'
   )
   let cursor = 0
+  let batchFailure: unknown
   const save = async () => {
     await writeInternal(dir, internal)
     await update(snapshot.project.id, (current, ledger) => {
@@ -552,7 +554,12 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
   }
   const lane = async () => {
     while (cursor < todo.length) {
-      if (await stopAsked(snapshot.project.id)) return
+      if (
+        batchFailure ||
+        (await stopAsked(snapshot.project.id)) ||
+        batchFailure
+      )
+        return
       const frame = todo[cursor++]
       // What its last try found is for this one to fix.
       const findings = internal.problems![frame.number]
@@ -585,6 +592,8 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
         if (await stopAsked(snapshot.project.id))
           clearFailure(internal, frame.number)
         else {
+          if (stopsPreparationBatch(generationFailure(error, '')))
+            batchFailure ||= error
           internal.statuses![frame.number] = 'failed'
           internal.problems![frame.number] = [
             error instanceof Error ? error.message : String(error)
@@ -601,6 +610,7 @@ const framesStage = async ({ snapshot, dir, internal }: StageInput) => {
   const failed = todo.filter(
     (frame) => internal.statuses![frame.number] !== 'animated'
   )
+  if (batchFailure) throw batchFailure
   if (failed.length)
     throw new Error(
       `${failed.length} frame${failed.length === 1 ? '' : 's'} could not be built: ${failed.map((frame) => frame.number).join(', ')}`

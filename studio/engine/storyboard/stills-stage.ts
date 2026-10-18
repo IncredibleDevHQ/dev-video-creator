@@ -1,3 +1,4 @@
+import { generationFailure, stopsPreparationBatch } from '../generation-errors'
 // The stills step: every frame posed at its key moment before anything is
 // voiced or animated, the board shown to the creator, and a note on a still
 // posing that frame again (storyboard-master's Pose Frame route).
@@ -85,6 +86,7 @@ export const stillsStage = async ({
     (frame) => !internal.stills![frame.number] || notes[frame.number]
   )
   let cursor = 0
+  let batchFailure: unknown
   // Posed in this round: a frame Stop cut short keeps its old still, and its
   // note, for the next round (review 8, round 2: it counted as posed).
   const accepted = new Set<number>()
@@ -96,7 +98,12 @@ export const stillsStage = async ({
   }
   const lane = async () => {
     while (cursor < todo.length) {
-      if (await stopAsked(snapshot.project.id)) return
+      if (
+        batchFailure ||
+        (await stopAsked(snapshot.project.id)) ||
+        batchFailure
+      )
+        return
       const frame = todo[cursor++]
       const at = frames.indexOf(frame)
       if (internal.statuses![frame.number] === 'failed') {
@@ -137,6 +144,8 @@ export const stillsStage = async ({
         if (await stopAsked(snapshot.project.id))
           clearFailure(internal, frame.number)
         else {
+          if (stopsPreparationBatch(generationFailure(error, '')))
+            batchFailure ||= error
           internal.statuses![frame.number] = 'failed'
           internal.problems![frame.number] = [
             error instanceof Error ? error.message : String(error)
@@ -178,6 +187,7 @@ export const stillsStage = async ({
       { activity: 'complete' }
     )
   })
+  if (batchFailure) throw batchFailure
   if (failed)
     throw new Error(
       `${failed} still${failed === 1 ? '' : 's'} could not be posed: ${todo

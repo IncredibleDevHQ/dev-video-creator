@@ -366,3 +366,69 @@ it('keeps the notes of stills it did not pose again when the creator stops, and 
     { 2: 'Bigger', 3: 'Left' }
   ])
 })
+
+it('stops dispatching on shared quota failure, preserves in-flight success, and resumes only unfinished frames', async () => {
+  await seed('quota-stills', {})
+  const dir = await mkdtemp(join(tmpdir(), 'stills-quota-'))
+  const internal: Internal = { plan }
+  const { HarnessStageError } = await import('../generation-errors')
+  const { fail } = await import('./run')
+  const failure = new HarnessStageError(
+    {
+      category: 'quota',
+      message: 'Harness quota or usage limit reached',
+      harness: 'kimi',
+      at: '',
+      recovery: []
+    },
+    'Quota'
+  )
+  const previous = process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY
+  process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY = '2'
+  let started!: () => void
+  const second = new Promise<void>((resolve) => {
+    started = resolve
+  })
+  const run = async () => {
+    const snapshot = (await loadProject('quota-stills'))!
+    return stillsStage({
+      snapshot,
+      storyboard: snapshot.project.video!.storyboard!,
+      dir,
+      internal
+    })
+  }
+  try {
+    pose.mockReset()
+    pose.mockImplementation(
+      async (input: { number: number; onAccepted: () => Promise<void> }) => {
+        if (input.number === 1) {
+          await second
+          throw failure
+        }
+        started()
+        await vi.waitFor(() => expect(internal.statuses?.[1]).toBe('failed'))
+        await input.onAccepted()
+      }
+    )
+    await expect(run()).rejects.toBe(failure)
+    expect(pose.mock.calls.map(([input]) => input.number)).toEqual([1, 2])
+    expect(internal.statuses).toEqual({ 1: 'failed', 2: 'built' })
+    await fail('quota-stills', failure)
+    expect((await stored('quota-stills')).error).toContain('Restore credits')
+    await setStoryboard('quota-stills', { status: 'working' })
+    pose.mockReset()
+    pose.mockImplementation(
+      async (input: { onAccepted: () => Promise<void> }) => input.onAccepted()
+    )
+    await run()
+    expect(pose.mock.calls.map(([input]) => input.number).sort()).toEqual([
+      1, 3, 4
+    ])
+    expect((await stored('quota-stills')).stage).toBe('board')
+  } finally {
+    if (previous === undefined)
+      delete process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY
+    else process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY = previous
+  }
+})

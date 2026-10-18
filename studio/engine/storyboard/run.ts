@@ -4,7 +4,7 @@
 import type { Snapshot } from '../../shared/api'
 import { stoppedLine, type Storyboard } from '../../shared/storyboard'
 import { addEvent } from '../activity'
-import { generationStops } from '../generation-errors'
+import { generationFailure, generationStops } from '../generation-errors'
 import { changeProject, loadProject } from '../projects'
 import { detectedHarness } from '../notebook-intake'
 import { planSummary, type Internal } from './state'
@@ -111,9 +111,10 @@ export const fail = (projectId: string, error: unknown) =>
     // A run the creator stopped ends in a refusal: it says it was stopped.
     storyboard.error = storyboard.stopping
       ? generationStops.user
-      : error instanceof Error
-        ? error.message
-        : String(error)
+      : generationFailure(
+          error,
+          error instanceof Error ? error.message : String(error)
+        )
     // The activity says why in one line; the details stay with the error.
     // Stopped by the creator, it says what was kept (review 8, round 3).
     const said = storyboard.stopping
