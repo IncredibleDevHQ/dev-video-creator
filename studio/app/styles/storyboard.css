@@ -352,3 +352,8 @@
 .take-placeholder .sb-take-actions button:not(.primary) {
   border-color: var(--line);
 }
+
+/* Leave room for the workspace header when selecting a frame below its preview. */
+.sb-stage {
+  scroll-margin-top: 84px;
+}

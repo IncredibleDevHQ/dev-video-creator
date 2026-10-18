@@ -64,3 +64,29 @@ describe('a storyboard video’s address (Jev series run)', () => {
     expect(app.selected).toBe(1)
   })
 })
+
+it('brings the selected frame preview back into view without changing scenes', async () => {
+  const { document } = parseHTML(
+    '<div><div class="sb-stage"></div><button data-number="2"></button></div>'
+  )
+  const preview = document.querySelector('.sb-stage') as HTMLElement
+  preview.scrollIntoView = vi.fn()
+  const app = {
+    snapshot: { project },
+    capture: { phase: 'idle' },
+    root: document.querySelector('div'),
+    sbView: { projectId: 'ep', scene: 1, frame: null },
+    selected: 1,
+    render: vi.fn()
+  }
+  await clickStoryboard(
+    app as never,
+    document.querySelector('button') as never,
+    'sb-frame'
+  )
+  expect(app.sbView).toEqual({ projectId: 'ep', scene: 1, frame: 2 })
+  expect(preview.scrollIntoView).toHaveBeenCalledWith({
+    block: 'nearest',
+    inline: 'nearest'
+  })
+})

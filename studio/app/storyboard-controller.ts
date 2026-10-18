@@ -198,6 +198,12 @@ export const clickStoryboard = async (
       if (at) seek(app, at.start)
     }
     app.render()
+    // Frame controls sit below the preview. Keep the selected visual in view,
+    // including when the browser scrolled down to reach a frame control.
+    app.root.querySelector<HTMLElement>('.sb-stage')?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest'
+    })
     return true
   }
   if (action === 'sb-transition') {
