@@ -7,6 +7,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Snapshot } from '../shared/api'
 import { openChecks } from '../shared/claims'
+import { videoDisplay } from '../shared/state'
 import type { MapCopy, MapEpisode, MapView } from '../shared/content-map'
 import type { Slide } from '../shared/model'
 import { organizes, type Series } from '../shared/series'
@@ -702,7 +703,8 @@ export const mapView = async (mapId: string): Promise<MapView> => {
         ? {
             scenes: video.scenes.filter((s) => s.phase !== 'idle').length,
             made: video.scenes.filter((s) => s.produced).length,
-            joined: Boolean(video.produced)
+            joined: Boolean(video.produced),
+            display: videoDisplay(ep)
           }
         : null,
       teasers: (ep.project.release?.teasers || []).map((t) => ({

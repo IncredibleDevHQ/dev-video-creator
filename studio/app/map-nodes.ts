@@ -187,7 +187,14 @@ export const queueItems = (snapshot: Snapshot, view: MapView | null) => {
       items.push(`Choosing cards for Ep ${episode.number}`)
     if (episode.segues === 'writing')
       items.push(`Writing Ep ${episode.number}’s segues`)
-    if (episode.video && !episode.video.joined && episode.video.scenes)
+    if (episode.video?.display?.active)
+      items.push(`Ep ${episode.number} · ${episode.video.display.label}`)
+    else if (
+      episode.video &&
+      !episode.video.display &&
+      !episode.video.joined &&
+      episode.video.scenes
+    )
       items.push(`Making Ep ${episode.number}’s video`)
     if (episode.drafting?.state === 'drafting')
       items.push(`Drafting Ep ${episode.number}’s posts`)

@@ -423,9 +423,11 @@ export const laneHead = (view: MapView, episode: MapEpisode) => {
         ? '<span class="map-state is-failed">could not choose pages</span>'
         : episode.segues === 'writing'
           ? '<span class="map-state is-busy">writing segues…</span>'
-          : video && !video.joined && video.scenes
-            ? `<span class="map-state is-busy">making ${video.made} of ${video.scenes}</span>`
-            : `<span class="map-state">${plural(episode.copies.length, 'card')}${runs(view, episode)}</span>${video?.joined ? '<span class="map-state is-made">· made</span>' : ''}`
+          : video?.display
+            ? `<span class="map-state${video.display.active ? ' is-busy' : ''}">${escape(video.display.label)}</span>`
+            : video && !video.joined && video.scenes
+              ? `<span class="map-state is-busy">making ${video.made} of ${video.scenes}</span>`
+              : `<span class="map-state">${plural(episode.copies.length, 'card')}${runs(view, episode)}</span>${video?.joined ? '<span class="map-state is-made">· made</span>' : ''}`
   const outline = episode.outline
   const builds = (outline?.needs || [])
     .map((need) =>

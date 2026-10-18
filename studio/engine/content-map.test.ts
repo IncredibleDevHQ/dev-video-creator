@@ -1051,3 +1051,50 @@ it('moves a page to another episode and back as it was: its id, its lines and it
   await segues.settledAllSegues()
   vi.doUnmock('./video')
 })
+
+it('exposes an episode storyboard’s planning and approval state on its map', async () => {
+  await drawnMap('m-production-state')
+  const series = await episodes.startMapSeries('m-production-state', {})
+  const created = await episodes.addMapEpisode(series.id, {
+    title: 'Production state',
+    slides: ['m-production-state-1']
+  })
+  const id = created.notebook.project.id
+  await segues.settledSegues(id)
+  await changeProject(id, (current) => {
+    current.project.video = {
+      settings: { presence: 'off', voice: { kind: 'record' } },
+      scenes: [],
+      transitions: [],
+      inputKey: '',
+      produced: null,
+      storyboard: {
+        id: 'fixture-production',
+        pages: current.project.slides.map((s) => s.id),
+        stage: 'plan',
+        status: 'working',
+        updatedAt: new Date().toISOString()
+      }
+    }
+  })
+  expect(
+    (await episodes.mapView('m-production-state')).episodes[0].video
+  ).toMatchObject({
+    scenes: 0,
+    display: { label: 'Planning the episode', active: true }
+  })
+  await changeProject(id, (current) => {
+    Object.assign(current.project.video!.storyboard!, {
+      stage: 'review',
+      status: 'waiting',
+      waitingFor: 'approval'
+    })
+  })
+  expect(
+    (await episodes.mapView('m-production-state')).episodes[0].video?.display
+  ).toMatchObject({
+    label: 'Plan ready for you',
+    active: false,
+    actionLabel: 'Approve the plan'
+  })
+})

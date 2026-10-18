@@ -731,3 +731,33 @@ describe('the series as a connected canvas', () => {
     )
   })
 })
+
+it('shows storyboard planning before any scenes are built, and review without claiming work is active', () => {
+  const ep = episode('e1', 1, [])
+  ep.video = {
+    scenes: 0,
+    made: 0,
+    joined: false,
+    display: {
+      label: 'Planning the episode',
+      active: true,
+      actionLabel: 'Making the video'
+    }
+  }
+  const view: MapView = {
+    notebook: 'map',
+    title: 'Map',
+    series: seriesView(),
+    episodes: [ep],
+    usage: {}
+  }
+  expect(queueItems(map([]), view)).toEqual(['Ep 1 · Planning the episode'])
+  expect(laneHead(view, ep)).toContain('Planning the episode')
+  ep.video.display = {
+    label: 'Plan ready for you',
+    active: false,
+    actionLabel: 'Approve the plan'
+  }
+  expect(queueItems(map([]), view)).toEqual([])
+  expect(laneHead(view, ep)).toContain('Plan ready for you')
+})

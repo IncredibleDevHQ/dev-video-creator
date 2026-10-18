@@ -86,7 +86,12 @@ export type MapEpisode = {
   copies: MapCopy[]
   /** About how long it runs, spoken: its pages' scripts. */
   seconds?: number
-  video: { scenes: number; made: number; joined: boolean } | null
+  video: {
+    scenes: number
+    made: number
+    joined: boolean
+    display?: import('./model').VideoDisplay
+  } | null
   teasers: Array<{
     id: string
     channel: string
