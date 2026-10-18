@@ -309,3 +309,33 @@ it('names document destinations and preserves exact selectable text while backtr
     ).document.querySelector('#canonical')?.textContent
   )
 })
+
+it('continues an existing series instead of offering a separate notebook video', () => {
+  const current = structuredClone(state)
+  current.contentOpen = true
+  current.project.snapshots = [
+    {
+      project: {
+        id: 'notes',
+        title: 'Notebook',
+        source: 'Research',
+        slides: [{ id: 'page', title: 'Finding', svg: '<svg></svg>' }],
+        video: null,
+        mapSeries: 'series'
+      },
+      status: 'ready',
+      error: null,
+      events: []
+    }
+  ]
+  const doc = parseHTML(researchWorkspaceView(current)).document
+  const content = doc.querySelector('[aria-label="Project content"]')!
+  expect(content.textContent).toContain('Continue your series')
+  const continuation = Array.from(content.querySelectorAll('a')).find((a) =>
+    a.textContent?.includes('Continue series')
+  )!
+  expect(continuation.getAttribute('href')).toContain('map=notes')
+  expect(content.textContent).not.toContain('Create video →')
+  expect(content.textContent).not.toContain('Build a series from your notes')
+  expect(content.textContent).toContain('Review source cards')
+})

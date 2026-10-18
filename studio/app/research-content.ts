@@ -9,21 +9,64 @@ export const projectContent = (s: ResearchViewState) => {
   const populated = s.project.notebooks.filter((n) => n.blocks.length)
   const seriesMap =
     s.project.canvasId || (populated.length === 1 ? populated[0].id : undefined)
+  const seriesSources = s.project.snapshots.filter(
+    (item) => item.project.mapSeries
+  )
+  if (
+    s.project.canvas?.project.mapSeries &&
+    !seriesSources.some(
+      (item) => item.project.id === s.project.canvas!.project.id
+    )
+  )
+    seriesSources.push(s.project.canvas)
+  const continuingSeries = seriesSources.length > 0
   return html`<aside
     class="research-notes project-content"
     aria-label="Project content"
   >
     <div class="research-panel-heading">
       <div>
-        <h2>Turn your notes into a video</h2>
+        <h2>
+          ${continuingSeries
+            ? 'Continue your series'
+            : 'Turn your notes into a video'}
+        </h2>
         <p>
-          Start with a visual story draft: wireframes that show what each scene
-          will say and show. Review the draft, then add narration and make your
-          video.
+          ${continuingSeries
+            ? 'Your notes feed the series. Open it to review episodes and continue production, or keep collecting findings in your notebook.'
+            : 'Start with a visual story draft: wireframes that show what each scene will say and show. Review the draft, then add narration and make your video.'}
         </p>
       </div>
     </div>
     <div class="project-content-scroll">
+      ${seriesSources
+        .map(
+          (source) =>
+            html`<section class="project-series-card project-canvas-entry">
+              <div>
+                <h3>
+                  Series from
+                  ${escape(
+                    s.project.notebooks.find((n) => n.id === source.project.id)
+                      ?.title || 'your project notes'
+                  )}
+                </h3>
+                <p>
+                  Review your episodes, see what is being generated, and pick up
+                  the next step.
+                </p>
+              </div>
+              <a
+                class="research-primary"
+                href="${projectLink(s.project.id, s, {
+                  map: source.project.id,
+                  detail: '1'
+                })}"
+                >Continue series →</a
+              >
+            </section>`
+        )
+        .join('')}
       <div class="project-content-board">
         ${s.project.notebooks
           .map((n) => {
@@ -66,13 +109,15 @@ export const projectContent = (s: ResearchViewState) => {
                 >
                   ${building
                     ? 'Drawing your story… You can keep taking notes.'
-                    : snapshot?.project.video
-                      ? 'Video started'
-                      : completed.length
-                        ? 'Your story is ready to review'
-                        : n.blocks.length
-                          ? 'Ready to shape into a story'
-                          : 'Start with a note'}
+                    : snapshot?.project.mapSeries
+                      ? 'Source cards for your series'
+                      : snapshot?.project.video
+                        ? 'Video started'
+                        : completed.length
+                          ? 'Your story is ready to review'
+                          : n.blocks.length
+                            ? 'Ready to shape into a story'
+                            : 'Start with a note'}
                 </span>
                 ${snapshot?.error
                   ? `<p role="alert">${escape(snapshot.error)}</p>`
@@ -96,7 +141,9 @@ export const projectContent = (s: ResearchViewState) => {
                         Create story draft
                       </button>`
                     : html`<a
-                        class="research-primary"
+                        class="${snapshot?.project.mapSeries
+                          ? ''
+                          : 'research-primary'}"
                         href="${url}&view=${snapshot?.project.video
                           ? 'video'
                           : 'presentation'}"
@@ -104,9 +151,13 @@ export const projectContent = (s: ResearchViewState) => {
                           ? 'Continue video'
                           : building
                             ? 'View progress'
-                            : 'Review story draft'}</a
+                            : snapshot?.project.mapSeries
+                              ? 'Review source cards'
+                              : 'Review story draft'}</a
                       >`}
-                ${ready && !snapshot?.project.video
+                ${ready &&
+                !snapshot?.project.video &&
+                !snapshot?.project.mapSeries
                   ? html`<a href="${url}&view=video">Create video →</a>`
                   : n.blocks.length
                     ? html`<button data-select-notebook="${n.id}">
@@ -118,31 +169,34 @@ export const projectContent = (s: ResearchViewState) => {
           })
           .join('')}
       </div>
-      <section class="project-series-card project-canvas-entry">
-        <div>
-          <h3>Build a series from your notes</h3>
-          <p>
-            Keep collecting in your notebook. Plan episodes on the content map,
-            then let new findings organize into the series.
-          </p>
-        </div>
-        ${seriesMap
-          ? html`<a
-              href="${projectLink(s.project.id, s, {
-                map: seriesMap,
-                detail: '1'
-              })}"
-              >Open content map →</a
-            >`
-          : html`<button
-              data-research-action="generate-canvas"
-              ${s.pending || !s.project.notebooks.some((n) => n.blocks.length)
-                ? 'disabled'
-                : ''}
-            >
-              Create project canvas →
-            </button>`}
-      </section>
+      ${continuingSeries
+        ? ''
+        : html`<section class="project-series-card project-canvas-entry">
+            <div>
+              <h3>Build a series from your notes</h3>
+              <p>
+                Keep collecting in your notebook. Plan episodes on the content
+                map, then let new findings organize into the series.
+              </p>
+            </div>
+            ${seriesMap
+              ? html`<a
+                  href="${projectLink(s.project.id, s, {
+                    map: seriesMap,
+                    detail: '1'
+                  })}"
+                  >Open content map →</a
+                >`
+              : html`<button
+                  data-research-action="generate-canvas"
+                  ${s.pending ||
+                  !s.project.notebooks.some((n) => n.blocks.length)
+                    ? 'disabled'
+                    : ''}
+                >
+                  Create project canvas →
+                </button>`}
+          </section>`}
     </div>
   </aside>`
 }
