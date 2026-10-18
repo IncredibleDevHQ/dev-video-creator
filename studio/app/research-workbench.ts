@@ -12,6 +12,7 @@ export class ResearchWorkbench {
   state: ResearchLayout = defaultResearchLayout()
   graph: ResearchGraphViewport
   private key = ''
+  private inerted: HTMLElement[] = []
   private resizing: {
     pane: 'graph' | 'notes'
     start: number
@@ -62,6 +63,38 @@ export class ResearchWorkbench {
     root.addEventListener('pointerup', release)
     root.addEventListener('pointercancel', release)
     root.addEventListener('keydown', (event) => {
+      if (this.state.graphOpen && event.key === 'Escape') {
+        event.preventDefault()
+        this.handle(
+          this.state.graphMode === 'full'
+            ? 'graph-drawer'
+            : this.state.graphMode === 'drawer'
+              ? 'graph-pip'
+              : 'toggle-graph'
+        )
+        return
+      }
+      if (
+        this.state.graphOpen &&
+        this.state.graphMode === 'full' &&
+        event.key === 'Tab'
+      ) {
+        const items = Array.from(
+          root.querySelectorAll<HTMLElement>(
+            '#research-graph-panel button, #research-graph-panel input, #research-graph-panel summary, #research-graph-panel [tabindex="0"]'
+          )
+        ).filter((el) => el.getClientRects().length)
+        const first = items[0],
+          last = items.at(-1)
+        if (
+          event.shiftKey
+            ? document.activeElement === first
+            : document.activeElement === last
+        ) {
+          event.preventDefault()
+          ;(event.shiftKey ? last : first)?.focus()
+        }
+      }
       const pane = (event.target as HTMLElement).dataset.resizePane as
         | 'graph'
         | 'notes'
@@ -97,6 +130,24 @@ export class ResearchWorkbench {
   mount() {
     this.applyWidths()
     this.graph.mount()
+    for (const element of this.inerted) element.inert = false
+    this.inerted = []
+    const panel = this.root.querySelector<HTMLElement>('#research-graph-panel')
+    if (panel && this.state.graphOpen && this.state.graphMode === 'full') {
+      let child: HTMLElement = panel
+      while (child !== this.root && child.parentElement) {
+        for (const sibling of Array.from(child.parentElement.children)) {
+          const element = sibling as HTMLElement
+          if (element !== child && !element.inert) {
+            element.inert = true
+            this.inerted.push(element)
+          }
+        }
+        child = child.parentElement
+      }
+      if (!panel.contains(document.activeElement))
+        panel.querySelector<HTMLElement>('button')?.focus()
+    }
   }
   handle(action: string) {
     if (action === 'graph-in') {
@@ -116,10 +167,21 @@ export class ResearchWorkbench {
     else if (action === 'toggle-graph') {
       this.state.graphOpen = !this.state.graphOpen
       this.state.expanded = false
+      this.state.graphMode = 'pip'
       if (this.state.graphOpen) this.state.notesOpen = false
-    } else if (action === 'graph-expand') {
+    } else if (
+      ['graph-expand', 'graph-drawer', 'graph-full', 'graph-pip'].includes(
+        action
+      )
+    ) {
       this.state.graphOpen = true
-      this.state.expanded = !this.state.expanded
+      this.state.graphMode =
+        action === 'graph-full'
+          ? 'full'
+          : action === 'graph-pip'
+            ? 'pip'
+            : 'drawer'
+      this.state.expanded = this.state.graphMode !== 'pip'
       this.state.notesOpen = false
     } else if (action === 'toggle-notebook') {
       this.state.notesOpen = !this.state.notesOpen
@@ -129,6 +191,18 @@ export class ResearchWorkbench {
     this.save()
     this.changed()
     this.graph.fit()
+    if (action.startsWith('graph-'))
+      this.root
+        .querySelector<HTMLElement>('#research-graph-panel button')
+        ?.focus()
+    if (action === 'toggle-graph')
+      this.root
+        .querySelector<HTMLElement>(
+          this.state.graphOpen
+            ? '#research-graph-panel button'
+            : '.project-chat-actions [data-research-action="toggle-graph"]'
+        )
+        ?.focus()
     return true
   }
   depth(value: number) {

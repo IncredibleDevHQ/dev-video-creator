@@ -3,6 +3,7 @@ import type { GraphScope } from './research-graph-model'
 export type ResearchLayout = {
   graphWidth: number
   notesWidth: number
+  graphMode?: 'pip' | 'drawer' | 'full'
   graphOpen: boolean
   notesOpen: boolean
   expanded: boolean
@@ -12,6 +13,7 @@ export type ResearchLayout = {
 export const defaultResearchLayout = (): ResearchLayout => ({
   graphWidth: 310,
   notesWidth: 280,
+  graphMode: 'pip',
   graphOpen: false,
   notesOpen: false,
   expanded: false,
@@ -34,6 +36,12 @@ export const normalizeResearchLayout = (
   return {
     graphWidth: number(raw.graphWidth, base.graphWidth, 230, 620),
     notesWidth: number(raw.notesWidth, base.notesWidth, 230, 440),
+    graphMode:
+      raw.graphMode === 'full'
+        ? 'full'
+        : raw.graphMode === 'drawer' || raw.expanded
+          ? 'drawer'
+          : 'pip',
     graphOpen: raw.graphOpen === true,
     notesOpen: raw.notesOpen === true,
     expanded: raw.graphOpen === true && raw.expanded === true,

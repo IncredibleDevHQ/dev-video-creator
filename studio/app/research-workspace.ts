@@ -42,6 +42,7 @@ import './styles/research-sessions.css'
 import './styles/project-workspace.css'
 import './styles/project-simple.css'
 import './styles/research-conversation.css'
+import './styles/research-floating-map.css'
 
 export class ResearchWorkspace {
   isOpen = false

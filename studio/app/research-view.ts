@@ -556,7 +556,8 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
           </div>`
         : ''}
       <main
-        class="research-columns ${!s.layout?.graphOpen
+        class="research-columns graph-${s.layout?.graphMode || 'pip'} ${!s
+          .layout?.graphOpen
           ? 'graph-hidden'
           : ''} ${s.layout?.notesOpen !== true ? 'notes-hidden' : ''} ${s.layout
           ?.expanded

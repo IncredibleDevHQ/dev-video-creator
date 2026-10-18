@@ -335,3 +335,27 @@ it('preserves a reading position across minimizing, background updates, and resu
   returning.restore(root, state)
   expect(transcript.scrollTop).toBe(345.5)
 })
+it('moves from floating map to drawer to full screen and back without losing the conversation draft', () => {
+  const { workbench, root, stored } = setup()
+  const input = root.querySelector<HTMLTextAreaElement>('#research-question')!
+  input.value = 'Keep this draft'
+  workbench.handle('toggle-graph')
+  expect(workbench.state.graphMode).toBe('pip')
+  workbench.handle('graph-drawer')
+  expect(workbench.state).toMatchObject({ graphMode: 'drawer', expanded: true })
+  workbench.handle('graph-full')
+  expect(workbench.state.graphMode).toBe('full')
+  expect(JSON.parse(stored.get('research-layout:project')!).graphMode).toBe(
+    'full'
+  )
+  workbench.handle('graph-drawer')
+  workbench.handle('graph-pip')
+  expect(workbench.state).toMatchObject({
+    graphMode: 'pip',
+    expanded: false,
+    graphOpen: true
+  })
+  expect(input.value).toBe('Keep this draft')
+  workbench.handle('toggle-graph')
+  expect(workbench.state.graphOpen).toBe(false)
+})

@@ -31,14 +31,37 @@ export const graphPanel = (
     class="research-graph-panel"
     id="research-graph-panel"
     aria-label="Question graph"
+    ${layout.graphMode === 'full' ? 'role="dialog" aria-modal="true"' : ''}
   >
     <div class="research-panel-heading">
-      <h2>Question map <span class="research-count">${nodes.length}</span></h2>
-      ${control(
-        'graph-expand',
-        layout.expanded ? '↙' : '↗',
-        `aria-label="${layout.expanded ? 'Restore workspace' : 'Expand graph'}" title="${layout.expanded ? 'Restore workspace' : 'Expand graph'}"`
-      )}${control('toggle-graph', '×', 'aria-label="Close question map"')}
+      <h2>Question map</h2>
+      ${layout.graphMode === 'full'
+        ? control(
+            'graph-drawer',
+            '↙',
+            'aria-label="Return to half-screen map" title="Half screen"'
+          )
+        : layout.graphMode === 'drawer'
+          ? control(
+              'graph-pip',
+              '▣',
+              'aria-label="Minimize to floating map" title="Floating map"'
+            )
+          : control(
+              'graph-drawer',
+              '↗',
+              'aria-label="Expand map to half screen" title="Half screen"'
+            )}
+      ${layout.graphMode !== 'pip' && layout.graphMode
+        ? layout.graphMode !== 'full'
+          ? control(
+              'graph-full',
+              '⛶',
+              'aria-label="Full screen map" title="Full screen"'
+            )
+          : ''
+        : ''}
+      ${control('toggle-graph', '×', 'aria-label="Close question map"')}
     </div>
     <label class="sr" for="research-search">Find a question</label
     ><input
