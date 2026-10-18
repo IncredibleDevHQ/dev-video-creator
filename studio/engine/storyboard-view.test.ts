@@ -370,3 +370,10 @@ it('poses the stills in view: blanks hold their place, and a note says it is pos
   const plan = storyboardScreen(snapshot(storyboard()), null, idle(), null)
   expect(plan).toContain('>Approve the plan</button>')
 })
+
+it('allows saved still corrections while production is stopped', () => {
+  const value = posed(storyboard({ stage: 'stills', status: 'failed', approved: true }), [1])
+  const html = storyboardScreen(snapshot(value), { projectId: 'n', scene: 0, frame: 1 }, idle(), null)
+  expect(html).toContain('data-action="sb-still" data-number="1"')
+  expect(html).not.toContain('data-action="sb-approve"')
+})

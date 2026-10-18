@@ -432,3 +432,13 @@ it('stops dispatching on shared quota failure, preserves in-flight success, and 
     else process.env.MINIMAL_STUDIO_FRAME_CONCURRENCY = previous
   }
 })
+
+it('saves corrections while stopped without restarting generation', async () => {
+  await seed('stopped-correction', { stage: 'stills', status: 'failed', error: 'Quota reached' })
+  schedule.mockClear()
+  await noteStoryboardFrame('stopped-correction', 2, { note: 'Choose the route per chunk' })
+  const value = await stored('stopped-correction')
+  expect(value.frameNotes).toEqual({ 2: 'Choose the route per chunk' })
+  expect([value.stage, value.status, value.error]).toEqual(['stills', 'failed', 'Quota reached'])
+  expect(schedule).not.toHaveBeenCalled()
+})

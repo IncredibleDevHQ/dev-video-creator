@@ -151,11 +151,12 @@ const transitionDialog = (app: AppContext, number: number) => {
 /** A note on one still: that frame is posed again with it. */
 const stillDialog = (
   number: number,
-  title: string
+  title: string,
+  stopped = false
 ) => `<h2>Change frame ${number}’s still</h2>
-<p class="sb-meta">${escape(title)} is posed again with your note; the other stills stay as they are.</p>
+<p class="sb-meta">${stopped ? 'Save a correction for when you retry. Generation stays stopped.' : `${escape(title)} is posed again with your note; the other stills stay as they are.`}</p>
 <form id="storyboard-still" class="sb-change" data-number="${number}"><label for="sb-still-note">What should change?</label><textarea id="sb-still-note" name="note" rows="3" placeholder="Make the diagram fill the frame; put the number on the left"></textarea>
-<div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">Pose it again</button></div></form>`
+<div class="dialog-actions">${button('Cancel', 'close')}<button type="submit" class="primary">${stopped ? 'Save correction' : 'Pose it again'}</button></div></form>`
 
 const changeDialog = (posed: boolean) => `<h2>Change the plan</h2>${
   posed
@@ -264,7 +265,9 @@ export const clickStoryboard = async (
       .flatMap((scene) => scene.frames)
       .find((entry) => entry.number === number)
     if (busy || !frame) return true
-    app.showDialog(stillDialog(number, frame.title))
+    app.showDialog(
+      stillDialog(number, frame.title, storyboard?.status === 'failed')
+    )
     app.dialog.querySelector<HTMLTextAreaElement>('#sb-still-note')?.focus()
     return true
   }

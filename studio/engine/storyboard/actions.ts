@@ -136,7 +136,9 @@ export const noteStoryboardFrame = async (
       storyboard.stage === 'board' && storyboard.status === 'waiting'
     const posing =
       storyboard.stage === 'stills' && storyboard.status === 'working'
-    if (!waiting && !posing)
+    const stopped =
+      storyboard.stage === 'stills' && storyboard.status === 'failed'
+    if (!waiting && !posing && !stopped)
       throw new Refusal('A still can change before you approve the stills')
     storyboard.frameNotes = { ...storyboard.frameNotes, [number]: note }
     if (waiting) {
@@ -146,7 +148,13 @@ export const noteStoryboardFrame = async (
       start = true
     }
     storyboard.updatedAt = new Date().toISOString()
-    addEvent(current, 'video', `Posing frame ${number} again with your note`)
+    addEvent(
+      current,
+      'video',
+      stopped
+        ? `Saved correction for frame ${number}; applied when you retry`
+        : `Posing frame ${number} again with your note`
+    )
   })
   if (start) scheduleStoryboard(projectId)
   return snapshot

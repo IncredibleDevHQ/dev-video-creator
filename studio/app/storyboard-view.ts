@@ -533,7 +533,8 @@ const actions = (
     frame?.still &&
     !posing(storyboard, frame) &&
     ((storyboard.stage === 'board' && awaiting(storyboard)) ||
-      (storyboard.stage === 'stills' && storyboard.status === 'working'))
+      (storyboard.stage === 'stills' &&
+        ['working', 'failed'].includes(storyboard.status)))
       ? `<button type="button" data-action="sb-still" data-number="${frame.number}">Change this still</button>`
       : ''
   const approve = awaiting(storyboard)
