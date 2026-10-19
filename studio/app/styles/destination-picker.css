@@ -240,3 +240,15 @@
 :is(.chat-repo-add, .research-inline, .repo-path):has(.repository-browse) {
   flex-wrap: wrap;
 }
+
+/* A short, model-specific effort list needs no search field. */
+.effort-picker-menu .destination-picker-search[hidden] {
+  display: none;
+}
+.effort-picker-menu .destination-picker-results {
+  max-height: min(480px, 65dvh);
+  margin-top: 0;
+}
+.effort-picker-menu .destination-picker-option {
+  padding-block: 8px;
+}

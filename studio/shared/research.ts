@@ -17,6 +17,7 @@ export type NoteBlock = {
   id: string
   text: string
   at: string
+  comment?: string
   origin?: ResearchOrigin
 }
 export type ProjectNotebook = {
@@ -44,6 +45,8 @@ export type ResearchChat = {
   lastNodeId?: string
 }
 export type ResearchNode = {
+  /** Stable branch ID; ordinary replies share the root turn’s ID. */
+  conversationId?: string
   /** Optional only for records written before named chats. */
   chatId?: string
   id: string
@@ -60,6 +63,15 @@ export type ResearchNode = {
   artifact?: false | { title: string; parentId: string | null }
   contextDocumentId?: string
   sessionMode?: 'new' | 'continued' | 'branched'
+  contextInfo?: {
+    policy: string
+    mode: 'session-delta' | 'ancestor-seed'
+    ancestorIds: string[]
+    recentIds: string[]
+    summarizedTurns: number
+    estimatedTokens: number
+    digest: string
+  }
   activity?: string
   error?: string
 }
@@ -77,6 +89,7 @@ export type ResearchProject = {
   harness?: HarnessSelection
   /** One aggregate notebook drives the existing content-map / series engine. */
   canvasId?: string
+  autoOrganize?: boolean
   syncError?: string
 }
 export type ResearchProjectView = ResearchProject & {

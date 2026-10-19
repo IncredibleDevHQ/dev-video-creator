@@ -28,7 +28,11 @@ export const generationStops = {
   time: 'The agent ran out of time. Saved work is kept; Try again continues from there.',
   idle: 'The agent stopped responding. Saved work is kept; Try again continues from there.',
   tokens:
-    'Generation reached its configured token budget. Saved work is retained. Review usage and increase the MINIMAL_STUDIO token limits before retrying.',
+    'This request reached Studio’s token budget, not your agent’s account quota. Saved work is kept. Try a smaller request or adjust the per-request budget.',
+  projectTokens:
+    'This notebook reached Studio’s token budget for this type of work. Saved work is kept. Review usage and adjust the notebook budget before retrying. Switching agents does not reset it.',
+  seriesTokens:
+    'This series reached Studio’s token budget for this type of work. Saved work is kept. Review usage and adjust the series budget before retrying. Switching agents does not reset it.',
   tools:
     'The agent used up its steps. Saved work is kept; Try again continues from there.'
 } as const
@@ -36,8 +40,15 @@ const stopReasons: Record<string, string> = {
   [generationStops.time]: 'ran out of time',
   [generationStops.idle]: 'stopped responding',
   [generationStops.tools]: 'used up its steps',
-  [generationStops.tokens]: 'reached its token budget'
+  [generationStops.tokens]: 'reached Studio’s request token budget',
+  [generationStops.projectTokens]: 'reached Studio’s notebook token budget',
+  [generationStops.seriesTokens]: 'reached Studio’s series token budget'
 }
+const tokenStops: readonly string[] = [
+  generationStops.tokens,
+  generationStops.projectTokens,
+  generationStops.seriesTokens
+]
 /** Why a run stopped, as a short phrase after the agent's name, if it was a limit. */
 export const stopReason = (message: string | null | undefined) =>
   stopReasons[message || ''] || null
@@ -57,15 +68,15 @@ const sharedFailures: Record<string, string> = {
     'The selected harness is unavailable. Check its installation or choose another harness. Saved work is retained.'
 }
 export const stopsPreparationBatch = (message: string | null | undefined) =>
-  message === generationStops.tokens ||
+  tokenStops.includes(message || '') ||
   Object.values(sharedFailures).includes(message || '')
 export const generationFailure = (error: unknown, fallback: string) => {
   const message = error instanceof Error ? error.message : ''
   const stop = Object.values(generationStops).find((known) => known === message)
   if (stop) return stop
   if (error instanceof HarnessStageError) {
-    if (error.failure?.message === generationStops.tokens)
-      return generationStops.tokens
+    if (error.failure?.message && tokenStops.includes(error.failure.message))
+      return error.failure.message
     return sharedFailures[error.failure?.category || ''] || fallback
   }
   return fallback

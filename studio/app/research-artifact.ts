@@ -1,3 +1,4 @@
+import { conversationHead } from '../shared/research-conversations'
 import type { ResearchViewState } from './research-view'
 import {
   researchDocumentFor,
@@ -19,12 +20,14 @@ export const researchTurnRequest = (
   chatId: s.chat || undefined,
   parentId: s.anchor
     ? s.node
-    : s.project.nodes
-        .filter((n) => n.chatId === s.chat && n.state === 'done')
-        .at(-1)?.id || null,
+    : conversationHead(s.project.nodes, s.node)?.id || null,
   contextDocumentId: activeResearchDocument(s)?.id,
   anchor: s.anchor,
-  harness: { adapter: s.adapter, ...(s.model ? { model: s.model } : {}) },
+  harness: {
+    adapter: s.adapter,
+    ...(s.model ? { model: s.model } : {}),
+    ...(s.effort ? { effort: s.effort } : {})
+  },
   repos: s.repos
 })
 export const researchArtifact = (s: ResearchViewState) => {
@@ -69,7 +72,7 @@ export const openGeneratedResearchDocument = (
 ) => {
   s.node = nodeId
   const node = s.project.nodes.find((n) => n.id === nodeId)
-  s.chatMinimized = Boolean(node?.anchor)
+  s.chatMinimized = false
   s.anchor = null
   if (activeResearchDocument(s)?.id === nodeId) layout.notesOpen = false
 }

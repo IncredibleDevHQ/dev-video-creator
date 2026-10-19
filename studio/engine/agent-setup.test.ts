@@ -6,10 +6,20 @@ vi.mock('../app/api', () => ({ api: { harnesses: detect } }))
 import { AgentSetup } from '../app/agent-setup'
 afterEach(() => vi.unstubAllGlobals())
 const mount = () => {
-  const { document } = parseHTML(
+  const { document, window } = parseHTML(
     '<html><body><div id="setup"></div></body></html>'
   )
   vi.stubGlobal('document', document)
+  vi.stubGlobal('MutationObserver', window.MutationObserver)
+  Object.defineProperty(window.HTMLSelectElement.prototype, 'selectedOptions', {
+    configurable: true,
+    get() {
+      const selected = this.querySelectorAll('option[selected]')
+      return selected.length
+        ? selected
+        : this.querySelectorAll('option:first-child')
+    }
+  })
   const root = document.querySelector('#setup') as unknown as HTMLElement
   return { root, setup: new AgentSetup(root, null, vi.fn()) }
 }
@@ -21,18 +31,24 @@ it('waits for an explicit detection click, reports each result, and never select
   )
   const { root, setup } = mount()
   expect(detect).not.toHaveBeenCalled()
-  expect(root.querySelectorAll('input[disabled]')).toHaveLength(3)
+  expect(root.querySelectorAll('option[disabled]')).toHaveLength(3)
   root.querySelector<HTMLButtonElement>('[data-detect-agents]')!.click()
   expect(detect).toHaveBeenCalledTimes(3)
-  expect(root.querySelectorAll('.is-searching')).toHaveLength(3)
+  expect(root.querySelectorAll('option[data-detail="Looking…"]')).toHaveLength(
+    3
+  )
   resolve.get('kimi')!({
     selected: null,
     available: [{ id: 'kimi', ok: false }]
   })
   await vi.waitFor(() =>
-    expect(root.textContent).toContain('Not on this computer')
+    expect(
+      root.querySelector('option[value="kimi"]')?.getAttribute('data-detail')
+    ).toBe('Not on this computer')
   )
-  expect(root.querySelectorAll('.is-searching')).toHaveLength(2)
+  expect(root.querySelectorAll('option[data-detail="Looking…"]')).toHaveLength(
+    2
+  )
   resolve.get('claude-code')!({
     selected: null,
     available: [
@@ -51,13 +67,13 @@ it('waits for an explicit detection click, reports each result, and never select
     available: [{ id: 'codex', ok: true }]
   })
   await vi.waitFor(() =>
-    expect(root.querySelector('.model-list')).not.toBeNull()
+    expect(root.querySelector('[name="agent-model"]')).not.toBeNull()
   )
-  expect(root.querySelector('input[checked]')?.getAttribute('value')).toBe(
+  expect(root.querySelector('option[selected]')?.getAttribute('value')).toBe(
     'claude-code'
   )
   expect(
-    root.querySelector('input[value="kimi"]')?.hasAttribute('disabled')
+    root.querySelector('option[value="kimi"]')?.hasAttribute('disabled')
   ).toBe(true)
   expect(root.querySelector('.primary')?.hasAttribute('disabled')).toBe(false)
   setup.dispose()
@@ -112,10 +128,20 @@ it('shows supported models, disables unavailable models and detects automaticall
       }
     ]
   }))
-  const { document } = parseHTML(
+  const { document, window } = parseHTML(
     '<html><body><div id="setup"></div></body></html>'
   )
   vi.stubGlobal('document', document)
+  vi.stubGlobal('MutationObserver', window.MutationObserver)
+  Object.defineProperty(window.HTMLSelectElement.prototype, 'selectedOptions', {
+    configurable: true,
+    get() {
+      const selected = this.querySelectorAll('option[selected]')
+      return selected.length
+        ? selected
+        : this.querySelectorAll('option:first-child')
+    }
+  })
   const root = document.querySelector('#setup') as unknown as HTMLElement
   const setup = new AgentSetup(
     root,
@@ -127,12 +153,14 @@ it('shows supported models, disables unavailable models and detects automaticall
   await vi.waitFor(() => expect(root.textContent).toContain('Model A'))
   expect(detect).toHaveBeenCalledTimes(3)
   expect(
-    root.querySelector('input[value="model-a"]')?.hasAttribute('checked')
+    root.querySelector('option[value="model-a"]')?.hasAttribute('selected')
   ).toBe(true)
   expect(
-    root.querySelector('input[value="model-b"]')?.hasAttribute('disabled')
+    root.querySelector('option[value="model-b"]')?.hasAttribute('disabled')
   ).toBe(true)
-  expect(root.textContent).toContain('Update your CLI')
+  expect(
+    root.querySelector('option[value="model-b"]')?.getAttribute('data-detail')
+  ).toBe('Update your CLI')
   expect(root.textContent).toContain('Local catalog')
   setup.dispose()
 })

@@ -19,18 +19,13 @@ import { basename, join } from 'node:path'
 import { homedir } from 'node:os'
 import type { TokenUsage } from '../../../shared/usage'
 
-const ORDER = ['low', 'medium', 'high', 'xhigh', 'max']
+import { kimiEfforts } from '../kimi-efforts'
+import { reasoningEfforts } from '../../../shared/reasoning-effort'
+
+const ORDER: readonly string[] = reasoningEfforts
 
 export const realKimiHome = () =>
   process.env.KIMI_CODE_HOME || join(homedir(), '.kimi-code')
-
-const section = (config: string, header: string) => {
-  const start = config.indexOf(header)
-  if (start < 0) return ''
-  const rest = config.slice(start + header.length)
-  const next = rest.search(/^\s*\[/m)
-  return next < 0 ? rest : rest.slice(0, next)
-}
 
 /**
  * The effort the model accepts nearest the one asked for. K3 lists low, high
@@ -51,17 +46,20 @@ export const supportedEffort = (requested: string, supported: string[]) => {
 /** The user's config with this run's thinking effort and response limit. */
 export const runConfig = (
   config: string,
-  run: { effort: string; maxOutputTokens?: number; model?: string }
+  run: {
+    explicitEffort?: boolean
+    effort: string
+    maxOutputTokens?: number
+    model?: string
+  }
 ) => {
   const model =
     run.model || /^\s*default_model\s*=\s*"([^"]+)"/m.exec(config)?.[1] || ''
-  const listed = /^\s*support_efforts\s*=\s*\[([^\]]*)\]/m.exec(
-    section(config, `[models."${model}"]`)
-  )?.[1]
-  const supported = (listed || '')
-    .split(',')
-    .map((value) => value.trim().replace(/^["']|["']$/g, ''))
-    .filter(Boolean)
+  const supported = kimiEfforts(config, model) || []
+  if (run.explicitEffort && !supported.includes(run.effort as never))
+    throw new Error(
+      'This Kimi model no longer supports the selected thinking effort'
+    )
   const effort = supportedEffort(run.effort, supported)
   if (!ORDER.includes(run.effort) || !ORDER.includes(effort))
     throw new Error('Unsupported thinking effort')
@@ -77,7 +75,7 @@ export const runConfig = (
       current = header.trim()
       lines.push(line)
       if (current === 'thinking')
-        lines.push('enabled = true', `effort = "${effort}"`)
+        lines.push(`enabled = ${effort !== 'none'}`, `effort = "${effort}"`)
       if (cap && current.startsWith('models.'))
         lines.push(`max_output_size = ${cap}`)
       continue
@@ -93,7 +91,12 @@ export const runConfig = (
     lines.push(line)
   }
   if (!/^\s*\[thinking\]\s*$/m.test(config))
-    lines.push('', '[thinking]', 'enabled = true', `effort = "${effort}"`)
+    lines.push(
+      '',
+      '[thinking]',
+      `enabled = ${effort !== 'none'}`,
+      `effort = "${effort}"`
+    )
   return { config: `${lines.join('\n').replace(/\s*$/, '')}\n`, effort }
 }
 
@@ -101,6 +104,7 @@ export const kimiRunHome = async (
   projectDir: string,
   run: {
     effort: string
+    explicitEffort?: boolean
     maxOutputTokens?: number
     model?: string
     visualWorker?: boolean

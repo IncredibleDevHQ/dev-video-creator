@@ -53,6 +53,7 @@ export const selectResearchChat = (s: ResearchViewState, id: string | null) => {
   )
   s.adapter = chat?.harness?.adapter || 'claude-code'
   s.model = chat?.harness?.model || ''
+  s.effort = chat?.harness?.effort
   s.query = ''
   s.notebook =
     s.project.notebooks.find((n) => n.id === chat?.notebookId)?.id ||
@@ -81,13 +82,16 @@ export const selectResearchNode = (
   if (node.chatId !== s.chat) selectResearchChat(s, node.chatId || null)
   s.node = node.id
   s.anchor = clearAnchor ? null : anchor
+  s.sourceFocus = null
+  s.chatMinimized = false
   s.tab = 'research'
 }
 export const chatSettings = (s: ResearchViewState) => ({
   chatId: s.chat,
   harness: {
     adapter: s.adapter as HarnessSelection['adapter'],
-    ...(s.model ? { model: s.model } : {})
+    ...(s.model ? { model: s.model } : {}),
+    ...(s.effort ? { effort: s.effort } : {})
   },
   repos: structuredClone(s.repos),
   notebookId: s.notebook

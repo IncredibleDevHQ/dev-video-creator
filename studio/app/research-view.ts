@@ -1,3 +1,5 @@
+import { conversationHeader } from './research-conversation'
+import { conversationTurns } from '../shared/research-conversations'
 import {
   artifactChatRail,
   activeResearchDocument,
@@ -37,11 +39,13 @@ export type ResearchViewState = {
   node: string | null
   chat?: string | null
   chatPositions?: Record<string, string | null>
+  sourceFocus?: ResearchAnchor | null
   anchor: ResearchAnchor | null
   repos: RepoLink[]
   inspected: RepoInspection | null
   adapter: string
   model: string
+  effort?: import('../shared/reasoning-effort').ReasoningEffort
   query: string
   pending: boolean
   message: string
@@ -123,7 +127,9 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
           'expand-document',
           s.documentExpanded ? 'Open research chat' : '⤢',
           '',
-          `aria-label="${s.documentExpanded ? 'Open research chat' : 'Expand notebook'}"`
+          `aria-label="${
+            s.documentExpanded ? 'Open research chat' : 'Expand notebook'
+          }"`
         )}${action(
           'rename-notebook',
           '···',
@@ -141,13 +147,31 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
       </div>
     </div>
     ${activeResearchDocument(s) && !s.documentExpanded
-      ? `<button class="notebook-return-document" data-research-node="${activeResearchDocument(s)!.id}">← Back to ${escape(researchDocumentTitle(activeResearchDocument(s)!))}</button>`
+      ? `<button class="notebook-return-document" data-research-node="${
+          activeResearchDocument(s)!.id
+        }">← Back to ${escape(
+          researchDocumentTitle(activeResearchDocument(s)!)
+        )}</button>`
       : ''}
-    ${wireframes
-      ? `<div class="project-notebook-outputs"><span>${wireframes} wireframes from these notes</span><a href="${projectLink(s.project.id, { ...s, notebook: n.id }, { detail: '1', notebook: n.id, view: 'presentation' })}">Open wireframes →</a></div>`
+    ${s.project.autoOrganize || s.project.canvasId
+      ? `<div class="project-notebook-outputs"><span>${
+          s.project.canvas?.status === 'building'
+            ? 'Organizing your excerpts…'
+            : s.project.canvas?.status === 'failed'
+            ? 'Wireframes paused · your excerpts are saved'
+            : `${
+                s.project.canvas?.project.slides.length || 0
+              } cards in your wireframe canvas`
+        }</span><button data-research-action="open-content">View canvas →</button></div>`
+      : wireframes
+      ? `<div class="project-notebook-outputs"><span>${wireframes} wireframes from these notes</span><a href="${projectLink(
+          s.project.id,
+          { ...s, notebook: n.id },
+          { detail: '1', notebook: n.id, view: 'presentation' }
+        )}">Open wireframes →</a></div>`
       : s.documentExpanded && n.blocks.length
-        ? '<div class="project-notebook-outputs"><span>Ready to turn these notes into a story?</span><button data-research-action="open-content">Create from notes →</button></div>'
-        : ''}
+      ? '<div class="project-notebook-outputs"><span>Ready to turn these notes into a story?</span><button data-research-action="open-content">Create from notes →</button></div>'
+      : ''}
     <div class="research-note-scroll">
       ${n.blocks.length
         ? n.blocks
@@ -174,6 +198,12 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
                     `class="research-note-text" data-select-note="${b.id}" data-notebook-id="${n.id}"`,
                     escape(b.text)
                   )}
+                  ${b.comment
+                    ? html`<aside class="research-note-comment">
+                        <strong>Your comment</strong>
+                        <p>${escape(b.comment)}</p>
+                      </aside>`
+                    : ''}
                   ${b.origin
                     ? html`<details
                         class="research-note-provenance"
@@ -242,21 +272,6 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
         ></span
       >
       <h2>${escape(n.question)}</h2>
-      ${n.contextDocumentId
-        ? `<button class="chat-message-document" data-research-node="${n.contextDocumentId}">Context: ${escape(researchDocumentTitle(s.project.nodes.find((doc) => doc.id === n.contextDocumentId) || n))} ↗</button>`
-        : ''}
-      ${n.anchor
-        ? html`<details
-            class="research-question-context"
-            id="question-context-${n.id}"
-          >
-            <summary>
-              Selected ${n.anchor.kind === 'note' ? 'notebook' : 'answer'}
-              passage
-            </summary>
-            <blockquote>${escape(n.anchor.text)}</blockquote>
-          </details>`
-        : ''}
     </div>
     <div class="research-answer-heading">
       <span class="research-agent-mark"
@@ -265,8 +280,8 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
         >${n.harness.adapter === 'claude-code'
           ? 'Claude Code'
           : n.harness.adapter === 'codex'
-            ? 'Codex'
-            : 'Kimi'}</strong
+          ? 'Codex'
+          : 'Kimi'}</strong
       ><small
         >${escape(n.harness.model ? modelName(n.harness.model) : '')}</small
       >
@@ -313,26 +328,46 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
                 </button>`
             )
             .join('')}
-          ${isResearchDocument(n)
-            ? `<button class="research-artifact-link" data-research-node="${n.id}">Open document: ${escape(researchDocumentTitle(n))} ↗</button>`
+          ${s.project.nodes.filter(
+            (child) =>
+              child.parentId === n.id &&
+              child.anchor &&
+              child.chatId === n.chatId
+          ).length
+            ? `<div class="conversation-branches"><span>Explored from this answer</span>${s.project.nodes
+                .filter(
+                  (child) =>
+                    child.parentId === n.id &&
+                    child.anchor &&
+                    child.chatId === n.chatId
+                )
+                .map(
+                  (child) =>
+                    `<button data-research-node="${child.id}">↳ ${escape(
+                      researchDocumentTitle(child)
+                    )}</button>`
+                )
+                .join('')}</div>`
             : ''}
           <div class="research-answer-actions">
-            <button type="button" data-save-answer="${n.id}">
-              Save to notebook</button
+            <button type="button" data-save-answer="${n.id}">Save answer</button
             ><button type="button" data-branch-answer="${n.id}">
-              Ask a follow-up ↗
+              Ask about a passage ↗
             </button>
           </div>`
       : n.state === 'working'
-        ? html`<div class="research-working" role="status">
-            <i></i>${escape(n.activity || 'Researching…')}
-            ${action('stop', 'Stop', '', `data-node-id="${n.id}"`)}
-          </div>`
-        : html`<div class="research-failure">
-            ${escape(
-              n.error || 'Stopped. Your earlier answers are kept.'
-            )}<button type="button" data-retry-node="${n.id}">Ask again</button>
-          </div>`}
+      ? html`<div class="research-working" role="status">
+          <i></i>${escape(n.activity || 'Researching…')}
+          ${action('stop', 'Stop', '', `data-node-id="${n.id}"`)}
+        </div>`
+      : html`<div class="research-failure">
+          ${escape(n.error || 'Stopped. Your earlier answers are kept.')}<button
+            type="button"
+            data-retry-node="${n.id}"
+          >
+            Ask again
+          </button>
+        </div>`}
   </article>`
 const repoContext = (s: ResearchViewState) =>
   html`<details
@@ -342,7 +377,9 @@ const repoContext = (s: ResearchViewState) =>
   >
     <summary>
       ${pickerIcons.repo}${s.repos.length
-        ? `${escape(s.repos[0].name)} · ${escape(s.repos[0].branch)}${s.repos.length > 1 ? ` +${s.repos.length - 1}` : ''}`
+        ? `${escape(s.repos[0].name)} · ${escape(s.repos[0].branch)}${
+            s.repos.length > 1 ? ` +${s.repos.length - 1}` : ''
+          }`
         : 'Choose repositories'}
     </summary>
     <div class="research-context-popover">
@@ -412,7 +449,7 @@ const repoContext = (s: ResearchViewState) =>
     </div>
   </details>`
 const chat = (s: ResearchViewState) => {
-  const path = s.project.nodes.filter((n) => n.chatId === s.chat)
+  const path = conversationTurns(s.project.nodes, s.node)
   const workingNode = s.project.nodes.find(
     (n) => n.chatId === s.chat && n.state === 'working'
   )
@@ -428,13 +465,8 @@ const chat = (s: ResearchViewState) => {
           Your agent is answering in this chat · View progress →
         </button>`
       : ''}
-    <div class="chat-document-context">
-      ${activeResearchDocument(s)
-        ? `<button data-research-node="${activeResearchDocument(s)!.id}">Discussing: ${escape(researchDocumentTitle(activeResearchDocument(s)!))} ↗</button>`
-        : 'Start a research conversation'}
-    </div>
     <div class="research-transcript" aria-live="polite">
-      ${path.length
+      ${conversationHeader(s)}${path.length
         ? path.map((node) => reply(node, s)).join('')
         : html`<div class="research-chat-welcome">
             <span class="research-welcome-icon"
@@ -455,7 +487,15 @@ const chat = (s: ResearchViewState) => {
     <div class="research-compose-area">
       ${s.anchor
         ? html`<div class="research-anchor">
-            <span>Exploring a selected passage</span>${action(
+            <span>Ask about this passage</span
+            ><button
+              type="button"
+              data-research-action="toggle-branch-composer"
+              aria-label="Minimize passage question"
+              aria-expanded="true"
+            >
+              −</button
+            >${action(
               'clear-anchor',
               '×',
               '',
@@ -468,14 +508,14 @@ const chat = (s: ResearchViewState) => {
             </blockquote>
           </div>`
         : s.node && (working || unfinished)
-          ? html`<div class="research-branch-hint">
-              ${path.at(-1)?.state === 'working'
-                ? 'Your agent is researching this question. Keep notes or explore another path while it works.'
-                : unfinished
-                  ? 'Use Ask again to retry, or open an earlier document to continue.'
-                  : 'Your next question branches from this answer. Earlier paths stay saved.'}
-            </div>`
-          : ''}
+        ? html`<div class="research-branch-hint">
+            ${path.at(-1)?.state === 'working'
+              ? 'Your agent is researching this question. Keep notes or explore another path while it works.'
+              : unfinished
+              ? 'Use Ask again to retry, or open an earlier document to continue.'
+              : 'Your next question branches from this answer. Earlier paths stay saved.'}
+          </div>`
+        : ''}
       <form id="research-question-form">
         <label class="sr" for="research-question">Research question</label
         ><textarea
@@ -486,8 +526,8 @@ const chat = (s: ResearchViewState) => {
           placeholder="Message ${s.adapter === 'kimi'
             ? 'Kimi'
             : s.adapter === 'codex'
-              ? 'Codex'
-              : 'Claude Code'}…"
+            ? 'Codex'
+            : 'Claude Code'}…"
           required
         ></textarea>
       </form>
@@ -497,8 +537,8 @@ const chat = (s: ResearchViewState) => {
             ${pickerIcons.agent}${s.adapter === 'claude-code'
               ? 'Claude Code'
               : s.adapter === 'kimi'
-                ? 'Kimi'
-                : 'Codex'}${s.model ? ` · ${escape(modelName(s.model))}` : ''}
+              ? 'Kimi'
+              : 'Codex'}${s.model ? ` · ${escape(modelName(s.model))}` : ''}
             <span aria-hidden="true">⌄</span>
           </summary>
           <div class="research-agent-popover">
@@ -521,6 +561,7 @@ const chat = (s: ResearchViewState) => {
             <label for="research-model">Model (optional)</label>
             <input
               id="research-model"
+              data-effort="${escape(s.effort || '')}"
               maxlength="200"
               ${s.pending ? 'disabled' : ''}
               value="${escape(s.model)}"
@@ -540,7 +581,7 @@ const chat = (s: ResearchViewState) => {
           aria-label="Send message"
           ${working || unfinished || s.pending ? 'disabled' : ''}
         >
-          ${working ? 'Working…' : 'Send ↑'}
+          ${working ? 'Working…' : s.anchor ? 'Create branch ↗' : 'Send ↑'}
         </button>
       </div>
       <small class="research-send-hint"
@@ -559,7 +600,7 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
     <button
       class="project-sidebar-scrim"
       data-research-action="toggle-sidebar"
-      aria-label="Close project navigation"
+      aria-label="Close channel navigation"
       tabindex="-1"
     ></button>
     <div class="project-workspace-main">
@@ -571,7 +612,9 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
         : ''}
       ${s.message
         ? html`<div class="research-banner" role="status">
-            ${escape(s.message)}${action(
+            ${escape(s.message)}${s.message.startsWith('Saved with')
+              ? '<button data-research-action="open-notebook">View notebook</button><button data-research-action="open-content">View canvas</button>'
+              : ''}${action(
               'clear-message',
               '×',
               '',
@@ -586,12 +629,8 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
           </div>`
         : ''}
       <main
-        class="research-columns ${activeResearchDocument(s) &&
-        !s.contentOpen &&
-        !s.documentExpanded
-          ? 'has-research-artifact'
-          : ''} ${s.chatMinimized ? 'artifact-chat-minimized' : ''} graph-${s
-          .layout?.graphMode || 'pip'} ${!s.layout?.graphOpen
+        class="research-columns conversation-workspace graph-${s.layout
+          ?.graphMode || 'pip'} ${!s.layout?.graphOpen
           ? 'graph-hidden'
           : ''} ${s.layout?.notesOpen !== true ? 'notes-hidden' : ''} ${s.layout
           ?.expanded
@@ -610,9 +649,9 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
         )}${s.layout?.expanded
           ? '<div aria-hidden="true"></div>'
           : paneDivider('graph')}
-        ${artifactChatRail(s)}${chat(s)}${researchArtifact(s)}${paneDivider(
-          'notes'
-        )}${s.contentOpen ? projectContent(s) : notePanel(s, true)}
+        ${chat(s)}${paneDivider('notes')}${s.contentOpen
+          ? projectContent(s)
+          : notePanel(s, true)}
       </main>
     </div>
     <div id="research-selection" class="research-selection" hidden></div>

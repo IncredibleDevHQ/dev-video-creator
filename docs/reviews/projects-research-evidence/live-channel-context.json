@@ -1,0 +1,177 @@
+{
+	"kind": "Real Codex browser run; no fixture responses",
+	"projectId": "e768ad05-6721-40ce-bdac-632b6999d43b",
+	"notebookId": "d6ef15ae-498d-40ea-9b58-7f6c0038e324",
+	"canvasId": "4b6b3f0f-bdd0-4cd7-8330-3bd246843829",
+	"sessions": [
+		{
+			"lastNodeId": "e514d497-8bec-4835-ba0a-5d9c6d5742ab",
+			"nativeSessionId": "01a15453-b655-7fc1-9c7f-f87f932138a5",
+			"mode": "branched",
+			"ancestorNodeIds": ["d16a7632-a914-42a4-9119-2ee9bb527607"],
+			"sharedNotebookContext": [],
+			"containsLaterRootMarker": false
+		},
+		{
+			"lastNodeId": "61561e50-2279-481f-9028-63a963b8d2b1",
+			"nativeSessionId": "01a15452-2f26-78b3-8385-ed92f3631fde",
+			"mode": "continued",
+			"ancestorNodeIds": [
+				"d16a7632-a914-42a4-9119-2ee9bb527607",
+				"6f074f63-9742-4154-9673-0f97a8620c07"
+			],
+			"sharedNotebookContext": [],
+			"containsLaterRootMarker": true
+		},
+		{
+			"lastNodeId": "dd0a52cf-7e33-43b8-8c2a-4d8e6a62fdae",
+			"nativeSessionId": "01a1545a-0ba5-7550-a454-c9fdafa1f4e1",
+			"mode": "branched",
+			"ancestorNodeIds": ["d16a7632-a914-42a4-9119-2ee9bb527607"],
+			"sharedNotebookContext": [],
+			"containsLaterRootMarker": false
+		},
+		{
+			"lastNodeId": "20d5b73f-4df1-4dfe-9a51-bd9c229a38fa",
+			"nativeSessionId": "01a1545d-774c-7f20-8c84-388355d12bb1",
+			"mode": "branched",
+			"ancestorNodeIds": [
+				"d16a7632-a914-42a4-9119-2ee9bb527607",
+				"e514d497-8bec-4835-ba0a-5d9c6d5742ab",
+				"3bf97b1c-6a4a-4040-91f3-feb672955a3c"
+			],
+			"sharedNotebookContext": [],
+			"containsLaterRootMarker": false
+		},
+		{
+			"lastNodeId": "3bf97b1c-6a4a-4040-91f3-feb672955a3c",
+			"nativeSessionId": "01a15456-476f-7881-97b3-4f21c0870ef7",
+			"mode": "branched",
+			"ancestorNodeIds": [
+				"d16a7632-a914-42a4-9119-2ee9bb527607",
+				"e514d497-8bec-4835-ba0a-5d9c6d5742ab"
+			],
+			"sharedNotebookContext": [],
+			"containsLaterRootMarker": false
+		}
+	],
+	"excerpts": [
+		{
+			"id": "a023ab06-965a-4d99-b468-82a4388da624",
+			"characters": 1798,
+			"origin": {
+				"nodeId": "d16a7632-a914-42a4-9119-2ee9bb527607",
+				"question": "Explain transactional outboxes for a learning notebook. Give four short sections: atomic writes, delivery retries, deduplication, and ordering. Use about 250 words. We will explore individual passages next.",
+				"response": "Atomic writes\nA transactional outbox stores a business change and its outgoing event in the same database transaction. For example, creating an order also inserts an OrderCreated row into an outbox table. Both writes commit, or both roll back. This prevents a committed order from losing its event because the process crashes before publishing. The transaction records the intent to send; delivery happens separately.\nDelivery retries\nA relay reads committed outbox records and publishes them to a message broker, using polling or a database change stream. After confirmation, it records progress or marks records as sent. If publishing fails, it retries, typically with backoff. A crash after publication but before recording success can cause another publication. Delivery is therefore commonly at least once, assuming retries continue and dependencies recover; persistent failures need monitoring and intervention.\nDeduplication\nConsumers should expect repeated events. Give each event a stable, unique ID, reused across retries. A consumer can record processed IDs and apply its business update in one local transaction, protected by a uniqueness constraint. A duplicate then has no additional effect. External effects, such as charging a payment provider, require their own idempotency mechanism. Deleting deduplication records limits how long this protection lasts.\nOrdering\nAn outbox does not automatically guarantee end-to-end ordering. Define the scope, usually events for one order or account. Assign sequence numbers consistently with business updates, preserve that order through the relay, and route related events to the same ordered broker partition. Concurrent consumers and retries can still disrupt processing order, so consumers may need to detect gaps or reject stale versions.\n",
+				"start": 0,
+				"end": 1798,
+				"repos": [
+					{
+						"path": "/Users/think/Documents/code/dev-video-creator-main",
+						"name": "dev-video-creator-main",
+						"branch": "codex/projects-research",
+						"base": "feat/hyperframes-markdown-mvp",
+						"commit": "09d80d0cd1182937c46de948d3a68147d7c32f4a"
+					}
+				]
+			},
+			"exactSourceSliceMatches": true
+		},
+		{
+			"id": "7c2b17de-db00-4233-8f05-6364e8a38364",
+			"characters": 429,
+			"origin": {
+				"nodeId": "e514d497-8bec-4835-ba0a-5d9c6d5742ab",
+				"question": "Explain this crash window in two short paragraphs, using a stable event ID example. Do not use context from later parent replies.",
+				"response": "The outbox crash window\nSuppose an outbox row holds OrderCreated with event ID evt-742. The relay publishes it, and the broker accepts it, but the relay crashes before marking the row as sent. After restart, the row still looks pending, so the relay publishes evt-742 again. The crash window lies between successful publication and saving that success: the broker has the event, but the relay\u2019s durable record does not show it.\nKeep evt-742 unchanged on every retry so a consumer can recognize both deliveries as the same event. The consumer records that ID and applies its database update in one transaction, using a uniqueness constraint to prevent a second application. This allows repeat delivery without repeating the database effect while the deduplication record is retained; external effects, such as a payment, need their own idempotency mechanism.\n",
+				"start": 428,
+				"end": 857,
+				"repos": [
+					{
+						"path": "/Users/think/Documents/code/dev-video-creator-main",
+						"name": "dev-video-creator-main",
+						"branch": "codex/projects-research",
+						"base": "feat/hyperframes-markdown-mvp",
+						"commit": "09d80d0cd1182937c46de948d3a68147d7c32f4a"
+					}
+				]
+			},
+			"exactSourceSliceMatches": true
+		},
+		{
+			"id": "0f1a28a7-85bc-4983-9e00-11f28d447475",
+			"characters": 292,
+			"origin": {
+				"nodeId": "dd0a52cf-7e33-43b8-8c2a-4d8e6a62fdae",
+				"question": "Explain ordering for one account in three short sentences. Use sequence numbers 41 and 42.",
+				"response": "Ordering for one account\nAssign events 41 and 42 in the same order as that account\u2019s committed updates. Publish 41 before 42 through the relay and the same ordered broker partition. If 42 arrives first, the consumer must wait for 41 before applying it, and ignore duplicates already applied.\n",
+				"start": 0,
+				"end": 292,
+				"repos": [
+					{
+						"path": "/Users/think/Documents/code/dev-video-creator-main",
+						"name": "dev-video-creator-main",
+						"branch": "codex/projects-research",
+						"base": "feat/hyperframes-markdown-mvp",
+						"commit": "09d80d0cd1182937c46de948d3a68147d7c32f4a"
+					}
+				]
+			},
+			"exactSourceSliceMatches": true
+		},
+		{
+			"id": "5eaaec68-82be-4079-83e5-9038adfac45c",
+			"characters": 343,
+			"origin": {
+				"nodeId": "20d5b73f-4df1-4dfe-9a51-bd9c229a38fa",
+				"question": "What should we do after that window expires? Explain in two short sentences for a developer.",
+				"response": "After the idempotency window\nStop automatic retries of evt-742:charge after the retention window: a provider may treat the expired key as a new request (Stripe example). Reconcile the payment against provider records and your durable payment ledger, retry only after confirming no charge occurred, and send unresolved cases for manual review.\n",
+				"start": 0,
+				"end": 343,
+				"repos": [
+					{
+						"path": "/Users/think/Documents/code/dev-video-creator-main",
+						"name": "dev-video-creator-main",
+						"branch": "codex/projects-research",
+						"base": "feat/hyperframes-markdown-mvp",
+						"commit": "09d80d0cd1182937c46de948d3a68147d7c32f4a"
+					}
+				]
+			},
+			"exactSourceSliceMatches": true
+		}
+	],
+	"rootContinuation": {
+		"runIds": [
+			"261a5139-e225-4f19-a536-07a541546808",
+			"2b0b7f62-1116-424d-8c76-b4e5d80c0891"
+		],
+		"sessionIds": [
+			"01a15452-2f26-78b3-8385-ed92f3631fde",
+			"01a15452-2f26-78b3-8385-ed92f3631fde"
+		],
+		"afterReturningToRootAnswer": "BLUEBIRD"
+	},
+	"checks": {
+		"fullSuite": "239 files, 1597 passed; 1 portrait test timed out under concurrent load",
+		"timeoutRecheck": "Both portrait tests passed in isolation (2/2)",
+		"noteQualificationRegression": "29 focused tests passed; complete note qualifications preserved beyond 300 characters",
+		"build": "passed",
+		"storageIntegration": "blocked: pinned MinIO Docker image pull denied"
+	},
+	"canvasVerification": {
+		"notebookCount": 1,
+		"savedExcerptCount": 5,
+		"cardCount": 10,
+		"queue": "idle",
+		"laterExcerptsOrganized": 4,
+		"postReadyExcerpt": {
+			"id": "6f3b5c33-9c97-4703-81ba-7905f52061bf",
+			"sourceNodeId": "3bf97b1c-6a4a-4040-91f3-feb672955a3c",
+			"savedAfterCanvasReady": true,
+			"result": "Updated existing card 8 with the payment crash window and stable idempotency key; retention qualification remains visible."
+		},
+		"recovery": "Development reload interrupted the final card revision. Send again in the visible UI completed it without another notebook or excerpt.",
+		"screenshot": "live-notebook-canvas.png"
+	}
+}

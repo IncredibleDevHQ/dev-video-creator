@@ -6,6 +6,14 @@ import { videoOpens } from '../shared/state'
 
 /** One next step per notebook; detailed editing stays in its own workspace. */
 export const projectContent = (s: ResearchViewState) => {
+  if (s.project.autoOrganize || s.project.canvasId) {
+    const canvas = s.project.canvas
+    const cards = canvas?.project.slides || []
+    const url = canvas
+      ? projectLink(s.project.id, s, { map: canvas.project.id, detail: '1' })
+      : ''
+    return `<aside class="research-notes project-content" aria-label="Wireframe canvas"><div class="research-panel-heading"><div><h2>Wireframe canvas</h2><p>Keep researching. Excerpts from your notebook become cards here.</p></div><button data-research-action="close-content" aria-label="Close canvas">×</button></div><div class="project-content-scroll"><p role="status">${escape(canvas?.error || s.project.syncError || (canvas?.status === 'building' ? 'Organizing your excerpts and drawing cards…' : cards.length ? `${cards.length} cards · new excerpts keep this canvas growing` : 'Your excerpts are saved. Preparing the canvas…'))}</p>${canvas?.status === 'failed' ? '<button class="research-primary" data-research-action="retry-canvas">Resume wireframes</button>' : ''}${url ? `<a class="research-primary" href="${url}">Open canvas →</a>` : ''}<div class="conversation-canvas-cards">${cards.map((card) => `<a href="${url}" class="project-content-notebook">${card.svg ? `<div class="project-content-preview">${card.svg}</div>` : ''}<h3>${escape(card.title)}</h3></a>`).join('')}</div><button data-research-action="open-notebook">Back to notebook</button></div></aside>`
+  }
   const populated = s.project.notebooks.filter((n) => n.blocks.length)
   const seriesMap =
     s.project.canvasId || (populated.length === 1 ? populated[0].id : undefined)

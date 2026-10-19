@@ -54,10 +54,10 @@ export class WorkspaceFocus {
       )
       .forEach((button) => {
         const label = mobile
-          ? 'Toggle project navigation'
+          ? 'Toggle channel navigation'
           : this.hidden
-            ? 'Show project navigation'
-            : 'Hide project navigation'
+            ? 'Show channel navigation'
+            : 'Hide channel navigation'
         button.setAttribute('aria-label', label)
         button.setAttribute(
           'aria-expanded',

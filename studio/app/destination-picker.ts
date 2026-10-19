@@ -14,6 +14,7 @@ export const pickerIcons = {
   agent: svg(
     '<rect x="4" y="6" width="16" height="14" rx="4"/><path d="M12 2v4M8 12h.01M16 12h.01M9 16h6"/>'
   ),
+  effort: svg('<path d="M5 18v-4m5 4V9m5 9V5m5 13V2"/>'),
   model: svg('<path d="m12 3 9 5-9 5-9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/>'),
   repo: svg(
     '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18m4-13-2 3 2 3m3-6 2 3-2 3"/>'
@@ -31,6 +32,7 @@ export type PickerKind =
   | 'notebook'
   | 'agent'
   | 'model'
+  | 'effort'
   | 'repo'
   | 'branch'
 type Item = {
@@ -45,6 +47,7 @@ const titles: Record<PickerKind, string> = {
   notebook: 'Notebook',
   agent: 'Agent',
   model: 'Model',
+  effort: 'Thinking effort',
   repo: 'Repository',
   branch: 'Branch'
 }
@@ -104,7 +107,7 @@ export const destinationPicker = (
       `<div class="destination-picker-heading">Choose ${titles[kind].toLowerCase()}</div>
        <label class="destination-picker-search">${pickerIcons.search}<input type="search" placeholder="Search ${titles[kind].toLowerCase()}…" aria-label="Search ${titles[kind].toLowerCase()}" autocomplete="off" /></label>
        <div class="destination-picker-results"></div>`,
-      'destination-picker-menu',
+      `destination-picker-menu${kind === 'effort' ? ' effort-picker-menu' : ''}`,
       () => {
         refreshMenu = undefined
         button.setAttribute('aria-expanded', 'false')
@@ -114,6 +117,7 @@ export const destinationPicker = (
     button.setAttribute('aria-expanded', 'true')
     panel.setAttribute('aria-label', `Choose ${titles[kind].toLowerCase()}`)
     const search = panel.querySelector<HTMLInputElement>('input')!
+    if (kind === 'effort') search.closest('label')!.hidden = true
     search.maxLength = kind === 'model' ? 200 : 4096
     if (kind === 'repo')
       search.placeholder = 'Search recent repos or paste a folder path…'
@@ -208,6 +212,8 @@ export const destinationPicker = (
       }
     })
     render()
+    if (kind === 'effort')
+      results.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus()
   })
   select.addEventListener('change', sync)
   select.addEventListener('picker-sync', sync)

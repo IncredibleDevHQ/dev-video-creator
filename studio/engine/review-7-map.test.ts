@@ -194,6 +194,15 @@ const dom = () => {
   win = parseHTML('<html><body><div id="app"></div></body></html>')
   vi.stubGlobal('document', win.document)
   vi.stubGlobal('window', win)
+  vi.stubGlobal('MutationObserver', win.MutationObserver)
+  // linkedom has no layout engine; each fixture supplies fixed dimensions.
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    }
+  )
   vi.stubGlobal('addEventListener', win.addEventListener)
   vi.stubGlobal('location', new URL('http://localhost:4194/'))
   vi.stubGlobal('history', { replaceState: () => {} })

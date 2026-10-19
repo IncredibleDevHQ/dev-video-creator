@@ -7,6 +7,7 @@ import {
   addProjectNote,
   prepareProjectWireframes,
   syncResearchProject,
+  organizeResearchProject,
   changeResearchProject,
   requiredText
 } from './research-projects'
@@ -39,7 +40,11 @@ export const researchRoute = async (
   if (action === 'stop') return ok(await stopResearch(id, body))
   if (action === 'wireframes')
     return ok(await prepareProjectWireframes(id, body))
-  if (action === 'sync') return ok(await syncResearchProject(id))
+  if (action === 'sync') {
+    await syncResearchProject(id)
+    await organizeResearchProject(id)
+    return ok(await researchProjectView(id))
+  }
   if (action === 'rename') {
     const title = requiredText(body.title, 'Title', 160)
     await changeResearchProject(id, (p) => {

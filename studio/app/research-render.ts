@@ -28,6 +28,15 @@ export const renderResearch = (
     template.content
       .querySelector('#project-notebooks')
       ?.removeAttribute('open')
+  const selection = root.querySelector<HTMLElement>('#research-selection')
+  if (
+    selection &&
+    !selection.hidden &&
+    previousKeys['research-question'] === keys['research-question']
+  )
+    template.content
+      .querySelector('#research-selection')
+      ?.replaceWith(selection)
   root.replaceChildren(template.content)
 }
 

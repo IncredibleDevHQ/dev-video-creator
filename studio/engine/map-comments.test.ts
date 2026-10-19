@@ -221,6 +221,27 @@ describe('the comment routes', () => {
     await once(server, 'listening')
     const { port } = server.address() as { port: number }
     try {
+      const notesBefore = (await loadComments(map)).length
+      const dictated = await realFetch(
+        `http://127.0.0.1:${port}/api/research-dictation`,
+        {
+          method: 'PUT',
+          headers: { 'content-type': 'audio/webm' },
+          body: audio
+        }
+      )
+      expect(dictated.status).toBe(200)
+      expect(await dictated.json()).toEqual({ text: heard })
+      expect((await loadComments(map)).length).toBe(notesBefore)
+      const invalid = await realFetch(
+        `http://127.0.0.1:${port}/api/research-dictation`,
+        {
+          method: 'PUT',
+          headers: { 'content-type': 'text/plain' },
+          body: 'not audio'
+        }
+      )
+      expect(invalid.status).toBe(400)
       const meta = {
         target: { kind: 'lane', id: 'ep-3' },
         seconds: 5,

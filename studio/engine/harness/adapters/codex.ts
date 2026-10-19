@@ -27,7 +27,17 @@ const writeCodexHome = async (run: HarnessRun, context: HarnessContext) => {
       'command = "node"',
       `args = [${JSON.stringify(context.mcpShimPath)}]`,
       `env = { STUDIO_MCP_URL = ${JSON.stringify(studioMcpUrl(context.origin, run.inputs))} }`,
-      ''
+      '',
+      '[mcp_servers.studio.tools.research_read_ancestor]',
+      'approval_mode = "auto"',
+      '',
+      ...Array.from({ length: 4 }, (_, i) =>
+        ['repo_read', 'repo_search', 'repo_diff'].flatMap((name) => [
+          `[mcp_servers.studio.tools.context_${i + 1}_${name}]`,
+          'approval_mode = "auto"',
+          ''
+        ])
+      ).flat()
     ].join('\n')
   )
   // A private per-run copy preserves the CLI login without exposing it to
@@ -101,18 +111,15 @@ export const createCodexAdapter = (
   models: codexModels,
   async run(run, onEvent, signal) {
     const codexHome = await writeCodexHome(run, context)
-    // A resumed thread keeps the model it started with.
+    // Explicit preferences also apply when continuing an existing thread.
     const model =
       typeof run.inputs.model === 'string' && run.inputs.model
         ? ['--model', run.inputs.model]
         : []
-    // Codex's own reasoning levels; a resumed thread keeps its setting.
+    // Values are validated against the selected model before research starts.
     const effort =
       typeof run.inputs.effort === 'string' && run.inputs.effort
-        ? [
-            '-c',
-            `model_reasoning_effort="${['low', 'medium', 'high'].includes(run.inputs.effort) ? run.inputs.effort : 'high'}"`
-          ]
+        ? ['-c', `model_reasoning_effort="${run.inputs.effort}"`]
         : []
     const args = run.resumeId
       ? [
@@ -120,11 +127,17 @@ export const createCodexAdapter = (
           'resume',
           run.resumeId,
           '--json',
+          '--skip-git-repo-check',
+          '-c',
+          'sandbox_mode="workspace-write"',
+          ...model,
+          ...effort,
           String(run.inputs.task || '')
         ]
       : [
           'exec',
           '--json',
+          '--skip-git-repo-check',
           '--sandbox',
           'workspace-write',
           ...model,
@@ -132,6 +145,7 @@ export const createCodexAdapter = (
           String(run.inputs.task || '')
         ]
     const state: { resumeId?: string } = {}
+    let stderrTail = ''
     const { exitCode } = await spawnJsonLines({
       command: 'codex',
       args,
@@ -145,8 +159,17 @@ export const createCodexAdapter = (
         CODEX_HOME: codexHome
       },
       onLine: (line) => emitLine(line, onEvent, state),
+      onStderr: (text) => {
+        stderrTail = (stderrTail + text).slice(-2000)
+      },
       signal
     })
+    if (exitCode !== 0 && stderrTail.trim())
+      onEvent({
+        type: 'error',
+        ts: Date.now(),
+        error: stderrTail.trim().split('\n').slice(-4).join(' · ').slice(0, 600)
+      })
     return { resumeId: state.resumeId, exitCode }
   }
 })

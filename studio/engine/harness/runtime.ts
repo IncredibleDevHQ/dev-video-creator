@@ -39,7 +39,7 @@ export type EngineRun = {
   adapter: HarnessId
   status: 'preparing' | 'running' | 'done' | 'error' | 'cancelled'
   model?: string
-  effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+  effort?: import('../../shared/reasoning-effort').ReasoningEffort
   /** What the call was for (limits.ts); Activity sums token use by it. */
   operation?: HarnessOperation
   reportedModel?: string
@@ -142,7 +142,7 @@ export const runEngineStage = async (input: {
   stage: HarnessStage
   adapter: HarnessId
   model?: string
-  effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+  effort?: import('../../shared/reasoning-effort').ReasoningEffort
   task: string
   productionSeed?: Record<string, string | Buffer>
   packet: Record<string, string | Buffer>
@@ -218,7 +218,8 @@ export const runEngineStage = async (input: {
   })
   const effort = input.effort ?? limits.effort
   const budgetExceeded = await tokenBudget(input.projectId, id, operation)
-  if (budgetExceeded()) throw new Error(generationStops.tokens)
+  const preflightLimit = budgetExceeded()
+  if (preflightLimit) throw new Error(preflightLimit)
   const record: EngineRun = {
     id,
     projectId: input.projectId,
@@ -358,7 +359,8 @@ export const runEngineStage = async (input: {
         if (progressFailure) return
         if (safe.type === 'usage' && safe.usage) {
           record.usage = safe.usage
-          if (budgetExceeded(safe.usage)) stopForLimit(generationStops.tokens)
+          const tokenLimit = budgetExceeded(safe.usage)
+          if (tokenLimit) stopForLimit(tokenLimit)
         }
         if (safe.type === 'session' && safe.model)
           record.reportedModel = safe.model
@@ -479,6 +481,7 @@ export const runEngineStage = async (input: {
           operation,
           model: input.model,
           effort,
+          explicitEffort: Boolean(input.effort),
           maxOutputTokens: limits.maxOutputTokens,
           submissionToken: submissions?.token,
           capabilityScope:

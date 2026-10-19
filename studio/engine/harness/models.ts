@@ -8,6 +8,11 @@
 import { readFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import {
+  isReasoningEffort,
+  type ReasoningEffort
+} from '../../shared/reasoning-effort'
+import { kimiEfforts } from './kimi-efforts'
 import type { HarnessModels } from './types'
 
 export { CLAUDE_MODELS } from '../../shared/agent-models'
@@ -24,6 +29,32 @@ export const compareVersions = (a: string, b: string) => {
   return 0
 }
 
+const claudeEfforts = (
+  id: string,
+  version: string
+): { efforts?: ReasoningEffort[] } => {
+  const alias = id.replace('[1m]', '')
+  const pinned = process.env[`ANTHROPIC_DEFAULT_${alias.toUpperCase()}_MODEL`]
+  const model =
+    pinned ||
+    (alias === 'opus' && compareVersions(version, '2.1.280') >= 0
+      ? 'claude-opus-5-5'
+      : alias === 'sonnet' && compareVersions(version, '2.1.284') >= 0
+        ? 'claude-sonnet-5-5'
+        : alias === 'haiku' && compareVersions(version, '2.1.293') >= 0
+          ? 'claude-haiku-5-5'
+          : id)
+  if (
+    /claude-(?:opus|sonnet|haiku)-5(?:-|$)|claude-opus-4-[78]|claude-fable-5/.test(
+      model
+    )
+  )
+    return { efforts: ['low', 'medium', 'high', 'xhigh', 'max'] }
+  if (/claude-(?:opus|sonnet)-4-6/.test(model))
+    return { efforts: ['low', 'medium', 'high', 'max'] }
+  return {}
+}
+
 // A CLI whose version is unknown (an explicit wrapper) is not gated.
 export const claudeModels = (cliVersion: string): HarnessModels => ({
   default: null,
@@ -31,6 +62,7 @@ export const claudeModels = (cliVersion: string): HarnessModels => ({
   options: CLAUDE_MODELS.map((model) => ({
     id: model.id,
     label: model.label,
+    ...claudeEfforts(model.id, cliVersion),
     ...(model.hint ? { hint: model.hint } : {}),
     ...(model.minVersion &&
     /\d+\.\d+/.test(cliVersion) &&
@@ -57,6 +89,7 @@ export const kimiModelsFrom = (config: string): HarnessModels => {
     options: options.map((id) => ({
       id,
       label: modelName(id),
+      ...(kimiEfforts(config, id) ? { efforts: kimiEfforts(config, id) } : {}),
       ...(modelName(id) !== id ? { hint: id } : {})
     }))
   }
@@ -80,7 +113,7 @@ export const codexModelsFrom = (config: string): HarnessModels => {
   const topLevel = config.split(/^\s*\[/m)[0]
   const model = topLevel.match(/^\s*model\s*=\s*"([^"]+)"/m)?.[1] || null
   return {
-    default: null,
+    default: model,
     source: 'From your Codex settings.',
     options: model
       ? [
@@ -125,6 +158,13 @@ export const codexCatalogFrom = (
       {
         id: model.slug,
         label,
+        ...(Array.isArray(model.supported_reasoning_levels)
+          ? {
+              efforts: model.supported_reasoning_levels
+                .map((level: { effort?: unknown }) => level?.effort)
+                .filter(isReasoningEffort)
+            }
+          : {}),
         ...(label !== model.slug ? { hint: model.slug } : {})
       }
     ]
@@ -132,7 +172,7 @@ export const codexCatalogFrom = (
   for (const option of configured.options)
     if (!options.some((item) => item.id === option.id)) options.push(option)
   return {
-    default: null,
+    default: configured.default,
     source: rows.length
       ? 'Models listed by your local Codex installation. Account access is checked when you run.'
       : 'Codex configuration. Open Codex to refresh its model catalog.',

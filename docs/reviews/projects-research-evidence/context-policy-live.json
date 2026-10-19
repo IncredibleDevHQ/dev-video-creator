@@ -1,0 +1,338 @@
+[
+	{
+		"id": "16ba1104-766b-4f48-9db7-72b7b5bc3439",
+		"status": "done",
+		"adapter": "codex",
+		"resumeId": "01a15522-285c-7dc2-bf54-1c798b9378cb",
+		"workspaceId": "7606a520-bea3-43b2-b785-65eb05b5de38",
+		"nodeId": "cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+		"parentId": "d7586462-1e5c-4975-b09b-c986572fb6bc",
+		"contextInfo": {
+			"policy": "ancestor-context-v1",
+			"mode": "ancestor-seed",
+			"ancestorIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc"
+			],
+			"recentIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc"
+			],
+			"summarizedTurns": 0,
+			"estimatedTokens": 3145,
+			"digest": "2dd902629887be31fb297face003082230a84edd24a3cd76797714ecf9020c10"
+		},
+		"packetBytes": {
+			"CONVERSATION.json": 8628,
+			"QUESTION.json": 257,
+			"REPOSITORIES.json": 182,
+			"NOTEBOOKS.json": 2,
+			"CONTEXT.json": 360
+		},
+		"historyIds": [
+			"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+			"d7586462-1e5c-4975-b09b-c986572fb6bc"
+		],
+		"repositoryCount": 1,
+		"hasDuplicateActiveDocument": false,
+		"selectionOffsetsVerified": null,
+		"originalEvidenceRetrievals": [
+			{
+				"id": "d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"status": "completed"
+			}
+		]
+	},
+	{
+		"id": "62deb48c-9c0a-4f07-b570-5894de531be3",
+		"status": "done",
+		"adapter": "codex",
+		"resumeId": "01a15522-285c-7dc2-bf54-1c798b9378cb",
+		"workspaceId": "7606a520-bea3-43b2-b785-65eb05b5de38",
+		"nodeId": "e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+		"parentId": "cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+		"contextInfo": {
+			"policy": "ancestor-context-v1",
+			"mode": "session-delta",
+			"ancestorIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8"
+			],
+			"recentIds": [],
+			"summarizedTurns": 0,
+			"estimatedTokens": 153,
+			"digest": "491798404a6a59873dd6f08d7f1662bd9ccfa7e2ad9092bec0016f9b2ced4b46"
+		},
+		"packetBytes": {
+			"CONVERSATION.json": 2,
+			"QUESTION.json": 165,
+			"REPOSITORIES.json": 2,
+			"NOTEBOOKS.json": 2,
+			"CONTEXT.json": 283
+		},
+		"historyIds": [],
+		"repositoryCount": 0,
+		"hasDuplicateActiveDocument": false,
+		"selectionOffsetsVerified": null,
+		"originalEvidenceRetrievals": [
+			{
+				"id": "d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"status": "completed"
+			}
+		]
+	},
+	{
+		"id": "95baacf5-c05e-491a-84fe-9d6b01f23c89",
+		"status": "done",
+		"adapter": "codex",
+		"resumeId": "01a15524-1435-7a73-8954-dc82d9eef072",
+		"workspaceId": "1d99f723-7d6c-4cc7-bd60-844a8a41204d",
+		"nodeId": "84c12a21-be8a-4b91-8874-ef9dfdea699c",
+		"parentId": "e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+		"contextInfo": {
+			"policy": "ancestor-context-v1",
+			"mode": "ancestor-seed",
+			"ancestorIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+				"e8c0367a-703b-48ba-ad44-2c43a6466ff5"
+			],
+			"recentIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+				"e8c0367a-703b-48ba-ad44-2c43a6466ff5"
+			],
+			"summarizedTurns": 0,
+			"estimatedTokens": 3740,
+			"digest": "abcc56f92a6e20d90331216f95bd7f1bd21f4f632c31b742c4a66c7e6750f614"
+		},
+		"packetBytes": {
+			"CONVERSATION.json": 10141,
+			"QUESTION.json": 451,
+			"REPOSITORIES.json": 182,
+			"NOTEBOOKS.json": 2,
+			"CONTEXT.json": 438
+		},
+		"historyIds": [
+			"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+			"d7586462-1e5c-4975-b09b-c986572fb6bc",
+			"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+			"e8c0367a-703b-48ba-ad44-2c43a6466ff5"
+		],
+		"repositoryCount": 1,
+		"hasDuplicateActiveDocument": false,
+		"selectionOffsetsVerified": true,
+		"originalEvidenceRetrievals": [
+			{
+				"id": null,
+				"status": "completed"
+			},
+			{
+				"id": "d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"status": "completed"
+			}
+		]
+	},
+	{
+		"id": "062ac220-1571-436e-bcbc-863cfd2fa70e",
+		"status": "done",
+		"adapter": "codex",
+		"resumeId": "01a15524-db1f-7c21-9d05-801fa1842f3b",
+		"workspaceId": "fdead5e0-7af9-4079-97f1-e42d8994a4e3",
+		"nodeId": "6a54700d-9369-4382-94f6-441793652d84",
+		"parentId": "84c12a21-be8a-4b91-8874-ef9dfdea699c",
+		"contextInfo": {
+			"policy": "ancestor-context-v1",
+			"mode": "ancestor-seed",
+			"ancestorIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+				"e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+				"84c12a21-be8a-4b91-8874-ef9dfdea699c"
+			],
+			"recentIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+				"e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+				"84c12a21-be8a-4b91-8874-ef9dfdea699c"
+			],
+			"summarizedTurns": 0,
+			"estimatedTokens": 4044,
+			"digest": "c2a57569b943dff3c01378cd2bdc0f73df83246ae8ac3b7fc14c16220036540d"
+		},
+		"packetBytes": {
+			"CONVERSATION.json": 11046,
+			"QUESTION.json": 419,
+			"REPOSITORIES.json": 182,
+			"NOTEBOOKS.json": 2,
+			"CONTEXT.json": 477
+		},
+		"historyIds": [
+			"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+			"d7586462-1e5c-4975-b09b-c986572fb6bc",
+			"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+			"e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+			"84c12a21-be8a-4b91-8874-ef9dfdea699c"
+		],
+		"repositoryCount": 1,
+		"hasDuplicateActiveDocument": false,
+		"selectionOffsetsVerified": true,
+		"originalEvidenceRetrievals": []
+	},
+	{
+		"id": "a4154c3c-d7d2-44fa-811a-fcc7486f7068",
+		"status": "done",
+		"adapter": "codex",
+		"resumeId": "01a15524-1435-7a73-8954-dc82d9eef072",
+		"workspaceId": "1d99f723-7d6c-4cc7-bd60-844a8a41204d",
+		"nodeId": "ca736835-a754-4918-84d7-e3ecf9e6e0a7",
+		"parentId": "84c12a21-be8a-4b91-8874-ef9dfdea699c",
+		"contextInfo": {
+			"policy": "ancestor-context-v1",
+			"mode": "session-delta",
+			"ancestorIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+				"e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+				"84c12a21-be8a-4b91-8874-ef9dfdea699c"
+			],
+			"recentIds": [],
+			"summarizedTurns": 0,
+			"estimatedTokens": 185,
+			"digest": "c2a57569b943dff3c01378cd2bdc0f73df83246ae8ac3b7fc14c16220036540d"
+		},
+		"packetBytes": {
+			"CONVERSATION.json": 2,
+			"QUESTION.json": 262,
+			"REPOSITORIES.json": 2,
+			"NOTEBOOKS.json": 2,
+			"CONTEXT.json": 283
+		},
+		"historyIds": [],
+		"repositoryCount": 0,
+		"hasDuplicateActiveDocument": false,
+		"selectionOffsetsVerified": null,
+		"originalEvidenceRetrievals": [
+			{
+				"id": null,
+				"status": "completed"
+			},
+			{
+				"id": "d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"status": "completed"
+			}
+		],
+		"childCanaryAbsentFromNativeSession": true
+	},
+	{
+		"id": "f0958fca-6e48-4250-acad-fb8808b9cc30",
+		"status": "done",
+		"adapter": "codex",
+		"resumeId": "01a15524-1435-7a73-8954-dc82d9eef072",
+		"workspaceId": "1d99f723-7d6c-4cc7-bd60-844a8a41204d",
+		"nodeId": "f4ee1d9e-7f10-4a88-a9cb-3780c162209d",
+		"parentId": "ca736835-a754-4918-84d7-e3ecf9e6e0a7",
+		"contextInfo": {
+			"policy": "ancestor-context-v1",
+			"mode": "session-delta",
+			"ancestorIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+				"e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+				"84c12a21-be8a-4b91-8874-ef9dfdea699c",
+				"ca736835-a754-4918-84d7-e3ecf9e6e0a7"
+			],
+			"recentIds": [],
+			"summarizedTurns": 0,
+			"estimatedTokens": 252,
+			"digest": "1f8a6671116a291a39237c31666bbf3b11f6914a8a4ea193f76b33298afea72a"
+		},
+		"packetBytes": {
+			"CONVERSATION.json": 2,
+			"QUESTION.json": 461,
+			"REPOSITORIES.json": 2,
+			"NOTEBOOKS.json": 2,
+			"CONTEXT.json": 283
+		},
+		"historyIds": [],
+		"repositoryCount": 0,
+		"hasDuplicateActiveDocument": false,
+		"selectionOffsetsVerified": null,
+		"originalEvidenceRetrievals": [
+			{
+				"id": null,
+				"status": "completed"
+			},
+			{
+				"id": "d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"status": "completed"
+			}
+		]
+	},
+	{
+		"id": "0bab1c87-8f2b-4799-ae7b-622be8a333ca",
+		"status": "done",
+		"adapter": "codex",
+		"resumeId": "01a15528-dcb2-7e90-9e55-ed1a916d3819",
+		"workspaceId": "e71c6b95-bd7c-49b1-b52a-285903af6d8b",
+		"nodeId": "384f0b94-8023-4c8e-b3c9-d3a311d6384d",
+		"parentId": "f4ee1d9e-7f10-4a88-a9cb-3780c162209d",
+		"contextInfo": {
+			"policy": "ancestor-context-v1",
+			"mode": "ancestor-seed",
+			"ancestorIds": [
+				"2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"d7586462-1e5c-4975-b09b-c986572fb6bc",
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+				"e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+				"84c12a21-be8a-4b91-8874-ef9dfdea699c",
+				"ca736835-a754-4918-84d7-e3ecf9e6e0a7",
+				"f4ee1d9e-7f10-4a88-a9cb-3780c162209d"
+			],
+			"recentIds": [
+				"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+				"e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+				"84c12a21-be8a-4b91-8874-ef9dfdea699c",
+				"ca736835-a754-4918-84d7-e3ecf9e6e0a7",
+				"f4ee1d9e-7f10-4a88-a9cb-3780c162209d"
+			],
+			"summarizedTurns": 2,
+			"estimatedTokens": 7339,
+			"digest": "b17b606be646e076417919eda6cd97503258ea5eaa184374593fb30bb2cd1b19"
+		},
+		"packetBytes": {
+			"CONVERSATION.json": 15299,
+			"QUESTION.json": 526,
+			"REPOSITORIES.json": 182,
+			"NOTEBOOKS.json": 2,
+			"CONTEXT.json": 6002
+		},
+		"historyIds": [
+			"cadd52a5-d1d7-4d3a-9c38-14d266e368c8",
+			"e8c0367a-703b-48ba-ad44-2c43a6466ff5",
+			"84c12a21-be8a-4b91-8874-ef9dfdea699c",
+			"ca736835-a754-4918-84d7-e3ecf9e6e0a7",
+			"f4ee1d9e-7f10-4a88-a9cb-3780c162209d"
+		],
+		"repositoryCount": 1,
+		"hasDuplicateActiveDocument": false,
+		"selectionOffsetsVerified": true,
+		"originalEvidenceRetrievals": [
+			{
+				"id": null,
+				"status": "completed"
+			},
+			{
+				"id": "2bb6c4d2-9de9-48b0-9b16-e021eed56e25",
+				"status": "completed"
+			}
+		]
+	}
+]

@@ -383,8 +383,11 @@ Optional positive-integer environment settings (restart the backend to change):
 | `MINIMAL_STUDIO_SERIES_CACHED_TOKENS` | 200,000,000 |
 
 “New” includes uncached input, output and cache creation. Project/series totals
-are lifetime recorded usage, including failed attempts, across providers. A
-series budget groups the source notebook and its episode copies. Increasing a
+are lifetime recorded usage, including failed attempts, across providers. Research
+(`chat` / `research`) and content generation have separate ledgers with these same
+ceilings: episode generation cannot exhaust the research ledger. Switching agents
+does not reset either ledger. A series budget groups the source notebook and its
+episode copies within each ledger. Increasing a
 ceiling permits further work; it does not erase recorded usage or accept an
 unfinished frame. Activity separates token categories and shows still/motion
 stages explicitly.
@@ -392,3 +395,11 @@ stages explicitly.
 These efficiency changes have not yet been tested or benchmarked; testing was
 explicitly deferred by the creator. No savings or quality-equivalence result is
 claimed until that validation is performed.
+
+### Research context policy
+
+Research follows Macro’s bounded context and native-session patterns. Each conversation branch owns its agent session. A normal reply sends only the new question; it does not replay the transcript, active document, notebook, or repository catalog. Changing the agent/repository context, branching, or exceeding 12,000 estimated tokens of new conversation starts a fresh session.
+
+Fresh sessions receive at most eight recent ancestor turns within 6,000 estimated tokens. Older ancestors are summarized through the selected harness in bounded chunks, with reusable immutable prefix checkpoints. Summaries preserve questions, qualifications, citations and unresolved issues; they are navigation aids rather than primary evidence. The agent can retrieve exact original ancestor text through `research_read_ancestor`. Its scope is frozen to the ancestor path at the fork: siblings and subsequent parent replies are excluded. Originals, selection offsets, repository commits, and saved-note lineage remain unchanged. Failed summarization stops explicitly rather than dropping history.
+
+The full application packet is limited to 24,000 estimated tokens. Estimates use UTF-8 bytes divided by three, and are not provider billing measurements. Native tool history and its compaction remain the harness’s responsibility. “What this knows” exposes the packet mode, recent/summarized history and added-context estimate. Lifetime usage accounting remains separate from per-request context size.

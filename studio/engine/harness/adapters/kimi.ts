@@ -50,6 +50,7 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
         : 'high'
     const home = await kimiRunHome(run.projectDir, {
       effort,
+      explicitEffort: Boolean(run.inputs.explicitEffort),
       visualWorker: ['pose', 'frame'].includes(String(run.inputs.operation)),
       maxOutputTokens:
         typeof run.inputs.maxOutputTokens === 'number'
@@ -68,6 +69,7 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
       })
       .catch((error) => {
         if (
+          run.inputs.explicitEffort ||
           run.skill === 'explainer-master' ||
           ['pose', 'frame'].includes(String(run.inputs.operation))
         )
@@ -120,6 +122,9 @@ export const createKimiAdapter = (context: HarnessContext): HarnessAdapter => ({
         args: ['acp'],
         cwd: run.projectDir,
         env: {
+          ...(run.inputs.explicitEffort
+            ? { KIMI_MODEL_THINKING_EFFORT: effort }
+            : {}),
           SKILL_DIR: resolveSkillDir(
             context.skillsDir,
             run.projectDir,

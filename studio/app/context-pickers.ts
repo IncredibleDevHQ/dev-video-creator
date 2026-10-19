@@ -1,3 +1,8 @@
+import {
+  modelEfforts,
+  effortLabels,
+  effortDescriptions
+} from '../shared/reasoning-effort'
 import type { HarnessChoice } from '../shared/api'
 import { requestJson } from './http'
 import type { RepoInspection, RepoLink } from '../shared/repos'
@@ -178,6 +183,7 @@ export const installAgentPickers = (
     `#${modelId}`
   )
   if (!agent || !modelField) return
+  const initialEffort = modelField.dataset.effort || ''
   const model =
     modelField instanceof HTMLSelectElement
       ? modelField
@@ -192,7 +198,52 @@ export const installAgentPickers = (
         }
       : null
   )
+  const effortGroup = document.createElement('div')
+  effortGroup.className = 'thinking-effort-field'
+  const effort = document.createElement('select')
+  effort.id = `${modelId}-effort`
+  effort.name = 'effort'
+  effort.setAttribute('aria-label', 'Thinking effort')
+  effort.add(new Option('Thinking: Auto', initialEffort, true, true))
+  const effortLabel = document.createElement('label')
+  effortLabel.htmlFor = effort.id
+  effortLabel.className = 'sr'
+  effortLabel.textContent = 'Thinking effort'
+  effortGroup.append(effortLabel, effort)
+  // Inline beside the model on home; within the model menu in an active chat.
+  if (model.parentElement?.classList.contains('home-agent-fields'))
+    model.after(effortGroup)
+  else if (model.closest('.home-agent-fields'))
+    model.parentElement!.after(effortGroup)
+  else model.nextElementSibling!.after(effortGroup)
+  const syncEffort = destinationPicker(effort, 'effort')
   let choices: HarnessChoice[] | undefined
+  const updateEffort = () => {
+    const choice = choices?.find((item) => item.id === agent.value)
+    const levels = modelEfforts(choice?.models, model.value)
+    const previous = effort.value
+    effort.replaceChildren(new Option('Thinking: Auto', ''))
+    effort.options[0].dataset.detail = levels.length
+      ? "Studio's task default · balances depth and usage"
+      : 'Choose a model with advertised effort levels to customize thinking'
+    for (const level of levels) {
+      const option = new Option(effortLabels[level], level)
+      option.dataset.detail = effortDescriptions[level]
+      effort.add(option)
+    }
+    if (levels.includes(previous as never)) effort.value = previous
+    // Keep a saved choice while catalog is loading, never silently submit a stale choice.
+    else if (!choices && previous)
+      effort.add(new Option(previous, previous, true, true))
+    effort.disabled = model.disabled || !choices || !levels.length
+    syncEffort()
+    if (choices && previous !== effort.value)
+      queueMicrotask(() => {
+        if (effort.isConnected)
+          effort.dispatchEvent(new Event('change', { bubbles: true }))
+      })
+  }
+  model.addEventListener('change', updateEffort)
   let catalogFailed = false
   const update = () => {
     if (!model.isConnected) return
@@ -236,9 +287,11 @@ export const installAgentPickers = (
     }
     syncAgent()
     syncModel()
+    updateEffort()
   }
   agent.addEventListener('change', () => {
     model.value = ''
+    effort.value = ''
     queueMicrotask(update)
   })
   void agents()

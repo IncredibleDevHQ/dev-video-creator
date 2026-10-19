@@ -9,29 +9,16 @@ import { researchApi } from '../app/research-api'
 import type { ResearchProjectView } from '../shared/research'
 
 afterEach(() => vi.restoreAllMocks())
-it('lets returning users choose a project without overwriting their pasted note', () => {
-  const doc = parseHTML(
-    `<div id="root">${researchHome('My idea')}</div>`
-  ).document
-  const root = doc.getElementById('root')! as unknown as HTMLElement
-  const textarea = root.querySelector('textarea')
-  populateResearchHome(root, [
-    {
-      id: 'existing',
-      title: 'A & B',
-      notebooks: 2,
-      questions: 0,
-      updatedAt: ''
-    }
-  ])
-  expect(root.querySelector('textarea')).toBe(textarea)
-  expect(textarea?.textContent).toContain('My idea')
-  expect(
-    root.querySelector('[name="projectId"] option')?.getAttribute('value')
-  ).toBe('existing')
-  expect(
-    root.querySelector('[name="projectId"] option[value=""]')?.textContent
-  ).toContain('New project')
+it('offers a channel name and one conversation action while preserving the draft', () => {
+  const doc = parseHTML(`<div>${researchHome('My idea')}</div>`).document
+  expect(doc.querySelector('textarea')?.textContent).toContain('My idea')
+  expect(doc.querySelector('[name="channelTitle"]')).not.toBeNull()
+  expect(doc.querySelector('button[type="submit"]')?.textContent).toContain(
+    'Start channel'
+  )
+  expect(doc.querySelector('[name="intent"]')?.getAttribute('value')).toBe(
+    'ask'
+  )
 })
 it('appends a captured note to the chosen existing project instead of creating another project', async () => {
   const project = {
@@ -58,14 +45,10 @@ it('appends a captured note to the chosen existing project instead of creating a
   })
   expect(create).not.toHaveBeenCalled()
 })
-it('creates a project from the first note when no project is selected', async () => {
-  const create = vi
-    .spyOn(researchApi, 'create')
-    .mockResolvedValue({ id: 'fresh' } as ResearchProjectView)
+it('requires an explicit destination for the legacy save-note entry point', async () => {
   const values = new FormData()
   values.set('text', 'First thought')
-  await saveHomeNote(values)
-  expect(create).toHaveBeenCalledWith({ text: 'First thought' })
+  await expect(saveHomeNote(values)).rejects.toThrow('before saving notes')
 })
 
 it('saves to the selected notebook and refuses a stale destination', async () => {

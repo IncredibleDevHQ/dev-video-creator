@@ -17,6 +17,7 @@ import { writeRow } from '../persistence'
 import { runEngineStage, type EngineRun } from '../harness/runtime'
 import { creativeContext, type CreativeSelection } from './stage'
 import { collectCreativeFiles } from './files'
+import { readSubmission } from '../harness/submissions'
 import {
   checkPinnedPages,
   pageSvgProblems,
@@ -410,10 +411,23 @@ export const prepareCreativePages = async (input: {
               }
             }
           ],
-          accept: async () => {
+          accept: async (directory) => {
+            if (accepted) return
+            // Non-interactive harnesses can leave a local submission receipt.
+            // Run exactly the same SVG, identity and visual checks as MCP;
+            // never accept an observed draft merely because it was written.
+            const receipt = JSON.parse(
+              (
+                await readSubmission(directory, 'page-submission.json', 8192)
+              ).toString()
+            )
+            if (!receipt || receipt.index !== number)
+              throw new Error(`Submission must name page ${number}`)
+            const result = await submitPage(directory, number, receipt)
+            accepted = result.accepted
             if (!accepted)
               throw new Error(
-                `Page ${number} was not submitted with pages_submit_page`
+                `Submission refused: ${result.problems?.join('; ')}`
               )
           }
         })
@@ -482,7 +496,7 @@ const pageTask = (page: {
     page.edit
       ? `Change page ${nn} as the creator asks: “${page.edit.instruction.slice(0, 600)}”.${pointed} Start from packet/CURRENT_PAGE.svg and keep everything they did not ask to change.`
       : `Draw page ${nn}, "${page.title}".`,
-    `Write pages/${nn}_<slug>.svg, then call pages_submit_page with this run directory, index ${page.number}, and the page's form and topology. Fix what it lists and submit again; stop once it is kept.`,
+    `Write pages/${nn}_<slug>.svg and page-submission.json with {index: ${page.number}, form: <form>, topology: <topology>} (valid JSON). Keep this receipt current when revising. The engine validates these files on completion if the submission tool is unavailable. Then call pages_submit_page with this run directory, index ${page.number}, and the page's form and topology. Fix what it lists and submit again; stop once it is kept.`,
     page.fix.length
       ? `The studio refused this page last time: ${page.fix.slice(0, 6).join('; ')}. Correct packet/CURRENT_PAGE.svg rather than starting over.`
       : '',

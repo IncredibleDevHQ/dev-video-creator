@@ -2,7 +2,6 @@ import { openPopover, closePopover } from './popover'
 import './styles/home-radio.css'
 import { chooseRepositoryProject } from './repository-project'
 import {
-  homeResearchControls,
   homeResearchContext,
   installHomeResearch
 } from './home-research-context'
@@ -13,7 +12,7 @@ import { escape } from './ui'
 import type { ResearchProjectSummary } from '../shared/research'
 import incredibleLogo from './assets/incredible-logo.svg'
 export const researchHome = (draft: string) =>
-  html`<div class="research-home">
+  html`<div class="research-home home-compact">
     <header class="research-header">
       <a
         href="/"
@@ -27,41 +26,46 @@ export const researchHome = (draft: string) =>
       </details>
     </header>
     <main>
-      <span class="research-eyebrow">A PLACE FOR YOUR CURIOSITY</span>
-      <h1>What are you learning?</h1>
-      <p>
-        Save what you learn, explore it in chat, and turn your notes into
-        videos.
-      </p>
-
+      <div class="home-welcome">
+        <img
+          class="home-welcome-logo"
+          src="${incredibleLogo}"
+          alt="Incredible"
+          width="56"
+          height="56"
+        />
+        <h1>What would you like to explore?</h1>
+        <p class="home-intro">
+          Start a channel. Bring a question and add any repository context you
+          need.
+        </p>
+      </div>
       <form id="research-start-form" data-intent="ask">
-        <div class="radio-faceplate" aria-hidden="true">
-          <span class="radio-maker">Incredible</span
-          ><span class="radio-series">Research receiver · Model 01</span
-          ><span class="radio-power"></span>
-        </div>
-        <div class="radio-tuning-scale" aria-hidden="true">
-          <span>88</span><span>92</span><span>96</span><span>100</span
-          ><span>104</span><span>108</span>
-        </div>
-        ${homeResearchControls()}
-        <label class="sr" for="research-first-note">Your question or note</label
+        <label class="home-channel-name"
+          >Channel name<input
+            name="channelTitle"
+            maxlength="100"
+            placeholder="e.g. Understanding inference"
+        /></label>
+        ${homeResearchContext()}
+        <input type="hidden" name="intent" value="ask" />
+        <label class="sr" for="research-first-note">Your question</label
         ><textarea
           id="research-first-note"
           name="text"
-          rows="5"
+          rows="2"
           maxlength="7600"
           placeholder="Ask a question, explore an idea, or research your code…"
           required
         >
 ${escape(draft)}</textarea
         >
-        ${homeResearchContext()}
         <div class="research-composer-footer">
+          <div class="home-composer-tools"></div>
           <span id="research-note-destination"
-            ><small>Open a repository to start your project.</small></span
+            ><small>Add context when you need it.</small></span
           ><button type="submit" class="research-primary" disabled>
-            Start chat ↑
+            Start channel ↑
           </button>
         </div>
       </form>
@@ -121,10 +125,10 @@ export const populateResearchHome = (
     root
       .querySelector('.research-home')
       ?.classList.add('workspace-home-returning')
-    root.querySelector('h1')!.textContent = 'What are you learning?'
-    root.querySelector('main > p')!.textContent =
-      'Save what you learn, explore it in chat, and turn your notes into videos.'
-    root.querySelector<HTMLTextAreaElement>('textarea')!.rows = 3
+    root.querySelector('h1')!.textContent = 'What would you like to explore?'
+    root.querySelector('.home-intro')!.textContent =
+      'Start a channel. Bring a question and add any repository context you need.'
+    root.querySelector<HTMLTextAreaElement>('textarea')!.rows = 2
   }
   const destination = root.querySelector('#research-note-destination')!
   destination.innerHTML = html`<div class="home-destination-fields">
@@ -150,10 +154,10 @@ export const populateResearchHome = (
     </div>
     <small class="home-destination-status" role="status"></small>`
   if (!projects.length) {
-    root.querySelector('h1')!.textContent = 'Start with your repository'
-    root.querySelector('main > p')!.textContent =
-      'Choose a local repository and branch. Then chat, explore, and save what you learn.'
-    root.querySelector('.research-home')!.classList.add('home-first-project')
+    root.querySelector('h1')!.textContent = 'What would you like to explore?'
+    root.querySelector('.home-intro')!.textContent =
+      'Start a channel. Bring a question and add any repository context you need.'
+    root.querySelector('.research-home')!.classList.remove('home-first-project')
   }
   installHomeResearch(root)
   setupHomeDestination(root, projects)
@@ -171,7 +175,7 @@ const setupHomeDestination = (
   )!
   const locationParams = new URL(location.href).searchParams
   const requested = locationParams.get('space')
-  if (locationParams.has('chooseRepository')) project.value = ''
+  project.value = ''
   if (requested && projects.some((item) => item.id === requested))
     project.value = requested
   const syncNotebook = destinationPicker(notebook, 'notebook')
@@ -187,15 +191,17 @@ const setupHomeDestination = (
       new CustomEvent('home-project-context', { detail: null })
     )
     if (!project.value) {
-      browse.hidden = false
-      root.querySelector('.research-home')!.classList.add('home-first-project')
-      root.querySelector('h1')!.textContent = 'Start with your repository'
-      root.querySelector('main > p')!.textContent =
-        'Choose a local repository and branch. Then chat, explore, and save what you learn.'
+      browse.hidden = true
+      root
+        .querySelector('.research-home')!
+        .classList.remove('home-first-project')
+      root.querySelector('h1')!.textContent = 'What would you like to explore?'
+      root.querySelector('.home-intro')!.textContent =
+        'Start a channel. Bring a question and add any repository context you need.'
       notebook.innerHTML = '<option value="">First notebook</option>'
       status.textContent =
-        'Open a local repository and choose its branch to start chatting.'
-      submit.disabled = true
+        'One channel, one notebook for the discoveries you keep.'
+      submit.disabled = false
       syncNotebook()
       return
     }
@@ -214,8 +220,9 @@ const setupHomeDestination = (
       root
         .querySelector('.research-home')!
         .classList.remove('home-first-project')
-      root.querySelector('h1')!.textContent = `Explore ${result.title}`
-      root.querySelector('main > p')!.textContent =
+      root.querySelector('h1')!.textContent =
+        `What would you like to explore in ${result.title}?`
+      root.querySelector('.home-intro')!.textContent =
         'Ask a question about your code. Save useful discoveries as notes as you go.'
       notebook.disabled = !result.notebooks.length
       submit.disabled = !result.notebooks.length
@@ -224,7 +231,7 @@ const setupHomeDestination = (
         : 'This project has no notebooks. Open the project to add one, or choose another project.'
     } catch {
       if (current !== revision) return
-      browse.hidden = false
+      browse.hidden = true
       notebook.innerHTML = '<option value="">Could not load notebooks</option>'
       status.textContent =
         'Choose the project again to retry. Your note is still here.'
@@ -235,8 +242,8 @@ const setupHomeDestination = (
   const browse = document.createElement('button')
   browse.type = 'button'
   browse.className = 'home-open-repository'
-  browse.textContent = 'Open repository…'
-  browse.hidden = Boolean(project.value)
+  browse.textContent = 'Add repository context…'
+  browse.hidden = true
   root.querySelector('#research-note-destination')!.append(browse)
   browse.addEventListener('click', async () => {
     if (browse.disabled) return
@@ -259,7 +266,8 @@ const setupHomeDestination = (
       root
         .querySelector('.research-home')!
         .classList.remove('home-first-project')
-      root.querySelector('h1')!.textContent = `Explore ${opened.title}`
+      root.querySelector('h1')!.textContent =
+        `What would you like to explore in ${opened.title}?`
       browse.hidden = true
       project.value = opened.id
       const option = project.selectedOptions[0]
@@ -326,11 +334,18 @@ const setupHomeDestination = (
           )
           .join(
             ''
-          )}</select><button type="button" data-browse-project>Open another repository…</button>`,
+          )}</select><button type="button" data-browse-project>Open another repository…</button><button type="button" data-clear-project>Clear selection</button>`,
         'home-project-switcher'
       )
       if (!menu) return
       menu.setAttribute('aria-label', 'Change repository')
+      menu
+        .querySelector<HTMLButtonElement>('[data-clear-project]')!
+        .addEventListener('click', () => {
+          closePopover()
+          selectProject('')
+          browse.focus()
+        })
       const select = menu.querySelector<HTMLSelectElement>('select')!
       destinationPicker(select, 'project')
       select.addEventListener('change', () => {

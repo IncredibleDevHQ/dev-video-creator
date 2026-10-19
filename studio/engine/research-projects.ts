@@ -7,6 +7,7 @@ import type {
   ResearchProjectSummary,
   NoteBlock
 } from '../shared/research'
+import { validateHarnessSelection } from './harness/preference'
 import { validExcerpt } from '../shared/research'
 import { readRow, writeRow, listRows, withOperationLock } from './persistence'
 import { loadProject, changeProject } from './projects'
@@ -160,7 +161,13 @@ export const syncResearchProject = async (id: string) => {
             'A notebook is missing; your captured notes are still saved'
           )
         if (saved.status === 'draft' && !saved.project.slides.length) {
-          const text = notebook.blocks.map((block) => block.text).join('\n\n')
+          const text = notebook.blocks
+            .map(
+              (block) =>
+                block.text +
+                (block.comment ? `\n\nYour comment: ${block.comment}` : '')
+            )
+            .join('\n\n')
           await changeProject(notebook.id, async (s) => {
             s.project.source = text
             s.project.title = notebook.title
@@ -173,7 +180,15 @@ export const syncResearchProject = async (id: string) => {
         } else {
           for (const block of notebook.blocks)
             if (!saved.project.researchSeedBlocks?.includes(block.id))
-              await addNote(notebook.id, { text: block.text }, block.id)
+              await addNote(
+                notebook.id,
+                {
+                  text:
+                    block.text +
+                    (block.comment ? `\n\nYour comment: ${block.comment}` : '')
+                },
+                block.id
+              )
         }
       }
       if (p.canvasId) {
@@ -184,7 +199,11 @@ export const syncResearchProject = async (id: string) => {
             if (!canvas.project.researchSeedBlocks?.includes(block.id))
               await addNote(
                 p.canvasId,
-                { text: `[Notebook: ${notebook.title}]\n\n${block.text}` },
+                {
+                  text: `[Notebook: ${notebook.title}]\n\n${block.text}${
+                    block.comment ? `\n\nYour comment: ${block.comment}` : ''
+                  }`
+                },
                 block.id
               )
       }
@@ -198,11 +217,41 @@ export const syncResearchProject = async (id: string) => {
   })
   return researchProjectView(id)
 }
+/** Each project has one organizer. The saved block is durable before any AI
+ * work starts; repeated saves replay stable IDs rather than duplicate cards. */
+const organizers = new Map<string, Promise<void>>()
+export const organizeResearchProject = (id: string) => {
+  if (organizers.has(id)) return organizers.get(id)!
+  const job = (async () => {
+    try {
+      const project = await readResearchProject(id)
+      if (
+        !project.autoOrganize ||
+        !project.notebooks.some((n) => n.blocks.length)
+      )
+        return
+      await prepareProjectWireframes(id, { harness: project.harness })
+    } catch (error) {
+      await changeResearchProject(id, (p) => {
+        p.syncError =
+          error instanceof Error
+            ? error.message
+            : 'Could not organize your notes'
+      })
+    }
+  })().finally(() => organizers.delete(id))
+  organizers.set(id, job)
+  return job
+}
 export const addProjectNote = async (
   id: string,
   body: Record<string, unknown>
 ) => {
   await changeResearchProject(id, (p) => {
+    if (body.autoOrganize === true) {
+      p.autoOrganize = true
+      if (body.harness) p.harness = validateHarnessSelection(body.harness)
+    }
     const notebook = p.notebooks.find((n) => n.id === body.notebookId)
     if (!notebook) throw new Refusal('Choose a notebook in this project')
     let block: NoteBlock
@@ -212,6 +261,10 @@ export const addProjectNote = async (
       )
       if (!node || !validExcerpt(node.answerText, body.start, body.end))
         throw new Refusal('Select an excerpt from a completed response')
+      const comment =
+        typeof body.comment === 'string' && body.comment.trim()
+          ? requiredText(body.comment, 'Comment', 2000)
+          : ''
       const start = body.start as number,
         end = body.end as number
       if (
@@ -219,7 +272,8 @@ export const addProjectNote = async (
           (b) =>
             b.origin?.nodeId === node.id &&
             b.origin.start === start &&
-            b.origin.end === end
+            b.origin.end === end &&
+            (b.comment || '') === comment
         )
       )
         return
@@ -227,6 +281,7 @@ export const addProjectNote = async (
         id: randomUUID(),
         at: new Date().toISOString(),
         text: node.answerText.slice(start, end),
+        ...(comment ? { comment } : {}),
         origin: {
           nodeId: node.id,
           question: node.question,
@@ -244,7 +299,9 @@ export const addProjectNote = async (
       }
     notebook.blocks.push(block)
   })
-  return syncResearchProject(id)
+  const view = await syncResearchProject(id)
+  if (view.autoOrganize) void organizeResearchProject(id)
+  return view
 }
 export const prepareProjectWireframes = async (
   id: string,
@@ -270,7 +327,10 @@ export const prepareProjectWireframes = async (
         throw new Refusal('Add a note before creating the canvas')
       if (!p.canvasId) {
         const text = blocks
-          .map((b) => `## ${b.notebook}\n\n${b.text}`)
+          .map(
+            (b) =>
+              `## ${b.notebook}\n\n${b.text}${b.comment ? `\n\nYour comment: ${b.comment}` : ''}`
+          )
           .join('\n\n')
         p.canvasId = await createNotebookRecord(
           id,

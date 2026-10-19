@@ -2,6 +2,11 @@ import { randomBytes } from 'node:crypto'
 import { realpath, readFile, lstat } from 'node:fs/promises'
 import { resolve, sep } from 'node:path'
 export type EngineTool = {
+  annotations?: {
+    readOnlyHint: boolean
+    destructiveHint?: boolean
+    openWorldHint?: boolean
+  }
   completesRun?: boolean
   name: string
   description: string
@@ -72,11 +77,14 @@ export const handleEngineRpc = async (token: string, message: unknown) => {
     return reply({})
   if (rpc.method === 'tools/list')
     return reply({
-      tools: session.tools.map(({ name, description, inputSchema }) => ({
-        name,
-        description,
-        inputSchema
-      }))
+      tools: session.tools.map(
+        ({ name, description, inputSchema, annotations }) => ({
+          name,
+          description,
+          inputSchema,
+          ...(annotations ? { annotations } : {})
+        })
+      )
     })
   if (rpc.method !== 'tools/call')
     return {

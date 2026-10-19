@@ -56,7 +56,7 @@ export class WorkspaceShell {
         ><span aria-hidden="true">⌂</span><small>Home</small></a
       >
       <button data-workspace-mode="projects">
-        <span aria-hidden="true">▤</span><small>Projects</small>
+        <span aria-hidden="true">#</span><small>Channels</small>
       </button>
       <button
         data-workspace-mode="search"
@@ -79,7 +79,7 @@ export class WorkspaceShell {
     this.tree = new WorkspaceTree(root, navigate)
     const scrim = document.createElement('button')
     scrim.className = 'workspace-tree-scrim'
-    scrim.setAttribute('aria-label', 'Close project navigation')
+    scrim.setAttribute('aria-label', 'Close channel navigation')
     scrim.addEventListener('click', () =>
       root.classList.remove('workspace-tree-open')
     )

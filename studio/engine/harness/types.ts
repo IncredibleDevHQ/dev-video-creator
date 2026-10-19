@@ -60,6 +60,7 @@ export type HarnessModelOption = {
   /** What an alias stands for, in a tooltip. */
   hint?: string
   unavailable?: string
+  efforts?: import('../../shared/reasoning-effort').ReasoningEffort[]
 }
 export type HarnessModels = {
   default: string | null

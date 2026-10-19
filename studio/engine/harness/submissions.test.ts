@@ -16,6 +16,11 @@ it('offers only run-specific tools and removes access when the run ends', async 
       name: 'plan_submit_brief',
       description: 'fixture',
       inputSchema: submissionSchema,
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false
+      },
       call: async () => ({ accepted: true })
     }
   ])
@@ -24,6 +29,7 @@ it('offers only run-specific tools and removes access when the run ends', async 
     method: 'tools/list'
   })
   expect(JSON.stringify(list.body)).toContain('plan_submit_brief')
+  expect(JSON.stringify(list.body)).toContain('"readOnlyHint":true')
   expect(JSON.stringify(list.body)).not.toContain('produce_submit_scene')
   const blocked = await handleEngineRpc(session.token, {
     id: 2,

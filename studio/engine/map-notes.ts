@@ -64,7 +64,13 @@ export const validateSort = (
   for (const entry of list.slice(0, MOST_IDEAS)) {
     const item = (entry ?? {}) as Record<string, unknown>
     const kind = String(item.kind)
-    const line = words(item.line, 300)
+    // This text becomes the drawing instruction, not just a UI preview.
+    // Never silently drop a qualification at the end of a saved excerpt.
+    const line = words(item.line, 3001)
+    if (line.length > 3000)
+      problems.push(
+        'Summarize each idea in at most 3000 characters, preserving its qualifications'
+      )
     if (!['new', 'adds', 'covered'].includes(kind)) {
       problems.push('Give each idea a kind: new, adds or covered')
       continue

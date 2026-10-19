@@ -1,3 +1,4 @@
+import { transcribe } from './map-comments'
 import { WorkspaceAuth } from './workspace-auth'
 import { researchRoute } from './research-routes'
 import { recoverResearch } from './research-chat'
@@ -280,6 +281,32 @@ export const createStudioServer = (
             String(request.headers['content-type'] || '')
           )
         )
+      }
+      if (
+        url.pathname === '/api/research-dictation' &&
+        request.method === 'PUT'
+      ) {
+        const mime = String(request.headers['content-type'] || '')
+          .split(';')[0]
+          .trim()
+        const extension = (
+          {
+            'audio/webm': '.webm',
+            'audio/mp4': '.m4a',
+            'audio/ogg': '.ogg'
+          } as Record<string, string>
+        )[mime]
+        if (!extension) throw new Refusal('Use WebM, MP4 or Ogg audio')
+        const bytes = await readBody(
+          request,
+          response,
+          5_000_000,
+          'Keep dictation under 5 MB'
+        )
+        if (!bytes.length) throw new Refusal('The recording is empty')
+        return send(response, 200, {
+          text: await transcribe(bytes, { mime, extension })
+        })
       }
       let body: Record<string, unknown> = {}
       if (request.method === 'POST' || request.method === 'PATCH') {
@@ -617,8 +644,8 @@ export const createStudioServer = (
             chat.anchor.stage === 'video'
               ? await chatVideo(id, chat)
               : chat.anchor.stage === 'notebook'
-                ? await chatNotebook(id, chat)
-                : await chatSlide(id, chat)
+              ? await chatNotebook(id, chat)
+              : await chatSlide(id, chat)
           schedulePlanning(id)
           return send(response, 200, changed)
         }

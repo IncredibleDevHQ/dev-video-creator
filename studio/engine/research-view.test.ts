@@ -70,14 +70,14 @@ it('opens a note-based research document even after the composer selection was c
     text: 'First'
   }
   openGeneratedResearchDocument(current, layout, 'root')
-  expect(current.chatMinimized).toBe(true)
+  expect(current.chatMinimized).toBe(false)
   expect(layout.notesOpen).toBe(false)
   const doc = parseHTML(researchWorkspaceView(current)).document
   expect(doc.querySelector('.research-columns')?.className).toContain(
     'notes-hidden'
   )
   expect(
-    doc.querySelector('.research-artifact [data-select-response="root"]')
+    doc.querySelector('.research-transcript [data-select-response="root"]')
   ).not.toBeNull()
 })
 it('keeps an ordinary follow-up in chat without displacing an open notebook', () => {
@@ -291,17 +291,17 @@ it('names document destinations and preserves exact selectable text while backtr
   current.project.nodes = [parent, child]
   const doc = parseHTML(researchWorkspaceView(current)).document
   expect(
-    doc.querySelector('.artifact-breadcrumb [data-research-node="root"]')
+    doc.querySelector('.conversation-heading [data-research-node="root"]')
       ?.textContent
-  ).toContain('Parent document')
-  expect(doc.querySelector('.chat-document-context')?.textContent).toContain(
+  ).toContain('Channel')
+  expect(doc.querySelector('.conversation-heading h2')?.textContent).toContain(
     'Child document'
   )
   expect(doc.querySelector('.notebook-return-document')?.textContent).toContain(
     'Back to Child document'
   )
   expect(
-    doc.querySelector('.research-artifact [data-select-response="child"]')
+    doc.querySelector('.research-transcript [data-select-response="child"]')
       ?.textContent
   ).toBe(
     parseHTML(

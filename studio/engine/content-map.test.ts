@@ -116,6 +116,24 @@ beforeEach(() => {
   }
 })
 
+it('keeps qualifications beyond the preview length in drawing instructions', () => {
+  const line =
+    'Use the same event ID for every retry. '.repeat(10) +
+    'This protection lasts only while the provider retains its idempotency record.'
+  const accepted = notes.validateSort(
+    { items: [{ kind: 'adds', line, page: 'a' }] },
+    ['a']
+  )
+  expect(accepted.ok).toBe(true)
+  expect(accepted.value.items[0].line).toBe(line)
+  expect(
+    notes.validateSort(
+      { items: [{ kind: 'adds', line: 'x'.repeat(3001), page: 'a' }] },
+      ['a']
+    ).ok
+  ).toBe(false)
+})
+
 it('checks the sorting against the pages the map has', () => {
   const pages = ['a', 'b']
   expect(notes.validateSort({ items: [] }, pages).ok).toBe(false)

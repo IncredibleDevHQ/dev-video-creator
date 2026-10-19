@@ -143,3 +143,22 @@ it("registers the run's installed skills in its own Kimi home", async () => {
     else process.env.KIMI_CODE_HOME = previous
   }
 })
+
+it('rejects unsupported explicit effort rather than quietly reducing it', () => {
+  expect(() =>
+    runConfig(
+      `default_model = "k3"
+[models.k3]
+support_efforts = ["low", "high", "max"]`,
+      { effort: 'medium', explicitEffort: true }
+    )
+  ).toThrow('no longer supports')
+  expect(
+    runConfig(
+      `default_model = "k3"
+[models.k3]
+support_efforts = ["low", "high", "max"]`,
+      { effort: 'max', explicitEffort: true }
+    ).effort
+  ).toBe('max')
+})

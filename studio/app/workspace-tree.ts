@@ -12,8 +12,11 @@ import { projectContext, projectLink } from './project-links'
 import { pickerIcons } from './destination-picker'
 import { escape } from './ui'
 import './styles/workspace-tree.css'
+import { channelRows, readChannelNavigation } from './channel-navigation'
+import { channelWork } from './channel-work'
 
 const storageKey = 'incredible-project-tree:v1'
+const channelStorageKey = 'incredible-channel-navigation:v1'
 /** Project folders persist while the main area switches between chats and work. */
 export class WorkspaceTree {
   readonly element = document.createElement('aside')
@@ -29,14 +32,20 @@ export class WorkspaceTree {
   private loading = true
   private error = ''
   private busy = false
+  private channelNavigation = readChannelNavigation(null)
+  private channelQuery = ''
+  private allChannels = false
   constructor(
     private root: HTMLElement,
     private navigate: (url: URL) => Promise<boolean>
   ) {
     this.element.className = 'workspace-tree'
     this.element.id = 'workspace-project-tree'
-    this.element.setAttribute('aria-label', 'Projects and chats')
+    this.element.setAttribute('aria-label', 'Channels navigation')
     try {
+      this.channelNavigation = readChannelNavigation(
+        localStorage.getItem(channelStorageKey)
+      )
       const saved: unknown = JSON.parse(
         localStorage.getItem(storageKey) || 'null'
       )
@@ -49,6 +58,21 @@ export class WorkspaceTree {
     } catch {
       /* Expansion is optional local state. */
     }
+    this.element.addEventListener('input', (event) => {
+      const input = event.target as HTMLInputElement
+      if (!input.matches('[data-channel-search]')) return
+      this.channelQuery = input.value
+      this.draw()
+    })
+    this.element.addEventListener('keydown', (event) => {
+      if (
+        (event.target as Element).matches('[data-channel-search]') &&
+        event.key === 'Escape'
+      ) {
+        this.channelQuery = ''
+        this.draw()
+      }
+    })
     this.element.addEventListener(
       'click',
       (event) =>
@@ -64,6 +88,17 @@ export class WorkspaceTree {
     void this.refresh()
   }
   setActive(item: WorkspaceItem | null) {
+    if (item?.kind === 'Chat') {
+      const node = new URL(item.href, location.href).searchParams.get('node')
+      if (node) {
+        delete this.channelNavigation.positions[item.key]
+        this.channelNavigation.positions[item.key] = node
+        this.channelNavigation.positions = Object.fromEntries(
+          Object.entries(this.channelNavigation.positions).slice(-200)
+        )
+        this.persistChannels()
+      }
+    }
     if (item && item.projectId !== this.active?.projectId) {
       this.expanded.add(item.projectId)
       this.persist()
@@ -97,6 +132,16 @@ export class WorkspaceTree {
       /* Keep in memory. */
     }
   }
+  private persistChannels() {
+    try {
+      localStorage.setItem(
+        channelStorageKey,
+        JSON.stringify(this.channelNavigation)
+      )
+    } catch {
+      /* Keep navigation usable in memory. */
+    }
+  }
   private async refresh() {
     this.loading = true
     this.error = ''
@@ -126,7 +171,7 @@ export class WorkspaceTree {
         this.initialized = true
       }
       for (const project of this.projects) {
-        if (this.expanded.has(project.id)) void this.load(project.id)
+        void this.load(project.id)
       }
     } catch {
       this.error = 'Could not load projects. Try again.'
@@ -222,18 +267,55 @@ export class WorkspaceTree {
       </div>
     </section>`
   }
+  private channelRows() {
+    const rows = channelRows(
+      [...this.loaded.values()],
+      this.channelNavigation,
+      this.channelQuery
+    )
+    const render = (row: (typeof rows)[number]) =>
+      `<div class="channel-nav-row">${this.link(row.href, row.title, row.key, '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 11a9 9 0 0 1-9 9H4l-2 2V11a9 9 0 0 1 19 0Z"/></svg>', row.working)}<button type="button" data-channel-menu="${escape(row.key)}" data-tree-key="menu:${escape(row.key)}" aria-label="Options for ${escape(row.title)}" title="Channel options">···</button></div>`
+    if (this.channelQuery.trim())
+      return `<div class="workspace-tree-section"><span>${rows.length} ${rows.length === 1 ? 'result' : 'results'}</span></div>${rows.map(render).join('') || '<p class="workspace-tree-empty">No channels found. Try a channel name, repository or branch.</p>'}`
+    const favorites = rows.filter((row) => row.favorite)
+    const recent = rows.filter((row) => !row.favorite)
+    const shown = this.allChannels ? recent : recent.slice(0, 8)
+    const active = recent.find((row) => row.key === this.active?.key)
+    if (active && !shown.includes(active)) shown.push(active)
+    return `${favorites.length ? `<section><button class="channel-section-toggle" data-channel-favorites data-tree-key="favorites" aria-expanded="${!this.channelNavigation.favoritesClosed}" aria-controls="channel-favorites"><span>${this.channelNavigation.favoritesClosed ? '›' : '⌄'} Favorites</span><small>${favorites.length}</small></button><div id="channel-favorites" ${this.channelNavigation.favoritesClosed ? 'hidden' : ''}>${favorites.map(render).join('')}</div></section>` : ''}<section><div class="workspace-tree-section channel-recent-heading"><span>Recent channels</span><small>${recent.length}</small></div>${shown.map(render).join('')}${recent.length > shown.length || (this.allChannels && recent.length > 8) ? `<button class="workspace-tree-more" data-channel-more data-tree-key="more-channels">${this.allChannels ? 'Show fewer' : `Show all ${recent.length} channels`}</button>` : ''}</section>${rows.length ? '' : `<p class="workspace-tree-empty">${this.loading || this.pending.size ? 'Loading channels…' : 'Start a channel to explore with your agent.'}</p>`}`
+  }
   private draw() {
     const scroll =
       this.element.querySelector('.workspace-tree-scroll')?.scrollTop || 0
     const focused = this.element.contains(document.activeElement)
       ? (document.activeElement as HTMLElement).dataset.treeKey
       : undefined
-    this.element.innerHTML = `<header><strong>Workspace</strong><button type="button" class="workspace-tree-hide" data-research-action="toggle-sidebar" aria-label="Hide project navigation" title="Hide project navigation">‹</button><button type="button" class="workspace-tree-close" data-tree-close aria-label="Close project navigation">×</button></header>
-      <button type="button" class="workspace-tree-new" data-tree-new-chat="${escape(this.active?.projectId || this.projects[0]?.id || '')}" ${this.loading || this.busy ? 'disabled' : ''}>${pickerIcons.plus}<span>New chat</span></button>
-      <div class="workspace-tree-section"><span>Projects</span><button type="button" data-tree-new-project aria-label="Add repository project" title="Add repository project" ${this.busy ? 'disabled' : ''}>${pickerIcons.plus}</button></div>
-      <nav class="workspace-tree-scroll" aria-label="Projects and their chats">${this.projects.map((project) => this.projectRows(project)).join('')}${!this.projects.length ? `<p class="workspace-tree-empty">${this.loading ? 'Loading projects…' : 'Save a note or start a chat to create your first project.'}</p>` : ''}</nav>
+    const search = this.element.querySelector<HTMLInputElement>(
+      '[data-channel-search]'
+    )
+    const searching = search === document.activeElement
+    const selection = searching
+      ? [search!.selectionStart, search!.selectionEnd]
+      : null
+    this.element.innerHTML = `<header><strong>Workspace</strong><button type="button" class="workspace-tree-hide" data-research-action="toggle-sidebar" aria-label="Hide channel navigation" title="Hide channel navigation">‹</button><button type="button" class="workspace-tree-close" data-tree-close aria-label="Close channel navigation">×</button></header>
+      <button type="button" class="workspace-tree-new" data-tree-start-channel>${pickerIcons.plus}<span>New channel</span></button>
+      <label class="channel-nav-search">${pickerIcons.search}<input type="search" data-channel-search aria-label="Find a channel" placeholder="Find a channel…" value="${escape(this.channelQuery)}"></label>
+      <nav class="workspace-tree-scroll" aria-label="Channels">${this.channelRows()}</nav>
+      ${this.active && this.loaded.has(this.active.projectId) ? channelWork(this.loaded.get(this.active.projectId)!, this.active) : ''}
       ${this.error ? `<p class="workspace-tree-error" role="alert">${escape(this.error)} <button type="button" data-tree-refresh>Retry</button></p>` : ''}`
     this.element.querySelector('.workspace-tree-scroll')!.scrollTop = scroll
+    if (searching) {
+      const input = this.element.querySelector<HTMLInputElement>(
+        '[data-channel-search]'
+      )!
+      input.focus({ preventScroll: true })
+      // Search inputs do not support setSelectionRange in every browser.
+      try {
+        input.setSelectionRange(selection![0], selection![1])
+      } catch {
+        /* Keep focus. */
+      }
+    }
     if (focused)
       this.element
         .querySelector<HTMLElement>(`[data-tree-key="${CSS.escape(focused)}"]`)
@@ -241,6 +323,83 @@ export class WorkspaceTree {
   }
   private async click(event: MouseEvent) {
     const target = event.target as Element
+    const control = target.closest<HTMLButtonElement>('button')
+    if (control?.hasAttribute('data-channel-more')) {
+      this.allChannels = !this.allChannels
+      this.draw()
+      return
+    }
+    if (control?.hasAttribute('data-channel-favorites')) {
+      this.channelNavigation.favoritesClosed =
+        !this.channelNavigation.favoritesClosed
+      this.persistChannels()
+      this.draw()
+      return
+    }
+    if (control?.dataset.channelMenu) {
+      const row = channelRows(
+        [...this.loaded.values()],
+        this.channelNavigation
+      ).find((row) => row.key === control.dataset.channelMenu)
+      if (!row) return
+      const panel = openPopover(
+        control,
+        'channel-options',
+        `<p class="workspace-project-path">${escape(row.title)}</p><button data-channel-favorite>${row.favorite ? 'Remove from favorites' : 'Add to favorites'}</button><button data-channel-rename>Rename channel</button>`,
+        'workspace-tree-menu'
+      )
+      panel?.addEventListener('click', async (event) => {
+        const action = event.target as Element
+        if (action.closest('[data-channel-favorite]')) {
+          this.channelNavigation.favorites = row.favorite
+            ? this.channelNavigation.favorites.filter((key) => key !== row.key)
+            : [...this.channelNavigation.favorites, row.key]
+          this.channelNavigation.favoritesClosed = false
+          this.persistChannels()
+          closePopover()
+          this.draw()
+          this.element
+            .querySelector<HTMLAnchorElement>(
+              `[data-tree-key="${CSS.escape(row.key)}"]`
+            )
+            ?.focus()
+        } else if (action.closest('[data-channel-rename]') && !this.busy) {
+          closePopover()
+          this.busy = true
+          try {
+            const title = await researchNameDialog(
+              this.root,
+              'Rename channel',
+              'Channel name',
+              row.title
+            )
+            if (!title) return
+            this.update(
+              await researchApi.change(row.projectId, 'chats', {
+                chatId: row.chatId,
+                title
+              })
+            )
+            if (this.active?.key === row.key)
+              await this.navigate(new URL(row.href, location.href))
+          } catch (error) {
+            this.error =
+              error instanceof Error
+                ? error.message
+                : 'Could not rename this channel.'
+          } finally {
+            this.busy = false
+            this.draw()
+          }
+        }
+      })
+      return
+    }
+    if (target.closest('[data-tree-start-channel]')) {
+      await this.navigate(new URL('/', location.href))
+      this.root.classList.remove('workspace-tree-open')
+      return
+    }
     if (target.closest('[data-tree-close]')) {
       this.root.classList.remove('workspace-tree-open')
       this.root

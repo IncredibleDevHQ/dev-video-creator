@@ -1,5 +1,6 @@
 import type { HarnessSelection } from '../../shared/model'
 import { loadSetting, saveSetting } from '../persistence'
+import { isReasoningEffort } from '../../shared/reasoning-effort'
 import { Refusal } from '../refusal'
 export const validateHarnessSelection = (raw: unknown): HarnessSelection => {
   const value = raw as HarnessSelection
@@ -12,7 +13,10 @@ export const validateHarnessSelection = (raw: unknown): HarnessSelection => {
       value.model.length > 200)
   )
     throw new Refusal('Choose a supported model')
+  if (value.effort !== undefined && !isReasoningEffort(value.effort))
+    throw new Refusal('Choose a supported thinking effort')
   return {
+    ...(value.effort ? { effort: value.effort } : {}),
     adapter: value.adapter,
     ...(value.model ? { model: value.model.trim() } : {})
   }

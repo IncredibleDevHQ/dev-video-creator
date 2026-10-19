@@ -12,6 +12,7 @@ import { researchLocation } from '../app/research-navigation'
 import { researchWorkspaceItem } from '../app/workspace-state'
 import { WorkspaceFocus } from '../app/workspace-focus'
 import type { ResearchViewState } from '../app/research-view'
+import { researchTurnRequest } from '../app/research-artifact'
 const state = () =>
   ({
     project: {
@@ -40,6 +41,26 @@ const storage = () => {
   }
 }
 afterEach(() => vi.unstubAllGlobals())
+it('keeps model, effort, repository and linear parent on the next chat message', () => {
+  const s = state()
+  s.anchor = null
+  s.adapter = 'codex'
+  s.model = 'gpt-fixture'
+  s.effort = 'low'
+  s.project.nodes = [
+    { id: 'answer', chatId: 'old', state: 'done' }
+  ] as ResearchViewState['project']['nodes']
+  expect(researchTurnRequest(s, 'Follow up')).toMatchObject({
+    chatId: 'old',
+    parentId: 'answer',
+    harness: { adapter: 'codex', model: 'gpt-fixture', effort: 'low' },
+    repos: s.repos
+  })
+  delete s.effort
+  expect(researchTurnRequest(s, 'Automatic').harness).not.toHaveProperty(
+    'effort'
+  )
+})
 it('starts at an empty composer without inheriting an earlier answer or repository', () => {
   const s = state()
   startResearchChat(s)
@@ -100,7 +121,7 @@ it('hides navigation without replacing or clearing a draft', () => {
     .dispatchEvent(new window.Event('click', { bubbles: true }))
   expect(root.classList.contains('workspace-focus')).toBe(true)
   expect(root.querySelector('button')!.getAttribute('aria-label')).toBe(
-    'Show project navigation'
+    'Show channel navigation'
   )
   expect(root.querySelector('textarea')).toBe(draft)
   expect(draft.value).toBe('Unsent thought')

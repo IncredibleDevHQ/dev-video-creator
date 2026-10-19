@@ -34,9 +34,7 @@ export const toggleProjectPanel = (
   workbench: ResearchWorkbench,
   render: () => void
 ) => {
-  if (action === 'minimize-chat' && activeResearchDocument(s)) {
-    s.chatMinimized = !s.chatMinimized
-  } else if (action === 'new-chat') {
+  if (action === 'new-chat') {
     startResearchChat(s)
     rememberNewResearchChat(s)
   } else if (action === 'toggle-sidebar') {

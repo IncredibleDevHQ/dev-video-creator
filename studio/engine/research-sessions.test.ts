@@ -371,7 +371,7 @@ it('keeps ordinary messages in one chat and creates document nodes only for the 
   expect(saved.notebooks[0].blocks).toHaveLength(1)
   expect(
     JSON.parse(stage.mock.calls.at(-1)![0].packet['packet/CONVERSATION.json'])
-  ).toHaveLength(2)
+  ).toHaveLength(1)
 })
 
 it('retries an interrupted first answer as a document with a research budget', async () => {
@@ -418,4 +418,72 @@ it('refuses a resumed selected-passage answer that copies the earlier document',
   expect(
     validation({ answer: 'A fresh explanation of the selected mechanism.' }).ok
   ).toBe(true)
+})
+it('persists thinking effort per chat and restores it when switching chats', async () => {
+  const project = await projects.createResearchProject({
+    text: 'Effort fixture'
+  })
+  const saved = await sessions.saveResearchChat(project.id, {
+    title: 'Deep research',
+    harness: { adapter: 'kimi', model: 'k3', effort: 'max' }
+  })
+  const reloaded = await projects.readResearchProject(project.id)
+  expect(reloaded.chats![0].harness?.effort).toBe('max')
+  const state = {
+    project: reloaded,
+    chat: null,
+    chatPositions: {}
+  } as unknown as ResearchViewState
+  selectResearchChat(state, saved.chats![0].id)
+  expect(state.effort).toBe('max')
+})
+it('freezes recursive ancestor context at the selected turn and excludes shared sibling notes', async () => {
+  const p = await projects.createResearchProject({
+    title: 'Ancestor isolation'
+  })
+  const ask = async (question: string, parentId?: string, branch = false) => {
+    const result = await questions.askResearch(p.id, {
+      question,
+      parentId,
+      ...(branch
+        ? { anchor: { kind: 'response', id: parentId, start: 0, end: 17 } }
+        : {})
+    })
+    await questions.settledResearch(result.nodeId)
+    return result.nodeId
+  }
+  const root = await ask('Root')
+  const reply = await ask('Root continuation', root)
+  const a = await ask('Branch A', root, true)
+  await projects.addProjectNote(p.id, {
+    notebookId: p.notebooks[0].id,
+    nodeId: a,
+    start: 0,
+    end: 17
+  })
+  const b = await ask('Branch B', reply, true)
+  const nested = await ask('Nested A', a, true)
+  const packet = stage.mock.calls.at(-1)![0].packet
+  expect(
+    JSON.parse(packet['packet/CONVERSATION.json']).map(
+      (n: { id: string }) => n.id
+    )
+  ).toEqual([root, a])
+  expect(JSON.parse(packet['packet/NOTEBOOKS.json'])).toEqual([])
+  const { conversationTurns } = await import('../shared/research-conversations')
+  const saved = await projects.readResearchProject(p.id)
+  expect(conversationTurns(saved.nodes, root).map((n) => n.id)).toEqual([
+    root,
+    reply
+  ])
+  expect(conversationTurns(saved.nodes, nested).map((n) => n.id)).toEqual([
+    nested
+  ])
+  await expect(
+    questions.askResearch(p.id, {
+      question: 'Wrong context',
+      parentId: nested,
+      contextDocumentId: b
+    })
+  ).rejects.toThrow('ancestor path')
 })

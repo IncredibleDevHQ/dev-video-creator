@@ -129,6 +129,9 @@ export const researchChatSetup = async (
             <label for="chat-model">Model</label
             ><input
               id="chat-model"
+              data-effort="${escape(
+                current?.harness?.effort || state.effort || ''
+              )}"
               maxlength="200"
               placeholder="Agent default"
               value="${escape(current?.harness?.model || state.model)}"
@@ -427,6 +430,9 @@ export const researchChatSetup = async (
         repos,
         harness: {
           adapter: field<HTMLSelectElement>('chat-agent').value,
+          ...(field('chat-model-effort').value
+            ? { effort: field('chat-model-effort').value }
+            : {}),
           ...(field('chat-model').value.trim()
             ? { model: field('chat-model').value.trim() }
             : {})

@@ -1,3 +1,4 @@
+import { isReasoningEffort } from '../shared/reasoning-effort'
 import type { ResearchViewState } from './research-view'
 const key = (s: ResearchViewState) => `research-new-chat:${s.project.id}`
 export const rememberNewResearchChat = (s: ResearchViewState) => {
@@ -5,7 +6,12 @@ export const rememberNewResearchChat = (s: ResearchViewState) => {
   try {
     sessionStorage.setItem(
       key(s),
-      JSON.stringify({ adapter: s.adapter, model: s.model, repos: s.repos })
+      JSON.stringify({
+        adapter: s.adapter,
+        model: s.model,
+        effort: s.effort,
+        repos: s.repos
+      })
     )
   } catch {
     /* The in-memory conversation remains usable. */
@@ -18,6 +24,7 @@ export const restoreNewResearchChat = (s: ResearchViewState) => {
       return
     s.adapter = saved.adapter
     s.model = typeof saved.model === 'string' ? saved.model : ''
+    s.effort = isReasoningEffort(saved.effort) ? saved.effort : undefined
     s.repos = Array.isArray(saved.repos)
       ? saved.repos
           .filter(

@@ -53,3 +53,30 @@ it('trusts the model when the agent lists none', async () => {
     availableHarness({ adapter: 'codex', model: 'gpt-6-astra' })
   ).resolves.toEqual({ adapter: 'codex', model: 'gpt-6-astra' })
 })
+
+it('keeps supported effort and refuses invalid or unsupported choices before starting a run', async () => {
+  inspect.mockResolvedValue([
+    {
+      id: 'kimi',
+      ok: true,
+      models: {
+        default: 'k3',
+        options: [{ id: 'k3', label: 'K3', efforts: ['low', 'high', 'max'] }]
+      }
+    }
+  ])
+  await expect(
+    availableHarness({ adapter: 'kimi', effort: 'max' })
+  ).resolves.toEqual({
+    adapter: 'kimi',
+    model: 'k3',
+    label: 'K3',
+    effort: 'max'
+  })
+  await expect(
+    availableHarness({ adapter: 'kimi', effort: 'medium' })
+  ).rejects.toThrow('does not advertise')
+  await expect(
+    availableHarness({ adapter: 'kimi', effort: 'made-up' })
+  ).rejects.toThrow('supported thinking effort')
+})

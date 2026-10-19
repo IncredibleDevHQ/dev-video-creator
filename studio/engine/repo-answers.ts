@@ -53,6 +53,11 @@ export const repoTools = (link: RepoLink): EngineTool[] => {
   const text = (value: unknown) => String(value ?? '')
   return [
     {
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false
+      },
       name: 'repo_read',
       description: `Read a file on ${link.branch} of ${link.name}, with line numbers`,
       inputSchema: {
@@ -73,6 +78,11 @@ export const repoTools = (link: RepoLink): EngineTool[] => {
         )
     },
     {
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false
+      },
       name: 'repo_search',
       description: `Find words in the files on ${link.branch} of ${link.name}`,
       inputSchema: {
@@ -83,6 +93,11 @@ export const repoTools = (link: RepoLink): EngineTool[] => {
       call: async (args) => ({ hits: await repoSearch(link, text(args.words)) })
     },
     {
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false
+      },
       name: 'repo_diff',
       description: `What ${link.branch} changes against ${link.base}: a summary, or one file's diff`,
       inputSchema: {

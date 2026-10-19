@@ -267,7 +267,7 @@ export class ProjectShell {
     const markup = `<header class="project-chat-header project-tool-heading">
       <button class="project-sidebar-toggle" data-research-action="toggle-sidebar" aria-label="Toggle project navigation" aria-expanded="${this.frame.classList.contains('sidebar-open')}">☰</button>
       <div class="project-chat-title"><div class="project-tool-breadcrumb"><a href="${projectLink(project.id, context, { projectView: 'canvas' })}">${escape(project.title)}</a><span aria-hidden="true">/</span><h1>${escape(name)}</h1></div>
-      <span class="project-tool-origin">${isMap ? (notebook ? 'Your notes → wireframes → episodes' : `Ideas from all ${project.notebooks.length} notebooks · one shared story`) : 'From your notebook · connected to your research'}</span></div>
+      <span class="project-tool-origin">${isMap ? (notebook ? 'Your notes → wireframes → episodes' : project.notebooks.length === 1 ? 'Your notebook · one growing canvas' : `Ideas from ${project.notebooks.length} notebooks · one shared story`) : 'From your notebook · connected to your research'}</span></div>
       <div class="project-chat-actions"><a href="${notes}">${notebook ? 'Read notes' : 'All creations'}</a><a href="${back}" class="project-resume-chat">Resume chat ↗</a></div></header>`
     const key = markup + (notebook?.id || '')
     if (this.rendered === key) return

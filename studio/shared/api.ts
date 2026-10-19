@@ -150,6 +150,7 @@ export type HarnessChoice = {
       label: string
       hint?: string
       unavailable?: string
+      efforts?: import('./reasoning-effort').ReasoningEffort[]
     }>
   }
 }

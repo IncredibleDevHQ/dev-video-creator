@@ -20,6 +20,15 @@ const at = (width: number, box: { left: number; right: number }) => {
       get: () => value
     })
   vi.stubGlobal('document', document)
+  vi.stubGlobal('MutationObserver', window.MutationObserver)
+  // linkedom has no layout engine; each fixture supplies fixed dimensions.
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    }
+  )
   vi.stubGlobal(
     'window',
     Object.assign(window, { innerWidth: width, innerHeight: 900 })

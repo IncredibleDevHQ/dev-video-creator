@@ -162,6 +162,11 @@ it('links the repo, asks it for a page’s evidence, and keeps where it came fro
     const read = input.tools.find(
       (tool: { name: string }) => tool.name === 'repo_read'
     )
+    expect(read.annotations).toEqual({
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false
+    })
     expect((await read.call({ path: 'bucket.ts', from: 2 })).text).toBe(
       '2: export const burst = 40\n3: '
     )

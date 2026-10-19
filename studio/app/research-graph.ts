@@ -122,7 +122,7 @@ export const researchGraph = (
     </div>
     <span class="research-graph-results" role="status"
       >${query
-        ? `${count} matching question${count === 1 ? '' : 's'}`
-        : `${visible.size} question${visible.size === 1 ? '' : 's'} · parent → follow-up`}</span
+        ? `${count} matching conversation${count === 1 ? '' : 's'}`
+        : `${visible.size} conversation${visible.size === 1 ? '' : 's'} · source → branch`}</span
     >`
 }

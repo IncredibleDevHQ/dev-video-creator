@@ -447,3 +447,44 @@ it('measures wrapped labels per line while still rejecting an overflowing line',
     inline.some((p) => p.includes('needs about') || p.includes('spills past'))
   ).toBe(true)
 })
+
+// The local-file transport must use the same checks as an MCP submission.
+it('validates a file receipt when the harness cannot call its submission tool', async () => {
+  run.mockReset()
+  run.mockImplementationOnce(async (input: any) => {
+    const dir = join(root, 'file-submission')
+    await mkdir(join(dir, 'pages'), { recursive: true })
+    await writeFile(join(dir, 'pages/01_fixture.svg'), svg)
+    await writeFile(
+      join(dir, 'page-submission.json'),
+      JSON.stringify({ index: 1, form: 'definition', topology: 'typography' })
+    )
+    await input.accept(dir)
+    return { status: 'done' }
+  })
+  const result = await prepareCreativePages(
+    fixtureInput('file-transport', { outline })
+  )
+  expect(result).toHaveLength(1)
+  expect(result[0]).toContain('Explicit synthetic page fixture')
+})
+it('rejects an unsafe SVG received through the file transport', async () => {
+  run.mockReset()
+  run.mockImplementationOnce(async (input: any) => {
+    const dir = join(root, 'bad-file-submission')
+    await mkdir(join(dir, 'pages'), { recursive: true })
+    await writeFile(
+      join(dir, 'pages/01_fixture.svg'),
+      svg.replace('</svg>', '<script>alert(1)</script></svg>')
+    )
+    await writeFile(
+      join(dir, 'page-submission.json'),
+      JSON.stringify({ index: 1, form: 'definition', topology: 'typography' })
+    )
+    await expect(input.accept(dir)).rejects.toThrow('Submission refused')
+    throw new Error('Unsafe fixture refused')
+  })
+  await expect(
+    prepareCreativePages(fixtureInput('bad-file-transport', { outline }))
+  ).rejects.toThrow('Unsafe fixture refused')
+})

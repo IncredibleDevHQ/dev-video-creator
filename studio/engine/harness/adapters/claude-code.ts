@@ -285,6 +285,9 @@ export const createClaudeCodeAdapter = (
       args,
       cwd: run.projectDir,
       env: {
+        ...(run.inputs.explicitEffort
+          ? { CLAUDE_CODE_EFFORT_LEVEL: String(run.inputs.effort) }
+          : {}),
         SKILL_DIR: resolveSkillDir(
           context.skillsDir,
           run.projectDir,

@@ -40,12 +40,14 @@ it('offers Opus 5.5 by name, and only on a Claude Code that runs it', () => {
   expect(old).toEqual({
     id: 'claude-opus-5-5',
     label: 'Opus 5.5',
+    efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
     unavailable:
       'needs Claude Code 2.1.280 or newer (found 2.1.278 (Claude Code))'
   })
   expect(claudeModels('2.1.293 (Claude Code)').options[0]).toEqual({
     id: 'claude-opus-5-5',
-    label: 'Opus 5.5'
+    label: 'Opus 5.5',
+    efforts: ['low', 'medium', 'high', 'xhigh', 'max']
   })
 })
 
@@ -58,4 +60,31 @@ it('names Kimi’s models plainly, with the id they run in the tooltip', () => {
     { id: 'kimi-code/k3', label: 'K3', hint: 'kimi-code/k3' },
     { id: 'moonshot-k2-long', label: 'moonshot-k2-long' }
   ])
+})
+
+it('reads only advertised Codex effort levels and resolves the configured default', () => {
+  const result = codexCatalogFrom('model = "model-a"', {
+    models: [
+      {
+        slug: 'model-a',
+        visibility: 'list',
+        supported_reasoning_levels: [
+          { effort: 'low' },
+          { effort: 'xhigh' },
+          { effort: 'ultra' },
+          { effort: 'invented' }
+        ]
+      }
+    ]
+  })
+  expect(result.default).toBe('model-a')
+  expect(result.options[0].efforts).toEqual(['low', 'xhigh', 'ultra'])
+})
+it('uses Kimi model overrides instead of inventing intermediate levels', () => {
+  const result = kimiModelsFrom(`default_model = "k3"
+[models.k3]
+support_efforts = ["low", "high", "max"]
+[models.k3.overrides]
+support_efforts = ["low", "high"]`)
+  expect(result.options[0].efforts).toEqual(['low', 'high'])
 })

@@ -57,7 +57,7 @@ it('creates a project and first notebook from one note, preserving separate note
     'Separate subject'
   )
 })
-it('keeps exact excerpt lineage while preserving the whole persistent chat', async () => {
+it('keeps exact excerpt lineage while excluding sibling context', async () => {
   const p = await projects.createResearchProject({ text: 'Research notes' })
   const ask = async (question: string, parentId?: string) => {
     const result = await chat.askResearch(p.id, {
@@ -75,8 +75,7 @@ it('keeps exact excerpt lineage while preserving the whole persistent chat', asy
     stage.mock.calls.at(-1)![0].packet['packet/CONVERSATION.json']
   )
   expect(packet.map((n: { question: string }) => n.question)).toEqual([
-    'How does an outbox work?',
-    'What about retries?'
+    'How does an outbox work?'
   ])
   let saved = await projects.researchProjectView(p.id)
   expect(researchPath(saved.nodes, sibling).map((n) => n.id)).toEqual([
@@ -215,4 +214,63 @@ it('routes notes captured in the existing map UI into the project without recurs
     'Captured on the shared canvas'
   ])
   expect((await loadProject(ready.canvasId!))!.project.notes).toHaveLength(1)
+})
+it('starts one shared canvas after capture and feeds later excerpts into that same canvas', async () => {
+  start.mockImplementation(async (id: string) =>
+    changeProject(id, (s) => {
+      s.status = 'building'
+    })
+  )
+  const p = await projects.createResearchProject({ title: 'Channel notebook' })
+  const body = {
+    notebookId: p.notebooks[0].id,
+    text: 'Durable writes and a retry queue',
+    autoOrganize: true,
+    harness: { adapter: 'codex' }
+  }
+  await projects.addProjectNote(p.id, body)
+  await projects.organizeResearchProject(p.id)
+  const first = await projects.researchProjectView(p.id)
+  expect(first.canvasId).toBeTruthy()
+  await projects.addProjectNote(p.id, {
+    ...body,
+    text: 'Use stable identifiers to deduplicate retries'
+  })
+  await projects.organizeResearchProject(p.id)
+  const after = await projects.researchProjectView(p.id)
+  expect(after.canvasId).toBe(first.canvasId)
+  expect(after.notebooks).toHaveLength(1)
+  expect(after.notebooks[0].blocks).toHaveLength(2)
+  expect(after.canvas?.project.notes?.map((n) => n.id)).toEqual([
+    after.notebooks[0].blocks[1].id
+  ])
+  expect(start).toHaveBeenCalledTimes(1)
+})
+
+it('keeps a saved excerpt exact while carrying its separate comment into the notebook source', async () => {
+  const p = await projects.createResearchProject({
+    title: 'Commented research'
+  })
+  const result = await chat.askResearch(p.id, {
+    question: 'Explain an outbox',
+    harness: { adapter: 'claude-code' }
+  })
+  await chat.settledResearch(result.nodeId)
+  const body = {
+    notebookId: p.notebooks[0].id,
+    nodeId: result.nodeId,
+    start: 0,
+    end: 16,
+    comment: 'Use this to introduce episode one.'
+  }
+  await projects.addProjectNote(p.id, body)
+  await projects.addProjectNote(p.id, body)
+  const saved = await projects.researchProjectView(p.id)
+  expect(saved.notebooks[0].blocks).toHaveLength(1)
+  const block = saved.notebooks[0].blocks[0]
+  expect(block.text).toBe(block.origin!.response.slice(0, 16))
+  expect(block.comment).toBe(body.comment)
+  expect((await loadProject(p.notebooks[0].id))?.project.source).toContain(
+    'Your comment: Use this to introduce episode one.'
+  )
 })

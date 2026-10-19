@@ -107,3 +107,46 @@ it('puts the current question in the resumed agent turn, not only replaceable pa
     'Current research turn revision'
   )
 })
+it('forwards a research chat effort while preserving content-generation defaults', async () => {
+  mocks.load
+    .mockResolvedValueOnce(null)
+    .mockResolvedValue({ data: { accepted: true } })
+  mocks.run.mockResolvedValue({ status: 'done' })
+  await runValidatedJsonStage({
+    ...input,
+    inputKey: 'effort-research',
+    operation: 'research',
+    selection: { ...input.selection, effort: 'max' }
+  })
+  expect(mocks.run.mock.calls.at(-1)![0].effort).toBe('max')
+  mocks.load
+    .mockResolvedValueOnce(null)
+    .mockResolvedValue({ data: { accepted: true } })
+  await runValidatedJsonStage({
+    ...input,
+    inputKey: 'effort-content',
+    operation: 'story',
+    selection: { ...input.selection, effort: 'max' }
+  })
+  expect(mocks.run.mock.calls.at(-1)![0].effort).toBeUndefined()
+})
+
+it('research sends a current-turn pointer instead of duplicating the packet question', async () => {
+  mocks.load.mockResolvedValue(null)
+  mocks.run.mockResolvedValue({
+    status: 'error',
+    failure: { message: 'Test stop' }
+  })
+  await expect(
+    runValidatedJsonStage({
+      ...input,
+      operation: 'research',
+      route: 'Research Project',
+      stageContext: { question: 'Unique question in packet only' }
+    })
+  ).rejects.toThrow('Test stop')
+  const task = mocks.run.mock.calls.at(-1)![0].task
+  expect(task).not.toContain('Unique question in packet only')
+  expect(task).toContain('session-delta')
+  expect(task).toContain('do not reread or replay earlier conversation')
+})

@@ -1,3 +1,10 @@
+import {
+  splitContext,
+  researchContextPacket,
+  researchContextTools
+} from './research-context'
+import { summarizeResearchAncestors } from './research-context-summary'
+import { ancestorTurns } from '../shared/research-conversations'
 import { researchDocumentFor } from '../shared/research-documents'
 import {
   prepareResearchSession,
@@ -18,7 +25,7 @@ import {
   requiredText,
   researchProjectView
 } from './research-projects'
-import { branchHead, repoFiles } from './repo-git'
+import { branchHead } from './repo-git'
 import { researchRepositories } from './research-sessions'
 import { repoTools } from './repo-answers'
 import { availableHarness, detectedHarness } from './notebook-intake'
@@ -108,20 +115,18 @@ export const askResearch = async (
       text: text.slice(raw.start, raw.end)
     }
   }
-  const contextDocument =
-    typeof body.contextDocumentId === 'string'
-      ? researchDocumentFor(project.nodes, body.contextDocumentId)
-      : researchDocumentFor(project.nodes, parentId)
-  if (
-    body.contextDocumentId &&
-    (!contextDocument || contextDocument.chatId !== chatId)
-  )
-    throw new Refusal('Choose a research document from this chat')
-  const createsDocument =
-    Boolean(anchor) ||
-    !project.nodes.some((n) => n.chatId === chatId && n.state === 'done')
+  const contextDocument = researchDocumentFor(project.nodes, parentId)
+  if (body.contextDocumentId && body.contextDocumentId !== contextDocument?.id)
+    throw new Refusal(
+      'The conversation context must belong to the selected ancestor path'
+    )
+  const createsDocument = Boolean(anchor) || !parent
+  const nodeId = randomUUID()
   const node: ResearchNode = {
-    id: randomUUID(),
+    id: nodeId,
+    conversationId: createsDocument
+      ? nodeId
+      : contextDocument?.id || parent!.id,
     chatId: chatId || randomUUID(),
     parentId,
     artifact: createsDocument
@@ -148,7 +153,9 @@ export const askResearch = async (
     if (!session) {
       session = {
         id: node.chatId!,
-        title: question.slice(0, 100),
+        title: body.title
+          ? requiredText(body.title, 'Channel name', 100)
+          : question.slice(0, 100),
         createdAt: node.at,
         updatedAt: node.at,
         notebookId:
@@ -190,15 +197,7 @@ const answerResearch = async (id: string, nodeId: string) => {
   const project = await readResearchProject(id)
   const node = project.nodes.find((n) => n.id === nodeId)!
   if (node.state !== 'working') return
-  const history = project.nodes
-    .filter(
-      (n) =>
-        n.chatId === node.chatId &&
-        n.at <= node.at &&
-        n.id !== node.id &&
-        n.state === 'done'
-    )
-    .map(({ question, answer, anchor }) => ({ question, answer, anchor }))
+  const history = ancestorTurns(project.nodes, node)
   // Tools read the exact pinned commit, even if another process moves a branch.
   const tools = node.repos.flatMap((repo, index) =>
     repoTools({ ...repo, branch: repo.commit }).map((tool) => ({
@@ -207,22 +206,47 @@ const answerResearch = async (id: string, nodeId: string) => {
       description: `${repo.name} · ${repo.branch} · ${repo.commit.slice(0, 7)}: ${tool.description}`
     }))
   )
-  const context = await Promise.all(
-    node.repos.map(async (repo, index) => ({
-      ...repo,
-      toolsPrefix: `context_${index + 1}_`,
-      files: await repoFiles({ ...repo, branch: repo.commit }, 1500)
-    }))
-  )
   if (
     (await readResearchProject(id)).nodes.find((n) => n.id === nodeId)
       ?.state !== 'working'
   )
     return
-  const session = await prepareResearchSession(id, node)
+  const session = await prepareResearchSession(id, node, history)
+  const origin =
+    process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
+    `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`
+  const { recent, older } = splitContext(history, session.mode === 'continued')
+  const summary = older.length
+    ? await summarizeResearchAncestors(
+        older,
+        node,
+        project.notebooks[0].id,
+        origin
+      )
+    : ''
+  const { packet, contextInfo } = researchContextPacket(
+    node,
+    history,
+    session.mode === 'continued',
+    summary,
+    recent
+  )
+  if (contextInfo.estimatedTokens > 24000)
+    throw new Refusal(
+      'This question and selection exceed the context limit. Keep the question or selected passage shorter; the original research remains saved.'
+    )
+  // A stop while a checkpoint was being prepared must not start another run.
+  if (
+    (await readResearchProject(id)).nodes.find((n) => n.id === nodeId)
+      ?.state !== 'working'
+  )
+    return
   await changeResearchProject(id, (p) => {
     const current = p.nodes.find((n) => n.id === nodeId)
-    if (current?.state === 'working') current.sessionMode = session.mode
+    if (current?.state === 'working') {
+      current.sessionMode = session.mode
+      current.contextInfo = contextInfo
+    }
   })
   const answer = await runValidatedJsonStage({
     projectId: project.notebooks[0].id,
@@ -234,33 +258,14 @@ const answerResearch = async (id: string, nodeId: string) => {
     file: 'story/research.json',
     tool: 'story_submit_research',
     selection: node.harness,
-    origin:
-      process.env.MINIMAL_STUDIO_HARNESS_ORIGIN ||
-      `http://127.0.0.1:${process.env.MINIMAL_STUDIO_PORT || 4320}`,
+    origin,
     operation: 'research',
     session: { workspaceId: session.workspaceId, resumeId: session.resumeId },
     onRun: (run) => finishResearchSession(session, node.id, run),
-    tools,
+    tools: [...tools, ...researchContextTools(history)],
     skillFiles: ['SKILL.md', 'workflows/research-project.md'],
     stageContext: { question: node.question },
-    packet: {
-      'packet/QUESTION.json': JSON.stringify({
-        question: node.question,
-        selection: node.anchor || null
-      }),
-      'packet/ACTIVE_DOCUMENT.json': JSON.stringify(
-        researchDocumentFor(project.nodes, node.contextDocumentId || null) ||
-          null
-      ),
-      'packet/CONVERSATION.json': JSON.stringify(history),
-      'packet/REPOSITORIES.json': JSON.stringify(context),
-      'packet/NOTEBOOKS.json': JSON.stringify(
-        project.notebooks.map((n) => ({
-          title: n.title,
-          notes: n.blocks.map((b) => b.text)
-        }))
-      )
-    },
+    packet,
     validate: (raw) => {
       const report = validateResearchReply(raw)
       if (

@@ -1,8 +1,18 @@
 # Research Project
 
-Collaborate with the creator on research. Read packet/QUESTION.json,
-CONVERSATION.json (the persistent chat history), ACTIVE_DOCUMENT.json (the
-research document currently in focus), NOTEBOOKS.json, and REPOSITORIES.json.
+Collaborate with the creator on research. Read packet/QUESTION.json and CONTEXT.json.
+For session-delta, the native session already holds this conversation: process only
+the new question and explicit selection. Do not reread or replay earlier packet history.
+For ancestor-seed, read CONVERSATION.json (recent immutable ancestor turns) and
+REPOSITORIES.json (pinned repository references). CONTEXT.json may include a cached
+summary of older ancestors. Summaries guide retrieval, not proof: use
+research_read_ancestor for original wording, qualifications, citations or details
+needed to answer accurately. Never assume a summary contains all relevant evidence.
+The retrieval tool can list ancestors and read bounded ranges. It excludes siblings
+and parent replies written after the fork. Do not search other session files or
+conversations. Never treat prior answer text as fresh repository verification.
+The shared notebook is not implicit context. An explicitly selected note appears
+in QUESTION.json. Original texts and excerpt offsets remain immutable.
 A selection is the passage the creator is asking about. A selected-passage
 question creates a child research document; give it a concise Markdown title.
 An ordinary message continues the chat in the active document's context.

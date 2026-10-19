@@ -19,6 +19,7 @@ import { creativeContext } from './creative/stage'
 import type { SourceRead } from './source-document'
 import { startingLook, withLook } from './looks'
 import { loadHarnessPreference as savedHarness } from './harness/preference'
+import { modelEfforts } from '../shared/reasoning-effort'
 import { Refusal, asRefusal } from './refusal'
 import {
   NOTE_LIMIT,
@@ -223,10 +224,21 @@ export const availableHarness = async (raw: unknown) => {
   // When the agent lists its models, only a listed, available one is kept,
   // with the name the list gives it, as the picker shows it (review 6: the
   // notebook said the raw id).
+  // Pin an advertised default when effort is explicit: the isolated CLI home
+  // must run the same model whose capabilities the picker showed.
+  if (harness.effort && !harness.model && choice.models?.default)
+    harness.model = choice.models.default
   const options = choice.models?.options || []
   const listed = options.find((model) => model.id === harness.model)
   if (harness.model && options.length && (!listed || listed.unavailable))
     throw new Refusal('Choose an available model for this agent')
+  if (
+    harness.effort &&
+    !modelEfforts(choice.models, harness.model).includes(harness.effort)
+  )
+    throw new Refusal(
+      'This model does not advertise that thinking effort. Choose a supported level or Automatic.'
+    )
   return listed && listed.label !== listed.id
     ? { ...harness, label: listed.label }
     : harness

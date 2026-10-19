@@ -122,7 +122,7 @@ export const chatSwitcher = (s: ResearchViewState) => {
     <button
       class="project-sidebar-toggle"
       data-research-action="toggle-sidebar"
-      aria-label="Toggle project navigation"
+      aria-label="Toggle channel navigation"
       aria-expanded="${Boolean(s.sidebarOpen)}"
     >
       ☰
