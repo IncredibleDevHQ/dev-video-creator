@@ -1,0 +1,441 @@
+.project-view-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  flex-shrink: 0;
+  min-height: 68px;
+  box-sizing: border-box;
+}
+.project-view-history {
+  display: flex;
+  gap: 2px;
+}
+.project-view-history button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+}
+.project-view-identity {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 4px;
+}
+.project-view-identity strong {
+  font-size: 14px;
+}
+.project-view-identity span {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-view-switch {
+  display: flex;
+  padding: 3px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  gap: 3px;
+}
+.project-view-switch a {
+  padding: 7px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 12px;
+  transition:
+    background 0.18s,
+    color 0.18s;
+}
+.project-view-switch a[aria-current='page'] {
+  background: var(--selected);
+  color: var(--accent);
+}
+.project-view-notebook {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  cursor: pointer;
+}
+.project-view-notebook span {
+  color: var(--accent);
+}
+.project-view-notebook:hover,
+.project-view-history button:hover {
+  background: var(--selected);
+  color: var(--accent);
+}
+.project-chat-header {
+  min-height: 52px;
+}
+.project-tool-shell .project-tool-heading {
+  display: none;
+}
+.project-research-card,
+.project-excerpt-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 14px;
+  box-sizing: border-box;
+  overflow: hidden;
+  color: var(--text);
+  box-shadow: 0 3px 12px #0002;
+}
+.project-research-card.is-current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.project-research-card small,
+.project-excerpt-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-bottom: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+.project-research-card strong {
+  flex-shrink: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.project-research-card p,
+.project-excerpt-card p {
+  font-size: 12px;
+  line-height: 1.55;
+  display: -webkit-box;
+  flex: 1;
+  min-height: 0;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 8px 0;
+  color: var(--muted);
+}
+.project-research-card a,
+.project-excerpt-card a {
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.project-research-card > a,
+.project-excerpt-card footer {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+.project-excerpt-card footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+.project-excerpt-card button {
+  font-size: 11px;
+  color: var(--accent);
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.project-canvas-frame .map-block-head p {
+  max-width: 600px;
+}
+.map-header:has(.project-canvas-focus) {
+  flex-wrap: wrap;
+}
+.map-header:has(.project-canvas-focus) .map-title {
+  display: none;
+}
+.map-header .project-canvas-focus {
+  position: static;
+  transform: none;
+  width: auto;
+  inset: auto;
+  margin: 0;
+  flex-wrap: wrap;
+  display: flex;
+  gap: 6px;
+  margin-right: 0;
+}
+.project-canvas-focus button {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.map-flow.is-research,
+.map-flow.is-excerpt {
+  stroke: var(--accent);
+  opacity: 0.5;
+}
+.map-flow.is-excerpt {
+  stroke-dasharray: 4 4;
+}
+.research-note-destination {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.research-note-destination a {
+  color: var(--accent);
+}
+@media (max-width: 700px) {
+  .project-view-bar {
+    padding: 9px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .project-view-identity {
+    min-width: 150px;
+  }
+  .project-view-switch a {
+    padding: 6px 12px;
+  }
+  .project-view-notebook {
+    font-size: 11px;
+  }
+  .project-view-history {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-view-switch a {
+    transition: none;
+  }
+}
+.project-canvas-note {
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.project-canvas-note p {
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  max-height: 180px;
+  overflow: auto;
+  margin: 0 0 10px;
+}
+.project-canvas-note small,
+.project-canvas-note-empty {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.project-canvas-note blockquote {
+  margin: 8px 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--accent);
+  font-size: 12px;
+}
+.project-canvas-note footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.project-canvas-note footer :is(a, button) {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* The notebook follows the prototype: quiet topic headings, story cards and
+   indented excerpts. The same structure lives beside chat and beside canvas. */
+.notebook-intro {
+  padding: 4px 0 22px;
+}
+.notebook-intro h2 {
+  font-size: 20px;
+  font-weight: 550;
+  margin: 8px 0;
+  letter-spacing: -0.025em;
+}
+.notebook-intro p,
+.notebook-topic-description {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--muted);
+  margin: 0;
+}
+.notebook-intro .notebook-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.notebook-topic {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+.notebook-topic-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.notebook-topic-heading h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+.notebook-topic-heading > span {
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.notebook-card-group {
+  margin-top: 18px;
+}
+.notebook-card-heading {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 6px;
+  align-items: baseline;
+}
+.notebook-card-heading > span {
+  color: var(--accent);
+}
+.notebook-card-heading h3 {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  margin: 0;
+}
+.notebook-card-heading > :is(a, button) {
+  grid-column: 2;
+}
+.notebook-hierarchy :is(a, button),
+.project-notebook-group button {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+}
+.notebook-hierarchy :is(a, button):hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.notebook-card-excerpts {
+  margin: 12px 0 0 6px;
+  padding-left: 16px;
+  border-left: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+}
+.notebook-hierarchy .research-note,
+.notebook-hierarchy .project-canvas-note {
+  padding: 16px 0;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+.notebook-hierarchy article:first-child {
+  padding-top: 2px;
+}
+.notebook-hierarchy article:last-child {
+  border-bottom: 0;
+}
+.notebook-hierarchy .research-note-text,
+.notebook-hierarchy .project-canvas-note > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text);
+  max-height: none;
+  overflow: visible;
+}
+.notebook-source-link {
+  display: block;
+  margin-top: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.notebook-source-link span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.notebook-also-supports {
+  display: block;
+  margin-top: 8px;
+}
+.notebook-hierarchy details {
+  margin-top: 12px;
+  font-size: 11px;
+}
+.notebook-hierarchy summary {
+  cursor: pointer;
+  color: var(--muted);
+  padding-block: 4px;
+}
+.notebook-placement-status {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.notebook-note-details > button {
+  display: block;
+  margin-top: 10px;
+}
+.project-notebook-group {
+  padding: 8px 2px;
+  box-sizing: border-box;
+  color: var(--text);
+}
+.project-notebook-group h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+.project-notebook-group strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.project-notebook-group.is-card {
+  border-left: 2px solid var(--accent);
+  padding-left: 12px;
+}
+@media (min-width: 701px) {
+  .project-tool-shell .map-page.is-notes-open .map-rail {
+    width: min(380px, calc(100% - 24px));
+  }
+}

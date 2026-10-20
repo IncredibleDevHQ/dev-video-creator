@@ -133,7 +133,7 @@ it('updates support pane state on viewport resize without replacing unsent draft
   expect(changed).toHaveBeenCalledTimes(1)
   expect(columns().style.getPropertyValue('--research-graph-width')).toBe('0px')
   expect(columns().style.getPropertyValue('--research-notes-width')).toBe(
-    '280px'
+    '365px'
   )
   expect(root.querySelector('#research-question')).toBe(question)
   expect(root.querySelector('#research-note-input')).toBe(note)
@@ -183,7 +183,7 @@ it('ignores hidden panes and reserves conversation room when resizing by keyboar
   const { workbench, columns, press } = setup(1400, 1000)
   workbench.handle('toggle-notebook')
   press('notes', 'ArrowLeft')
-  expect(workbench.state.notesWidth).toBe(304)
+  expect(workbench.state.notesWidth).toBe(404)
   expect(columns().style.getPropertyValue('--research-graph-width')).toBe('0px')
   workbench.handle('toggle-notebook')
   workbench.handle('toggle-graph')

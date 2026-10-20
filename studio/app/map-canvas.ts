@@ -3,6 +3,14 @@
 // episode was cut into. Notes added in its rail pile into the map. Pages are
 // copied, cut or moved into episodes by dragging or with ⌘C/⌘X/⌘V; the map
 // itself never changes because an episode did.
+import {
+  canvasPositions,
+  extendProjectCanvas,
+  installProjectCanvas,
+  projectCanvasNotes
+} from './project-canvas'
+import { researchApi } from './research-api'
+import type { ResearchProjectView } from '../shared/research'
 import type { Snapshot } from '../shared/api'
 import type { MapView } from '../shared/content-map'
 import { api } from './api'
@@ -36,6 +44,7 @@ import {
   noteCount,
   restoreChrome,
   restoreView,
+  setNotes,
   sayWhatFarHides
 } from './map-chrome'
 import { VoiceCall } from './map-voice'
@@ -68,6 +77,8 @@ type Hooks = {
 
 type ToastAction = { label: string; map: string }
 export class MapCanvas {
+  research: ResearchProjectView | null = null
+  projectPositions: Record<string, { x: number; y: number }> = {}
   isOpen = false
   mapId = ''
   snapshot: Snapshot | null = null
@@ -110,6 +121,7 @@ export class MapCanvas {
   /** The bar asks for the series' outcome or audience. */
   briefing: 'outcome' | 'audience' | null = null
   private adding = false
+  private noteDrafts = new Map<string, string>()
   /** A paste on its way: a second ⌘V waits for it. */
   private pasting = false
   /** The map just opened: its last view is put back once, else it fits. */
@@ -133,6 +145,15 @@ export class MapCanvas {
     readonly root: HTMLElement,
     readonly hooks: Hooks
   ) {
+    root.addEventListener('input', (event) => {
+      if ((event.target as Element).matches('[data-map-form="note"] textarea'))
+        this.rememberNoteDraft()
+    })
+    root.addEventListener('reset', (event) => {
+      if ((event.target as Element).matches('[data-map-form="note"]'))
+        queueMicrotask(() => this.rememberNoteDraft())
+    })
+    installProjectCanvas(this)
     installMapInput(this)
     installFlowInput(this)
     this.voice = new VoiceCall(this)
@@ -155,6 +176,8 @@ export class MapCanvas {
     this.stop()
     this.isOpen = true
     this.mapId = id
+    this.research = null
+    this.projectPositions = {}
     // An episode opens its map; closing the map goes back to the episode.
     this.from = from
     this.snapshot = null
@@ -182,6 +205,31 @@ export class MapCanvas {
       if (snapshot.project.copyOfMap)
         return this.open(snapshot.project.copyOfMap, from)
       this.snapshot = snapshot
+      if (snapshot.project.researchProjectId) {
+        this.research = await researchApi.load(
+          snapshot.project.researchProjectId
+        )
+        if (!this.isOpen || this.mapId !== id) return
+        try {
+          this.projectPositions = canvasPositions(
+            localStorage.getItem(
+              `project-canvas-positions:${this.research.id}`
+            ) || '{}'
+          )
+        } catch {}
+      }
+      const note = this.root.querySelector<HTMLTextAreaElement>(
+        '[data-map-form="note"] textarea'
+      )
+      if (note) {
+        const key = this.research?.id || id
+        note.value = this.noteDrafts.get(key) || ''
+        try {
+          note.value =
+            sessionStorage.getItem(`project-canvas-note-draft:${key}`) ??
+            note.value
+        } catch {}
+      }
       this.hooks.project?.(snapshot)
       if (snapshot.project.researchProjectId) {
         const back = this.root.querySelector<HTMLAnchorElement>('.map-brand')
@@ -224,6 +272,16 @@ export class MapCanvas {
     if (!this.isOpen) return
     const view = await mapApi.view(this.mapId)
     if (!this.isOpen || view.notebook !== this.mapId) return
+    if (this.research) {
+      const project = await researchApi.load(this.research.id)
+      if (!this.isOpen || view.notebook !== this.mapId) return
+      this.research = project
+      // The first kept excerpt can create the aggregate map while this view is open.
+      if (project.canvasId && project.canvasId !== this.mapId) {
+        await this.open(project.canvasId)
+        return
+      }
+    }
     this.view = view
     this.paint()
   }
@@ -240,7 +298,20 @@ export class MapCanvas {
     url.searchParams.delete('map')
     history.replaceState(null, '', url)
   }
+  private rememberNoteDraft() {
+    if (!this.isOpen) return
+    const note = this.root.querySelector<HTMLTextAreaElement>(
+      '[data-map-form="note"] textarea'
+    )
+    if (!note) return
+    const key = this.research?.id || this.mapId
+    this.noteDrafts.set(key, note.value)
+    try {
+      sessionStorage.setItem(`project-canvas-note-draft:${key}`, note.value)
+    } catch {}
+  }
   private stop() {
+    this.rememberNoteDraft()
     this.voice.stop()
     this.comments.reset()
     this.draftDirection = null
@@ -261,14 +332,54 @@ export class MapCanvas {
   paint() {
     if (!this.isOpen || !this.snapshot || !this.world) return
     const title = this.slot('title')
-    if (title) title.textContent = this.snapshot.project.title
+    if (title)
+      title.textContent = this.research
+        ? 'Project canvas'
+        : this.snapshot.project.title
     this.fill(
       'tools',
       mapTools(this.snapshot, this.view, this.mode, this.filter)
     )
     this.fill('stages', mapStages(this.snapshot))
-    this.fill('notes', mapNotes(this.snapshot, this.openNotes, this.view))
-    this.fill('note-count', noteCount(this))
+    let focus = this.root.querySelector('.project-canvas-focus')
+    if (this.research && !focus) {
+      focus = document.createElement('nav')
+      focus.className = 'project-canvas-focus'
+      focus.setAttribute('aria-label', 'Canvas areas')
+      focus.innerHTML = [
+        ['research', 'Research'],
+        ['notes', 'Notebook'],
+        ['wireframes', 'Wireframes'],
+        ['episodes', 'Episodes'],
+        ['all', 'Fit all']
+      ]
+        .map(
+          ([id, label]) =>
+            `<button data-project-focus="${id}">${label}</button>`
+        )
+        .join('')
+      this.root.querySelector('.map-pill-project')?.append(focus)
+    }
+    this.fill(
+      'notes',
+      this.research
+        ? projectCanvasNotes(this.research, this.snapshot)
+        : mapNotes(this.snapshot, this.openNotes, this.view)
+    )
+    this.fill(
+      'note-count',
+      this.research
+        ? String(
+            this.research.notebooks.reduce((n, b) => n + b.blocks.length, 0)
+          )
+        : noteCount(this)
+    )
+    if (this.research) {
+      const title = this.root.querySelector('.map-rail-head strong')
+      if (title) title.textContent = 'Notebook'
+      const toggle = this.root.querySelector('.map-notes-toggle > span')
+      if (toggle) toggle.textContent = 'Notebook'
+    }
     // Notes pile in any time: while the map forms they are kept, and sorted
     // once it is drawn (review 8 F01: the field was shut while it formed).
     const note = this.root.querySelector<HTMLTextAreaElement>(
@@ -287,6 +398,14 @@ export class MapCanvas {
         this.view.series.directions.push(this.draftDirection)
     }
     this.layout = mapLayout(this.snapshot, this.view, this.mode)
+    if (this.research)
+      this.layout.projectCanvas = extendProjectCanvas(
+        this.research,
+        this.snapshot,
+        this.layout,
+        this.projectPositions,
+        new URL(location.href).searchParams.get('node')
+      )
     paintWorld(this)
     sayWhatFarHides(this)
     renderBar(this)
@@ -308,16 +427,47 @@ export class MapCanvas {
       this.fitted = true
       this.fittedPages = pages
       this.fittedLanes = lanes
-      const back = this.returning && pages > 0 && restoreView(this)
-      if (pages > 0) this.returning = false
+      const back = this.returning && restoreView(this)
+      this.returning = false
       if (!back) this.fit()
+      const params = new URL(location.href).searchParams
+      const cardId = params.get('focusCard')
+      const cardBox = cardId && this.layout.cards[cardId]
+      const noteId = params.get('focusNote')
+      const noteBox = this.layout.projectCanvas?.items.find(
+        (item) => item.key === `n:${noteId}`
+      )?.box
+      if (cardBox) {
+        setNotes(this, true)
+        this.select({ t: 'page', id: cardId! })
+        this.fit(cardBox)
+        this.root
+          .querySelector(`[data-notebook-card="${CSS.escape(cardId!)}"]`)
+          ?.scrollIntoView({ block: 'nearest' })
+      } else if (noteBox) this.fit(noteBox)
+      else {
+        const focus = new URL(location.href).searchParams.get('focus')
+        if (focus === 'wireframes') this.fit(this.layout.map)
+        if (focus === 'episodes' && this.layout.series)
+          this.fit(this.layout.series)
+      }
     }
   }
   private fill(name: string, html: string) {
     const node = this.slot(name) as (HTMLElement & { _html?: string }) | null
     if (node && node._html !== html) {
+      const open =
+        name === 'notes'
+          ? [
+              ...node.querySelectorAll<HTMLDetailsElement>('details[id][open]')
+            ].map((d) => d.id)
+          : []
+      const scroll = node.scrollTop
       node.innerHTML = html
       node._html = html
+      for (const id of open)
+        node.querySelector(`#${CSS.escape(id)}`)?.setAttribute('open', '')
+      node.scrollTop = scroll
     }
   }
   applyCamera(animate = false) {

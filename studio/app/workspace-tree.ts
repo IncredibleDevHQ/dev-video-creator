@@ -258,16 +258,27 @@ export class WorkspaceTree {
         ${!chats.length ? `<a data-tree-link href="${escape(projectLink(project.id, { ...context, chat: 'new' }, { projectView: 'research' }))}" class="workspace-tree-empty">Start your first chat</a>` : ''}
         ${chats.length > 5 ? `<button type="button" class="workspace-tree-more" data-tree-more="${id}" aria-expanded="${this.showAll.has(project.id)}">${this.showAll.has(project.id) ? 'Show fewer chats' : `Show all ${chats.length} chats`}</button>` : ''}
         <div class="workspace-tree-resources">
-          <button type="button" data-tree-notebooks="${id}" aria-expanded="${this.notebooks.has(project.id)}">${pickerIcons.notebook}<span>Notebooks</span><small>${loaded.notebooks.length}</small></button>
-          ${this.notebooks.has(project.id) ? loaded.notebooks.map((book) => this.link(projectLink(project.id, { ...context, notebook: book.id }, { projectView: 'notes' }), book.title, `${project.id}:Notes:${book.id}`)).join('') : ''}
-          ${this.notebooks.has(project.id) ? `<button type="button" data-tree-new-notebook="${id}">${pickerIcons.plus}<span>New notebook</span></button>` : ''}
-          ${this.link(projectLink(project.id, context, { projectView: 'canvas' }), 'Create content', `${project.id}:Create:create`, pickerIcons.model)}
+          ${
+            loaded.notebooks.length === 1
+              ? this.link(
+                  projectLink(
+                    project.id,
+                    { ...context, notebook: loaded.notebooks[0].id },
+                    { projectView: 'notes' }
+                  ),
+                  `Notebook · ${loaded.notebooks[0].blocks.length} notes`,
+                  `${project.id}:Notes:${loaded.notebooks[0].id}`,
+                  pickerIcons.notebook
+                )
+              : `<button type="button" data-tree-notebooks="${id}" aria-expanded="${this.notebooks.has(project.id)}">${pickerIcons.notebook}<span>Notebooks</span><small>${loaded.notebooks.length}</small></button>${this.notebooks.has(project.id) ? loaded.notebooks.map((book) => this.link(projectLink(project.id, { ...context, notebook: book.id }, { projectView: 'notes' }), book.title, `${project.id}:Notes:${book.id}`)).join('') : ''}`
+          }
+          ${this.link(projectLink(project.id, context, { projectView: 'canvas' }), 'Project canvas', `${project.id}:Create:create`, pickerIcons.model)}
         </div>`
         }
       </div>
     </section>`
   }
-  private channelRows() {
+  private channelRows(favoritesOnly = false) {
     const rows = channelRows(
       [...this.loaded.values()],
       this.channelNavigation,
@@ -278,6 +289,10 @@ export class WorkspaceTree {
     if (this.channelQuery.trim())
       return `<div class="workspace-tree-section"><span>${rows.length} ${rows.length === 1 ? 'result' : 'results'}</span></div>${rows.map(render).join('') || '<p class="workspace-tree-empty">No channels found. Try a channel name, repository or branch.</p>'}`
     const favorites = rows.filter((row) => row.favorite)
+    if (favoritesOnly)
+      return favorites.length
+        ? `<section><div class="workspace-tree-section">Favorites</div>${favorites.map(render).join('')}</section>`
+        : ''
     const recent = rows.filter((row) => !row.favorite)
     const shown = this.allChannels ? recent : recent.slice(0, 8)
     const active = recent.find((row) => row.key === this.active?.key)
@@ -300,7 +315,7 @@ export class WorkspaceTree {
     this.element.innerHTML = `<header><strong>Workspace</strong><button type="button" class="workspace-tree-hide" data-research-action="toggle-sidebar" aria-label="Hide channel navigation" title="Hide channel navigation">‹</button><button type="button" class="workspace-tree-close" data-tree-close aria-label="Close channel navigation">×</button></header>
       <button type="button" class="workspace-tree-new" data-tree-start-channel>${pickerIcons.plus}<span>New channel</span></button>
       <label class="channel-nav-search">${pickerIcons.search}<input type="search" data-channel-search aria-label="Find a channel" placeholder="Find a channel…" value="${escape(this.channelQuery)}"></label>
-      <nav class="workspace-tree-scroll" aria-label="Channels">${this.channelRows()}</nav>
+      <nav class="workspace-tree-scroll" aria-label="Channels">${this.channelQuery.trim() ? this.channelRows() : this.channelRows(true) + this.projects.map((project) => this.projectRows(project)).join('')}</nav>
       ${this.active && this.loaded.has(this.active.projectId) ? channelWork(this.loaded.get(this.active.projectId)!, this.active) : ''}
       ${this.error ? `<p class="workspace-tree-error" role="alert">${escape(this.error)} <button type="button" data-tree-refresh>Retry</button></p>` : ''}`
     this.element.querySelector('.workspace-tree-scroll')!.scrollTop = scroll

@@ -115,7 +115,10 @@ export const populateResearchHome = (
   root: HTMLElement,
   projects: ResearchProjectSummary[]
 ) => {
-  projects = projects.filter((project) => project.repository)
+  const requested = new URL(location.href).searchParams.get('space')
+  projects = projects.filter(
+    (project) => project.repository || project.id === requested
+  )
   root.querySelector<HTMLButtonElement>(
     '#research-start-form button[type="submit"]'
   )!.disabled = false
@@ -199,8 +202,7 @@ const setupHomeDestination = (
       root.querySelector('.home-intro')!.textContent =
         'Start a channel. Bring a question and add any repository context you need.'
       notebook.innerHTML = '<option value="">First notebook</option>'
-      status.textContent =
-        'One channel, one notebook for the discoveries you keep.'
+      status.textContent = 'Channels share their project’s notebook and canvas.'
       submit.disabled = false
       syncNotebook()
       return

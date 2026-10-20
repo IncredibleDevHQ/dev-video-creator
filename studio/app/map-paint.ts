@@ -122,7 +122,7 @@ export const groupAction = (snapshot: Snapshot) => {
 export const paintWorld = (map: MapCanvas) => {
   const { snapshot, view, layout } = map
   if (!snapshot || !layout) return
-  const items: Item[] = []
+  const items: Item[] = [...(layout.projectCanvas?.items || [])]
   const chosen = selectedKey(map)
   const fresh = newPages(snapshot)
   const unused = view
@@ -157,7 +157,7 @@ export const paintWorld = (map: MapCanvas) => {
     key: 'B:map',
     cls: 'map-block',
     box: layout.map,
-    html: `<div class="map-block-head"><h2>Cards</h2>${failedHere ? `<p class="map-block-alert">${groupAction(snapshot)}</p>` : `<p>${summary(snapshot, all, view ? { used, unused: unused?.size ?? 0, series: Boolean(view.series) } : null)}</p>`}</div>`
+    html: `<div class="map-block-head"><h2>${map.research ? 'Wireframes' : 'Cards'}</h2>${failedHere ? `<p class="map-block-alert">${groupAction(snapshot)}</p>` : `<p>${summary(snapshot, all, view ? { used, unused: unused?.size ?? 0, series: Boolean(view.series) } : null)}</p>`}</div>`
   })
   // Before the story is planned there is nothing to show but what happens.
   if (!all.length)
@@ -572,6 +572,9 @@ const drawWires = (map: MapCanvas) => {
   // Lines pass under what a block shows: its cards, copies, segues,
   // directions, gaps and each episode's head (review 7).
   const boxes = [
+    ...(layout.projectCanvas?.items
+      .filter((i) => i.key.startsWith('r:') || i.key.startsWith('n:'))
+      .map((i) => i.box) || []),
     ...Object.values(layout.cards),
     ...Object.values(layout.copies),
     ...layout.segues,

@@ -177,9 +177,15 @@ it('links a saved note back to its answer and to follow-up questions without dup
   })
   const doc = parseHTML(researchWorkspaceView(linked)).document
   expect(
-    doc.querySelector('[data-note-block="block"] [data-research-node="root"]')
-      ?.textContent
+    doc
+      .querySelector('[data-note-block="block"] a[href*="excerpt=block"]')
+      ?.getAttribute('aria-label')
   ).toContain('View source')
+  expect(
+    doc
+      .querySelector('[data-note-block="block"] a[href*="excerpt=block"]')
+      ?.getAttribute('href')
+  ).toContain('node=root')
   expect(
     doc.querySelector('.research-note-links [data-research-node="follow-up"]')
       ?.textContent

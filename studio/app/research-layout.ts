@@ -12,7 +12,7 @@ export type ResearchLayout = {
 }
 export const defaultResearchLayout = (): ResearchLayout => ({
   graphWidth: 310,
-  notesWidth: 280,
+  notesWidth: 380,
   graphMode: 'pip',
   graphOpen: false,
   notesOpen: false,

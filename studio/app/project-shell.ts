@@ -10,7 +10,9 @@ import {
 } from './project-links'
 import { saveBeforeLeaving } from './notebook-editor'
 import { escape } from './ui'
+import { projectViews } from './project-views'
 import './styles/project-shell.css'
+import { setNotes } from './map-chrome'
 
 /** Hosts production tools inside the project. Roots survive navigation, so
  * controller listeners and research drafts survive every handoff too. */
@@ -41,6 +43,11 @@ export class ProjectShell {
     this.frame.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLElement>('button')
       if (!button) return
+      if (button.hasAttribute('data-project-notebook')) {
+        const map = this.app.mapCanvas
+        setNotes(map, !map.root.querySelector('.map-page.is-notes-open'))
+        return
+      }
       if (button.dataset.researchAction === 'toggle-sidebar') {
         this.toggleSidebar()
         return
@@ -56,6 +63,13 @@ export class ProjectShell {
         this.toggleSidebar(false)
         this.heading.querySelector<HTMLElement>('button')?.focus()
       }
+    })
+    document.addEventListener('click', (event) => {
+      const control = (event.target as Element).closest<HTMLElement>(
+        '[data-project-history]'
+      )
+      if (control?.dataset.projectHistory === 'back') history.back()
+      if (control?.dataset.projectHistory === 'forward') history.forward()
     })
     document.addEventListener(
       'click',
@@ -191,7 +205,8 @@ export class ProjectShell {
     const id = destination.searchParams.get('space')
     this.toggleSidebar(false)
     this.frame.classList.remove('project-standalone')
-    if (!id || !destination.searchParams.has('detail')) {
+    const canvasView = destination.searchParams.get('projectView') === 'canvas'
+    if (!id || (!destination.searchParams.has('detail') && !canvasView)) {
       this.frame.hidden = true
       this.researchRoot.hidden = false
       if (id) await this.app.researchWorkspace.open(id)
@@ -212,7 +227,13 @@ export class ProjectShell {
       if (notes) return this.go(new URL(notes, location.href), false)
       this.rendered = ''
       this.sync()
-      const map = destination.searchParams.get('map')
+      const map = canvasView
+        ? project.canvasId ||
+          project.notebooks.find(
+            (n) => n.id === destination.searchParams.get('book')
+          )?.id ||
+          project.notebooks[0].id
+        : destination.searchParams.get('map')
       const notebook = destination.searchParams.get('notebook')
       if (map) await this.app.mapCanvas.open(map)
       else if (notebook) {
@@ -272,7 +293,7 @@ export class ProjectShell {
     const key = markup + (notebook?.id || '')
     if (this.rendered === key) return
     this.rendered = key
-    this.heading.innerHTML = markup
+    this.heading.innerHTML = projectViews(project, context, 'canvas') + markup
     this.sidebar.innerHTML =
       projectSidebar({
         project,

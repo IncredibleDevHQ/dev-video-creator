@@ -9,7 +9,8 @@ export function channelWork(
   project: ResearchProjectView,
   active: WorkspaceItem
 ) {
-  const context = projectContext(new URL(active.href, 'http://workspace.local'))
+  const url = new URL(active.href, 'http://workspace.local')
+  const context = projectContext(url)
   const chat = project.chats?.find((c) => c.id === context.chat)
   const notebook =
     project.notebooks.find((n) => n.id === context.notebook) ||
@@ -31,27 +32,21 @@ export function channelWork(
           : notebook.blocks.length
             ? 'Shape your saved notes'
             : 'Grows from your notes'
-  const mapId =
-    project.canvasId || (notebook.blocks.length ? notebook.id : undefined)
   const video = output?.project.video && !output.project.mapSeries
-  const content = projectLink(project.id, context, { projectView: 'canvas' })
-  const wireframes =
-    output && count
-      ? projectLink(project.id, context, {
-          detail: '1',
-          notebook: output.project.id,
-          view: 'presentation'
-        })
-      : content
+  const wireframes = projectLink(project.id, context, {
+    projectView: 'canvas',
+    focus: 'wireframes'
+  })
   const videoUrl = video
     ? projectLink(project.id, context, {
         detail: '1',
         notebook: output!.project.id,
         view: 'video'
       })
-    : mapId
-      ? projectLink(project.id, context, { detail: '1', map: mapId })
-      : content
+    : projectLink(project.id, context, {
+        projectView: 'canvas',
+        focus: 'episodes'
+      })
   const row = (
     href: string,
     title: string,
@@ -62,8 +57,8 @@ export function channelWork(
     `<a data-tree-link href="${escape(href)}" ${selected ? 'aria-current="page"' : ''}>${icon}<span><strong>${escape(title)}</strong><small>${escape(hint)}</small></span><span class="channel-work-arrow" aria-hidden="true">›</span></a>`
   return `<section class="channel-work" aria-label="Notebook and content"><h2>From research to a story</h2>
     ${row(projectLink(project.id, context, { projectView: 'notes' }), notebook.title, `${notebook.blocks.length} saved ${notebook.blocks.length === 1 ? 'note' : 'notes'} · Notebook`, pickerIcons.notebook, active.kind === 'Notes')}
-    ${row(wireframes, 'Wireframe canvas', canvasStatus, pickerIcons.model, active.kind === 'Create' || active.kind === 'Wireframes')}
-    ${row(videoUrl, 'Episodes & video', video ? 'Continue your video' : output?.project.mapSeries ? 'Continue your series' : 'Plan episodes from your cards', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m10 8 6 4-6 4Z"/></svg>', active.kind === 'Video' || active.kind === 'Canvas')}
+    ${row(wireframes, 'Wireframe canvas', canvasStatus, pickerIcons.model, active.kind === 'Wireframes' || url.searchParams.get('focus') === 'wireframes')}
+    ${row(videoUrl, 'Episodes & video', video ? 'Continue your video' : output?.project.mapSeries ? 'Continue your series' : 'Plan episodes from your cards', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m10 8 6 4-6 4Z"/></svg>', active.kind === 'Video' || url.searchParams.get('focus') === 'episodes')}
     <p>${project.autoOrganize ? 'Saved excerpts keep your canvas growing.' : 'Keep excerpts here, then shape them into a story.'}</p>
     ${chat && active.kind !== 'Chat' ? `<a class="channel-work-return" data-tree-link href="${escape(projectLink(project.id, context, { projectView: 'research' }))}">← Back to ${escape(chat.title)}</a>` : ''}
   </section>`

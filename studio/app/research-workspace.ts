@@ -85,6 +85,17 @@ export class ResearchWorkspace {
   private settingsPending = false
   private returning = new ResearchReturn()
   private composerKeys: Record<string, string> = {}
+  private parked = new Map<
+    string,
+    {
+      anchor: ResearchAnchor | null
+      selection: ResearchAnchor | null
+      collapsed: boolean
+    }
+  >()
+  private parkedKey() {
+    return `${this.state?.project.id}:${this.state?.chat}:${this.state?.node}`
+  }
   constructor(
     private root: HTMLElement,
     onHistory: () => void,
@@ -231,7 +242,15 @@ export class ResearchWorkspace {
   }
   suspend() {
     this.dictation.cancel()
-    if (this.isOpen) this.returning.save(this.root, this.state)
+    if (this.isOpen) {
+      this.returning.save(this.root, this.state)
+      this.persistDrafts()
+      this.parked.set(this.parkedKey(), {
+        anchor: this.state?.anchor || null,
+        selection: this.selection,
+        collapsed: this.branchCollapsed
+      })
+    }
     this.isOpen = false
     ++this.revision
     if (this.timer) clearTimeout(this.timer)
@@ -302,8 +321,15 @@ export class ResearchWorkspace {
     this.isOpen = true
     const revision = ++this.revision
     if (this.timer) clearTimeout(this.timer)
-    this.root.innerHTML =
-      '<div class="research-loading" role="status">Opening your project…</div>'
+    const returning =
+      this.state?.project.id === id &&
+      this.state.chat === launch.get('chat') &&
+      this.state.node === launch.get('node') &&
+      launch.get('projectView') === 'research' &&
+      !launch.has('excerpt')
+    if (!returning)
+      this.root.innerHTML =
+        '<div class="research-loading" role="status">Opening your project…</div>'
     let project: ResearchProjectView
     try {
       project = await researchApi.load(id)
@@ -314,6 +340,17 @@ export class ResearchWorkspace {
       return
     }
     if (revision !== this.revision) return
+    if (returning && this.state) {
+      this.state.project = project
+      this.state.documentExpanded = false
+      this.state.contentOpen = false
+      this.state.chatMinimized = false
+      this.workbench.state.notesOpen = false
+      this.render()
+      this.returning.restore(this.root, this.state)
+      this.poll(revision)
+      return
+    }
     const url = new URL(location.href)
     const tab = url.searchParams.get('projectView')
     const node = url.searchParams.get('node')
@@ -354,6 +391,12 @@ export class ResearchWorkspace {
       project.notebooks.some((n) => n.id === url.searchParams.get('book'))
     )
       this.state.notebook = url.searchParams.get('book')!
+    const parked = this.parked.get(this.parkedKey())
+    if (parked && tab === 'research' && !url.searchParams.has('excerpt')) {
+      this.state.anchor = parked.anchor
+      this.selection = parked.selection
+      this.branchCollapsed = parked.collapsed
+    }
     this.workbench.state.graphOpen = false
     this.workbench.state.expanded = false
     this.workbench.state.notesOpen = Boolean(
@@ -362,6 +405,20 @@ export class ResearchWorkspace {
     this.render()
     if (tab === 'research') this.showSelectedTurn()
     this.returning.restore(this.root, this.state)
+    const excerpt = project.notebooks
+      .flatMap((n) => n.blocks)
+      .find((b) => b.id === url.searchParams.get('excerpt'))
+    if (excerpt?.origin && excerpt.origin.nodeId === this.state.node) {
+      this.state.sourceFocus = {
+        kind: 'response',
+        id: excerpt.origin.nodeId,
+        text: excerpt.text,
+        start: excerpt.origin.start,
+        end: excerpt.origin.end
+      }
+      this.render()
+      scrollToPassage(this.root)
+    }
     this.poll(revision)
   }
   private poll(revision: number) {
@@ -850,6 +907,12 @@ export class ResearchWorkspace {
       return
     }
     if (!action) return
+    if (action === 'open-content') {
+      this.root
+        .querySelector<HTMLAnchorElement>('.project-view-switch a:last-child')
+        ?.click()
+      return
+    }
     this.returning.save(this.root, s)
     if (toggleProjectPanel(action, s, this.workbench, () => this.render())) {
       this.returning.restore(this.root, s)

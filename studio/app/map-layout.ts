@@ -18,6 +18,7 @@ export type MapGroup = Box & {
   slides: string[]
 }
 export type MapLayout = {
+  projectCanvas?: import('./project-canvas').ProjectCanvasLayout
   map: Box
   groups: MapGroup[]
   cards: Record<string, Box>
@@ -45,7 +46,7 @@ export type MapLayout = {
 }
 export type Flow = {
   key: string
-  kind: 'use' | 'chain' | 'out' | 'direction'
+  kind: 'use' | 'chain' | 'out' | 'direction' | 'research' | 'excerpt'
   x1: number
   y1: number
   x2: number
@@ -533,6 +534,7 @@ export const extent = (layout: MapLayout, focus?: Box) => {
     ? [focus]
     : [
         layout.map,
+        ...(layout.projectCanvas?.frames || []),
         ...(layout.series ? [layout.series] : []),
         ...(layout.socials ? [layout.socials] : []),
         ...Object.values(layout.directions)

@@ -120,7 +120,7 @@ export const installHomeResearch = (root: HTMLElement) => {
     primaryPath = project?.repository?.path || ''
     state.repos = project?.repository
       ? [structuredClone(project.repository)]
-      : []
+      : structuredClone(project?.repos || [])
     repo.value = ''
     repo.dispatchEvent(new Event('change', { bubbles: true }))
     drawRepos()
@@ -218,7 +218,12 @@ export const startHomeResearch = async (
     String(values.get('text') || 'New channel').slice(0, 80)
   const project = id
     ? await researchApi.load(id)
-    : await researchApi.create({ title })
+    : context.repos[0]
+      ? await researchRequest<ResearchProjectView>('/repository', {
+          path: context.repos[0].path,
+          branch: context.repos[0].branch
+        })
+      : await researchApi.create({ title })
   context.createdProject = project.id
   const notebookId = String(
     values.get('notebookId') || project.notebooks[0]?.id || ''

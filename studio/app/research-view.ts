@@ -1,3 +1,11 @@
+import {
+  excerptDestinations,
+  notebookHierarchy,
+  notebookHierarchyView,
+  notebookSource,
+  type NotebookEntry
+} from './notebook-hierarchy'
+import { projectViews } from './project-views'
 import { conversationHeader } from './research-conversation'
 import { conversationTurns } from '../shared/research-conversations'
 import {
@@ -158,52 +166,73 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
           s.project.canvas?.status === 'building'
             ? 'Organizing your excerpts…'
             : s.project.canvas?.status === 'failed'
-            ? 'Wireframes paused · your excerpts are saved'
-            : `${
-                s.project.canvas?.project.slides.length || 0
-              } cards in your wireframe canvas`
+              ? 'Wireframes paused · your excerpts are saved'
+              : `${
+                  s.project.canvas?.project.slides.length || 0
+                } cards in your wireframe canvas`
         }</span><button data-research-action="open-content">View canvas →</button></div>`
       : wireframes
-      ? `<div class="project-notebook-outputs"><span>${wireframes} wireframes from these notes</span><a href="${projectLink(
-          s.project.id,
-          { ...s, notebook: n.id },
-          { detail: '1', notebook: n.id, view: 'presentation' }
-        )}">Open wireframes →</a></div>`
-      : s.documentExpanded && n.blocks.length
-      ? '<div class="project-notebook-outputs"><span>Ready to turn these notes into a story?</span><button data-research-action="open-content">Create from notes →</button></div>'
-      : ''}
+        ? `<div class="project-notebook-outputs"><span>${wireframes} wireframes from these notes</span><a href="${projectLink(
+            s.project.id,
+            { ...s, notebook: n.id },
+            { detail: '1', notebook: n.id, view: 'presentation' }
+          )}">Open wireframes →</a></div>`
+        : s.documentExpanded && n.blocks.length
+          ? '<div class="project-notebook-outputs"><span>Ready to turn these notes into a story?</span><button data-research-action="open-content">Create from notes →</button></div>'
+          : ''}
     <div class="research-note-scroll">
       ${n.blocks.length
-        ? n.blocks
-            .map(
-              (b) =>
-                html`<article
-                  class="research-note"
-                  data-note-block="${b.id}"
-                  data-note-source="${b.origin?.nodeId || ''}"
+        ? `<div class="notebook-intro"><p class="notebook-eyebrow">${n.blocks.length} saved excerpts · one shared notebook</p><h2>Research, taking shape.</h2><p>Your excerpts stay connected to their conversations and the story cards they support.</p></div>`
+        : ''}
+      ${n.blocks.length
+        ? notebookHierarchyView(
+            notebookHierarchy(s.project, s.project.canvas, n.id),
+            (entry: NotebookEntry, card) => {
+              const b = entry.block
+              const source = notebookSource(s.project, entry, s)
+              const destinations = excerptDestinations(s.project, b.id)
+              return html`<article
+                class="research-note"
+                data-note-block="${b.id}"
+                data-note-source="${b.origin?.nodeId || ''}"
+              >
+                ${passage(
+                  `class="research-note-text" data-select-note="${b.id}" data-notebook-id="${n.id}"`,
+                  escape(b.text)
+                )}
+                ${b.comment
+                  ? html`<aside class="research-note-comment">
+                      <p>${escape(b.comment)}</p>
+                    </aside>`
+                  : ''}
+                <div class="notebook-source-link">
+                  ${b.origin
+                    ? `<a href="${source.href}" title="${escape(source.path)}" aria-label="View source: ${escape(source.title)}">↖ ${escape(source.title)}</a>`
+                    : '<span>Your note</span>'}
+                </div>
+                ${destinations.cards
+                  .filter((c) => c.id !== card)
+                  .map(
+                    (c) =>
+                      `<a class="notebook-also-supports" href="${projectLink(s.project.id, s, { projectView: 'canvas', focusCard: c.id })}">Also supports: ${escape(c.title)} →</a>`
+                  )
+                  .join('')}
+                <details
+                  class="notebook-note-details"
+                  id="notebook-details-${b.id}"
                 >
-                  <div class="research-note-meta">
-                    <span
-                      >${b.origin ? 'Saved from research' : 'Your note'}</span
-                    >${b.origin
-                      ? html`<button
-                          type="button"
-                          data-research-node="${b.origin.nodeId}"
-                        >
-                          View source ↗
-                        </button>`
-                      : ''}
-                  </div>
-                  ${passage(
-                    `class="research-note-text" data-select-note="${b.id}" data-notebook-id="${n.id}"`,
-                    escape(b.text)
-                  )}
-                  ${b.comment
-                    ? html`<aside class="research-note-comment">
-                        <strong>Your comment</strong>
-                        <p>${escape(b.comment)}</p>
-                      </aside>`
-                    : ''}
+                  <summary>Details & actions</summary>
+                  <p class="notebook-placement-status">
+                    ${escape(destinations.label)}
+                  </p>
+                  <a
+                    class="notebook-on-canvas"
+                    href="${projectLink(s.project.id, s, {
+                      projectView: 'canvas',
+                      focusNote: b.id
+                    })}"
+                    >Locate excerpt on canvas →</a
+                  >
                   ${b.origin
                     ? html`<details
                         class="research-note-provenance"
@@ -225,9 +254,12 @@ export const notePanel = (s: ResearchViewState, compact = false) => {
                   >
                     Ask about this note ↗
                   </button>
-                </article>`
-            )
-            .join('')
+                </details>
+              </article>`
+            },
+            (id) =>
+              `<a href="${projectLink(s.project.id, s, { projectView: 'canvas', focusCard: id })}" aria-label="View card on canvas">View card →</a>`
+          )
         : html`<div class="research-empty">
             <span class="research-empty-symbol">＋</span>
             <h3>A home for what you learn</h3>
@@ -280,8 +312,8 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
         >${n.harness.adapter === 'claude-code'
           ? 'Claude Code'
           : n.harness.adapter === 'codex'
-          ? 'Codex'
-          : 'Kimi'}</strong
+            ? 'Codex'
+            : 'Kimi'}</strong
       ><small
         >${escape(n.harness.model ? modelName(n.harness.model) : '')}</small
       >
@@ -356,18 +388,15 @@ const reply = (n: ResearchNode, s: ResearchViewState) =>
             </button>
           </div>`
       : n.state === 'working'
-      ? html`<div class="research-working" role="status">
-          <i></i>${escape(n.activity || 'Researching…')}
-          ${action('stop', 'Stop', '', `data-node-id="${n.id}"`)}
-        </div>`
-      : html`<div class="research-failure">
-          ${escape(n.error || 'Stopped. Your earlier answers are kept.')}<button
-            type="button"
-            data-retry-node="${n.id}"
-          >
-            Ask again
-          </button>
-        </div>`}
+        ? html`<div class="research-working" role="status">
+            <i></i>${escape(n.activity || 'Researching…')}
+            ${action('stop', 'Stop', '', `data-node-id="${n.id}"`)}
+          </div>`
+        : html`<div class="research-failure">
+            ${escape(
+              n.error || 'Stopped. Your earlier answers are kept.'
+            )}<button type="button" data-retry-node="${n.id}">Ask again</button>
+          </div>`}
   </article>`
 const repoContext = (s: ResearchViewState) =>
   html`<details
@@ -508,14 +537,14 @@ const chat = (s: ResearchViewState) => {
             </blockquote>
           </div>`
         : s.node && (working || unfinished)
-        ? html`<div class="research-branch-hint">
-            ${path.at(-1)?.state === 'working'
-              ? 'Your agent is researching this question. Keep notes or explore another path while it works.'
-              : unfinished
-              ? 'Use Ask again to retry, or open an earlier document to continue.'
-              : 'Your next question branches from this answer. Earlier paths stay saved.'}
-          </div>`
-        : ''}
+          ? html`<div class="research-branch-hint">
+              ${path.at(-1)?.state === 'working'
+                ? 'Your agent is researching this question. Keep notes or explore another path while it works.'
+                : unfinished
+                  ? 'Use Ask again to retry, or open an earlier document to continue.'
+                  : 'Your next question branches from this answer. Earlier paths stay saved.'}
+            </div>`
+          : ''}
       <form id="research-question-form">
         <label class="sr" for="research-question">Research question</label
         ><textarea
@@ -526,8 +555,8 @@ const chat = (s: ResearchViewState) => {
           placeholder="Message ${s.adapter === 'kimi'
             ? 'Kimi'
             : s.adapter === 'codex'
-            ? 'Codex'
-            : 'Claude Code'}…"
+              ? 'Codex'
+              : 'Claude Code'}…"
           required
         ></textarea>
       </form>
@@ -537,8 +566,8 @@ const chat = (s: ResearchViewState) => {
             ${pickerIcons.agent}${s.adapter === 'claude-code'
               ? 'Claude Code'
               : s.adapter === 'kimi'
-              ? 'Kimi'
-              : 'Codex'}${s.model ? ` · ${escape(modelName(s.model))}` : ''}
+                ? 'Kimi'
+                : 'Codex'}${s.model ? ` · ${escape(modelName(s.model))}` : ''}
             <span aria-hidden="true">⌄</span>
           </summary>
           <div class="research-agent-popover">
@@ -604,7 +633,7 @@ export const researchWorkspaceView = (s: ResearchViewState) =>
       tabindex="-1"
     ></button>
     <div class="project-workspace-main">
-      ${chatSwitcher(s)}
+      ${projectViews(s.project, s, 'chat')} ${chatSwitcher(s)}
       ${s.error
         ? html`<div class="research-banner error" role="alert">
             ${escape(s.error)}${action('clear-error', 'Dismiss')}
