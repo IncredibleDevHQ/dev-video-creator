@@ -17,6 +17,8 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
     "electron": "44.2.0",
     "prettier": "3.8.1",
     "tsx": "^4.20.0",
@@ -25,6 +27,7 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
+    "@animate-ui/react": "2.0.0",
     "@aws-sdk/client-s3": "^3.1143.0",
     "@hyperframes/core": "0.7.106",
     "@hyperframes/producer": "0.7.106",
@@ -40,8 +43,11 @@
     "linkedom": "^0.18.12",
     "lucide": "^1.49.0",
     "marked": "^18.0.14",
+    "motion": "^14.0.0",
     "pg": "^8.23.0",
     "puppeteer": "25.12.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "ws": "^8.21.3"
   },
   "packageManager": "yarn@1.22.22"

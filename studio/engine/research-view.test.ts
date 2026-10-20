@@ -339,3 +339,37 @@ it('continues an existing series instead of offering a separate notebook video',
   expect(content.textContent).not.toContain('Build a series from your notes')
   expect(content.textContent).toContain('Review source cards')
 })
+
+it('shows only document children and siblings in local connections, not ordinary turns or unrelated roots', () => {
+  const root = { ...node, id: 'root', parentId: null, chatId: 'chat' }
+  const branch = (id: string, parentId: string) => ({
+    ...root,
+    id,
+    parentId,
+    question: id,
+    artifact: { title: id, parentId }
+  })
+  const current = { ...structuredClone(state), chat: 'chat', node: 'child' }
+  current.project.nodes = [
+    root,
+    branch('child', 'root'),
+    branch('sibling', 'root'),
+    branch('grandchild', 'child'),
+    { ...root, id: 'unrelated' },
+    {
+      ...root,
+      id: 'turn',
+      parentId: 'child',
+      artifact: false as const,
+      contextDocumentId: 'child'
+    }
+  ]
+  const doc = parseHTML(researchWorkspaceView(current)).document
+  const links = [
+    ...doc.querySelectorAll('.conversation-connections [data-research-node]')
+  ].map((n) => n.getAttribute('data-research-node'))
+  expect(links).toEqual(['grandchild', 'sibling'])
+  expect(doc.querySelector('.conversation-connections')?.textContent).toContain(
+    'Other branches from the same source'
+  )
+})

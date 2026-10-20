@@ -12,8 +12,22 @@ export const conversationHeader = (s: ResearchViewState) => {
   const doc = researchDocumentFor(s.project.nodes, s.node)
   if (!doc)
     return '<div class="conversation-heading"><h2>Start your conversation</h2><p>Add repository context below, or ask a question.</p></div>'
-  const path = researchPath(researchDocumentGraph(s.project.nodes), doc.id)
-  return `<div class="conversation-heading"><nav aria-label="Conversation path">${path.map((n, i) => `${i ? ' <span>›</span> ' : ''}<button data-research-node="${n.id}" ${n.id === doc.id ? 'aria-current="page"' : ''}>${escape(i === 0 ? 'Channel' : researchDocumentTitle(n))}</button>`).join('')}</nav><h2>${escape(researchDocumentTitle(doc))}</h2><div class="conversation-heading-meta"><span>${conversationTurns(s.project.nodes, s.node).length} ${conversationTurns(s.project.nodes, s.node).length === 1 ? 'turn' : 'turns'} in this conversation</span><button data-research-action="path-context">What this knows</button></div>${doc.anchor ? `<div class="conversation-source"><button data-research-source="${doc.id}">← Back to source passage</button><details><summary>Selected passage</summary><blockquote>${escape(doc.anchor.text)}</blockquote></details></div>` : ''}</div>`
+  const graph = researchDocumentGraph(s.project.nodes)
+  const path = researchPath(graph, doc.id)
+  const parentId = graph.find((n) => n.id === doc.id)?.parentId
+  const children = graph.filter((n) => n.parentId === doc.id)
+  const siblings = parentId
+    ? graph.filter((n) => n.parentId === parentId && n.id !== doc.id)
+    : []
+  const links = (nodes: typeof graph, label: string) =>
+    nodes.length
+      ? `<section><h3>${label}</h3>${nodes.map((n) => `<button type="button" data-research-node="${escape(n.id)}"><span>${escape(researchDocumentTitle(n))}</span>${n.anchor ? `<small>${escape(n.anchor.text.slice(0, 160))}</small>` : ''}</button>`).join('')}</section>`
+      : ''
+  const connections =
+    children.length + siblings.length
+      ? `<details class="conversation-connections" id="connections-${escape(doc.id)}"><summary>Connected branches <span>${children.length + siblings.length}</span></summary><div>${links(children, 'Branches from here')}${links(siblings, 'Other branches from the same source')}</div></details>`
+      : ''
+  return `<div class="conversation-heading"><nav aria-label="Conversation path">${path.map((n, i) => `${i ? ' <span>›</span> ' : ''}<button data-research-node="${n.id}" ${n.id === doc.id ? 'aria-current="page"' : ''}>${escape(i === 0 ? 'Channel' : researchDocumentTitle(n))}</button>`).join('')}</nav><h2>${escape(researchDocumentTitle(doc))}</h2><div class="conversation-heading-meta"><span>${conversationTurns(s.project.nodes, s.node).length} ${conversationTurns(s.project.nodes, s.node).length === 1 ? 'turn' : 'turns'} in this conversation</span><button data-research-action="path-context">What this knows</button></div>${doc.anchor ? `<div class="conversation-source"><button data-research-source="${doc.id}">← Back to source passage</button><details><summary>Selected passage</summary><blockquote>${escape(doc.anchor.text)}</blockquote></details></div>` : ''}${connections}</div>`
 }
 
 /** UI inserted into prose is excluded from selection offsets. The stored plain

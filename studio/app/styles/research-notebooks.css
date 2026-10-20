@@ -8,7 +8,7 @@
 .research-notes.compact {
   border-left: 1px solid var(--line);
 }
-.research-notes > .research-panel-heading {
+.research-notes .research-panel-heading {
   padding: 22px 20px 16px;
   border-bottom: 1px solid var(--line);
 }

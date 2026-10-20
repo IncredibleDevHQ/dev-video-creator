@@ -1,3 +1,7 @@
+import {
+  revealResearchSurface,
+  releaseResearchSurface
+} from './research-motion'
 import { selectedText } from './research-conversation'
 import { html } from '../shared/html'
 import { escape } from './ui'
@@ -38,6 +42,7 @@ export const captureResearchSelection = (
   const bar = root.querySelector<HTMLElement>('#research-selection')!
   const key = `${selection.id}:${start}:${end}`
   if (bar.dataset.selectionKey === key && !bar.hidden) return selection
+  releaseResearchSurface(bar)
   bar.dataset.selectionKey = key
   bar.hidden = false
   bar.setAttribute('role', 'dialog')
@@ -134,6 +139,7 @@ export const captureResearchSelection = (
     12,
     Math.min(rect.bottom + 8, window.innerHeight - bar.offsetHeight - 12)
   )}px`
+  revealResearchSurface(bar, 'pop')
   return selection
 }
 

@@ -80,8 +80,8 @@
   color: var(--muted);
   opacity: 0;
 }
-.channel-nav-row:hover > button,
-.channel-nav-row:focus-within > button {
+.workspace-tree .channel-nav-row:hover > button,
+.workspace-tree .channel-nav-row:focus-within > button {
   opacity: 1;
 }
 .workspace-tree .channel-section-toggle {
@@ -378,4 +378,86 @@
   color: var(--muted);
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+
+/* Quiet, tactile feedback: movement happens only during interaction. */
+.channel-nav-row {
+  position: relative;
+  border-radius: 10px;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+.channel-nav-row:hover {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+.channel-nav-row:has([aria-current='page']) {
+  background: var(--selected);
+  box-shadow: inset 2px 0 var(--accent);
+}
+.workspace-tree .channel-nav-row > a {
+  border-radius: 10px;
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+.workspace-tree .channel-nav-row > a:hover {
+  background: transparent;
+  transform: translateX(2px);
+}
+.workspace-tree .channel-nav-row > a:active {
+  transform: translateX(2px) scale(0.99);
+}
+.workspace-tree .channel-nav-row > button {
+  border-radius: 8px;
+  transition:
+    opacity 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+.workspace-tree .channel-nav-row:has([aria-current='page']) > button {
+  opacity: 1;
+}
+.channel-nav-search {
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+.channel-nav-search:focus-within {
+  border-color: var(--accent);
+}
+.workspace-tree-menu {
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 12px 32px #0003;
+  transform-origin: top left;
+  animation: channel-menu-in 140ms ease-out;
+}
+.workspace-tree-menu > button {
+  transition: background-color 120ms ease;
+}
+@keyframes channel-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-tree .channel-nav-row,
+  .workspace-tree .channel-nav-row > a,
+  .workspace-tree .channel-nav-row > button,
+  .channel-nav-search,
+  .workspace-tree-menu,
+  .workspace-tree-menu > button {
+    transition: none;
+    animation: none;
+  }
+  .workspace-tree .channel-nav-row > a:hover,
+  .workspace-tree .channel-nav-row > a:active {
+    transform: none;
+  }
 }

@@ -390,7 +390,7 @@
 .research-notes.compact {
   border: 0;
 }
-.research-notes > .research-panel-heading {
+.research-notes .research-panel-heading {
   padding: 14px 18px;
   border-bottom: 1px solid var(--line);
 }

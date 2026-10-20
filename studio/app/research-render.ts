@@ -1,3 +1,4 @@
+import { releaseResearchPanels } from './research-motion'
 /** Keep editor DOM identity when layout, agent controls, or background work
  * changes. Resource changes intentionally receive a different composer; drafts
  * are restored by the host using that resource's key. */
@@ -7,6 +8,7 @@ export const renderResearch = (
   previousKeys: Record<string, string>,
   keys: Record<string, string>
 ) => {
+  releaseResearchPanels(root)
   const notebooksOpen = root
     .querySelector('#project-notebooks')
     ?.hasAttribute('open')

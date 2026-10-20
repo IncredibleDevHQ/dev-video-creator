@@ -1,3 +1,4 @@
+import { researchSurfaces, animateResearchSurfaces } from './research-motion'
 import './styles/research-journey.css'
 import { api } from './api'
 import { chooseResearchPassage } from './research-passage-dialog'
@@ -426,6 +427,7 @@ export class ResearchWorkspace {
       composerKeys['research-question']
     )
       this.dictation.cancel()
+    const previousSurfaces = researchSurfaces(this.root)
     renderResearch(
       this.root,
       researchWorkspaceView(s),
@@ -463,6 +465,7 @@ export class ResearchWorkspace {
     if (transcript && follow && !s.anchor)
       transcript.scrollTop = transcript.scrollHeight
     this.workbench.mount()
+    animateResearchSurfaces(this.root, previousSurfaces)
     if (s.anchor) floatBranchComposer(this.root, s.anchor, this.branchCollapsed)
     this.onLocation?.(s)
   }

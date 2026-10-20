@@ -274,7 +274,7 @@
     0 16px 48px #0005,
     0 2px 8px #0003,
     inset 0 1px #ffffff06;
-  animation: passage-pop-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Entrance is driven by Animate UI timing in research-motion. */
 }
 .research-selection.research-selection-near[hidden] {
   display: none;
@@ -495,4 +495,95 @@
 .research-context-dialog details p {
   color: var(--muted);
   line-height: 1.5;
+}
+
+/* Local connections stay with the document, like backlinks in a note. */
+.conversation-connections {
+  margin-top: 16px;
+  font-size: 13px;
+}
+.conversation-connections summary {
+  cursor: pointer;
+  color: var(--accent);
+  padding: 8px 0;
+}
+.conversation-connections summary span {
+  color: var(--muted);
+  margin-left: 6px;
+}
+.conversation-connections > div {
+  max-height: 260px;
+  overflow: auto;
+  border-left: 1px solid var(--border);
+  padding-left: 12px;
+}
+.conversation-connections h3 {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin: 12px 8px 4px;
+}
+.conversation-connections section button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 8px;
+  border-radius: 8px;
+  text-align: left;
+}
+.conversation-connections section button:hover,
+.conversation-connections section button:focus-visible {
+  background: var(--panel);
+}
+.conversation-connections small {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Shared tactile feedback across research destinations. */
+.research-node-orb,
+.research-node-label,
+.research-notes button,
+.research-panel-heading button,
+.research-selection-near button {
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+.research-node:hover .research-node-orb,
+.research-node:focus-visible .research-node-orb {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.research-notes button:focus-visible,
+.research-panel-heading button:focus-visible,
+.research-selection-near button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .research-node-orb,
+  .research-node-label,
+  .research-notes button,
+  .research-panel-heading button,
+  .research-selection-near button {
+    transition: none;
+  }
+}
+
+/* Animate UI owns these shells; existing editors keep their DOM identity. */
+.research-animated-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+.research-animated-popup {
+  min-width: 0;
 }
